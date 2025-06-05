@@ -581,6 +581,7 @@ export const YTRendererSchemaMap = {
     adPlacements: ytv_arr(ytv_ren()),
     adSlots: ytv_arr(ytv_ren()),
     annotations: ytv_arr(ytv_ren()),
+    attestation: ytv_ren(),
     auxiliaryUi: ytv_sch({
       messageRenderers: ytv_ren()
     }),
@@ -1641,6 +1642,9 @@ export const YTRendererSchemaMap = {
   },
   liveStreamabilityRenderer: {
     broadcastId: ytv_str(),
+    creatorRedirect: ytv_sch({
+      hideAutoplayToggle: ytv_bol()
+    }),
     displayEndscreen: ytv_bol(),
     offlineSlate: ytv_ren(),
     pollDelayMs: ytv_str(),
@@ -1884,6 +1888,16 @@ export const YTRendererSchemaMap = {
     annotationId: ytv_str(),
     featuredChannel: ytv_ren(YTFeaturedChannelSchema)
   },
+  playerAttestationRenderer: {
+    botguardData: ytv_sch({
+      interpreterSafeUrl: ytv_sch({
+        privateDoNotAccessOrElseTrustedResourceUrlWrappedValue: ytv_str()
+      }),
+      program: ytv_str(),
+      serverEnvironment: ytv_num()
+    }),
+    challenge: ytv_str()
+  },
   playerBytesAdLayoutRenderer: {
     adLayoutMetadata: ytv_ren(YTAdLayoutMetadataSchema),
     layoutExitMuteTriggers: ytv_arr(ytv_sch({
@@ -2022,6 +2036,8 @@ export const YTRendererSchemaMap = {
     endScreen: ytv_ren(),
     productsInVideoOverlayRenderer: ytv_ren(),
     shareButton: ytv_ren(),
+    showShareButtonFullscreen: ytv_bol(),
+    showShareButtonSmallscreen: ytv_bol(),
     speedmasterUserEdu: ytv_ren(),
     videoDetails: ytv_ren()
   },
