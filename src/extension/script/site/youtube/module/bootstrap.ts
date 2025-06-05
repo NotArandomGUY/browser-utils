@@ -183,6 +183,9 @@ export default function initYTBootstrapModule(): void {
               userAgent: ''
             })
             break
+          case 'IS_SUBSCRIBER':
+            value = true
+            break
           case 'SBOX_SETTINGS':
             Object.assign(value as YTSearchboxSettings, {
               SEND_VISITOR_DATA: false,
