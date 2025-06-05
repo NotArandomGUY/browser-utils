@@ -1,0 +1,23 @@
+{
+  "name": "Browser Utils",
+  "version": "0.0.7",
+  "description": "Browser utils extension pack",
+  "background": {
+    "service_worker": "js/worker.js"
+  },
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "permissions": [
+    "declarativeNetRequest",
+    "declarativeNetRequestWithHostAccess",
+    "scripting"
+  ],
+  "icons": {
+    "16": "images/icon16.png",
+    "32": "images/icon32.png",
+    "48": "images/icon48.png",
+    "128": "images/icon128.png"
+  },
+  "manifest_version": 3
+}

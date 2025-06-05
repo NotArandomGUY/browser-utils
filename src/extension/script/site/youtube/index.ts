@@ -1,0 +1,25 @@
+import Logger from '@ext/lib/logger'
+import { hideOwnWebpackRuntimeFromGlobal } from '@ext/lib/wprt'
+import initYTBootstrapModule from '@ext/site/youtube/module/bootstrap'
+import initYTFixupModule from '@ext/site/youtube/module/fixup'
+import initYTLoggingModule from '@ext/site/youtube/module/logging'
+import initYTNetworkModule from '@ext/site/youtube/module/network'
+import initYTPlayerModule from '@ext/site/youtube/module/player'
+import initYTPremiumModule from '@ext/site/youtube/module/premium'
+import initYTUIModModule from '@ext/site/youtube/module/uimod'
+
+const logger = new Logger('YT')
+
+logger.info('initializing...')
+
+initYTBootstrapModule()
+initYTFixupModule()
+initYTLoggingModule()
+initYTPlayerModule()
+initYTPremiumModule()
+initYTNetworkModule()
+initYTUIModModule()
+
+logger.info('initialized')
+
+hideOwnWebpackRuntimeFromGlobal()
