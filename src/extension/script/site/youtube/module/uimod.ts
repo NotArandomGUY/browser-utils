@@ -1,3 +1,5 @@
+import InterceptDOM from '@ext/lib/intercept/dom'
+import { HookResult } from '@ext/lib/intercept/hook'
 import Logger from '@ext/lib/logger'
 import { YTSignalActionType } from '@ext/site/youtube/api/endpoint'
 import { registerYTRendererPreProcessor, removeYTRendererPre, YTRenderer, YTRendererData, YTRendererSchemaMap } from '@ext/site/youtube/api/renderer'
@@ -305,6 +307,17 @@ export default function initYTUIModModule(): void {
   isShowShorts = Number(localStorage.getItem('bu-show-shorts') ?? 1) !== 0
   isShowLive = Number(localStorage.getItem('bu-show-live') ?? 1) !== 0
   isShowVideo = Number(localStorage.getItem('bu-show-video') ?? 1) !== 0
+
+  InterceptDOM.setAppendChildCallback(ctx => {
+    const node = ctx.args[0]
+
+    if (node instanceof HTMLDivElement && node.classList.contains('ytp-pause-overlay')) {
+      logger.debug('removed ytp-pause-overlay', node)
+      return HookResult.EXECUTION_CONTINUE
+    }
+
+    return HookResult.EXECUTION_IGNORE
+  })
 
   window.addEventListener('load', () => {
     const app = document.querySelector('ytd-app,yt-live-chat-app')
