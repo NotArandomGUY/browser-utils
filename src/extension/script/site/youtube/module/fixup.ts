@@ -5,17 +5,18 @@ import { removeYTRendererPost, YTRenderer, YTRendererData, YTRendererSchemaMap }
 
 const logger = new Logger('YT-FIXUP')
 
-function filterContainer(data: YTRendererData<YTRenderer<'guideSectionRenderer' | 'reelShelfRenderer' | 'richItemRenderer'>>): boolean {
-  if ('items' in data && data.items != null && data.items.length > 0) return true
-  if ('content' in data && data.content != null && Object.keys(data.content).length > 0) return true
+function filterContentContainer(data: YTRendererData<YTRenderer<'richItemRenderer'>>): boolean {
+  return data.content != null && Object.keys(data.content).length > 0
+}
 
-  return false
+function filterItemsContainer(data: YTRendererData<YTRenderer<'guideSectionRenderer' | 'reelShelfRenderer'>>): boolean {
+  return data.items != null && data.items.length > 0
 }
 
 export default function initYTFixupModule(): void {
-  removeYTRendererPost(YTRendererSchemaMap['guideSectionRenderer'], filterContainer)
-  removeYTRendererPost(YTRendererSchemaMap['reelShelfRenderer'], filterContainer)
-  removeYTRendererPost(YTRendererSchemaMap['richItemRenderer'], filterContainer)
+  removeYTRendererPost(YTRendererSchemaMap['guideSectionRenderer'], filterItemsContainer)
+  removeYTRendererPost(YTRendererSchemaMap['reelShelfRenderer'], filterItemsContainer)
+  removeYTRendererPost(YTRendererSchemaMap['richItemRenderer'], filterContentContainer)
 
   InterceptDOM.setAppendChildCallback(ctx => {
     const node = ctx.args[0]
