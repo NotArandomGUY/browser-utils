@@ -14,7 +14,8 @@ export const SITE_VIDEOPLATFORM_SCRIPT_CONFIG = [
     categories: ['videoplatform', 'adblock', 'mod'],
     description: 'Dedicated ad blocker & Mods',
     matches: [
-      '*://*.youtube.com/*'
+      '*://*.youtube.com/*',
+      '*://*.youtube-nocookie.com/*'
     ],
     preventDefault: true
   },
