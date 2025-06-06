@@ -574,6 +574,7 @@ export const YTRendererSchemaMap = {
     pageVisualEffects: ytv_arr(ytv_ren()),
     playerOverlays: ytv_ren(),
     responseContext: ytv_ren(YTResponseContextSchema),
+    survey: ytv_ren(),
     topbar: ytv_ren()
   },
   playerEndpointRenderer: {
@@ -2301,6 +2302,23 @@ export const YTRendererSchemaMap = {
     onTapCommand: ytv_enp(),
     prominent: ytv_bol()
   },
+  singleOptionSurveyOptionRenderer: {
+    enumName: ytv_str(),
+    option: ytv_sch(YTTextSchema),
+    submissionEndpoint: ytv_enp()
+  },
+  singleOptionSurveyRenderer: {
+    dismissalEndpoint: ytv_enp(),
+    dismissalText: ytv_sch(YTTextSchema),
+    impressionEndpoints: ytv_arr(ytv_enp()),
+    options: ytv_arr(ytv_ren()),
+    question: ytv_sch(YTTextSchema),
+    showGfeedbackPrompt: ytv_bol(),
+    surveyId: ytv_str(),
+    surveyOrientation: ytv_sch({
+      type: ytv_str(['VERTICAL'])
+    })
+  },
   slimMetadataToggleButtonRenderer: {
     button: ytv_ren(),
     isDislike: ytv_bol(),
@@ -2379,6 +2397,11 @@ export const YTRendererSchemaMap = {
       stateId: ytv_num()
     })),
     targetId: ytv_str()
+  },
+  surveyTriggerRenderer: {
+    dismissalEndpoint: ytv_enp(),
+    followUpText: ytv_sch(YTTextSchema),
+    survey: ytv_ren()
   },
   tabRenderer: {
     content: ytv_ren(),

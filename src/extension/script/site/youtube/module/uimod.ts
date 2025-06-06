@@ -31,7 +31,7 @@ let isShowShorts = true
 let isShowLive = true
 let isShowVideo = true
 
-function injectDesktopTopbarRendererNode(data: YTRendererData<YTRenderer<'desktopTopbarRenderer'>>): boolean {
+function setDesktopTopbarRendererContent(data: YTRendererData<YTRenderer<'desktopTopbarRenderer'>>): boolean {
   data.topbarButtons ??= []
   data.topbarButtons.unshift({
     buttonRenderer: {
@@ -168,7 +168,7 @@ function injectDesktopTopbarRendererNode(data: YTRendererData<YTRenderer<'deskto
   return true
 }
 
-function injectVideoPrimaryInfoRendererNode(data: YTRendererData<YTRenderer<'videoPrimaryInfoRenderer'>>): boolean {
+function setVideoPrimaryInfoRendererContent(data: YTRendererData<YTRenderer<'videoPrimaryInfoRenderer'>>): boolean {
   data.videoActions?.menuRenderer?.items?.push({
     menuServiceItemRenderer: {
       icon: {
@@ -199,7 +199,7 @@ function injectVideoPrimaryInfoRendererNode(data: YTRendererData<YTRenderer<'vid
   return true
 }
 
-function updateFeedNudgeRendererNode(data: YTRendererData<YTRenderer<'feedNudgeRenderer'>>): boolean {
+function setFeedNudgeRendererContent(data: YTRendererData<YTRenderer<'feedNudgeRenderer'>>): boolean {
   data.title = { simpleText: 'Oh hi!' }
   data.subtitle = {
     runs: [
@@ -208,6 +208,12 @@ function updateFeedNudgeRendererNode(data: YTRendererData<YTRenderer<'feedNudgeR
       { text: 'P.S. let me know if it suddenly works, it should not' }
     ]
   }
+
+  return true
+}
+
+function updateNextEndpointRenderer(data: YTRendererData<YTRenderer<'nextEndpointRenderer'>>): boolean {
+  delete data.survey
 
   return true
 }
@@ -232,6 +238,12 @@ function updateEmojiPickerRenderer(data: YTRendererData<YTRenderer<'emojiPickerR
     }
     delete c.emojiPickerUpsellCategoryRenderer
   })
+
+  return true
+}
+
+function updateVideoOwnerRenderer(data: YTRendererData<YTRenderer<'videoOwnerRenderer'>>): boolean {
+  if (!isYTLoggedIn()) delete data.membershipButton
 
   return true
 }
@@ -282,13 +294,16 @@ function postToLiveChatWindow(message: YTIFrameMessage): void {
 }
 
 export default function initYTUIModModule(): void {
+  registerYTRendererPreProcessor(YTRendererSchemaMap['desktopTopbarRenderer'], setDesktopTopbarRendererContent)
+  registerYTRendererPreProcessor(YTRendererSchemaMap['feedNudgeRenderer'], setFeedNudgeRendererContent)
+  registerYTRendererPreProcessor(YTRendererSchemaMap['videoPrimaryInfoRenderer'], setVideoPrimaryInfoRendererContent)
+
+  registerYTRendererPreProcessor(YTRendererSchemaMap['nextEndpointRenderer'], updateNextEndpointRenderer)
   registerYTRendererPreProcessor(YTRendererSchemaMap['channelRenderer'], updateChannelRenderer)
-  registerYTRendererPreProcessor(YTRendererSchemaMap['desktopTopbarRenderer'], injectDesktopTopbarRendererNode)
   registerYTRendererPreProcessor(YTRendererSchemaMap['emojiPickerRenderer'], updateEmojiPickerRenderer)
-  registerYTRendererPreProcessor(YTRendererSchemaMap['feedNudgeRenderer'], updateFeedNudgeRendererNode)
   registerYTRendererPreProcessor(YTRendererSchemaMap['gridChannelRenderer'], updateChannelRenderer)
   registerYTRendererPreProcessor(YTRendererSchemaMap['pageHeaderViewModel'], updatePageHeaderViewModel)
-  registerYTRendererPreProcessor(YTRendererSchemaMap['videoPrimaryInfoRenderer'], injectVideoPrimaryInfoRendererNode)
+  registerYTRendererPreProcessor(YTRendererSchemaMap['videoOwnerRenderer'], updateVideoOwnerRenderer)
   removeYTRendererPre(YTRendererSchemaMap['commentSimpleboxRenderer'], isYTLoggedIn)
   removeYTRendererPre(YTRendererSchemaMap['compactVideoRenderer'], filterVideo)
   removeYTRendererPre(YTRendererSchemaMap['guideEntryRenderer'], filterGuideEntry)
