@@ -7,8 +7,8 @@ export const enum HookType {
 export const enum HookResult {
   EXECUTION_IGNORE = 0x01,
   EXECUTION_CONTINUE = 0x02,
-  EXECUTION_RETURN = 0x03,
-  EXECUTION_THROW = 0x04,
+  EXECUTION_RETURN = 0x04,
+  EXECUTION_THROW = 0x08,
   ACTION_NONE = 0x00,
   ACTION_UNINSTALL = 0x10
 }
@@ -40,6 +40,7 @@ function invokeHooks<T, A extends unknown[], R, U = unknown>(ctx: CallContext<T,
 
     switch (resultExecution) {
       case HookResult.EXECUTION_IGNORE:
+        break
       case HookResult.EXECUTION_CONTINUE:
       case HookResult.EXECUTION_RETURN:
       case HookResult.EXECUTION_THROW:
@@ -58,7 +59,7 @@ function invokeHooks<T, A extends unknown[], R, U = unknown>(ctx: CallContext<T,
         throw new Error('invalid hook action')
     }
 
-    if (result === HookResult.EXECUTION_RETURN || result === HookResult.EXECUTION_THROW) break
+    if (result & (HookResult.EXECUTION_RETURN | HookResult.EXECUTION_THROW)) break
   }
 
   return result
