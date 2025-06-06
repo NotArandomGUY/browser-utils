@@ -565,6 +565,7 @@ export const YTRendererSchemaMap = {
     text: ytv_sch(YTTextSchema)
   },
   nextEndpointRenderer: {
+    adEngagementPanels: ytv_arr(ytv_ren()),
     cards: ytv_ren(),
     contents: ytv_ren(),
     currentVideoEndpoint: ytv_enp(),
@@ -698,6 +699,16 @@ export const YTRendererSchemaMap = {
       })
     }),
     renderer: ytv_ren()
+  },
+  adPlayerOverlayRenderer: {
+    shareNavigationEndpoint: ytv_enp(),
+    shortBylineText: ytv_sch(YTTextSchema),
+    showShareButton: ytv_bol(),
+    thumbnail: ytv_sch(YTThumbnailSchema),
+    thumbnailNavigationEndpoint: ytv_enp(),
+    title: ytv_sch(YTTextSchema),
+    trvfaBanner: ytv_sch(YTThumbnailSchema),
+    visitAdvertiserText: ytv_sch(YTTextSchema)
   },
   adSlotRenderer: {
     adSlotMetadata: ytv_sch({
@@ -2185,6 +2196,7 @@ export const YTRendererSchemaMap = {
     contents: ytv_arr(ytv_ren()),
     header: ytv_ren(),
     layoutSizing: ytv_str(['RICH_GRID_LAYOUT_SIZING_STANDARD']),
+    masthead: ytv_ren(),
     reflowOptions: ytv_sch({
       minimumRowsOfVideosAtStart: ytv_num(),
       minimumRowsOfVideosBetweenSections: ytv_num()

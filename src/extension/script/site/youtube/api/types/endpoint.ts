@@ -736,6 +736,10 @@ export const YTEndpointSchemaMap = {
     settingItemId: ytv_str(),
     settingItemIdForClient: ytv_str(['AUTONAV_FOR_DESKTOP'])
   },
+  shareEntityEndpoint: {
+    serializedShareEntity: ytv_str(),
+    sharePanelType: ytv_str(['SHARE_PANEL_TYPE_UNIFIED_SHARE_PANEL'])
+  },
   shareEntityServiceEndpoint: {
     commands: ytv_arr(ytv_enp()),
     serializedShareEntity: ytv_str()

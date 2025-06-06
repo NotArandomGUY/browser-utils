@@ -27,6 +27,12 @@ function processPlayerEndpointRendererNode(data: YTRendererData<YTRenderer<'play
   return true
 }
 
+function processNextEndpointRendererNode(data: YTRendererData<YTRenderer<'nextEndpointRenderer'>>): boolean {
+  delete data.adEngagementPanels
+
+  return true
+}
+
 function filterReel(data: YTEndpointData<YTEndpoint<'reelWatchEndpoint'>>): boolean {
   return data.adClientParams == null
 }
@@ -50,6 +56,7 @@ export default function initYTPremiumModule(): void {
 
   registerYTRendererPreProcessor(YTLoggingDirectivesSchema, processLoggingDirectives)
   registerYTRendererPreProcessor(YTRendererSchemaMap['playerEndpointRenderer'], processPlayerEndpointRendererNode)
+  registerYTRendererPreProcessor(YTRendererSchemaMap['nextEndpointRenderer'], processNextEndpointRendererNode)
   removeYTEndpointPre(YTEndpointSchemaMap['adsControlFlowOpportunityReceivedCommand'])
   removeYTEndpointPre(YTEndpointSchemaMap['reelWatchEndpoint'], filterReel)
   removeYTRendererPre(YTRendererSchemaMap['adPlacementRenderer'])
@@ -57,6 +64,7 @@ export default function initYTPremiumModule(): void {
   removeYTRendererPre(YTRendererSchemaMap['mealbarPromoRenderer'])
   removeYTRendererPre(YTRendererSchemaMap['playerLegacyDesktopWatchAdsRenderer'])
   removeYTRendererPre(YTRendererSchemaMap['youThereRenderer'])
+  removeYTRendererPost(YTRendererSchemaMap['adPlayerOverlayRenderer'])
   removeYTRendererPost(YTRendererSchemaMap['adSlotRenderer'])
   removeYTRendererPost(YTRendererSchemaMap['topBannerImageTextIconButtonedLayoutViewModel'])
 
