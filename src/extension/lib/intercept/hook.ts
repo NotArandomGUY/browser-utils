@@ -99,12 +99,6 @@ export default class Hook<T, A extends unknown[], R, U = unknown> {
         result = invokeHooks(ctx, hooks[HookType.POST], result)
 
         return result === HookResult.EXECUTION_IGNORE ? origin.apply(self, args) : ctx.returnValue
-      },
-      get(target, p, receiver) {
-        return Reflect.get(target, p, receiver)
-      },
-      set(target, p, newValue, receiver) {
-        return Reflect.set(target, p, newValue, receiver)
       }
     })
   }
