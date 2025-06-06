@@ -1,5 +1,6 @@
 import Hook, { HookResult } from '@ext/lib/intercept/hook'
 import Logger from '@ext/lib/logger'
+import { proxyBind } from '@ext/lib/proxy/bind'
 import { CHUNK_GLOBAL_ID } from '@virtual/wprt'
 
 
@@ -1037,41 +1038,7 @@ export function interruptWebpackRuntime(filter: (chunkLoadingGlobal: string) => 
     const globalObject = new Proxy(self, {
       get(target, prop, receiver) {
         const value = ['global', 'self', 'window'].includes(prop as string) ? receiver : target[prop as keyof typeof target]
-        if (typeof value !== 'function') return value
-
-        const boundFn = value.bind(target)
-        return new Proxy(boundFn, {
-          defineProperty(_target, property, attributes) {
-            return Reflect.defineProperty(value, property, attributes)
-          },
-          deleteProperty(_target, p) {
-            return Reflect.deleteProperty(value, p)
-          },
-          get(_target, p, receiver) {
-            return Reflect.get(value, p, receiver)
-          },
-          getOwnPropertyDescriptor(_target, p) {
-            return Reflect.getOwnPropertyDescriptor(value, p)
-          },
-          getPrototypeOf(_target) {
-            return Reflect.getPrototypeOf(value)
-          },
-          has(_target, p) {
-            return Reflect.has(value, p)
-          },
-          isExtensible(_target) {
-            return Reflect.isExtensible(value)
-          },
-          ownKeys(_target) {
-            return Reflect.ownKeys(value)
-          },
-          preventExtensions(_target) {
-            return Reflect.preventExtensions(value)
-          },
-          set(_target, p, newValue, receiver) {
-            return Reflect.set(value, p, newValue, receiver)
-          }
-        })
+        return typeof value === 'function' ? proxyBind(value, target) : value
       },
       set(target, prop, value) {
         if (typeof prop === 'string' && Array.isArray(value) && !value.hasOwnProperty(INTERRUPT_ID) && prop.startsWith('webpackChunk')) {
@@ -1079,7 +1046,7 @@ export function interruptWebpackRuntime(filter: (chunkLoadingGlobal: string) => 
           Object.defineProperties(value, {
             [INTERRUPT_ID]: { value: true },
             forEach: {
-              value: new Hook(value.forEach).install(ctx => {
+              value: new Hook(value.forEach).install(() => {
                 if (value.hasOwnProperty(BYPASS_ID)) return HookResult.EXECUTION_IGNORE
                 if (filter(prop)) {
                   Object.defineProperty(value, BYPASS_ID, { configurable: true, value: true })

@@ -1,4 +1,4 @@
-import ProxyChain from '@ext/lib/intercept/proxy-chain'
+import ProxyChain from '@ext/lib/proxy/chain'
 
 export default function initTrackingGAModule() {
   ProxyChain.assign(window, 'ga', { trace: ['PRIVACY'] })
