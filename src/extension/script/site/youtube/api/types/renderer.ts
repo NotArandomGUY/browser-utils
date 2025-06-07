@@ -35,6 +35,14 @@ export enum YTMediaFormatQualityOrdinal {
   QUALITY_ORDINAL_2160P = 'QUALITY_ORDINAL_2160P'
 }
 
+export const YTResponseCommonSchema = {
+  actions: ytv_arr(ytv_enp()),
+  command: ytv_enp(),
+  onResponseReceivedActions: ytv_arr(ytv_enp()),
+  onResponseReceivedCommand: ytv_arr(ytv_enp()),
+  onResponseReceivedEndpoints: ytv_arr(ytv_enp())
+} satisfies YTRendererSchema
+
 export const YTAdInteractionSchema = {
   accessibility: ytv_sch(YTAccessibilityDataSchema),
   onFirstVisible: ytv_enp(),
@@ -431,6 +439,7 @@ export const YTPlayerConfigSchema = {
     useServerDrivenAbr: ytv_bol()
   }),
   playbackStartConfig: ytv_sch({
+    startPaused: ytv_bol(),
     startPosition: ytv_sch({
       streamTimeMillis: ytv_str()
     }),
@@ -524,18 +533,17 @@ export const YTThemedColorSchema = {
 export const YTRendererSchemaMap = {
   // Response
   browseResponse: {
+    ...YTResponseCommonSchema,
     contents: ytv_ren(),
     frameworkUpdates: ytv_enp(YTEndpointSchemaMap['entityUpdateCommand']),
     header: ytv_ren(),
     metadata: ytv_ren(),
     microformat: ytv_ren(),
-    onResponseReceivedActions: ytv_arr(ytv_enp()),
-    onResponseReceivedEndpoints: ytv_arr(ytv_enp()),
     responseContext: ytv_ren(YTResponseContextSchema),
     topbar: ytv_ren()
   },
   browseEditPlaylistResponse: {
-    actions: ytv_arr(ytv_enp()),
+    ...YTResponseCommonSchema,
     frameworkUpdates: ytv_enp(YTEndpointSchemaMap['entityUpdateCommand']),
     playlistEditResults: ytv_arr(ytv_sch({
       playlistEditVideoAddedResultData: ytv_sch({
@@ -547,10 +555,12 @@ export const YTRendererSchemaMap = {
     status: ytv_str(['STATUS_SUCCEEDED'])
   },
   guideResponse: {
+    ...YTResponseCommonSchema,
     items: ytv_arr(ytv_ren()),
     responseContext: ytv_ren(YTResponseContextSchema)
   },
   liveChatGetLiveChatResponse: {
+    ...YTResponseCommonSchema,
     continuationContents: ytv_sch({
       liveChatContinuation: ytv_ren(YTLiveChatRendererSchema)
     }),
@@ -561,13 +571,13 @@ export const YTRendererSchemaMap = {
     responseContext: ytv_ren(YTResponseContextSchema)
   },
   nextResponse: {
+    ...YTResponseCommonSchema,
     adEngagementPanels: ytv_arr(ytv_ren()),
     cards: ytv_ren(),
     contents: ytv_ren(),
     currentVideoEndpoint: ytv_enp(),
     engagementPanels: ytv_arr(ytv_ren()),
     frameworkUpdates: ytv_enp(YTEndpointSchemaMap['entityUpdateCommand']),
-    onResponseReceivedEndpoints: ytv_arr(ytv_enp()),
     pageVisualEffects: ytv_arr(ytv_ren()),
     playerOverlays: ytv_ren(),
     responseContext: ytv_ren(YTResponseContextSchema),
@@ -575,6 +585,7 @@ export const YTRendererSchemaMap = {
     topbar: ytv_ren()
   },
   playerResponse: {
+    ...YTResponseCommonSchema,
     adBreakHeartbeatParams: ytv_str(),
     adPlacements: ytv_arr(ytv_ren()),
     adSlots: ytv_arr(ytv_ren()),
@@ -607,6 +618,7 @@ export const YTRendererSchemaMap = {
     videoDetails: ytv_ren(YTPlayerVideoDetailsSchema)
   },
   playerHeartbeatResponse: {
+    ...YTResponseCommonSchema,
     adBreakHeartbeatParams: ytv_str(),
     heartbeatServerData: ytv_str(),
     playabilityStatus: ytv_ren(YTPlayerPlayabilityStatusSchema),
@@ -614,6 +626,7 @@ export const YTRendererSchemaMap = {
     responseContext: ytv_ren(YTResponseContextSchema)
   },
   reelReelItemWatchResponse: {
+    ...YTResponseCommonSchema,
     background: ytv_ren(),
     engagementPanels: ytv_arr(ytv_ren()),
     frameworkUpdates: ytv_enp(YTEndpointSchemaMap['entityUpdateCommand']),
@@ -626,23 +639,23 @@ export const YTRendererSchemaMap = {
     topbar: ytv_ren()
   },
   reelReelWatchSequenceResponse: {
+    ...YTResponseCommonSchema,
     continuationEndpoint: ytv_enp(),
     entries: ytv_arr(ytv_ren()),
-    onResponseReceivedActions: ytv_arr(ytv_enp()),
     responseContext: ytv_ren(YTResponseContextSchema)
   },
   searchResponse: {
+    ...YTResponseCommonSchema,
     contents: ytv_ren(),
     estimatedResults: ytv_str(),
     header: ytv_ren(),
-    onResponseReceivedCommands: ytv_arr(ytv_enp()),
     refinements: ytv_arr(ytv_str()),
     responseContext: ytv_ren(YTResponseContextSchema),
     targetId: ytv_str(),
     topbar: ytv_ren()
   },
   updatedMetadataResponse: {
-    actions: ytv_arr(ytv_enp()),
+    ...YTResponseCommonSchema,
     continuation: ytv_ren(YTRendererContinuationSchema),
     frameworkUpdates: ytv_enp(YTEndpointSchemaMap['entityUpdateCommand']),
     responseContext: ytv_ren(YTResponseContextSchema)

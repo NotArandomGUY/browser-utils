@@ -1,11 +1,13 @@
 import InterceptDOM from '@ext/lib/intercept/dom'
 import { HookResult } from '@ext/lib/intercept/hook'
 import Logger from '@ext/lib/logger'
-import { YTEndpoint, YTEndpointData, YTEndpointKey, YTSignalActionType } from '@ext/site/youtube/api/endpoint'
+import { YTSignalActionType } from '@ext/site/youtube/api/endpoint'
 import { registerYTRendererPreProcessor, removeYTRendererPre, YTRenderer, YTRendererData, YTRendererSchemaMap } from '@ext/site/youtube/api/renderer'
 import { YTIconType } from '@ext/site/youtube/api/types/icon'
 import { YTSizeType } from '@ext/site/youtube/api/types/size'
 import { isYTLoggedIn } from '@ext/site/youtube/module/bootstrap'
+
+const logger = new Logger('YT-UIMOD')
 
 interface YTActionEvent {
   actionName: string
@@ -25,12 +27,12 @@ interface YTIFrameMessage {
   'yt-player-video-progress'?: number
 }
 
-const logger = new Logger('YT-UIMOD')
+const playerActionsQueue: NonNullable<YTRendererData<YTRenderer<'playerResponse'>>['actions']>[] = []
 
+let app: Element | null = null
 let isShowShorts = true
 let isShowLive = true
 let isShowVideo = true
-let pendingAutoRunEndpoints: { [K in YTEndpointKey]?: YTEndpointData<YTEndpoint<K>> }[] = []
 
 function processPlayerResponse(data: YTRendererData<YTRenderer<'playerResponse'>>): boolean {
   const { errorScreen, status } = data.playabilityStatus ?? {}
@@ -38,21 +40,51 @@ function processPlayerResponse(data: YTRendererData<YTRenderer<'playerResponse'>
   switch (status) {
     case 'AGE_CHECK_REQUIRED':
     case 'CONTENT_CHECK_REQUIRED': {
-      const serviceEndpoint = errorScreen?.playerErrorMessageRenderer?.proceedButton?.buttonRenderer?.serviceEndpoint
-      pendingAutoRunEndpoints.push({
-        openPopupAction: {
-          durationHintMs: 5e3,
-          popup: {
-            notificationActionRenderer: {
-              responseText: errorScreen?.playerErrorMessageRenderer?.reason ?? { simpleText: status }
+      const playerErrorMessageRenderer = errorScreen?.playerErrorMessageRenderer
+      if (playerErrorMessageRenderer == null) break
+
+      let nextEndpoint = playerErrorMessageRenderer.proceedButton?.buttonRenderer?.serviceEndpoint
+      if (nextEndpoint == null) break
+
+      // Apparently you can skip verify age endpoint?
+      nextEndpoint = nextEndpoint.verifyAgeEndpoint?.nextEndpoint ?? nextEndpoint
+
+      playerActionsQueue.push(
+        // Show popup & navigate to next endpoint
+        [
+          {
+            openPopupAction: {
+              durationHintMs: 5e3,
+              popup: {
+                notificationActionRenderer: {
+                  responseText: playerErrorMessageRenderer.reason ?? { simpleText: status }
+                }
+              },
+              popupType: 'TOAST'
             }
           },
-          popupType: 'TOAST'
-        }
-      })
-      if (serviceEndpoint != null) pendingAutoRunEndpoints.push(serviceEndpoint)
+          nextEndpoint
+        ],
+        // Trigger delayed play player signal
+        [
+          {
+            signalServiceEndpoint: {
+              signal: 'CLIENT_SIGNAL',
+              actions: [
+                { signalAction: { signal: YTSignalActionType.BU_MOD_DELAYED_PLAY_PLAYER } }
+              ]
+            }
+          }
+        ]
+      )
       break
     }
+  }
+
+  const playerActions = playerActionsQueue.shift()
+  if (playerActions != null) {
+    data.actions ??= []
+    data.actions.push(...playerActions)
   }
 
   return true
@@ -110,7 +142,7 @@ function setDesktopTopbarRendererContent(data: YTRendererData<YTRenderer<'deskto
                       signalServiceEndpoint: {
                         signal: 'CLIENT_SIGNAL',
                         actions: [
-                          { signalAction: { signal: YTSignalActionType.BU_UIMOD_SHORTS_SHOW } },
+                          { signalAction: { signal: YTSignalActionType.BU_MOD_SHORTS_SHOW } },
                           { signalAction: { signal: YTSignalActionType.RELOAD_PAGE } }
                         ]
                       }
@@ -121,7 +153,7 @@ function setDesktopTopbarRendererContent(data: YTRendererData<YTRenderer<'deskto
                       signalServiceEndpoint: {
                         signal: 'CLIENT_SIGNAL',
                         actions: [
-                          { signalAction: { signal: YTSignalActionType.BU_UIMOD_SHORTS_HIDE } },
+                          { signalAction: { signal: YTSignalActionType.BU_MOD_SHORTS_HIDE } },
                           { signalAction: { signal: YTSignalActionType.RELOAD_PAGE } }
                         ]
                       }
@@ -137,7 +169,7 @@ function setDesktopTopbarRendererContent(data: YTRendererData<YTRenderer<'deskto
                       signalServiceEndpoint: {
                         signal: 'CLIENT_SIGNAL',
                         actions: [
-                          { signalAction: { signal: YTSignalActionType.BU_UIMOD_LIVE_SHOW } },
+                          { signalAction: { signal: YTSignalActionType.BU_MOD_LIVE_SHOW } },
                           { signalAction: { signal: YTSignalActionType.SOFT_RELOAD_PAGE } }
                         ]
                       }
@@ -148,7 +180,7 @@ function setDesktopTopbarRendererContent(data: YTRendererData<YTRenderer<'deskto
                       signalServiceEndpoint: {
                         signal: 'CLIENT_SIGNAL',
                         actions: [
-                          { signalAction: { signal: YTSignalActionType.BU_UIMOD_LIVE_HIDE } },
+                          { signalAction: { signal: YTSignalActionType.BU_MOD_LIVE_HIDE } },
                           { signalAction: { signal: YTSignalActionType.SOFT_RELOAD_PAGE } }
                         ]
                       }
@@ -164,7 +196,7 @@ function setDesktopTopbarRendererContent(data: YTRendererData<YTRenderer<'deskto
                       signalServiceEndpoint: {
                         signal: 'CLIENT_SIGNAL',
                         actions: [
-                          { signalAction: { signal: YTSignalActionType.BU_UIMOD_VIDEO_SHOW } },
+                          { signalAction: { signal: YTSignalActionType.BU_MOD_VIDEO_SHOW } },
                           { signalAction: { signal: YTSignalActionType.SOFT_RELOAD_PAGE } }
                         ]
                       }
@@ -175,7 +207,7 @@ function setDesktopTopbarRendererContent(data: YTRendererData<YTRenderer<'deskto
                       signalServiceEndpoint: {
                         signal: 'CLIENT_SIGNAL',
                         actions: [
-                          { signalAction: { signal: YTSignalActionType.BU_UIMOD_VIDEO_HIDE } },
+                          { signalAction: { signal: YTSignalActionType.BU_MOD_VIDEO_HIDE } },
                           { signalAction: { signal: YTSignalActionType.SOFT_RELOAD_PAGE } }
                         ]
                       }
@@ -241,11 +273,6 @@ function setFeedNudgeRendererContent(data: YTRendererData<YTRenderer<'feedNudgeR
 
 function updateNextResponse(data: YTRendererData<YTRenderer<'nextResponse'>>): boolean {
   delete data.survey
-
-  if (pendingAutoRunEndpoints.length > 0) {
-    data.onResponseReceivedEndpoints ??= []
-    data.onResponseReceivedEndpoints.push(...(pendingAutoRunEndpoints.splice(0) as typeof data['onResponseReceivedEndpoints'])!)
-  }
 
   return true
 }
@@ -321,6 +348,14 @@ function filterVideo(data: YTRendererData<YTRenderer<'compactVideoRenderer' | 'v
   return true
 }
 
+function dispatchYTAction(action: YTActionEvent): void {
+  app?.dispatchEvent(new CustomEvent<YTActionEvent>('yt-action', { detail: action }))
+}
+
+function dispatchYTPlayPlayerAction(): void {
+  dispatchYTAction({ actionName: 'yt-signal-action-play-player', optionalAction: true, args: [], returnValue: [] })
+}
+
 function postToLiveChatWindow(message: YTIFrameMessage): void {
   window.postMessage(message)
 }
@@ -370,7 +405,7 @@ export default function initYTModModule(): void {
   })
 
   window.addEventListener('load', () => {
-    const app = document.querySelector('ytd-app,yt-live-chat-app')
+    app = document.querySelector('ytd-app,yt-live-chat-app')
     if (app == null) {
       logger.warn('failed to obtain app instance')
       return
@@ -380,27 +415,31 @@ export default function initYTModModule(): void {
       const { detail } = event as CustomEvent<YTActionEvent>
 
       switch (detail.actionName) {
-        case 'yt-signal-action-bu-uimod-shorts-hide':
+        case 'yt-signal-action-bu-mod-delayed-play-player':
+          // TODO: improve reliability by hooking into player internal events
+          setTimeout(dispatchYTPlayPlayerAction, 1e3)
+          break
+        case 'yt-signal-action-bu-mod-shorts-hide':
           isShowShorts = false
           localStorage.setItem('bu-show-shorts', '0')
           break
-        case 'yt-signal-action-bu-uimod-shorts-show':
+        case 'yt-signal-action-bu-mod-shorts-show':
           isShowShorts = true
           localStorage.setItem('bu-show-shorts', '1')
           break
-        case 'yt-signal-action-bu-uimod-live-hide':
+        case 'yt-signal-action-bu-mod-live-hide':
           isShowLive = false
           localStorage.setItem('bu-show-live', '0')
           break
-        case 'yt-signal-action-bu-uimod-live-show':
+        case 'yt-signal-action-bu-mod-live-show':
           isShowLive = true
           localStorage.setItem('bu-show-live', '1')
           break
-        case 'yt-signal-action-bu-uimod-video-hide':
+        case 'yt-signal-action-bu-mod-video-hide':
           isShowVideo = false
           localStorage.setItem('bu-show-video', '0')
           break
-        case 'yt-signal-action-bu-uimod-video-show':
+        case 'yt-signal-action-bu-mod-video-show':
           isShowVideo = true
           localStorage.setItem('bu-show-video', '1')
           break
