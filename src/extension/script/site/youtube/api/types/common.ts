@@ -1,7 +1,7 @@
 import { YTEndpoint, YTEndpointKey } from './endpoint'
 import { YTRenderer, YTRendererKey, YTRendererMixinSchema } from './renderer'
 
-type MaxRecusion = 20
+type MaxRecursion = 20
 type GreaterThan<A extends number, B extends number, S extends any[] = []> = S['length'] extends A ? false : S['length'] extends B ? true : GreaterThan<A, B, [...S, any]>
 type LessThan<A extends number, B extends number, S extends any[] = []> = S['length'] extends B ? false : S['length'] extends A ? true : LessThan<A, B, [...S, any]>
 type Subtract<A extends number, B extends number, I extends any[] = [], O extends any[] = []> = LessThan<A, B> extends true ? never : LessThan<I['length'], A> extends true ? Subtract<A, B, [...I, any], LessThan<I['length'], B> extends true ? O : [...O, any]> : O['length']
@@ -30,7 +30,7 @@ export type YTValueSchema =
   { type: YTValueType.RENDERER, schema?: YTObjectSchema }
 export type YTValueSchemaOf<T extends YTValueSchema['type']> = { [O in T]: Extract<YTValueSchema, { type: O }> }[T]
 
-export type YTValueData<S extends YTValueSchema = YTValueSchema, RL extends number = MaxRecusion> = GreaterThan<RL, 0> extends true ? (
+export type YTValueData<S extends YTValueSchema = YTValueSchema, RL extends number = MaxRecursion> = GreaterThan<RL, 0> extends true ? (
   S extends YTValueSchemaOf<YTValueType.UNKNOWN> ? unknown :
   S extends YTValueSchemaOf<YTValueType.BOOLEAN> ? boolean :
   S extends YTValueSchemaOf<YTValueType.NUMBER> ? number :
@@ -41,16 +41,16 @@ export type YTValueData<S extends YTValueSchema = YTValueSchema, RL extends numb
   S extends YTValueSchemaOf<YTValueType.ENDPOINT> ? (S['schema'] extends YTEndpointSchema ? YTEndpointData<S['schema'], Subtract<RL, 1>> : { [K in YTEndpointKey]?: YTEndpointData<YTEndpoint<K>, Subtract<RL, 1>> }) :
   S extends YTValueSchemaOf<YTValueType.RENDERER> ? (S['schema'] extends YTRendererSchema ? YTRendererData<S['schema'], Subtract<RL, 1>> : { [K in YTRendererKey]?: YTRendererData<YTRenderer<K>, Subtract<RL, 1>> }) :
   never
-) : never
+) : any
 
 export type YTObjectSchema<P extends string = string> = { [prop in P]: YTValueSchema }
-export type YTObjectData<S extends YTObjectSchema = YTObjectSchema, RL extends number = MaxRecusion> = { -readonly [P in keyof S]?: YTValueData<S[P], RL> }
+export type YTObjectData<S extends YTObjectSchema = YTObjectSchema, RL extends number = MaxRecursion> = { -readonly [P in keyof S]?: YTValueData<S[P], RL> }
 
 export type YTEndpointSchema<P extends string = string> = YTObjectSchema<P>
-export type YTEndpointData<S extends YTEndpointSchema = YTEndpointSchema, RL extends number = MaxRecusion> = YTObjectData<S, RL>
+export type YTEndpointData<S extends YTEndpointSchema = YTEndpointSchema, RL extends number = MaxRecursion> = YTObjectData<S, RL>
 
 export type YTRendererSchema<P extends string = string> = YTObjectSchema<P>
-export type YTRendererData<S extends YTRendererSchema = YTRendererSchema, RL extends number = MaxRecusion> = YTObjectData<typeof YTRendererMixinSchema, RL> & YTObjectData<S, RL>
+export type YTRendererData<S extends YTRendererSchema = YTRendererSchema, RL extends number = MaxRecursion> = YTObjectData<typeof YTRendererMixinSchema, RL> & YTObjectData<S, RL>
 
 const YT_VALUE_UNKNOWN = { type: YTValueType.UNKNOWN } as const
 const YT_VALUE_BOOLEAN = { type: YTValueType.BOOLEAN } as const
