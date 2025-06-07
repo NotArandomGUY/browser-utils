@@ -1,4 +1,5 @@
 import Logger from '@ext/lib/logger'
+import { dispatchYTOpenPopupAction } from '@ext/site/youtube/module/action'
 
 const logger = new Logger('YT-LOGGING')
 
@@ -86,6 +87,8 @@ type YTLoggingImsPayload = {
   eventTimeMs: number
 } & YTLoggingImsPayloadVariant
 
+const triggeredDetectionSources = new Set<string>()
+
 function handleBiscottiBasedDetection(payload: YTLoggingImsPayloadVariants['biscottiBasedDetection']): void {
   const { detected, detectionResult, source } = payload
 
@@ -93,6 +96,22 @@ function handleBiscottiBasedDetection(payload: YTLoggingImsPayloadVariants['bisc
   if (!detected) return
 
   logger.warn('triggered biscotti based detection source:', source)
+
+  triggeredDetectionSources.add(source)
+  if (triggeredDetectionSources.size > 1) return
+
+  setTimeout(() => {
+    dispatchYTOpenPopupAction({
+      durationHintMs: 10e3,
+      popup: {
+        notificationActionRenderer: {
+          responseText: { runs: [{ text: `You have triggered adblocker detection [${Array.from(triggeredDetectionSources.values()).join(',')}]` }] }
+        }
+      },
+      popupType: 'TOAST'
+    })
+    triggeredDetectionSources.clear()
+  }, 5e3)
 }
 
 export default function initYTLoggingModule(): void {

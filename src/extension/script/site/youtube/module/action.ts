@@ -1,5 +1,6 @@
 import Logger from '@ext/lib/logger'
-import { YTSignalActionType } from '@ext/site/youtube/api/endpoint'
+import { YTEndpoint, YTSignalActionType } from '@ext/site/youtube/api/endpoint'
+import { YTEndpointData } from '@ext/site/youtube/api/types/common'
 
 const logger = new Logger('YT-ACTION')
 
@@ -22,6 +23,14 @@ function getSignalActionName(signal: YTSignalActionType): string {
 
 export function dispatchYTAction(action: YTActionEvent): void {
   app?.dispatchEvent(new CustomEvent<YTActionEvent>('yt-action', { detail: action }))
+}
+
+export function dispatchYTOpenPopupAction(data: YTEndpointData<YTEndpoint<'openPopupAction'>>): void {
+  dispatchYTAction({
+    actionName: 'yt-open-popup-action',
+    args: [{ openPopupAction: data }, app],
+    returnValue: []
+  })
 }
 
 export function dispatchYTSignalAction(signal: YTSignalActionType): void {
