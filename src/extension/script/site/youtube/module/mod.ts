@@ -5,16 +5,10 @@ import { YTSignalActionType } from '@ext/site/youtube/api/endpoint'
 import { registerYTRendererPreProcessor, removeYTRendererPre, YTRenderer, YTRendererData, YTRendererSchemaMap } from '@ext/site/youtube/api/renderer'
 import { YTIconType } from '@ext/site/youtube/api/types/icon'
 import { YTSizeType } from '@ext/site/youtube/api/types/size'
+import { dispatchYTSignalAction, registerYTSignalActionHandler } from '@ext/site/youtube/module/action'
 import { isYTLoggedIn } from '@ext/site/youtube/module/bootstrap'
 
-const logger = new Logger('YT-UIMOD')
-
-interface YTActionEvent {
-  actionName: string
-  optionalAction: boolean
-  args: unknown[]
-  returnValue: unknown[]
-}
+const logger = new Logger('YT-MOD')
 
 interface YTIFrameMessage {
   'yt-live-chat-buy-flow-callback'?: unknown
@@ -29,7 +23,6 @@ interface YTIFrameMessage {
 
 const playerActionsQueue: NonNullable<YTRendererData<YTRenderer<'playerResponse'>>['actions']>[] = []
 
-let app: Element | null = null
 let isShowShorts = true
 let isShowLive = true
 let isShowVideo = true
@@ -348,14 +341,6 @@ function filterVideo(data: YTRendererData<YTRenderer<'compactVideoRenderer' | 'v
   return true
 }
 
-function dispatchYTAction(action: YTActionEvent): void {
-  app?.dispatchEvent(new CustomEvent<YTActionEvent>('yt-action', { detail: action }))
-}
-
-function dispatchYTPlayPlayerAction(): void {
-  dispatchYTAction({ actionName: 'yt-signal-action-play-player', optionalAction: true, args: [], returnValue: [] })
-}
-
 function postToLiveChatWindow(message: YTIFrameMessage): void {
   window.postMessage(message)
 }
@@ -393,6 +378,35 @@ export default function initYTModModule(): void {
   isShowLive = Number(localStorage.getItem('bu-show-live') ?? 1) !== 0
   isShowVideo = Number(localStorage.getItem('bu-show-video') ?? 1) !== 0
 
+  registerYTSignalActionHandler(YTSignalActionType.BU_MOD_DELAYED_PLAY_PLAYER, () => {
+    // TODO: improve reliability by hooking into player internal events
+    setTimeout(() => dispatchYTSignalAction(YTSignalActionType.PLAY_PLAYER), 1e3)
+  })
+  registerYTSignalActionHandler(YTSignalActionType.BU_MOD_SHORTS_HIDE, () => {
+    isShowShorts = false
+    localStorage.setItem('bu-show-shorts', '0')
+  })
+  registerYTSignalActionHandler(YTSignalActionType.BU_MOD_SHORTS_SHOW, () => {
+    isShowShorts = true
+    localStorage.setItem('bu-show-shorts', '1')
+  })
+  registerYTSignalActionHandler(YTSignalActionType.BU_MOD_LIVE_HIDE, () => {
+    isShowLive = false
+    localStorage.setItem('bu-show-live', '0')
+  })
+  registerYTSignalActionHandler(YTSignalActionType.BU_MOD_LIVE_SHOW, () => {
+    isShowLive = true
+    localStorage.setItem('bu-show-live', '1')
+  })
+  registerYTSignalActionHandler(YTSignalActionType.BU_MOD_VIDEO_HIDE, () => {
+    isShowVideo = false
+    localStorage.setItem('bu-show-video', '0')
+  })
+  registerYTSignalActionHandler(YTSignalActionType.BU_MOD_VIDEO_SHOW, () => {
+    isShowVideo = true
+    localStorage.setItem('bu-show-video', '1')
+  })
+
   InterceptDOM.setAppendChildCallback(ctx => {
     const node = ctx.args[0]
 
@@ -405,47 +419,6 @@ export default function initYTModModule(): void {
   })
 
   window.addEventListener('load', () => {
-    app = document.querySelector('ytd-app,yt-live-chat-app')
-    if (app == null) {
-      logger.warn('failed to obtain app instance')
-      return
-    }
-
-    app.addEventListener('yt-action', event => {
-      const { detail } = event as CustomEvent<YTActionEvent>
-
-      switch (detail.actionName) {
-        case 'yt-signal-action-bu-mod-delayed-play-player':
-          // TODO: improve reliability by hooking into player internal events
-          setTimeout(dispatchYTPlayPlayerAction, 1e3)
-          break
-        case 'yt-signal-action-bu-mod-shorts-hide':
-          isShowShorts = false
-          localStorage.setItem('bu-show-shorts', '0')
-          break
-        case 'yt-signal-action-bu-mod-shorts-show':
-          isShowShorts = true
-          localStorage.setItem('bu-show-shorts', '1')
-          break
-        case 'yt-signal-action-bu-mod-live-hide':
-          isShowLive = false
-          localStorage.setItem('bu-show-live', '0')
-          break
-        case 'yt-signal-action-bu-mod-live-show':
-          isShowLive = true
-          localStorage.setItem('bu-show-live', '1')
-          break
-        case 'yt-signal-action-bu-mod-video-hide':
-          isShowVideo = false
-          localStorage.setItem('bu-show-video', '0')
-          break
-        case 'yt-signal-action-bu-mod-video-show':
-          isShowVideo = true
-          localStorage.setItem('bu-show-video', '1')
-          break
-      }
-    })
-
     if (location.pathname === '/live_chat_replay') {
       // Fire initial progress event to load chat immediately
       postToLiveChatWindow({ 'yt-player-video-progress': 0 })

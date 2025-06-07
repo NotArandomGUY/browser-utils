@@ -1,5 +1,6 @@
 import Logger from '@ext/lib/logger'
 import { hideOwnWebpackRuntimeFromGlobal } from '@ext/lib/wprt'
+import initYTActionModule from '@ext/site/youtube/module/action'
 import initYTBootstrapModule from '@ext/site/youtube/module/bootstrap'
 import initYTFixupModule from '@ext/site/youtube/module/fixup'
 import initYTLoggingModule from '@ext/site/youtube/module/logging'
@@ -13,6 +14,7 @@ const logger = new Logger('YT')
 logger.info('initializing...')
 
 initYTBootstrapModule()
+initYTActionModule()
 initYTFixupModule()
 initYTLoggingModule()
 initYTPlayerModule()
