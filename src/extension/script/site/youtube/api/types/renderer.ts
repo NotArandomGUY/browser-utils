@@ -560,10 +560,6 @@ export const YTRendererSchemaMap = {
     }),
     responseContext: ytv_ren(YTResponseContextSchema)
   },
-  messageRenderer: {
-    button: ytv_ren(),
-    text: ytv_sch(YTTextSchema)
-  },
   nextEndpointRenderer: {
     adEngagementPanels: ytv_arr(ytv_ren()),
     cards: ytv_ren(),
@@ -1784,6 +1780,10 @@ export const YTRendererSchemaMap = {
     shelfType: ytv_str(['MERCHANDISE_SHELF_TYPE_DEFAULT']),
     showText: ytv_str(),
     title: ytv_str()
+  },
+  messageRenderer: {
+    button: ytv_ren(),
+    text: ytv_sch(YTTextSchema)
   },
   metadataBadgeRenderer: {
     accessibilityData: ytv_sch(YTAccessibilityDataSchema),
