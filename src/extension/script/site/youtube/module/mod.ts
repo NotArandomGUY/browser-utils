@@ -235,7 +235,7 @@ function setVideoPrimaryInfoRendererContent(data: YTRendererData<YTRenderer<'vid
               openPopupAction: {
                 popup: {
                   notificationActionRenderer: {
-                    responseText: { runs: [{ text: 'Debug data copied to clipboard' }] }
+                    responseText: { simpleText: 'Debug data copied to clipboard' }
                   }
                 },
                 popupType: 'TOAST'
