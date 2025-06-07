@@ -6,24 +6,24 @@ import { YTRenderer, YTRendererData } from '@ext/site/youtube/api/renderer'
 
 type YTInitDataResponse = {
   page: 'browse' | 'channel'
-  response: YTRendererData<YTRenderer<'browseEndpointRenderer'>>
+  response: YTRendererData<YTRenderer<'browseResponse'>>
 } | {
   page: 'search'
-  response: YTRendererData<YTRenderer<'searchEndpointRenderer'>>
+  response: YTRendererData<YTRenderer<'searchResponse'>>
 } | {
   page: 'shorts',
-  response: YTRendererData<YTRenderer<'reelReelItemWatchEndpointRenderer'>>
+  response: YTRendererData<YTRenderer<'reelReelItemWatchResponse'>>
 } | {
   page: 'watch'
-  response: YTRendererData<YTRenderer<'nextEndpointRenderer'>>
+  response: YTRendererData<YTRenderer<'nextResponse'>>
 } | {
   page: 'live_chat'
-  response: YTRendererData<YTRenderer<'liveChatGetLiveChatEndpointRenderer'>>
+  response: YTRendererData<YTRenderer<'liveChatGetLiveChatResponse'>>
 }
 
 type YTInitData = YTInitDataResponse & Partial<{
   endpoint: YTEndpoint
-  playerResponse: YTRendererData<YTRenderer<'playerEndpointRenderer'>>
+  playerResponse: YTRendererData<YTRenderer<'playerResponse'>>
   reelWatchSequenceResponse: object
   url: string
   previousCsn: string
@@ -80,7 +80,7 @@ interface YTInnertubeContext {
 interface YTPlayer {
   bootstrapPlayerContainer: HTMLElement
   bootstrapWebPlayerContextConfig: object
-  bootstrapPlayerResponse: YTRendererData<YTRenderer<'playerEndpointRenderer'>>
+  bootstrapPlayerResponse: YTRendererData<YTRenderer<'playerResponse'>>
 }
 
 interface YTSearchboxSettings {
@@ -114,19 +114,19 @@ function overrideGetInitialData(initData?: YTInitData) {
   switch (initData.page) {
     case 'browse':
     case 'channel':
-      processYTRenderer('browseEndpointRenderer', initData.response)
+      processYTRenderer('browseResponse', initData.response)
       break
     case 'search':
-      processYTRenderer('searchEndpointRenderer', initData.response)
+      processYTRenderer('searchResponse', initData.response)
       break
     case 'shorts':
-      processYTRenderer('reelReelItemWatchEndpointRenderer', initData.response)
+      processYTRenderer('reelReelItemWatchResponse', initData.response)
       break
     case 'watch':
-      processYTRenderer('nextEndpointRenderer', initData.response)
+      processYTRenderer('nextResponse', initData.response)
       break
     case 'live_chat':
-      processYTRenderer('liveChatGetLiveChatEndpointRenderer', initData.response)
+      processYTRenderer('liveChatGetLiveChatResponse', initData.response)
       break
     default:
       logger.warn('unhandled page type', initData)
@@ -220,13 +220,13 @@ export default function initYTBootstrapModule(): void {
   })
 
   // Process bootstrap player response
-  let bootstrapPlayerResponse: YTRendererData<YTRenderer<'playerEndpointRenderer'>> | null = null
+  let bootstrapPlayerResponse: YTRendererData<YTRenderer<'playerResponse'>> | null = null
   Object.defineProperty(ytplayer, 'bootstrapPlayerResponse', {
     get() {
       return bootstrapPlayerResponse
     },
     set(v) {
-      processYTRenderer('playerEndpointRenderer', v)
+      processYTRenderer('playerResponse', v)
       logger.debug('initial player response:', v)
       bootstrapPlayerResponse = v
     }

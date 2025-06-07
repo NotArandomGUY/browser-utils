@@ -522,8 +522,8 @@ export const YTThemedColorSchema = {
 } satisfies YTRendererSchema
 
 export const YTRendererSchemaMap = {
-  // EndpointRenderer
-  browseEndpointRenderer: {
+  // Response
+  browseResponse: {
     contents: ytv_ren(),
     frameworkUpdates: ytv_enp(YTEndpointSchemaMap['entityUpdateCommand']),
     header: ytv_ren(),
@@ -534,7 +534,7 @@ export const YTRendererSchemaMap = {
     responseContext: ytv_ren(YTResponseContextSchema),
     topbar: ytv_ren()
   },
-  browseEditPlaylistEndpointRenderer: {
+  browseEditPlaylistResponse: {
     actions: ytv_arr(ytv_enp()),
     frameworkUpdates: ytv_enp(YTEndpointSchemaMap['entityUpdateCommand']),
     playlistEditResults: ytv_arr(ytv_sch({
@@ -546,11 +546,11 @@ export const YTRendererSchemaMap = {
     responseContext: ytv_ren(YTResponseContextSchema),
     status: ytv_str(['STATUS_SUCCEEDED'])
   },
-  guideEndpointRenderer: {
+  guideResponse: {
     items: ytv_arr(ytv_ren()),
     responseContext: ytv_ren(YTResponseContextSchema)
   },
-  liveChatGetLiveChatEndpointRenderer: {
+  liveChatGetLiveChatResponse: {
     continuationContents: ytv_sch({
       liveChatContinuation: ytv_ren(YTLiveChatRendererSchema)
     }),
@@ -560,7 +560,7 @@ export const YTRendererSchemaMap = {
     }),
     responseContext: ytv_ren(YTResponseContextSchema)
   },
-  nextEndpointRenderer: {
+  nextResponse: {
     adEngagementPanels: ytv_arr(ytv_ren()),
     cards: ytv_ren(),
     contents: ytv_ren(),
@@ -574,7 +574,7 @@ export const YTRendererSchemaMap = {
     survey: ytv_ren(),
     topbar: ytv_ren()
   },
-  playerEndpointRenderer: {
+  playerResponse: {
     adBreakHeartbeatParams: ytv_str(),
     adPlacements: ytv_arr(ytv_ren()),
     adSlots: ytv_arr(ytv_ren()),
@@ -606,14 +606,14 @@ export const YTRendererSchemaMap = {
     streamingData: ytv_ren(YTPlayerStreamingDataSchema),
     videoDetails: ytv_ren(YTPlayerVideoDetailsSchema)
   },
-  playerHeartbeatEndpointRenderer: {
+  playerHeartbeatResponse: {
     adBreakHeartbeatParams: ytv_str(),
     heartbeatServerData: ytv_str(),
     playabilityStatus: ytv_ren(YTPlayerPlayabilityStatusSchema),
     pollDelayMs: ytv_str(),
     responseContext: ytv_ren(YTResponseContextSchema)
   },
-  reelReelItemWatchEndpointRenderer: {
+  reelReelItemWatchResponse: {
     background: ytv_ren(),
     engagementPanels: ytv_arr(ytv_ren()),
     frameworkUpdates: ytv_enp(YTEndpointSchemaMap['entityUpdateCommand']),
@@ -625,13 +625,13 @@ export const YTRendererSchemaMap = {
     tooltip: ytv_ren(), // NOTE: actually an unknown type
     topbar: ytv_ren()
   },
-  reelReelWatchSequenceEndpointRenderer: {
+  reelReelWatchSequenceResponse: {
     continuationEndpoint: ytv_enp(),
     entries: ytv_arr(ytv_ren()),
     onResponseReceivedActions: ytv_arr(ytv_enp()),
     responseContext: ytv_ren(YTResponseContextSchema)
   },
-  searchEndpointRenderer: {
+  searchResponse: {
     contents: ytv_ren(),
     estimatedResults: ytv_str(),
     header: ytv_ren(),
@@ -641,7 +641,7 @@ export const YTRendererSchemaMap = {
     targetId: ytv_str(),
     topbar: ytv_ren()
   },
-  updatedMetadataEndpointRenderer: {
+  updatedMetadataResponse: {
     actions: ytv_arr(ytv_enp()),
     continuation: ytv_ren(YTRendererContinuationSchema),
     frameworkUpdates: ytv_enp(YTEndpointSchemaMap['entityUpdateCommand']),

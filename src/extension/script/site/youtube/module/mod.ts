@@ -32,7 +32,7 @@ let isShowLive = true
 let isShowVideo = true
 let pendingAutoRunEndpoints: { [K in YTEndpointKey]?: YTEndpointData<YTEndpoint<K>> }[] = []
 
-function processPlayerEndpointRenderer(data: YTRendererData<YTRenderer<'playerEndpointRenderer'>>): boolean {
+function processPlayerResponse(data: YTRendererData<YTRenderer<'playerResponse'>>): boolean {
   const { errorScreen, status } = data.playabilityStatus ?? {}
 
   switch (status) {
@@ -239,7 +239,7 @@ function setFeedNudgeRendererContent(data: YTRendererData<YTRenderer<'feedNudgeR
   return true
 }
 
-function updateNextEndpointRenderer(data: YTRendererData<YTRenderer<'nextEndpointRenderer'>>): boolean {
+function updateNextResponse(data: YTRendererData<YTRenderer<'nextResponse'>>): boolean {
   delete data.survey
 
   if (pendingAutoRunEndpoints.length > 0) {
@@ -326,13 +326,13 @@ function postToLiveChatWindow(message: YTIFrameMessage): void {
 }
 
 export default function initYTModModule(): void {
-  registerYTRendererPreProcessor(YTRendererSchemaMap['playerEndpointRenderer'], processPlayerEndpointRenderer)
+  registerYTRendererPreProcessor(YTRendererSchemaMap['playerResponse'], processPlayerResponse)
 
   registerYTRendererPreProcessor(YTRendererSchemaMap['desktopTopbarRenderer'], setDesktopTopbarRendererContent)
   registerYTRendererPreProcessor(YTRendererSchemaMap['feedNudgeRenderer'], setFeedNudgeRendererContent)
   registerYTRendererPreProcessor(YTRendererSchemaMap['videoPrimaryInfoRenderer'], setVideoPrimaryInfoRendererContent)
 
-  registerYTRendererPreProcessor(YTRendererSchemaMap['nextEndpointRenderer'], updateNextEndpointRenderer)
+  registerYTRendererPreProcessor(YTRendererSchemaMap['nextResponse'], updateNextResponse)
   registerYTRendererPreProcessor(YTRendererSchemaMap['channelRenderer'], updateChannelRenderer)
   registerYTRendererPreProcessor(YTRendererSchemaMap['emojiPickerRenderer'], updateEmojiPickerRenderer)
   registerYTRendererPreProcessor(YTRendererSchemaMap['gridChannelRenderer'], updateChannelRenderer)

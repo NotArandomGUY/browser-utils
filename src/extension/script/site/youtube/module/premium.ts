@@ -17,7 +17,7 @@ function updateLoggingDirectives(data: YTRendererData<typeof YTLoggingDirectives
   return true
 }
 
-function updatePlayerEndpointRenderer(data: YTRendererData<YTRenderer<'playerEndpointRenderer'>>): boolean {
+function updatePlayerResponse(data: YTRendererData<YTRenderer<'playerResponse'>>): boolean {
   delete data.playbackTracking?.ptrackingUrl
   delete data.playbackTracking?.qoeUrl
   delete data.playbackTracking?.atrUrl
@@ -27,7 +27,7 @@ function updatePlayerEndpointRenderer(data: YTRendererData<YTRenderer<'playerEnd
   return true
 }
 
-function updateNextEndpointRenderer(data: YTRendererData<YTRenderer<'nextEndpointRenderer'>>): boolean {
+function updateNextResponse(data: YTRendererData<YTRenderer<'nextResponse'>>): boolean {
   delete data.adEngagementPanels
 
   return true
@@ -55,8 +55,8 @@ export default function initYTPremiumModule(): void {
   setYTServiceTrackingOverride('CSI', 'yt_red', '1')
 
   registerYTRendererPreProcessor(YTLoggingDirectivesSchema, updateLoggingDirectives)
-  registerYTRendererPreProcessor(YTRendererSchemaMap['playerEndpointRenderer'], updatePlayerEndpointRenderer)
-  registerYTRendererPreProcessor(YTRendererSchemaMap['nextEndpointRenderer'], updateNextEndpointRenderer)
+  registerYTRendererPreProcessor(YTRendererSchemaMap['playerResponse'], updatePlayerResponse)
+  registerYTRendererPreProcessor(YTRendererSchemaMap['nextResponse'], updateNextResponse)
 
   removeYTEndpointPre(YTEndpointSchemaMap['adsControlFlowOpportunityReceivedCommand'])
   removeYTEndpointPre(YTEndpointSchemaMap['reelWatchEndpoint'], filterReel)

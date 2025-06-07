@@ -61,37 +61,37 @@ function getRequestBehaviour(url: URL, input?: FetchInput, init?: RequestInit): 
 function processResponse(url: URL, data: object): boolean {
   switch (url.pathname) {
     case '/youtubei/v1/browse':
-      processYTRenderer('browseEndpointRenderer', data)
+      processYTRenderer('browseResponse', data)
       return true
     case '/youtubei/v1/browse/edit_playlist':
-      processYTRenderer('browseEditPlaylistEndpointRenderer', data)
+      processYTRenderer('browseEditPlaylistResponse', data)
       return true
     case '/youtubei/v1/guide':
-      processYTRenderer('guideEndpointRenderer', data)
+      processYTRenderer('guideResponse', data)
       return true
     case '/youtubei/v1/live_chat/get_live_chat':
-      processYTRenderer('liveChatGetLiveChatEndpointRenderer', data)
+      processYTRenderer('liveChatGetLiveChatResponse', data)
       return true
     case '/youtubei/v1/next':
-      processYTRenderer('nextEndpointRenderer', data)
+      processYTRenderer('nextResponse', data)
       return true
     case '/youtubei/v1/player':
-      processYTRenderer('playerEndpointRenderer', data)
+      processYTRenderer('playerResponse', data)
       return true
     case '/youtubei/v1/player/heartbeat':
-      processYTRenderer('playerHeartbeatEndpointRenderer', data)
+      processYTRenderer('playerHeartbeatResponse', data)
       return true
     case '/youtubei/v1/reel/reel_item_watch':
-      processYTRenderer('reelReelItemWatchEndpointRenderer', data)
+      processYTRenderer('reelReelItemWatchResponse', data)
       return true
     case '/youtubei/v1/reel/reel_watch_sequence':
-      processYTRenderer('reelReelWatchSequenceEndpointRenderer', data)
+      processYTRenderer('reelReelWatchSequenceResponse', data)
       return true
     case '/youtubei/v1/search':
-      processYTRenderer('searchEndpointRenderer', data)
+      processYTRenderer('searchResponse', data)
       return true
     case '/youtubei/v1/updated_metadata':
-      processYTRenderer('updatedMetadataEndpointRenderer', data)
+      processYTRenderer('updatedMetadataResponse', data)
       return true
     default:
       return false
