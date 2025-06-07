@@ -383,7 +383,7 @@ export const YTEndpointSchemaMap = {
     beReused: ytv_bol(),
     durationHintMs: ytv_num(),
     popup: ytv_ren(),
-    popupType: ytv_str(['DIALOG', 'DROPDOWN', 'RESPONSIVE_DROPDOWN', 'TOP_ALIGNED_DIALOG', 'TOAST'])
+    popupType: ytv_str(['DIALOG', 'DROPDOWN', 'HINT', 'LOCKED_MODAL', 'NOTIFICATION', 'RESPONSIVE_DROPDOWN', 'SURVEY', 'TOP_ALIGNED_DIALOG', 'TOAST'])
   },
   replaceEnclosingAction: {
     groupDismissal: ytv_sch({
@@ -465,7 +465,7 @@ export const YTEndpointSchemaMap = {
   },
   continuationCommand: {
     command: ytv_enp(),
-    request: ytv_str(['CONTINUATION_REQUEST_TYPE_BROWSE', 'CONTINUATION_REQUEST_TYPE_REEL_WATCH_SEQUENCE', 'CONTINUATION_REQUEST_TYPE_SEARCH', 'CONTINUATION_REQUEST_TYPE_WATCH_NEXT']),
+    request: ytv_str(['CONTINUATION_REQUEST_TYPE_ACCOUNTS_LIST', 'CONTINUATION_REQUEST_TYPE_BROWSE', 'CONTINUATION_REQUEST_TYPE_COMMENTS_NOTIFICATION_MENU', 'CONTINUATION_REQUEST_TYPE_COMMENT_REPLIES', 'CONTINUATION_REQUEST_TYPE_GET_PANEL', 'CONTINUATION_REQUEST_TYPE_REEL_WATCH_SEQUENCE', 'CONTINUATION_REQUEST_TYPE_SEARCH', 'CONTINUATION_REQUEST_TYPE_WATCH_NEXT']),
     token: ytv_str()
   },
   elementsCommand: {
@@ -783,7 +783,7 @@ export const YTEndpointSchemaMap = {
   },
   signalServiceEndpoint: {
     actions: ytv_arr(ytv_enp()),
-    signal: ytv_str(['CLIENT_SIGNAL', 'GET_ACCOUNT_MENU', 'GET_NOTIFICATIONS_INBOX', 'GET_UNSEEN_NOTIFICATION_COUNT'])
+    signal: ytv_str(['CLIENT_SIGNAL', 'GET_ACCOUNT_MENU', 'GET_NOTIFICATIONS_MENU', 'GET_NOTIFICATIONS_INBOX', 'GET_UNSEEN_NOTIFICATION_COUNT', 'GET_USER_MENTION_SUGGESTIONS', 'LOAD_GUIDE', 'SUBMIT_FEEDBACK'])
   },
   subscribeEndpoint: {
     channelIds: ytv_arr(ytv_str()),
@@ -814,6 +814,9 @@ export const YTEndpointSchemaMap = {
     nofollow: ytv_bol(),
     target: ytv_str(['TARGET_NEW_WINDOW']),
     url: ytv_str()
+  },
+  verifyAgeEndpoint: {
+    nextEndpoint: ytv_enp()
   },
   userFeedbackEndpoint: {
     additionalDatas: ytv_arr(ytv_sch({

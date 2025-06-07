@@ -462,7 +462,7 @@ export const YTPlayerPlayabilityStatusSchema = {
   paygatedQualitiesMetadata: ytv_ren(YTPaygatedQualitiesMetadataSchema),
   playableInEmbed: ytv_bol(),
   reason: ytv_str(),
-  status: ytv_str()
+  status: ytv_str(['AGE_CHECK_REQUIRED', 'AGE_VERIFICATION_REQUIRED', 'CONTENT_CHECK_REQUIRED', 'OK'])
 } satisfies YTRendererSchema
 
 export const YTPlayerPlaybackTrackingSchema = {
@@ -1858,6 +1858,7 @@ export const YTRendererSchemaMap = {
   },
   notificationActionRenderer: {
     actionButton: ytv_ren(),
+    closeActionButton: ytv_ren(),
     responseText: ytv_sch(YTTextSchema)
   },
   notificationMultiActionRenderer: {

@@ -10,14 +10,14 @@ interface YTGlobal {
 
 const logger = new Logger('YT-PREMIUM')
 
-function processLoggingDirectives(data: YTRendererData<typeof YTLoggingDirectivesSchema>): boolean {
+function updateLoggingDirectives(data: YTRendererData<typeof YTLoggingDirectivesSchema>): boolean {
   delete data.clientVeSpec
   delete data.visibility
 
   return true
 }
 
-function processPlayerEndpointRendererNode(data: YTRendererData<YTRenderer<'playerEndpointRenderer'>>): boolean {
+function updatePlayerEndpointRenderer(data: YTRendererData<YTRenderer<'playerEndpointRenderer'>>): boolean {
   delete data.playbackTracking?.ptrackingUrl
   delete data.playbackTracking?.qoeUrl
   delete data.playbackTracking?.atrUrl
@@ -27,7 +27,7 @@ function processPlayerEndpointRendererNode(data: YTRendererData<YTRenderer<'play
   return true
 }
 
-function processNextEndpointRendererNode(data: YTRendererData<YTRenderer<'nextEndpointRenderer'>>): boolean {
+function updateNextEndpointRenderer(data: YTRendererData<YTRenderer<'nextEndpointRenderer'>>): boolean {
   delete data.adEngagementPanels
 
   return true
@@ -54,9 +54,10 @@ export default function initYTPremiumModule(): void {
   setYTServiceTrackingOverride('CSI', 'yt_ad', '0')
   setYTServiceTrackingOverride('CSI', 'yt_red', '1')
 
-  registerYTRendererPreProcessor(YTLoggingDirectivesSchema, processLoggingDirectives)
-  registerYTRendererPreProcessor(YTRendererSchemaMap['playerEndpointRenderer'], processPlayerEndpointRendererNode)
-  registerYTRendererPreProcessor(YTRendererSchemaMap['nextEndpointRenderer'], processNextEndpointRendererNode)
+  registerYTRendererPreProcessor(YTLoggingDirectivesSchema, updateLoggingDirectives)
+  registerYTRendererPreProcessor(YTRendererSchemaMap['playerEndpointRenderer'], updatePlayerEndpointRenderer)
+  registerYTRendererPreProcessor(YTRendererSchemaMap['nextEndpointRenderer'], updateNextEndpointRenderer)
+
   removeYTEndpointPre(YTEndpointSchemaMap['adsControlFlowOpportunityReceivedCommand'])
   removeYTEndpointPre(YTEndpointSchemaMap['reelWatchEndpoint'], filterReel)
   removeYTRendererPre(YTRendererSchemaMap['adPlacementRenderer'])

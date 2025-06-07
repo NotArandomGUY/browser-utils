@@ -1,7 +1,7 @@
 import InterceptDOM from '@ext/lib/intercept/dom'
 import { HookResult } from '@ext/lib/intercept/hook'
 import Logger from '@ext/lib/logger'
-import { YTSignalActionType } from '@ext/site/youtube/api/endpoint'
+import { YTEndpoint, YTEndpointData, YTEndpointKey, YTSignalActionType } from '@ext/site/youtube/api/endpoint'
 import { registerYTRendererPreProcessor, removeYTRendererPre, YTRenderer, YTRendererData, YTRendererSchemaMap } from '@ext/site/youtube/api/renderer'
 import { YTIconType } from '@ext/site/youtube/api/types/icon'
 import { YTSizeType } from '@ext/site/youtube/api/types/size'
@@ -30,6 +30,33 @@ const logger = new Logger('YT-UIMOD')
 let isShowShorts = true
 let isShowLive = true
 let isShowVideo = true
+let pendingAutoRunEndpoints: { [K in YTEndpointKey]?: YTEndpointData<YTEndpoint<K>> }[] = []
+
+function processPlayerEndpointRenderer(data: YTRendererData<YTRenderer<'playerEndpointRenderer'>>): boolean {
+  const { errorScreen, status } = data.playabilityStatus ?? {}
+
+  switch (status) {
+    case 'AGE_CHECK_REQUIRED':
+    case 'CONTENT_CHECK_REQUIRED': {
+      const serviceEndpoint = errorScreen?.playerErrorMessageRenderer?.proceedButton?.buttonRenderer?.serviceEndpoint
+      pendingAutoRunEndpoints.push({
+        openPopupAction: {
+          durationHintMs: 5e3,
+          popup: {
+            notificationActionRenderer: {
+              responseText: errorScreen?.playerErrorMessageRenderer?.reason ?? { simpleText: status }
+            }
+          },
+          popupType: 'TOAST'
+        }
+      })
+      if (serviceEndpoint != null) pendingAutoRunEndpoints.push(serviceEndpoint)
+      break
+    }
+  }
+
+  return true
+}
 
 function setDesktopTopbarRendererContent(data: YTRendererData<YTRenderer<'desktopTopbarRenderer'>>): boolean {
   data.topbarButtons ??= []
@@ -215,6 +242,11 @@ function setFeedNudgeRendererContent(data: YTRendererData<YTRenderer<'feedNudgeR
 function updateNextEndpointRenderer(data: YTRendererData<YTRenderer<'nextEndpointRenderer'>>): boolean {
   delete data.survey
 
+  if (pendingAutoRunEndpoints.length > 0) {
+    data.onResponseReceivedEndpoints ??= []
+    data.onResponseReceivedEndpoints.push(...(pendingAutoRunEndpoints.splice(0) as typeof data['onResponseReceivedEndpoints'])!)
+  }
+
   return true
 }
 
@@ -293,7 +325,9 @@ function postToLiveChatWindow(message: YTIFrameMessage): void {
   window.postMessage(message)
 }
 
-export default function initYTUIModModule(): void {
+export default function initYTModModule(): void {
+  registerYTRendererPreProcessor(YTRendererSchemaMap['playerEndpointRenderer'], processPlayerEndpointRenderer)
+
   registerYTRendererPreProcessor(YTRendererSchemaMap['desktopTopbarRenderer'], setDesktopTopbarRendererContent)
   registerYTRendererPreProcessor(YTRendererSchemaMap['feedNudgeRenderer'], setFeedNudgeRendererContent)
   registerYTRendererPreProcessor(YTRendererSchemaMap['videoPrimaryInfoRenderer'], setVideoPrimaryInfoRendererContent)
@@ -304,6 +338,7 @@ export default function initYTUIModModule(): void {
   registerYTRendererPreProcessor(YTRendererSchemaMap['gridChannelRenderer'], updateChannelRenderer)
   registerYTRendererPreProcessor(YTRendererSchemaMap['pageHeaderViewModel'], updatePageHeaderViewModel)
   registerYTRendererPreProcessor(YTRendererSchemaMap['videoOwnerRenderer'], updateVideoOwnerRenderer)
+
   removeYTRendererPre(YTRendererSchemaMap['commentSimpleboxRenderer'], isYTLoggedIn)
   removeYTRendererPre(YTRendererSchemaMap['compactVideoRenderer'], filterVideo)
   removeYTRendererPre(YTRendererSchemaMap['guideEntryRenderer'], filterGuideEntry)
