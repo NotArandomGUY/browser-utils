@@ -1,3 +1,4 @@
+import { Feature } from '@ext/lib/feature'
 import InterceptDOM from '@ext/lib/intercept/dom'
 import { HookResult } from '@ext/lib/intercept/hook'
 import Logger from '@ext/lib/logger'
@@ -345,83 +346,91 @@ function postToLiveChatWindow(message: YTIFrameMessage): void {
   window.postMessage(message)
 }
 
-export default function initYTModModule(): void {
-  registerYTRendererPreProcessor(YTRendererSchemaMap['playerResponse'], processPlayerResponse)
+export default class YTModModule extends Feature {
+  protected activate(): boolean {
+    registerYTRendererPreProcessor(YTRendererSchemaMap['playerResponse'], processPlayerResponse)
 
-  registerYTRendererPreProcessor(YTRendererSchemaMap['desktopTopbarRenderer'], setDesktopTopbarRendererContent)
-  registerYTRendererPreProcessor(YTRendererSchemaMap['feedNudgeRenderer'], setFeedNudgeRendererContent)
-  registerYTRendererPreProcessor(YTRendererSchemaMap['videoPrimaryInfoRenderer'], setVideoPrimaryInfoRendererContent)
+    registerYTRendererPreProcessor(YTRendererSchemaMap['desktopTopbarRenderer'], setDesktopTopbarRendererContent)
+    registerYTRendererPreProcessor(YTRendererSchemaMap['feedNudgeRenderer'], setFeedNudgeRendererContent)
+    registerYTRendererPreProcessor(YTRendererSchemaMap['videoPrimaryInfoRenderer'], setVideoPrimaryInfoRendererContent)
 
-  registerYTRendererPreProcessor(YTRendererSchemaMap['nextResponse'], updateNextResponse)
-  registerYTRendererPreProcessor(YTRendererSchemaMap['channelRenderer'], updateChannelRenderer)
-  registerYTRendererPreProcessor(YTRendererSchemaMap['emojiPickerRenderer'], updateEmojiPickerRenderer)
-  registerYTRendererPreProcessor(YTRendererSchemaMap['gridChannelRenderer'], updateChannelRenderer)
-  registerYTRendererPreProcessor(YTRendererSchemaMap['pageHeaderViewModel'], updatePageHeaderViewModel)
-  registerYTRendererPreProcessor(YTRendererSchemaMap['videoOwnerRenderer'], updateVideoOwnerRenderer)
+    registerYTRendererPreProcessor(YTRendererSchemaMap['nextResponse'], updateNextResponse)
+    registerYTRendererPreProcessor(YTRendererSchemaMap['channelRenderer'], updateChannelRenderer)
+    registerYTRendererPreProcessor(YTRendererSchemaMap['emojiPickerRenderer'], updateEmojiPickerRenderer)
+    registerYTRendererPreProcessor(YTRendererSchemaMap['gridChannelRenderer'], updateChannelRenderer)
+    registerYTRendererPreProcessor(YTRendererSchemaMap['pageHeaderViewModel'], updatePageHeaderViewModel)
+    registerYTRendererPreProcessor(YTRendererSchemaMap['videoOwnerRenderer'], updateVideoOwnerRenderer)
 
-  removeYTRendererPre(YTRendererSchemaMap['commentSimpleboxRenderer'], isYTLoggedIn)
-  removeYTRendererPre(YTRendererSchemaMap['compactVideoRenderer'], filterVideo)
-  removeYTRendererPre(YTRendererSchemaMap['guideEntryRenderer'], filterGuideEntry)
-  removeYTRendererPre(YTRendererSchemaMap['guideSigninPromoRenderer'])
-  removeYTRendererPre(YTRendererSchemaMap['menuFlexibleItemRenderer'], filterMenuFlexibleItem)
-  removeYTRendererPre(YTRendererSchemaMap['merchandiseShelfRenderer'])
-  removeYTRendererPre(YTRendererSchemaMap['productListHeaderRenderer'])
-  removeYTRendererPre(YTRendererSchemaMap['productListItemRenderer'])
-  removeYTRendererPre(YTRendererSchemaMap['reelShelfRenderer'], filterShelf)
-  removeYTRendererPre(YTRendererSchemaMap['richShelfRenderer'], filterShelf)
-  removeYTRendererPre(YTRendererSchemaMap['segmentedLikeDislikeButtonViewModel'], isYTLoggedIn)
-  removeYTRendererPre(YTRendererSchemaMap['shortsLockupViewModel'], filterShorts)
-  removeYTRendererPre(YTRendererSchemaMap['subscribeButtonRenderer'], isYTLoggedIn)
-  removeYTRendererPre(YTRendererSchemaMap['videoRenderer'], filterVideo)
+    removeYTRendererPre(YTRendererSchemaMap['commentSimpleboxRenderer'], isYTLoggedIn)
+    removeYTRendererPre(YTRendererSchemaMap['compactVideoRenderer'], filterVideo)
+    removeYTRendererPre(YTRendererSchemaMap['guideEntryRenderer'], filterGuideEntry)
+    removeYTRendererPre(YTRendererSchemaMap['guideSigninPromoRenderer'])
+    removeYTRendererPre(YTRendererSchemaMap['menuFlexibleItemRenderer'], filterMenuFlexibleItem)
+    removeYTRendererPre(YTRendererSchemaMap['merchandiseShelfRenderer'])
+    removeYTRendererPre(YTRendererSchemaMap['productListHeaderRenderer'])
+    removeYTRendererPre(YTRendererSchemaMap['productListItemRenderer'])
+    removeYTRendererPre(YTRendererSchemaMap['reelShelfRenderer'], filterShelf)
+    removeYTRendererPre(YTRendererSchemaMap['richShelfRenderer'], filterShelf)
+    removeYTRendererPre(YTRendererSchemaMap['segmentedLikeDislikeButtonViewModel'], isYTLoggedIn)
+    removeYTRendererPre(YTRendererSchemaMap['shortsLockupViewModel'], filterShorts)
+    removeYTRendererPre(YTRendererSchemaMap['subscribeButtonRenderer'], isYTLoggedIn)
+    removeYTRendererPre(YTRendererSchemaMap['videoRenderer'], filterVideo)
 
-  isShowShorts = Number(localStorage.getItem('bu-show-shorts') ?? 1) !== 0
-  isShowLive = Number(localStorage.getItem('bu-show-live') ?? 1) !== 0
-  isShowVideo = Number(localStorage.getItem('bu-show-video') ?? 1) !== 0
+    isShowShorts = Number(localStorage.getItem('bu-show-shorts') ?? 1) !== 0
+    isShowLive = Number(localStorage.getItem('bu-show-live') ?? 1) !== 0
+    isShowVideo = Number(localStorage.getItem('bu-show-video') ?? 1) !== 0
 
-  registerYTSignalActionHandler(YTSignalActionType.BU_MOD_DELAYED_PLAY_PLAYER, () => {
-    // TODO: improve reliability by hooking into player internal events
-    setTimeout(() => dispatchYTSignalAction(YTSignalActionType.PLAY_PLAYER), 1e3)
-  })
-  registerYTSignalActionHandler(YTSignalActionType.BU_MOD_SHORTS_HIDE, () => {
-    isShowShorts = false
-    localStorage.setItem('bu-show-shorts', '0')
-  })
-  registerYTSignalActionHandler(YTSignalActionType.BU_MOD_SHORTS_SHOW, () => {
-    isShowShorts = true
-    localStorage.setItem('bu-show-shorts', '1')
-  })
-  registerYTSignalActionHandler(YTSignalActionType.BU_MOD_LIVE_HIDE, () => {
-    isShowLive = false
-    localStorage.setItem('bu-show-live', '0')
-  })
-  registerYTSignalActionHandler(YTSignalActionType.BU_MOD_LIVE_SHOW, () => {
-    isShowLive = true
-    localStorage.setItem('bu-show-live', '1')
-  })
-  registerYTSignalActionHandler(YTSignalActionType.BU_MOD_VIDEO_HIDE, () => {
-    isShowVideo = false
-    localStorage.setItem('bu-show-video', '0')
-  })
-  registerYTSignalActionHandler(YTSignalActionType.BU_MOD_VIDEO_SHOW, () => {
-    isShowVideo = true
-    localStorage.setItem('bu-show-video', '1')
-  })
+    registerYTSignalActionHandler(YTSignalActionType.BU_MOD_DELAYED_PLAY_PLAYER, () => {
+      // TODO: improve reliability by hooking into player internal events
+      setTimeout(() => dispatchYTSignalAction(YTSignalActionType.PLAY_PLAYER), 1e3)
+    })
+    registerYTSignalActionHandler(YTSignalActionType.BU_MOD_SHORTS_HIDE, () => {
+      isShowShorts = false
+      localStorage.setItem('bu-show-shorts', '0')
+    })
+    registerYTSignalActionHandler(YTSignalActionType.BU_MOD_SHORTS_SHOW, () => {
+      isShowShorts = true
+      localStorage.setItem('bu-show-shorts', '1')
+    })
+    registerYTSignalActionHandler(YTSignalActionType.BU_MOD_LIVE_HIDE, () => {
+      isShowLive = false
+      localStorage.setItem('bu-show-live', '0')
+    })
+    registerYTSignalActionHandler(YTSignalActionType.BU_MOD_LIVE_SHOW, () => {
+      isShowLive = true
+      localStorage.setItem('bu-show-live', '1')
+    })
+    registerYTSignalActionHandler(YTSignalActionType.BU_MOD_VIDEO_HIDE, () => {
+      isShowVideo = false
+      localStorage.setItem('bu-show-video', '0')
+    })
+    registerYTSignalActionHandler(YTSignalActionType.BU_MOD_VIDEO_SHOW, () => {
+      isShowVideo = true
+      localStorage.setItem('bu-show-video', '1')
+    })
 
-  InterceptDOM.setAppendChildCallback(ctx => {
-    const node = ctx.args[0]
+    InterceptDOM.setAppendChildCallback(ctx => {
+      const node = ctx.args[0]
 
-    if (node instanceof HTMLDivElement && node.classList.contains('ytp-pause-overlay')) {
-      logger.debug('removed ytp-pause-overlay', node)
-      return HookResult.EXECUTION_CONTINUE
-    }
+      if (node instanceof HTMLDivElement && node.classList.contains('ytp-pause-overlay')) {
+        logger.debug('removed ytp-pause-overlay', node)
+        return HookResult.EXECUTION_CONTINUE
+      }
 
-    return HookResult.EXECUTION_IGNORE
-  })
+      return HookResult.EXECUTION_IGNORE
+    })
 
-  window.addEventListener('load', () => {
-    if (location.pathname === '/live_chat_replay') {
-      // Fire initial progress event to load chat immediately
-      postToLiveChatWindow({ 'yt-player-video-progress': 0 })
-    }
-  })
+    window.addEventListener('load', () => {
+      if (location.pathname === '/live_chat_replay') {
+        // Fire initial progress event to load chat immediately
+        postToLiveChatWindow({ 'yt-player-video-progress': 0 })
+      }
+    })
+
+    return true
+  }
+
+  protected deactivate(): boolean {
+    return false
+  }
 }

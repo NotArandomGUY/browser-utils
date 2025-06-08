@@ -1,3 +1,4 @@
+import { Feature } from '@ext/lib/feature'
 import InterceptDOM from '@ext/lib/intercept/dom'
 import { HookResult } from '@ext/lib/intercept/hook'
 import Logger from '@ext/lib/logger'
@@ -13,30 +14,38 @@ function filterItemsContainer(data: YTRendererData<YTRenderer<'guideSectionRende
   return data.items != null && data.items.length > 0
 }
 
-export default function initYTFixupModule(): void {
-  removeYTRendererPost(YTRendererSchemaMap['guideSectionRenderer'], filterItemsContainer)
-  removeYTRendererPost(YTRendererSchemaMap['reelShelfRenderer'], filterItemsContainer)
-  removeYTRendererPost(YTRendererSchemaMap['richItemRenderer'], filterContentContainer)
+export default class YTFixupModule extends Feature {
+  protected activate(): boolean {
+    removeYTRendererPost(YTRendererSchemaMap['guideSectionRenderer'], filterItemsContainer)
+    removeYTRendererPost(YTRendererSchemaMap['reelShelfRenderer'], filterItemsContainer)
+    removeYTRendererPost(YTRendererSchemaMap['richItemRenderer'], filterContentContainer)
 
-  InterceptDOM.setAppendChildCallback(ctx => {
-    const node = ctx.args[0]
+    InterceptDOM.setAppendChildCallback(ctx => {
+      const node = ctx.args[0]
 
-    if (node instanceof HTMLIFrameElement && Object.getOwnPropertyDescriptor(node, 'contentDocument') == null) {
-      // Make yt fallback to using src property instead
-      const { get } = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(node), 'contentDocument') ?? {}
-      Object.defineProperty(node, 'contentDocument', {
-        get() {
-          const contentDocument: Document = get?.call(node)
-          if (contentDocument == null || contentDocument.location.href === 'about:blank') return null
+      if (node instanceof HTMLIFrameElement && Object.getOwnPropertyDescriptor(node, 'contentDocument') == null) {
+        // Make yt fallback to using src property instead
+        const { get } = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(node), 'contentDocument') ?? {}
+        Object.defineProperty(node, 'contentDocument', {
+          get() {
+            const contentDocument: Document = get?.call(node)
+            if (contentDocument == null || contentDocument.location.href === 'about:blank') return null
 
-          return contentDocument
-        }
-      })
-      if (node.sandbox.length > 0) node.sandbox.add('allow-same-origin', 'allow-scripts')
+            return contentDocument
+          }
+        })
+        if (node.sandbox.length > 0) node.sandbox.add('allow-same-origin', 'allow-scripts')
 
-      logger.debug('patched iframe element', node, Object.getOwnPropertyDescriptors(node))
-    }
+        logger.debug('patched iframe element', node, Object.getOwnPropertyDescriptors(node))
+      }
 
-    return HookResult.EXECUTION_IGNORE
-  })
+      return HookResult.EXECUTION_IGNORE
+    })
+
+    return true
+  }
+
+  protected deactivate(): boolean {
+    return false
+  }
 }

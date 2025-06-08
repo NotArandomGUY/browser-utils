@@ -1,3 +1,4 @@
+import { Feature } from '@ext/lib/feature'
 import Logger from '@ext/lib/logger'
 import { playerGetCurrentTime, playerGetDuration, playerGetMute, playerGetSubtitle, playerGetVolume, playerIsPlaying, playerPause, playerPlay, playerSeek, playerSetMute, playerSetVolume } from '@ext/site/viu/module/player'
 import { VIU_STATE } from '@ext/site/viu/state'
@@ -9,6 +10,7 @@ import Peer, { DataConnection, MediaConnection } from 'peerjs'
 const logger = new Logger('VIU-REMOTE')
 
 let peer: Peer
+let isEnabled = false
 
 function onDataConnection(dataConn: DataConnection): void {
   let updateLoop: number | null = null
@@ -125,7 +127,7 @@ function onDataConnection(dataConn: DataConnection): void {
         return
       case BURemoteCmd.CMD_IMPORT_REQ:
         try {
-          importUserData(data.data)
+          importUserData?.(data.data)
           dataConn.send(<BURemoteImportRspData>{
             cmd: BURemoteCmd.CMD_IMPORT_RSP,
             time: Date.now()
@@ -143,7 +145,7 @@ function onDataConnection(dataConn: DataConnection): void {
           dataConn.send(<BURemoteExportRspData>{
             cmd: BURemoteCmd.CMD_EXPORT_RSP,
             time: Date.now(),
-            data: exportUserData()
+            data: exportUserData?.()
           })
         } catch (err) {
           dataConn.send(<BURemoteExportRspData>{
@@ -186,16 +188,28 @@ function onDataConnection(dataConn: DataConnection): void {
 
 function createPeer(): void {
   peer = new Peer(PEER_CONFIG)
+  isEnabled = true
 
   peer.on('open', () => VIU_STATE.peerId = peer.id)
   peer.on('disconnected', () => {
     peer.destroy()
-    setTimeout(createPeer, 5e3)
+    if (isEnabled) setTimeout(createPeer, 5e3)
   })
   peer.on('connection', onDataConnection)
   peer.on('error', error => logger.warn('peer connection error:', error))
 }
 
-export default function initViuRemoteModule(): void {
-  createPeer()
+export default class ViuRemoteModule extends Feature {
+  protected activate(): boolean {
+    createPeer()
+
+    return true
+  }
+
+  protected deactivate(): boolean {
+    isEnabled = false
+    peer?.disconnect()
+
+    return true
+  }
 }

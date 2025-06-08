@@ -1,3 +1,4 @@
+import { Feature } from '@ext/lib/feature'
 import Logger from '@ext/lib/logger'
 import { YTEndpoint, YTSignalActionType } from '@ext/site/youtube/api/endpoint'
 import { YTEndpointData } from '@ext/site/youtube/api/types/common'
@@ -45,17 +46,25 @@ export function registerYTSignalActionHandler(signal: YTSignalActionType, handle
   registerYTActionHandler(getSignalActionName(signal), handler)
 }
 
-export default function initYTActionModule(): void {
-  window.addEventListener('load', () => {
-    app = document.querySelector('ytd-app,yt-live-chat-app')
-    if (app == null) {
-      logger.warn('failed to obtain app instance')
-      return
-    }
+export default class YTActionModule extends Feature {
+  protected activate(): boolean {
+    window.addEventListener('load', () => {
+      app = document.querySelector('ytd-app,yt-live-chat-app')
+      if (app == null) {
+        logger.warn('failed to obtain app instance')
+        return
+      }
 
-    app.addEventListener('yt-action', event => {
-      const { detail } = event as CustomEvent<YTActionEvent>
-      actionHandlerMap[detail.actionName]?.(detail)
+      app.addEventListener('yt-action', event => {
+        const { detail } = event as CustomEvent<YTActionEvent>
+        actionHandlerMap[detail.actionName]?.(detail)
+      })
     })
-  })
+
+    return true
+  }
+
+  protected deactivate(): boolean {
+    return false
+  }
 }

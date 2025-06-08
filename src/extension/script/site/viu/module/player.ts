@@ -1,3 +1,4 @@
+import { Feature } from '@ext/lib/feature'
 import Logger from '@ext/lib/logger'
 import { updateCanvasStyle } from '@ext/site/viu/module/render'
 import { loadWebpackObjectByExportName, loadWebpackObjectByPropName } from '@ext/site/viu/module/webpack'
@@ -334,16 +335,24 @@ export function playerSetMute(state: boolean): void {
   jwPlayer?.setMute(state)
 }
 
-export default function initViuPlayerModule(): void {
-  initJWPlayerModule()
-  loadWebpackObjectByExportName('Player', onBitmovinPlayerModuleLoad)
-  loadWebpackObjectByPropName('getProductStream', onProductInfoModuleLoad)
+export default class ViuPlayerModule extends Feature {
+  protected activate(): boolean {
+    initJWPlayerModule()
+    loadWebpackObjectByExportName('Player', onBitmovinPlayerModuleLoad)
+    loadWebpackObjectByPropName('getProductStream', onProductInfoModuleLoad)
 
-  window.reloadPlayerSrc = reloadPlayerSrc
+    window.reloadPlayerSrc = reloadPlayerSrc
 
-  window.addEventListener('load', () => {
-    const style = document.createElement('style')
-    style.textContent = 'video { filter: blur(0) !important; }'
-    document.head.appendChild(style)
-  })
+    window.addEventListener('load', () => {
+      const style = document.createElement('style')
+      style.textContent = 'video { filter: blur(0) !important; }'
+      document.head.appendChild(style)
+    })
+
+    return true
+  }
+
+  protected deactivate(): boolean {
+    return false
+  }
 }

@@ -1,3 +1,4 @@
+import { Feature } from '@ext/lib/feature'
 import Logger from '@ext/lib/logger'
 import { WebpackRuntime, __webpack_runtime_list__, createWebpackRuntimeFromScript, interruptWebpackRuntime } from '@ext/lib/wprt'
 
@@ -40,22 +41,30 @@ export function loadWebpackObjectByPropName<T extends object>(name: string, call
   onLoadPropNameCallbackMap[name] = <(obj: object) => void>callback
 }
 
-export default function initViuWebpackModule(): void {
-  interruptWebpackRuntime(chunkLoadingGlobal => ['bitmovin_player', 'jwplayer'].includes(chunkLoadingGlobal.slice(12)))
+export default class ViuWebpackModule extends Feature {
+  protected activate(): boolean {
+    interruptWebpackRuntime(chunkLoadingGlobal => ['bitmovin_player', 'jwplayer'].includes(chunkLoadingGlobal.slice(12)))
 
-  window.addEventListener('load', () => {
-    const webpackChunk = document.querySelector<HTMLScriptElement>('script[src*="chunks/webpack"]')
-    if (webpackChunk == null) return
+    window.addEventListener('load', () => {
+      const webpackChunk = document.querySelector<HTMLScriptElement>('script[src*="chunks/webpack"]')
+      if (webpackChunk == null) return
 
-    const webpackUrl = webpackChunk.src
-    logger.info('initialize webpack runtime with loader:', webpackUrl)
+      const webpackUrl = webpackChunk.src
+      logger.info('initialize webpack runtime with loader:', webpackUrl)
 
-    webpackChunk.src = ''
-    webpackChunk.parentElement?.removeChild(webpackChunk)
+      webpackChunk.src = ''
+      webpackChunk.parentElement?.removeChild(webpackChunk)
 
-    fetch(webpackUrl, { method: 'GET' }).then(async (rsp) => {
-      createWebpackRuntimeFromScript(await rsp.text())
-      onWebpackLoaderInjected(__webpack_runtime_list__)
+      fetch(webpackUrl, { method: 'GET' }).then(async (rsp) => {
+        createWebpackRuntimeFromScript(await rsp.text())
+        onWebpackLoaderInjected(__webpack_runtime_list__)
+      })
     })
-  })
+
+    return true
+  }
+
+  protected deactivate(): boolean {
+    return false
+  }
 }

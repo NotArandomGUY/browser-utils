@@ -1,4 +1,5 @@
 import { monitorSelector } from '@ext/lib/dom'
+import { Feature } from '@ext/lib/feature'
 import InterceptDOM from '@ext/lib/intercept/dom'
 import { HookResult } from '@ext/lib/intercept/hook'
 import Logger from '@ext/lib/logger'
@@ -34,31 +35,39 @@ class UET {
   }
 }
 
-export default function initViuAdblockModule(): void {
-  Object.defineProperty(window, 'UET', { value: UET })
+export default class ViuAdblockModule extends Feature {
+  protected activate(): boolean {
+    Object.defineProperty(window, 'UET', { value: UET })
 
-  InterceptDOM.setAppendChildCallback(ctx => {
-    const node = ctx.args[0]
-    ctx.returnValue = node
+    InterceptDOM.setAppendChildCallback(ctx => {
+      const node = ctx.args[0]
+      ctx.returnValue = node
 
-    if (node instanceof HTMLScriptElement) {
-      if (
-        (node.src.length === 0 && (node.textContent == null || node.textContent.length === 0)) ||
-        node.src.includes('/_next/static') ||
-        node.type === 'application/ld+json' ||
-        node.dataset['webpack']
-      ) return HookResult.EXECUTION_IGNORE
+      if (node instanceof HTMLScriptElement) {
+        if (
+          (node.src.length === 0 && (node.textContent == null || node.textContent.length === 0)) ||
+          node.src.includes('/_next/static') ||
+          node.type === 'application/ld+json' ||
+          node.dataset['webpack']
+        ) return HookResult.EXECUTION_IGNORE
 
-      logger.debug('intercepted script element from append', node)
-      node.dispatchEvent(new Event('load'))
-      return HookResult.EXECUTION_CONTINUE
-    }
+        logger.debug('intercepted script element from append', node)
+        node.dispatchEvent(new Event('load'))
+        return HookResult.EXECUTION_CONTINUE
+      }
 
-    return HookResult.EXECUTION_IGNORE
-  })
+      return HookResult.EXECUTION_IGNORE
+    })
 
-  monitorSelector<HTMLVideoElement>('video[title="Advertisement"]', (element) => {
-    registerAdSkipHandler(element)
-    logger.info('registered ad skip handler')
-  })
+    monitorSelector<HTMLVideoElement>('video[title="Advertisement"]', (element) => {
+      registerAdSkipHandler(element)
+      logger.info('registered ad skip handler')
+    })
+
+    return true
+  }
+
+  protected deactivate(): boolean {
+    return false
+  }
 }

@@ -1,3 +1,4 @@
+import { Feature } from '@ext/lib/feature'
 import InterceptFetch, { FetchContext, FetchContextState, FetchState } from '@ext/lib/intercept/fetch'
 import InterceptXMLHttpRequest from '@ext/lib/intercept/xhr'
 import Logger from '@ext/lib/logger'
@@ -311,55 +312,63 @@ function onXHRLoadEnd(this: InterceptXMLHttpRequest, url: URL): void { // NOSONA
   }
 }
 
-export default function initViuNetworkModule(): void {
-  InterceptXMLHttpRequest.setCallback(function (type, evt) {
-    const url = this.requestURL
-    switch (type) {
-      case 'loadstart':
-        return onXHRLoadStart.call(this, url)
-      case 'loadend':
-        return onXHRLoadEnd.call(this, url)
-    }
-  })
+export default class ViuNetworkModule extends Feature {
+  protected activate(): boolean {
+    InterceptXMLHttpRequest.setCallback(function (type, evt) {
+      const url = this.requestURL
+      switch (type) {
+        case 'loadstart':
+          return onXHRLoadStart.call(this, url)
+        case 'loadend':
+          return onXHRLoadEnd.call(this, url)
+      }
+    })
 
-  InterceptFetch.setCallback(async (ctx) => {
-    if (ctx.state !== FetchState.SUCCESS) {
-      if (ctx.state !== FetchState.UNSENT || BLOCKED_HOSTNAME.find(host => ctx.url.hostname.endsWith(host)) == null) return
+    InterceptFetch.setCallback(async (ctx) => {
+      if (ctx.state !== FetchState.SUCCESS) {
+        if (ctx.state !== FetchState.UNSENT || BLOCKED_HOSTNAME.find(host => ctx.url.hostname.endsWith(host)) == null) return
 
-      // Force blocked request to fail
-      logger.debug('fetch blocked:', ctx.url)
-      Object.assign<FetchContext, FetchContextState>(ctx, { state: FetchState.FAILED, error: new Error('Failed') })
-      return
-    }
+        // Force blocked request to fail
+        logger.debug('fetch blocked:', ctx.url)
+        Object.assign<FetchContext, FetchContextState>(ctx, { state: FetchState.FAILED, error: new Error('Failed') })
+        return
+      }
 
-    const { url, response } = ctx
+      const { url, response } = ctx
 
-    let data = null
-    try { data = await response.clone().json() } catch { }
+      let data = null
+      try { data = await response.clone().json() } catch { }
 
-    switch (true) {
-      case /\/encore\/.*/.test(url.pathname):
-        ctx.response = new Response((await response.clone().text()).split('\n').map(patchRSC).join('\n'), { headers: { 'Content-Type': 'text/x-component' } })
-        break
-      case /\/production\/programmes\/.*?\/videos/.test(url.pathname):
-        ctx.response = new Response(JSON.stringify(Object.assign(data, {
-          video: data?.video?.map((v: object) => Object.assign(v, {
-            isAdultContent: false,
-            isDirty: false,
-            offAirDate: new Date(new Date().getFullYear() + 10, 11, 31, 23, 59, 59).getTime(),
-            midroll_adbreaks: [],
-            requiredLogin: false
-          })) ?? []
-        })), { headers: { 'Content-Type': 'application/json' } })
-        break
-      default:
-        logger.debug('fetch passthrough:', url.pathname, data)
-        break
-    }
-  })
+      switch (true) {
+        case /\/encore\/.*/.test(url.pathname):
+          ctx.response = new Response((await response.clone().text()).split('\n').map(patchRSC).join('\n'), { headers: { 'Content-Type': 'text/x-component' } })
+          break
+        case /\/production\/programmes\/.*?\/videos/.test(url.pathname):
+          ctx.response = new Response(JSON.stringify(Object.assign(data, {
+            video: data?.video?.map((v: object) => Object.assign(v, {
+              isAdultContent: false,
+              isDirty: false,
+              offAirDate: new Date(new Date().getFullYear() + 10, 11, 31, 23, 59, 59).getTime(),
+              midroll_adbreaks: [],
+              requiredLogin: false
+            })) ?? []
+          })), { headers: { 'Content-Type': 'application/json' } })
+          break
+        default:
+          logger.debug('fetch passthrough:', url.pathname, data)
+          break
+      }
+    })
 
-  self.__next_f = self.__next_f ?? []
-  const nextPush = self.__next_f.push
-  self.__next_f.forEach(e => e[1] = patchRSC(e[1]))
-  self.__next_f.push = (...args) => nextPush.apply(self.__next_f, args.map(([id, rsc]) => <[number, string | null]>[id, patchRSC(rsc)]))
+    self.__next_f = self.__next_f ?? []
+    const nextPush = self.__next_f.push
+    self.__next_f.forEach(e => e[1] = patchRSC(e[1]))
+    self.__next_f.push = (...args) => nextPush.apply(self.__next_f, args.map(([id, rsc]) => <[number, string | null]>[id, patchRSC(rsc)]))
+
+    return true
+  }
+
+  protected deactivate(): boolean {
+    return false
+  }
 }

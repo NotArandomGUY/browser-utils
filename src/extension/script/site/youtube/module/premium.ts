@@ -1,3 +1,4 @@
+import { Feature } from '@ext/lib/feature'
 import InterceptDOM from '@ext/lib/intercept/dom'
 import { HookResult } from '@ext/lib/intercept/hook'
 import Logger from '@ext/lib/logger'
@@ -50,41 +51,49 @@ function generateActivity(): void {
   ytglobal.ytUtilActivityCallback_?.()
 }
 
-export default function initYTPremiumModule(): void {
-  setYTServiceTrackingOverride('CSI', 'yt_ad', '0')
-  setYTServiceTrackingOverride('CSI', 'yt_red', '1')
+export default class YTPremiumModule extends Feature {
+  protected activate(): boolean {
+    setYTServiceTrackingOverride('CSI', 'yt_ad', '0')
+    setYTServiceTrackingOverride('CSI', 'yt_red', '1')
 
-  registerYTRendererPreProcessor(YTLoggingDirectivesSchema, updateLoggingDirectives)
-  registerYTRendererPreProcessor(YTRendererSchemaMap['playerResponse'], updatePlayerResponse)
-  registerYTRendererPreProcessor(YTRendererSchemaMap['nextResponse'], updateNextResponse)
+    registerYTRendererPreProcessor(YTLoggingDirectivesSchema, updateLoggingDirectives)
+    registerYTRendererPreProcessor(YTRendererSchemaMap['playerResponse'], updatePlayerResponse)
+    registerYTRendererPreProcessor(YTRendererSchemaMap['nextResponse'], updateNextResponse)
 
-  removeYTEndpointPre(YTEndpointSchemaMap['adsControlFlowOpportunityReceivedCommand'])
-  removeYTEndpointPre(YTEndpointSchemaMap['reelWatchEndpoint'], filterReel)
-  removeYTRendererPre(YTRendererSchemaMap['adPlacementRenderer'])
-  removeYTRendererPre(YTRendererSchemaMap['bkaEnforcementMessageViewModel'])
-  removeYTRendererPre(YTRendererSchemaMap['mealbarPromoRenderer'])
-  removeYTRendererPre(YTRendererSchemaMap['playerLegacyDesktopWatchAdsRenderer'])
-  removeYTRendererPre(YTRendererSchemaMap['youThereRenderer'])
-  removeYTRendererPost(YTRendererSchemaMap['adPlayerOverlayRenderer'])
-  removeYTRendererPost(YTRendererSchemaMap['adSlotRenderer'])
-  removeYTRendererPost(YTRendererSchemaMap['topBannerImageTextIconButtonedLayoutViewModel'])
+    removeYTEndpointPre(YTEndpointSchemaMap['adsControlFlowOpportunityReceivedCommand'])
+    removeYTEndpointPre(YTEndpointSchemaMap['reelWatchEndpoint'], filterReel)
+    removeYTRendererPre(YTRendererSchemaMap['adPlacementRenderer'])
+    removeYTRendererPre(YTRendererSchemaMap['bkaEnforcementMessageViewModel'])
+    removeYTRendererPre(YTRendererSchemaMap['mealbarPromoRenderer'])
+    removeYTRendererPre(YTRendererSchemaMap['playerLegacyDesktopWatchAdsRenderer'])
+    removeYTRendererPre(YTRendererSchemaMap['youThereRenderer'])
+    removeYTRendererPost(YTRendererSchemaMap['adPlayerOverlayRenderer'])
+    removeYTRendererPost(YTRendererSchemaMap['adSlotRenderer'])
+    removeYTRendererPost(YTRendererSchemaMap['topBannerImageTextIconButtonedLayoutViewModel'])
 
-  InterceptDOM.setAppendChildCallback(ctx => {
-    const node = ctx.args[0]
+    InterceptDOM.setAppendChildCallback(ctx => {
+      const node = ctx.args[0]
 
-    if (node instanceof HTMLScriptElement) {
-      if (!node.src.includes('doubleclick.net')) return HookResult.EXECUTION_IGNORE
+      if (node instanceof HTMLScriptElement) {
+        if (!node.src.includes('doubleclick.net')) return HookResult.EXECUTION_IGNORE
 
-      logger.debug('intercepted script element from append', node)
+        logger.debug('intercepted script element from append', node)
 
-      ctx.returnValue = node
-      node.dispatchEvent(new Event('load'))
+        ctx.returnValue = node
+        node.dispatchEvent(new Event('load'))
 
-      return HookResult.EXECUTION_CONTINUE
-    }
+        return HookResult.EXECUTION_CONTINUE
+      }
 
-    return HookResult.EXECUTION_IGNORE
-  })
+      return HookResult.EXECUTION_IGNORE
+    })
 
-  setInterval(generateActivity, 15e3)
+    setInterval(generateActivity, 15e3)
+
+    return true
+  }
+
+  protected deactivate(): boolean {
+    return false
+  }
 }

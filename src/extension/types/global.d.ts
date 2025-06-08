@@ -1,6 +1,6 @@
 declare var reloadPlayerSrc: () => void
-declare var importUserData: (data: string) => void
-declare var exportUserData: () => string
+declare var importUserData: ((data: string) => void) | undefined
+declare var exportUserData: (() => string) | undefined
 declare var __webpack_runtime_list__: any[]
 
 declare var __next_f: [number, string | null][]

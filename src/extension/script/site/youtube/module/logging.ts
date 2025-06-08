@@ -1,3 +1,4 @@
+import { Feature } from '@ext/lib/feature'
 import Logger from '@ext/lib/logger'
 import { dispatchYTOpenPopupAction } from '@ext/site/youtube/module/action'
 
@@ -114,25 +115,33 @@ function handleBiscottiBasedDetection(payload: YTLoggingImsPayloadVariants['bisc
   }, 5e3)
 }
 
-export default function initYTLoggingModule(): void {
-  window.yt = window.yt ?? {}
-  window.yt.logging = window.yt.logging ?? {}
+export default class YTLoggingModule extends Feature {
+  protected activate(): boolean {
+    window.yt = window.yt ?? {}
+    window.yt.logging = window.yt.logging ?? {}
 
-  let ims: object | undefined = undefined
-  Object.defineProperty(window.yt.logging, 'ims', {
-    get() {
-      return ims
-    },
-    set(v) {
-      Object.defineProperty(v, 'storePayload', {
-        value(info: YTLoggingImsInfo, payload: YTLoggingImsPayload) {
-          const path = [info.auth ?? 'undefined', info.isJspb ?? 'undefined', info.cttAuthInfo ?? 'undefined', info.tier ?? 'undefined'].join('/')
-          logger.trace(`ims payload(${path}):`, payload)
+    let ims: object | undefined = undefined
+    Object.defineProperty(window.yt.logging, 'ims', {
+      get() {
+        return ims
+      },
+      set(v) {
+        Object.defineProperty(v, 'storePayload', {
+          value(info: YTLoggingImsInfo, payload: YTLoggingImsPayload) {
+            const path = [info.auth ?? 'undefined', info.isJspb ?? 'undefined', info.cttAuthInfo ?? 'undefined', info.tier ?? 'undefined'].join('/')
+            logger.trace(`ims payload(${path}):`, payload)
 
-          if ('biscottiBasedDetection' in payload) handleBiscottiBasedDetection(payload.biscottiBasedDetection)
-        }
-      })
-      ims = v
-    }
-  })
+            if ('biscottiBasedDetection' in payload) handleBiscottiBasedDetection(payload.biscottiBasedDetection)
+          }
+        })
+        ims = v
+      }
+    })
+
+    return true
+  }
+
+  protected deactivate(): boolean {
+    return false
+  }
 }

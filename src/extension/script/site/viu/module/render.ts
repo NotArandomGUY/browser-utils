@@ -1,10 +1,13 @@
 import { monitorSelector } from '@ext/lib/dom'
+import { Feature } from '@ext/lib/feature'
 import Logger from '@ext/lib/logger'
 import { playerIsPlaying } from '@ext/site/viu/module/player'
 import { VIU_STATE } from '@ext/site/viu/state'
 import { toCanvas } from 'qrcode'
 
 const logger = new Logger('VIU-RENDER')
+
+const deactivateCallbacks: (() => void)[] = []
 
 let container: HTMLDivElement | null = null
 let canvas: HTMLCanvasElement | null = null
@@ -95,49 +98,51 @@ export function updateCanvasStyle(): void {
   }
 }
 
-export default function initViuRenderModule(): void {
-  window.addEventListener('fullscreenchange', updateCanvasStyle)
+export default class ViuRenderModule extends Feature {
+  protected activate(): boolean {
+    window.addEventListener('fullscreenchange', updateCanvasStyle)
 
-  /*
-  monitorSelector<HTMLDivElement>('#qr_code', (element) => {
-    container = element
+    const timer = setInterval(render, 500)
 
-    logger.info('found container')
-  })
-  */
+    deactivateCallbacks.push(
+      /*
+      monitorSelector<HTMLDivElement>('#qr_code', (element) => {
+        container = element
+    
+        logger.info('found container')
+      }),
+      */
+      monitorSelector<SVGElement>('svg[aria-label=PCCW],div[class="flex gap-x-2"]', (element) => {
+        if (container != null && document.body.contains(container)) return
 
-  /*
-  monitorSelector<HTMLCanvasElement>('#qr_code canvas', (element) => {
-    canvas = element
-    ctx = canvas.getContext('2d')
-    updateCanvasStyle()
+        container = <HTMLDivElement>element.parentElement
+        if (container == null) return
 
-    logger.info('found canvas')
-  })
-  */
+        container.id = 'alt_qr_code'
+        container.style.padding = '8px'
+        container.style.width = '256px'
+        container.style.height = '256px'
+        container.innerHTML = '<canvas />'
 
-  monitorSelector<HTMLCanvasElement>('#alt_qr_code canvas', (element) => {
-    canvas = element
-    ctx = canvas.getContext('2d')
-    updateCanvasStyle()
+        logger.debug('found container')
+      }),
+      monitorSelector<HTMLCanvasElement>(/*'#qr_code canvas'*/'#alt_qr_code canvas', (element) => {
+        canvas = element
+        ctx = canvas.getContext('2d')
+        updateCanvasStyle()
 
-    logger.debug('found canvas')
-  })
+        logger.debug('found canvas')
+      }),
+      () => clearInterval(timer)
+    )
 
-  monitorSelector<SVGElement>('svg[aria-label=PCCW],div[class="flex gap-x-2"]', (element) => {
-    if (container != null && document.body.contains(container)) return
+    return true
+  }
 
-    container = <HTMLDivElement>element.parentElement
-    if (container == null) return
+  protected deactivate(): boolean {
+    window.removeEventListener('fullscreenchange', updateCanvasStyle)
+    deactivateCallbacks.splice(0).forEach(callback => callback())
 
-    container.id = 'alt_qr_code'
-    container.style.padding = '8px'
-    container.style.width = '256px'
-    container.style.height = '256px'
-    container.innerHTML = '<canvas />'
-
-    logger.debug('found container')
-  })
-
-  setInterval(render, 500)
+    return true
+  }
 }

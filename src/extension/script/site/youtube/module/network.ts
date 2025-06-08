@@ -1,3 +1,4 @@
+import { Feature } from '@ext/lib/feature'
 import InterceptFetch, { FetchContext, FetchContextState, FetchInput, FetchState } from '@ext/lib/intercept/fetch'
 import InterceptImage from '@ext/lib/intercept/image'
 import InterceptXMLHttpRequest from '@ext/lib/intercept/xhr'
@@ -102,99 +103,107 @@ export function bypassFetch(input: string, init: RequestInit = {}): Promise<Resp
   return fetch(input, init)
 }
 
-export default function initYTNetworkModule(): void {
-  Object.defineProperty(navigator, 'sendBeacon', {
-    value: null
-  })
+export default class YTNetworkModule extends Feature {
+  protected activate(): boolean {
+    Object.defineProperty(navigator, 'sendBeacon', {
+      value: null
+    })
 
-  InterceptXMLHttpRequest.setCallback<RequestBehaviour>(function (type) {
-    const url = this.requestURL
-    switch (type) {
-      case 'loadstart': {
-        const behaviour = getRequestBehaviour(url)
-        this.userData = behaviour
+    InterceptXMLHttpRequest.setCallback<RequestBehaviour>(function (type) {
+      const url = this.requestURL
+      switch (type) {
+        case 'loadstart': {
+          const behaviour = getRequestBehaviour(url)
+          this.userData = behaviour
 
-        switch (behaviour) {
-          case RequestBehaviour.BLOCK:
-            // Abort blocked request
-            logger.debug('xhr blocked:', url.href)
-            this.abort()
-            break
-          case RequestBehaviour.INTERRUPT:
-            // Generate empty response for interrupted request
-            logger.debug('xhr interrupt:', url.href)
-            this.generateResponse('')
-            break
-        }
-        break
-      }
-      case 'load': {
-        if (this.userData === RequestBehaviour.PASSTHROUGH) {
-          logger.debug('xhr passthrough:', url.href)
+          switch (behaviour) {
+            case RequestBehaviour.BLOCK:
+              // Abort blocked request
+              logger.debug('xhr blocked:', url.href)
+              this.abort()
+              break
+            case RequestBehaviour.INTERRUPT:
+              // Generate empty response for interrupted request
+              logger.debug('xhr interrupt:', url.href)
+              this.generateResponse('')
+              break
+          }
           break
         }
-
-        let data = null
-        try { data = JSON.parse(this.responseText) } catch { }
-
-        if (processResponse(url, data)) this.setOverrideResponse(data)
-
-        logger.debug('xhr response:', url.href, data)
-        break
-      }
-    }
-  })
-
-  InterceptFetch.setCallback<RequestBehaviour>(async (ctx) => {
-    switch (ctx.state) {
-      case FetchState.UNSENT: {
-        const behaviour = getRequestBehaviour(ctx.url, ctx.input, ctx.init)
-        ctx.userData = behaviour
-
-        switch (behaviour) {
-          case RequestBehaviour.BLOCK:
-            // Force blocked request to fail
-            logger.debug('fetch blocked:', ctx.url.href)
-            Object.assign<FetchContext, FetchContextState>(ctx, { state: FetchState.FAILED, error: new Error('Failed') })
+        case 'load': {
+          if (this.userData === RequestBehaviour.PASSTHROUGH) {
+            logger.debug('xhr passthrough:', url.href)
             break
-          case RequestBehaviour.INTERRUPT:
-            // Generate empty response for interrupted request
-            logger.debug('fetch interrupt:', ctx.url.href)
-            Object.assign<FetchContext, FetchContextState>(ctx, { state: FetchState.SUCCESS, response: new Response(undefined, { status: 403 }) })
-            break
-        }
-        break
-      }
-      case FetchState.SUCCESS: {
-        const { url, response } = ctx
+          }
 
-        if (ctx.userData === RequestBehaviour.PASSTHROUGH) {
-          logger.debug('fetch passthrough:', url.href)
+          let data = null
+          try { data = JSON.parse(this.responseText) } catch { }
+
+          if (processResponse(url, data)) this.setOverrideResponse(data)
+
+          logger.debug('xhr response:', url.href, data)
           break
         }
-
-        let data = null
-        try { data = await response.clone().json() } catch { }
-
-        if (processResponse(url, data)) ctx.response = new Response(JSON.stringify(data), { headers: Object.fromEntries(response.headers.entries()) })
-
-        logger.debug('fetch response:', url.href, data)
-        break
       }
-    }
-  })
+    })
 
-  InterceptImage.setCallback(function (type, evt) {
-    if (type !== 'srcchange') return
+    InterceptFetch.setCallback<RequestBehaviour>(async (ctx) => {
+      switch (ctx.state) {
+        case FetchState.UNSENT: {
+          const behaviour = getRequestBehaviour(ctx.url, ctx.input, ctx.init)
+          ctx.userData = behaviour
 
-    const url = new URL((<CustomEvent<string>>evt).detail, location.href)
+          switch (behaviour) {
+            case RequestBehaviour.BLOCK:
+              // Force blocked request to fail
+              logger.debug('fetch blocked:', ctx.url.href)
+              Object.assign<FetchContext, FetchContextState>(ctx, { state: FetchState.FAILED, error: new Error('Failed') })
+              break
+            case RequestBehaviour.INTERRUPT:
+              // Generate empty response for interrupted request
+              logger.debug('fetch interrupt:', ctx.url.href)
+              Object.assign<FetchContext, FetchContextState>(ctx, { state: FetchState.SUCCESS, response: new Response(undefined, { status: 403 }) })
+              break
+          }
+          break
+        }
+        case FetchState.SUCCESS: {
+          const { url, response } = ctx
 
-    // Abort blocked or interrupted request
-    if (getRequestBehaviour(url) !== RequestBehaviour.PASSTHROUGH) {
-      evt.preventDefault()
-      return
-    }
+          if (ctx.userData === RequestBehaviour.PASSTHROUGH) {
+            logger.debug('fetch passthrough:', url.href)
+            break
+          }
 
-    logger.debug('image load:', url.pathname)
-  })
+          let data = null
+          try { data = await response.clone().json() } catch { }
+
+          if (processResponse(url, data)) ctx.response = new Response(JSON.stringify(data), { headers: Object.fromEntries(response.headers.entries()) })
+
+          logger.debug('fetch response:', url.href, data)
+          break
+        }
+      }
+    })
+
+    InterceptImage.setCallback(function (type, evt) {
+      if (type !== 'srcchange') return
+
+      const url = new URL((<CustomEvent<string>>evt).detail, location.href)
+
+      // Abort blocked or interrupted request
+      if (getRequestBehaviour(url) !== RequestBehaviour.PASSTHROUGH) {
+        evt.preventDefault()
+        return
+      }
+
+      logger.debug('image load:', url.pathname)
+    })
+
+    return true
+  }
+
+  protected deactivate(): boolean {
+    return false
+  }
 }

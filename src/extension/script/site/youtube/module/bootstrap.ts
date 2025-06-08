@@ -1,3 +1,4 @@
+import { Feature } from '@ext/lib/feature'
 import Hook, { HookResult } from '@ext/lib/intercept/hook'
 import Logger from '@ext/lib/logger'
 import { YTEndpoint } from '@ext/site/youtube/api/endpoint'
@@ -140,116 +141,124 @@ export function isYTLoggedIn(): boolean {
   return ytcfg?.get('LOGGED_IN', false) ?? false
 }
 
-export default function initYTBootstrapModule(): void {
-  // Override config
-  ytcfg = Object.assign(window.ytcfg ?? {}, {
-    init_: false,
-    d() {
-      return window.yt && yt.config_ || ytcfg.data_ || (ytcfg.data_ = {})
-    },
-    get(key, defaultValue) {
-      return key in ytcfg.d() ? ytcfg.d()[key] : defaultValue
-    },
-    set(...args) {
-      if (args.length <= 1) {
-        let data = (args[0] ?? {}) as { [key: string]: unknown }
+export default class YTBootstrapModule extends Feature {
+  protected activate(): boolean {
+    // Override config
+    ytcfg = Object.assign(window.ytcfg ?? {}, {
+      init_: false,
+      d() {
+        return window.yt && yt.config_ || ytcfg.data_ || (ytcfg.data_ = {})
+      },
+      get(key, defaultValue) {
+        return key in ytcfg.d() ? ytcfg.d()[key] : defaultValue
+      },
+      set(...args) {
+        if (args.length <= 1) {
+          let data = (args[0] ?? {}) as { [key: string]: unknown }
 
-        if (!ytcfg.init_) {
-          data = Object.assign(ytcfg.d(), data)
-          ytcfg.init_ = true
+          if (!ytcfg.init_) {
+            data = Object.assign(ytcfg.d(), data)
+            ytcfg.init_ = true
+          }
+
+          for (const key in data) {
+            ytcfg.set(key, data[key])
+          }
+          return
         }
 
-        for (const key in data) {
-          ytcfg.set(key, data[key])
+        let [key, value] = args as [string, unknown]
+
+        if (!isYTLoggedIn()) {
+          switch (key) {
+            case 'INNERTUBE_CONTEXT':
+              Object.assign((value as YTInnertubeContext).client, {
+                browserName: 'Unknown',
+                browserVersion: '0.0.0.0',
+                osName: 'Linux',
+                osVersion: '0.0',
+                deviceExperimentId: 'ChxNREF3TURBd01EQXdNREF3TURBd01EQXdNQT09EAAYAA==',
+                deviceName: '',
+                deviceModel: '',
+                platform: 'DESKTOP',
+                remoteHost: '0.0.0.0',
+                userAgent: ''
+              })
+              break
+            case 'IS_SUBSCRIBER':
+              value = true
+              break
+            case 'SBOX_SETTINGS':
+              Object.assign(value as YTSearchboxSettings, {
+                SEND_VISITOR_DATA: false,
+                VISITOR_DATA: ''
+              })
+              break
+          }
         }
-        return
+
+        ytcfg.d()[key] = value
+      }
+    } as YTConfig)
+    Object.defineProperty(window, 'ytcfg', { value: ytcfg, configurable: false, writable: false })
+
+    // Obtain player object
+    const ytplayer = window.ytplayer ?? {} as YTPlayer
+    Object.defineProperty(window, 'ytplayer', {
+      get() {
+        return ytplayer
+      }
+    })
+
+    // Override get initial data with processed initial data
+    nativeGetInitialData = window.getInitialData ?? null
+    Object.defineProperty(window, 'getInitialData', {
+      get() {
+        return overrideGetInitialData
+      },
+      set(v) {
+        nativeGetInitialData = v
+      }
+    })
+
+    // Process bootstrap player response
+    let bootstrapPlayerResponse: YTRendererData<YTRenderer<'playerResponse'>> | null = null
+    Object.defineProperty(ytplayer, 'bootstrapPlayerResponse', {
+      get() {
+        return bootstrapPlayerResponse
+      },
+      set(v) {
+        processYTRenderer('playerResponse', v)
+        logger.debug('initial player response:', v)
+        bootstrapPlayerResponse = v
+      }
+    })
+
+    // Process initial data before app element ready
+    customElements.define = new Hook(customElements.define).install(ctx => {
+      const customElement = ctx.args[1]
+      if (customElement == null) return HookResult.EXECUTION_IGNORE
+
+      const { connectedCallback } = customElement.prototype ?? {}
+
+      const page = APP_ELEMENT_PAGE_MAP[ctx.args[0].toLowerCase()]
+      if (page != null && typeof connectedCallback === 'function') {
+        customElement.prototype.connectedCallback = new Hook(connectedCallback).install(() => {
+          overrideGetInitialData({ page, response: window.ytInitialData } as YTInitData)
+
+          return HookResult.EXECUTION_IGNORE
+        }).call
       }
 
-      let [key, value] = args as [string, unknown]
+      return HookResult.EXECUTION_IGNORE
+    }).call
 
-      if (!isYTLoggedIn()) {
-        switch (key) {
-          case 'INNERTUBE_CONTEXT':
-            Object.assign((value as YTInnertubeContext).client, {
-              browserName: 'Unknown',
-              browserVersion: '0.0.0.0',
-              osName: 'Linux',
-              osVersion: '0.0',
-              deviceExperimentId: 'ChxNREF3TURBd01EQXdNREF3TURBd01EQXdNQT09EAAYAA==',
-              deviceName: '',
-              deviceModel: '',
-              platform: 'DESKTOP',
-              remoteHost: '0.0.0.0',
-              userAgent: ''
-            })
-            break
-          case 'IS_SUBSCRIBER':
-            value = true
-            break
-          case 'SBOX_SETTINGS':
-            Object.assign(value as YTSearchboxSettings, {
-              SEND_VISITOR_DATA: false,
-              VISITOR_DATA: ''
-            })
-            break
-        }
-      }
+    logger.info('bootstrap loaded')
 
-      ytcfg.d()[key] = value
-    }
-  } as YTConfig)
-  Object.defineProperty(window, 'ytcfg', { value: ytcfg, configurable: false, writable: false })
+    return true
+  }
 
-  // Obtain player object
-  const ytplayer = window.ytplayer ?? {} as YTPlayer
-  Object.defineProperty(window, 'ytplayer', {
-    get() {
-      return ytplayer
-    }
-  })
-
-  // Override get initial data with processed initial data
-  nativeGetInitialData = window.getInitialData ?? null
-  Object.defineProperty(window, 'getInitialData', {
-    get() {
-      return overrideGetInitialData
-    },
-    set(v) {
-      nativeGetInitialData = v
-    }
-  })
-
-  // Process bootstrap player response
-  let bootstrapPlayerResponse: YTRendererData<YTRenderer<'playerResponse'>> | null = null
-  Object.defineProperty(ytplayer, 'bootstrapPlayerResponse', {
-    get() {
-      return bootstrapPlayerResponse
-    },
-    set(v) {
-      processYTRenderer('playerResponse', v)
-      logger.debug('initial player response:', v)
-      bootstrapPlayerResponse = v
-    }
-  })
-
-  // Process initial data before app element ready
-  customElements.define = new Hook(customElements.define).install(ctx => {
-    const customElement = ctx.args[1]
-    if (customElement == null) return HookResult.EXECUTION_IGNORE
-
-    const { connectedCallback } = customElement.prototype ?? {}
-
-    const page = APP_ELEMENT_PAGE_MAP[ctx.args[0].toLowerCase()]
-    if (page != null && typeof connectedCallback === 'function') {
-      customElement.prototype.connectedCallback = new Hook(connectedCallback).install(() => {
-        overrideGetInitialData({ page, response: window.ytInitialData } as YTInitData)
-
-        return HookResult.EXECUTION_IGNORE
-      }).call
-    }
-
-    return HookResult.EXECUTION_IGNORE
-  }).call
-
-  logger.info('bootstrap loaded')
+  protected deactivate(): boolean {
+    return false
+  }
 }
