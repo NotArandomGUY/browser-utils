@@ -2,6 +2,7 @@ import InterceptFetch, { FetchContext, FetchContextState, FetchInput, FetchState
 import InterceptImage from '@ext/lib/intercept/image'
 import InterceptXMLHttpRequest from '@ext/lib/intercept/xhr'
 import Logger from '@ext/lib/logger'
+import { buildPathnameRegexp } from '@ext/lib/regexp'
 import { processYTRenderer } from '@ext/site/youtube/api/processor'
 import { isYTLoggedIn } from '@ext/site/youtube/module/bootstrap'
 
@@ -15,7 +16,7 @@ const enum RequestBehaviour {
 }
 
 const BYPASS_ID = '__ytbu_bpid__'
-const BLOCKED_PATH_REGEXP = buildPattern([
+const BLOCKED_PATH_REGEXP = buildPathnameRegexp([
   '/api/stats',
   '/ddm',
   '/log',
@@ -24,20 +25,16 @@ const BLOCKED_PATH_REGEXP = buildPattern([
   '/youtubei/v1/log_event',
   '/youtubei/v1/player/ad_break'
 ])
-const INTERRUPT_PATH_REGEXP = buildPattern([
+const INTERRUPT_PATH_REGEXP = buildPathnameRegexp([
   '/generate_204',
   '/pagead',
   '/videoplayback\\?.*?&ctier=L&.*?%2Cctier%2C.*'
 ])
-const LOGIN_WHITELIST_PATH = buildPattern([
+const LOGIN_WHITELIST_PATH = buildPathnameRegexp([
   '/api/stats/(playback|delayplay|watchtime)'
 ])
 
 const bypassIdSet = new Set<number>()
-
-function buildPattern(patterns: string[]): RegExp {
-  return new RegExp('^(' + patterns.map(p => `(?:${p})`).join('|') + ')(/|\\?|&|$)')
-}
 
 function getRequestBehaviour(url: URL, input?: FetchInput, init?: RequestInit): RequestBehaviour {
   const bypassId = Number(init != null && BYPASS_ID in init ? init[BYPASS_ID] : null)
