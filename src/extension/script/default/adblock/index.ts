@@ -1,12 +1,8 @@
-import initAdblockGoogleAdModule from '@ext/default/adblock/module/google-ad'
-import initAdblockNavigatorModule from '@ext/default/adblock/module/navigator'
-import Logger from '@ext/lib/logger'
+import AdblockGoogleAdModule from '@ext/default/adblock/module/google-ad'
+import AdblockNavigatorModule from '@ext/default/adblock/module/navigator'
+import { registerFeature, registerFeatureGroup } from '@ext/lib/feature'
 
-const logger = new Logger('ADBLOCK')
-
-logger.info('initializing...')
-
-initAdblockNavigatorModule()
-initAdblockGoogleAdModule()
-
-logger.info('initialized')
+registerFeatureGroup('adblock', group => {
+  registerFeature(group, AdblockNavigatorModule)
+  registerFeature(group, AdblockGoogleAdModule)
+})

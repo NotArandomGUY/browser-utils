@@ -1,22 +1,18 @@
-import initPrivacyBugsnagModule from '@ext/default/privacy/module/bugsnag'
-import initPrivacyGoogleAnalyticsModule from '@ext/default/privacy/module/google-analytics'
-import initPrivacyHotjarModule from '@ext/default/privacy/module/hotjar'
-import initPrivacyNavigatorModule from '@ext/default/privacy/module/navigator'
-import initPrivacySentryModule from '@ext/default/privacy/module/sentry'
-import Logger from '@ext/lib/logger'
+import PrivacyBugsnagModule from '@ext/default/privacy/module/bugsnag'
+import PrivacyGoogleAnalyticsModule from '@ext/default/privacy/module/google-analytics'
+import PrivacyHotjarModule from '@ext/default/privacy/module/hotjar'
+import PrivacyNavigatorModule from '@ext/default/privacy/module/navigator'
+import PrivacySentryModule from '@ext/default/privacy/module/sentry'
+import { registerFeature, registerFeatureGroup } from '@ext/lib/feature'
 
-const logger = new Logger('PRIVACY')
+registerFeatureGroup('privacy', group => {
+  registerFeature(group, PrivacyNavigatorModule)
 
-logger.info('initializing...')
+  // Analytics
+  registerFeature(group, PrivacyGoogleAnalyticsModule)
+  registerFeature(group, PrivacyHotjarModule)
 
-initPrivacyNavigatorModule()
-
-// Analytics
-initPrivacyGoogleAnalyticsModule()
-initPrivacyHotjarModule()
-
-// Error monitoring
-initPrivacyBugsnagModule()
-initPrivacySentryModule()
-
-logger.info('initialized')
+  // Error monitoring
+  registerFeature(group, PrivacyBugsnagModule)
+  registerFeature(group, PrivacySentryModule)
+})
