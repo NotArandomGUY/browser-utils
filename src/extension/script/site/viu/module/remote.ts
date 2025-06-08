@@ -2,6 +2,7 @@ import Logger from '@ext/lib/logger'
 import { playerGetCurrentTime, playerGetDuration, playerGetMute, playerGetSubtitle, playerGetVolume, playerIsPlaying, playerPause, playerPlay, playerSeek, playerSetMute, playerSetVolume } from '@ext/site/viu/module/player'
 import { VIU_STATE } from '@ext/site/viu/state'
 import { BURemoteCmd } from '@sh/bu-remote/cmd'
+import { PEER_CONFIG } from '@sh/bu-remote/config'
 import { BURemoteData, BURemoteExportRspData, BURemoteImportRspData, BURemotePlayerInfoData, BURemoteSyncTimeRspData } from '@sh/bu-remote/data'
 import Peer, { DataConnection, MediaConnection } from 'peerjs'
 
@@ -184,13 +185,7 @@ function onDataConnection(dataConn: DataConnection): void {
 }
 
 function createPeer(): void {
-  peer = new Peer({
-    host: '127.0.0.1',
-    port: 443,
-    path: '/api/service/peer',
-    secure: true,
-    key: ''
-  })
+  peer = new Peer(PEER_CONFIG)
 
   peer.on('open', () => VIU_STATE.peerId = peer.id)
   peer.on('disconnected', () => {

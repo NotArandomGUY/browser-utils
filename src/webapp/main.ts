@@ -2,6 +2,7 @@ import 'bootstrap'
 import 'bootstrap/dist/css/bootstrap.min.css'
 
 import { BURemoteCmd } from '@sh/bu-remote/cmd'
+import { PEER_CONFIG } from '@sh/bu-remote/config'
 import { BURemoteAbsoluteSeekData, BURemoteData, BURemoteExportReqData, BURemoteImportReqData, BURemotePauseData, BURemotePlayData, BURemoteRelativeSeekData, BURemoteRelativeVolumeData, BURemoteStreamIdData, BURemoteSyncTimeReqData } from '@sh/bu-remote/data'
 import dialog from '@sh/dialog'
 import SyncTime from '@sh/sync-time'
@@ -129,13 +130,7 @@ import QrScanner from 'qr-scanner'
 
   let peer: Peer
   function createPeer(): void {
-    peer = new Peer({
-      host: '127.0.0.1',
-      port: 443,
-      path: '/api/service/peer',
-      secure: true,
-      key: ''
-    })
+    peer = new Peer(PEER_CONFIG)
 
     peer.on('disconnected', () => {
       peer.destroy()
