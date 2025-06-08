@@ -5,6 +5,7 @@ import InterceptXMLHttpRequest from '@ext/lib/intercept/xhr'
 import Logger from '@ext/lib/logger'
 import { buildPathnameRegexp } from '@ext/lib/regexp'
 import { processYTRenderer } from '@ext/site/youtube/api/processor'
+import { YTRendererSchemaMap } from '@ext/site/youtube/api/renderer'
 import { isYTLoggedIn } from '@ext/site/youtube/module/bootstrap'
 
 const logger = new Logger('YT-NETWORK')
@@ -17,6 +18,7 @@ const enum RequestBehaviour {
 }
 
 const BYPASS_ID = '__ytbu_bpid__'
+const INNERTUBE_API_REGEXP = /(?<=^\/youtubei\/v\d+\/).*$/
 const BLOCKED_PATH_REGEXP = buildPathnameRegexp([
   '/api/stats',
   '/ddm',
@@ -56,50 +58,29 @@ function getRequestBehaviour(url: URL, input?: FetchInput, init?: RequestInit): 
   return RequestBehaviour.NORMAL
 }
 
+function processInnertubeResponse(endpoint: string, data: object): boolean {
+  const renderer = `${endpoint.replace(/[/_][a-z]/g, s => s[1].toUpperCase())}Response` as keyof typeof YTRendererSchemaMap
+
+  processYTRenderer(renderer, data)
+
+  return true
+}
+
 function processResponse(url: URL, data: object): boolean {
-  switch (url.pathname) {
-    case '/youtubei/v1/browse':
-      processYTRenderer('browseResponse', data)
-      return true
-    case '/youtubei/v1/browse/edit_playlist':
-      processYTRenderer('browseEditPlaylistResponse', data)
-      return true
-    case '/youtubei/v1/guide':
-      processYTRenderer('guideResponse', data)
-      return true
-    case '/youtubei/v1/live_chat/get_live_chat':
-      processYTRenderer('liveChatGetLiveChatResponse', data)
-      return true
-    case '/youtubei/v1/next':
-      processYTRenderer('nextResponse', data)
-      return true
-    case '/youtubei/v1/player':
-      processYTRenderer('playerResponse', data)
-      return true
-    case '/youtubei/v1/player/heartbeat':
-      processYTRenderer('playerHeartbeatResponse', data)
-      return true
-    case '/youtubei/v1/reel/reel_item_watch':
-      processYTRenderer('reelReelItemWatchResponse', data)
-      return true
-    case '/youtubei/v1/reel/reel_watch_sequence':
-      processYTRenderer('reelReelWatchSequenceResponse', data)
-      return true
-    case '/youtubei/v1/search':
-      processYTRenderer('searchResponse', data)
-      return true
-    case '/youtubei/v1/updated_metadata':
-      processYTRenderer('updatedMetadataResponse', data)
-      return true
-    default:
-      return false
-  }
+  const { pathname } = url
+
+  const innertubeEndpoint = INNERTUBE_API_REGEXP.exec(pathname)?.[0]
+  if (innertubeEndpoint != null) return processInnertubeResponse(innertubeEndpoint, data)
+
+  return false
 }
 
 export function bypassFetch(input: string, init: RequestInit = {}): Promise<Response> {
   const bypassId = Date.now() + Math.floor(Math.random() * 1e6) - 5e5
+
   Object.defineProperty(init, BYPASS_ID, { value: bypassId })
   bypassIdSet.add(bypassId)
+
   return fetch(input, init)
 }
 
