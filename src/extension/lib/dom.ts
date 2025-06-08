@@ -44,13 +44,15 @@ export function querySelectorOnce(selectors: string): Element | null {
   return curr
 }
 
-export function monitorSelector<K extends keyof HTMLElementTagNameMap>(selectors: K, callback: (element: HTMLElementTagNameMap[K]) => void): void
-export function monitorSelector<K extends keyof SVGElementTagNameMap>(selectors: K, callback: (element: SVGElementTagNameMap[K]) => void): void
-export function monitorSelector<K extends keyof MathMLElementTagNameMap>(selectors: K, callback: (element: MathMLElementTagNameMap[K]) => void): void
-export function monitorSelector<E extends Element = Element>(selectors: string, callback: (element: E) => void): void
-export function monitorSelector(selectors: string, callback: (element: Element) => void): void {
-  monitorSelectorList.push([selectors, callback])
+export function monitorSelector<K extends keyof HTMLElementTagNameMap>(selectors: K, callback: (element: HTMLElementTagNameMap[K]) => void): () => void
+export function monitorSelector<K extends keyof SVGElementTagNameMap>(selectors: K, callback: (element: SVGElementTagNameMap[K]) => void): () => void
+export function monitorSelector<K extends keyof MathMLElementTagNameMap>(selectors: K, callback: (element: MathMLElementTagNameMap[K]) => void): () => void
+export function monitorSelector<E extends Element = Element>(selectors: string, callback: (element: E) => void): () => void
+export function monitorSelector(selectors: string, callback: (element: Element) => void): () => void {
+  const entry: typeof monitorSelectorList[number] = [selectors, callback]
+  monitorSelectorList.push(entry)
   ensureTimer()
+  return () => monitorSelectorList.splice(monitorSelectorList.indexOf(entry), 1)
 }
 
 export function getNextData<T>(prop: string, defaultValue: T): T {
