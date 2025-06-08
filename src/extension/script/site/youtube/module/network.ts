@@ -24,11 +24,12 @@ const BLOCKED_PATH_REGEXP = buildPathnameRegexp([
   '/ddm',
   '/log',
   '/ptracking',
-  '/youtubei/v1/att/log',
-  '/youtubei/v1/log_event',
-  '/youtubei/v1/player/ad_break'
+  '/youtubei/v\\d+/(log_event|video_stats)',
+  '/youtubei/v\\d+/att/log',
+  '/youtubei/v\\d+/player/ad_break'
 ])
 const INTERRUPT_PATH_REGEXP = buildPathnameRegexp([
+  '/error_204',
   '/generate_204',
   '/pagead',
   '/videoplayback\\?.*?&ctier=L&.*?%2Cctier%2C.*'

@@ -38,6 +38,16 @@ interface YTLoggingImsInfo {
 }
 
 interface YTLoggingImsPayloadVariants {
+  appCrashed: {
+    appCrashType: 'APP_CRASH_TYPE_BREAKPAD'
+    systemHealth?: {
+      crashData: {
+        clientError: {
+          message: string
+        }
+      }
+    }
+  }
   applicationStarted: {
     staticContext: {
       cpuCores: number
@@ -49,6 +59,31 @@ interface YTLoggingImsPayloadVariants {
     detected: boolean
     detectionResult: keyof typeof YTLoggingBiscottiBasedDetectionResult
     source: string
+  }
+  clientError: {
+    errorMetadata: {
+      experimentIds: number[]
+      kvPairs: {
+        key: string
+        value: string
+      }[]
+      pageUrl: string
+    }
+    logMessage: {
+      errorClassName: string
+      level: 'ERROR_LEVEL_ERROR' | 'ERROR_LEVEL_UNKNOWN' | 'ERROR_LEVEL_WARNNING'
+      message: string
+      sampleWeight: number
+    }
+    stackTrace: {
+      isObfuscated: boolean
+      browserStackInfo: {
+        columnNumber?: number
+        filename?: string
+        lineNumber?: number
+        stackTrace: string
+      }
+    }
   }
   foregroundHeartbeat: {
     clientDocumentNonce: string
@@ -90,6 +125,10 @@ type YTLoggingImsPayload = {
 
 const triggeredDetectionSources = new Set<string>()
 
+function handleAppCrashed(payload: YTLoggingImsPayloadVariants['appCrashed']): void {
+  logger.warn('app crashed, info:', payload)
+}
+
 function handleBiscottiBasedDetection(payload: YTLoggingImsPayloadVariants['biscottiBasedDetection']): void {
   const { detected, detectionResult, source } = payload
 
@@ -115,6 +154,10 @@ function handleBiscottiBasedDetection(payload: YTLoggingImsPayloadVariants['bisc
   }, 5e3)
 }
 
+function handleClientError(payload: YTLoggingImsPayloadVariants['clientError']): void {
+  logger.warn('client error, info:', payload)
+}
+
 export default class YTLoggingModule extends Feature {
   protected activate(): boolean {
     window.yt = window.yt ?? {}
@@ -131,7 +174,9 @@ export default class YTLoggingModule extends Feature {
             const path = [info.auth ?? 'undefined', info.isJspb ?? 'undefined', info.cttAuthInfo ?? 'undefined', info.tier ?? 'undefined'].join('/')
             logger.trace(`ims payload(${path}):`, payload)
 
+            if ('appCrashed' in payload) handleAppCrashed(payload.appCrashed)
             if ('biscottiBasedDetection' in payload) handleBiscottiBasedDetection(payload.biscottiBasedDetection)
+            if ('clientError' in payload) handleClientError(payload.clientError)
           }
         })
         ims = v
