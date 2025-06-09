@@ -190,7 +190,7 @@ function processYTArrayValueSchema(schema: YTValueSchema, index: number, value: 
 export function processYTRenderer(renderer: YTRendererKey, value: unknown): void {
   const schema = YTRendererSchemaMap[renderer]
   if (schema == null) {
-    logger.warn('schema not found for renderer:', renderer)
+    logger.debug('schema not found for renderer:', renderer)
     return
   }
 
