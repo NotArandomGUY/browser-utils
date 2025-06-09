@@ -1,3 +1,4 @@
+import { Feature } from '@ext/lib/feature'
 import Logger from '@ext/lib/logger'
 import { DEFAULT_SCRIPT_CONFIG, SITE_SCRIPT_CONFIG } from '@virtual/script-config'
 
@@ -57,6 +58,20 @@ function registerContentScripts(): void {
   })
 }
 
-export default function initWorkerInjectorModule(): void {
-  chrome.scripting.getRegisteredContentScripts(scripts => chrome.scripting.unregisterContentScripts({ ids: scripts.map(script => script.id) }, registerContentScripts))
+export default class WorkerInjectorModule extends Feature {
+  protected activate(): boolean {
+    chrome.scripting.getRegisteredContentScripts(scripts => {
+      chrome.scripting.unregisterContentScripts({ ids: scripts.map(script => script.id) }, registerContentScripts)
+    })
+
+    return true
+  }
+
+  protected deactivate(): boolean {
+    chrome.scripting.getRegisteredContentScripts(scripts => {
+      chrome.scripting.unregisterContentScripts({ ids: scripts.map(script => script.id) })
+    })
+
+    return true
+  }
 }

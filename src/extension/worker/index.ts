@@ -1,12 +1,19 @@
-import Logger from '@ext/lib/logger'
-import initWorkerInjectorModule from '@ext/worker/module/injector'
-import initWorkerNetworkModule from '@ext/worker/module/network'
+import { registerFeature, registerFeatureGroup } from '@ext/lib/feature'
+import WorkerInjectorModule from '@ext/worker/module/injector'
+import WorkerNetworkModule from '@ext/worker/module/network'
 
-const logger = new Logger('WORKER')
+let isActive = false
 
-logger.info('initializing...')
+function activateWorker(): void {
+  if (isActive) return
 
-initWorkerInjectorModule()
-initWorkerNetworkModule()
+  registerFeatureGroup('worker', group => {
+    registerFeature(group, WorkerInjectorModule)
+    registerFeature(group, WorkerNetworkModule)
+  })
 
-logger.info('initialized')
+  isActive = true
+}
+
+chrome.runtime.onStartup.addListener(activateWorker)
+activateWorker()
