@@ -42,6 +42,14 @@ export default class YTFixupModule extends Feature {
       return HookResult.EXECUTION_IGNORE
     })
 
+    document.addEventListener('DOMContentLoaded', () => {
+      const foreignScripts = document.querySelectorAll('script:not([nonce])')
+      if (foreignScripts.length === 0) return
+
+      foreignScripts.forEach(script => script.parentNode?.removeChild(script))
+      logger.debug(`removed ${foreignScripts.length} foreign scripts`)
+    })
+
     return true
   }
 
