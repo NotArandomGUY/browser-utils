@@ -63,7 +63,7 @@ export default class AdblockNavigatorModule extends Feature {
     // Ensure environment is valid
     if (typeof hostname !== 'string' || typeof userAgent !== 'string') throw new Error('invalid environment')
 
-    // Don't start if host is in whitelist
+    // Don't activate if host is in whitelist
     if (WHITELIST_HOST_REGEXP.test(this.hostname)) return false
 
     const userAgentProxy = new ProxyChain({
