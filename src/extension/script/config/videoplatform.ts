@@ -16,8 +16,7 @@ export const SITE_VIDEOPLATFORM_SCRIPT_CONFIG = [
     matches: [
       '*://*.youtube.com/*',
       '*://*.youtube-nocookie.com/*'
-    ],
-    preventDefault: true
+    ]
   },
   {
     script: 'viu',

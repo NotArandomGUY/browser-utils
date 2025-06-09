@@ -42,6 +42,7 @@ export abstract class Feature {
 
 export interface FeatureGroup {
   featureMap: Map<number, Feature>
+  dependencies: string[]
 }
 
 const featureGroupMap = new Map<string, FeatureGroup>()
@@ -62,6 +63,21 @@ function activateFeatureGroup(groupId: string): void {
   }
 }
 
+function resolveDependencies(depGroupId: string): void {
+  for (const [groupId, group] of featureGroupMap) {
+    const index = group.dependencies.indexOf(depGroupId)
+    if (index < 0) continue
+
+    // Remove loaded dependency from group entry
+    group.dependencies.splice(index, 1)
+    if (group.dependencies.length > 0) continue
+
+    // Activate feature group & any dependent feature groups after all dependencies are resolved
+    activateFeatureGroup(groupId)
+    resolveDependencies(groupId)
+  }
+}
+
 export function registerFeature(group: FeatureGroup, feature: new () => Feature, featureId?: number): void {
   featureId ??= group.featureMap.size
   while (group.featureMap.has(featureId)) featureId++
@@ -69,9 +85,19 @@ export function registerFeature(group: FeatureGroup, feature: new () => Feature,
   group.featureMap.set(featureId, new feature())
 }
 
-export function registerFeatureGroup(groupId: string, registerFn: (group: FeatureGroup) => void): void {
+export function registerFeatureGroup(groupId: string, registerFn: (group: FeatureGroup) => void, dependencies: string[] = []): void {
+  if (featureGroupMap.has(groupId)) {
+    logger.warn(`duplicate feature group '${groupId}'`)
+    return
+  }
+
+  // Resolve loaded dependencies
+  dependencies = dependencies.filter(dep => !featureGroupMap.has(dep)).map(dep => `'${dep}'`)
+
+  // Create feature group
   const group: FeatureGroup = {
-    featureMap: new Map()
+    featureMap: new Map(),
+    dependencies
   }
   featureGroupMap.set(groupId, group)
 
@@ -82,5 +108,13 @@ export function registerFeatureGroup(groupId: string, registerFn: (group: Featur
     logger.warn(`register feature group '${groupId}' error:`, error)
   }
 
+  // Skip activation if there's missing dependencies
+  if (dependencies.length > 0) {
+    logger.trace(`feature group '${groupId}' waiting for dependencies [${dependencies.join(',')}]`)
+    return
+  }
+
+  // Activate feature group & any dependent feature groups
   activateFeatureGroup(groupId)
+  resolveDependencies(groupId)
 }

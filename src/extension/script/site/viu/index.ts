@@ -1,4 +1,5 @@
 import { registerFeature, registerFeatureGroup } from '@ext/lib/feature'
+import { hideOwnWebpackRuntimeFromGlobal } from '@ext/lib/wprt'
 import ViuAdblockModule from '@ext/site/viu/module/adblock'
 import ViuNetworkModule from '@ext/site/viu/module/network'
 import ViuPlayerModule from '@ext/site/viu/module/player'
@@ -15,4 +16,6 @@ registerFeatureGroup('viu', group => {
   registerFeature(group, ViuRenderModule)
   registerFeature(group, ViuWebpackModule)
   registerFeature(group, ViuUserDataModule)
-})
+
+  hideOwnWebpackRuntimeFromGlobal()
+}, ['adblock', 'privacy'])

@@ -20,4 +20,4 @@ registerFeatureGroup('youtube', group => {
   registerFeature(group, YTModModule)
 
   hideOwnWebpackRuntimeFromGlobal()
-})
+}, ['adblock', 'privacy'])
