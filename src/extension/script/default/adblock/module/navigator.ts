@@ -6,7 +6,7 @@ import { buildHostnameRegexp } from '@ext/lib/regexp'
 const logger = new Logger('ADBLOCK-NAVIGATOR')
 
 // These sites doesn't like user agent to be changed and will get emotional damage from it
-const WHITELIST_HOST_REGEXP = buildHostnameRegexp(['drive.google.com', 'reddit.com'])
+const WHITELIST_HOST_REGEXP = buildHostnameRegexp(['google.com', 'reddit.com'])
 
 // Some site disable tracking report & anti ad block check if user agent is a bot
 const BOT_UA = ['googlebot', 'mediapartners-google', 'adsbot-google', 'facebookexternalhit', 'bingbot', 'bingpreview', 'googleweblight', 'yandex', 'cxensebot', 'duckduckbot', 'archive.org_bot', 'baiduspider', 'slurp', 'affilimate-puppeteer']
