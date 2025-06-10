@@ -64,6 +64,11 @@ const BLOCKED_PATH_REGEXP = buildPathnameRegexp([
   '/youtubei/v\\d+/att/log',
   '/youtubei/v\\d+/player/ad_break'
 ])
+const INTERRUPT_STATUS_MAP = {
+  '/error_204': 204,
+  '/generate_204': 204,
+  '/videoplayback': 403
+} satisfies Record<string, number>
 const INTERRUPT_PATH_REGEXP = buildPathnameRegexp([
   '/error_204',
   '/generate_204',
@@ -98,9 +103,10 @@ function processRequest(ctx: NetworkRequestContext): void {
   if (isYTLoggedIn() && LOGIN_WHITELIST_PATH.test(path)) return
 
   if (INTERRUPT_PATH_REGEXP.test(path)) {
-    // Generate error response for interrupted request
-    logger.debug('network request interrupted:', url.href)
-    Object.assign<NetworkContext, NetworkContextState>(ctx, { state: NetworkState.SUCCESS, response: new Response(undefined, { status: 403 }) })
+    // Generate response for interrupted request
+    const status = Object.entries(INTERRUPT_STATUS_MAP).find(e => new RegExp('^' + e[0]).test(path))?.[1] ?? 200
+    logger.debug('network request interrupted:', url.href, status)
+    Object.assign<NetworkContext, NetworkContextState>(ctx, { state: NetworkState.SUCCESS, response: new Response(undefined, { status }) })
     return
   }
 
