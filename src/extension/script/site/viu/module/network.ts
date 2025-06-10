@@ -1,7 +1,7 @@
 import { Feature } from '@ext/lib/feature'
-import InterceptFetch, { FetchContext, FetchContextState, FetchState } from '@ext/lib/intercept/fetch'
-import InterceptXMLHttpRequest from '@ext/lib/intercept/xhr'
+import { addInterceptNetworkCallback, NetworkContext, NetworkContextState, NetworkRequestContext, NetworkState } from '@ext/lib/intercept/network'
 import Logger from '@ext/lib/logger'
+import { buildHostnameRegexp } from '@ext/lib/regexp'
 import ViuLSHandleHistory from '@ext/site/viu/local-server/history'
 import ViuLSHandleWatchTimeLine from '@ext/site/viu/local-server/timeline'
 import { onNetworkPlaybackDistribute } from '@ext/site/viu/module/player'
@@ -9,11 +9,11 @@ import { VIU_STATE } from '@ext/site/viu/state'
 
 const logger = new Logger('VIU-NETWORK')
 
-const BLOCKED_HOSTNAME = [
+const BLOCKED_HOSTNAME_REGEXP = buildHostnameRegexp([
   'adsrvr.org',
   'licensing.bitmovin.com',
   'ingest.sentry.io'
-]
+])
 
 function getTimeSecond(date: Date = new Date()): number {
   return Math.floor(date.getTime() / 1e3)
@@ -53,24 +53,32 @@ function patchRSC(line: string | null): string | null {
   return line
 }
 
-function onXHRLoadStart(this: InterceptXMLHttpRequest, url: URL): void {
-  if (VIU_STATE.loggedIn) return
-
-  if (BLOCKED_HOSTNAME.find(host => url.hostname.endsWith(host)) != null) {
-    this.abort()
-    logger.debug('xhr blocked:', url)
+async function processRequest(ctx: NetworkRequestContext): Promise<void> {
+  if (BLOCKED_HOSTNAME_REGEXP.test(ctx.url.hostname)) {
+    logger.debug('network request blocked:', ctx.url.href)
+    Object.assign<NetworkContext, NetworkContextState>(ctx, { state: NetworkState.FAILED, error: new Error('Failed') })
     return
   }
 
-  switch (url.pathname) {
+  if (VIU_STATE.loggedIn) return
+
+  let data: object
+  switch (ctx.url.pathname) {
+    case '/api/config':
+      data = {
+        carrier: { id: '0' },
+        ip: '127.0.0.1',
+        countryCode: 'HK'
+      }
+      break
     case '/api/account/validate':
-      this.generateResponse(makeApiResponse({}))
+      data = makeApiResponse({})
       break
     case '/api/concurrency/device':
-      this.generateResponse({}) // No data
+      data = {} // No data
       break
     case '/api/concurrency/deviceList':
-      this.generateResponse({
+      data = {
         deviceList: [
           {
             deviceId: '00000000-0000-0000-0000-000000000000',
@@ -80,21 +88,21 @@ function onXHRLoadStart(this: InterceptXMLHttpRequest, url: URL): void {
             platform: 'br'
           }
         ]
-      })
+      }
       break
     case '/api/log/user/watchTimeline':
-      this.generateResponse(ViuLSHandleWatchTimeLine(this.requestMethod, url, String(this.requestBody)))
+      data = ViuLSHandleWatchTimeLine(ctx.request.method, ctx.url, await ctx.request.clone().text())
       break
     case '/api/subscription/detail':
-      this.generateResponse({}) // No data
+      data = {} // No data
       break
     case '/api/subscription/featureList':
-      this.generateResponse({
+      data = {
         features: []
-      })
+      }
       break
     case '/api/subscription/paymentHistory':
-      this.generateResponse(makeApiResponse({
+      data = makeApiResponse({
         subscription: {
           provider: 'BU Extension',
           is_recurring_subscription: true,
@@ -105,45 +113,45 @@ function onXHRLoadStart(this: InterceptXMLHttpRequest, url: URL): void {
           }
         },
         payments: []
-      }))
-      break
-    case '/api/subscription/plan':
-      this.generateResponse({
-        user_plan: []
       })
       break
+    case '/api/subscription/plan':
+      data = {
+        user_plan: []
+      }
+      break
     case '/api/subscription/status':
-      this.generateResponse({
+      data = {
         plan: {
           name: 'PremiumP_0',
           partners: []
         }
-      })
+      }
       break
     case '/api/subscription/unsubscribe':
-      this.generateResponse(makeApiResponse({}))
+      data = makeApiResponse({})
       break
     case '/api/user/bookmark':
-      this.generateResponse({
+      data = {
         tv: [],
         movie: []
-      })
+      }
       break
     case '/api/user/bookmarkSimple':
-      this.generateResponse(makeApiResponse({
+      data = makeApiResponse({
         bookmarkSimple: {
           series_id: []
         }
-      }))
+      })
       break
     case '/api/user/history':
-      this.generateResponse(ViuLSHandleHistory(this.requestMethod, url, String(this.requestBody)))
+      data = ViuLSHandleHistory(ctx.request.method, ctx.url, await ctx.request.clone().text())
       break
     case '/api/user/privacy':
-      this.generateResponse(makeApiResponse({}))
+      data = makeApiResponse({})
       break
     case '/spu/bff/v2/paymentDetail':
-      this.generateResponse(makeApiResponse({
+      data = makeApiResponse({
         subscription: {
           provider: 'BU Extension',
           isRecurringSubscription: true,
@@ -154,23 +162,22 @@ function onXHRLoadStart(this: InterceptXMLHttpRequest, url: URL): void {
           }
         },
         payments: []
-      }))
-      break
-  }
-}
-
-function onXHRLoadEnd(this: InterceptXMLHttpRequest, url: URL): void { // NOSONAR
-  let data = null
-  try { data = JSON.parse(this.responseText) } catch { }
-
-  switch (url.pathname) {
-    case '/api/config':
-      this.setOverrideResponse({
-        carrier: { id: '0' },
-        ip: '127.0.0.1',
-        countryCode: 'HK'
       })
       break
+    default:
+      return
+  }
+
+  Object.assign<NetworkContext, NetworkContextState>(ctx, { state: NetworkState.SUCCESS, response: new Response(JSON.stringify(await Promise.resolve(data))) })
+}
+
+async function processResponse(ctx: NetworkContext<unknown, NetworkState.SUCCESS>): Promise<void> { // NOSONAR
+  const { url, response } = ctx
+
+  let data = null
+  try { data = await response.clone().json() } catch { }
+
+  switch (url.pathname) {
     case '/api/mobile': {
       const { product_list, current_product, series, setting } = data?.data ?? {}
 
@@ -226,8 +233,6 @@ function onXHRLoadEnd(this: InterceptXMLHttpRequest, url: URL): void { // NOSONA
           premium_plus_button_is_display: '0'
         })
       }
-
-      this.setOverrideResponse(data)
       break
     }
     case '/api/user/info': {
@@ -254,7 +259,7 @@ function onXHRLoadEnd(this: InterceptXMLHttpRequest, url: URL): void { // NOSONA
         VIU_STATE.loggedIn = true
       }
 
-      this.setOverrideResponse(Object.assign(data, {
+      Object.assign(data, {
         data: {
           user: Object.assign(user, {
             privileges: {
@@ -278,11 +283,11 @@ function onXHRLoadEnd(this: InterceptXMLHttpRequest, url: URL): void { // NOSONA
             vuclip_user_id: '00000000-0000-0000-0000-000000000000'
           })
         }
-      }))
+      })
       break
     }
     case '/api/subscription/status':
-      this.setOverrideResponse(Object.assign(data, {
+      Object.assign(data, {
         hasSubscription: true,
         paymentStatus: 'premium+',
         plan: Object.assign(data?.plan, {
@@ -290,7 +295,7 @@ function onXHRLoadEnd(this: InterceptXMLHttpRequest, url: URL): void { // NOSONA
           specialContentAllowed: 'SP_CONTENT_ALLOWED'
         }),
         dataTracking: { vuclipUserId: '00000000-0000-0000-0000-000000000000' }
-      }))
+      })
       break
     case '/api/playback/distribute': {
       VIU_STATE.streamSourceMap.clear()
@@ -307,44 +312,9 @@ function onXHRLoadEnd(this: InterceptXMLHttpRequest, url: URL): void { // NOSONA
       break
     }
     default:
-      logger.debug('xhr passthrough:', url.pathname, this.response)
-      break
-  }
-}
-
-export default class ViuNetworkModule extends Feature {
-  protected activate(): boolean {
-    InterceptXMLHttpRequest.setCallback(function (type, evt) {
-      const url = this.requestURL
-      switch (type) {
-        case 'loadstart':
-          return onXHRLoadStart.call(this, url)
-        case 'loadend':
-          return onXHRLoadEnd.call(this, url)
-      }
-    })
-
-    InterceptFetch.setCallback(async (ctx) => {
-      if (ctx.state !== FetchState.SUCCESS) {
-        if (ctx.state !== FetchState.UNSENT || BLOCKED_HOSTNAME.find(host => ctx.url.hostname.endsWith(host)) == null) return
-
-        // Force blocked request to fail
-        logger.debug('fetch blocked:', ctx.url)
-        Object.assign<FetchContext, FetchContextState>(ctx, { state: FetchState.FAILED, error: new Error('Failed') })
-        return
-      }
-
-      const { url, response } = ctx
-
-      let data = null
-      try { data = await response.clone().json() } catch { }
-
       switch (true) {
-        case /\/encore\/.*/.test(url.pathname):
-          ctx.response = new Response((await response.clone().text()).split('\n').map(patchRSC).join('\n'), { headers: { 'Content-Type': 'text/x-component' } })
-          break
         case /\/production\/programmes\/.*?\/videos/.test(url.pathname):
-          ctx.response = new Response(JSON.stringify(Object.assign(data, {
+          Object.assign(data, {
             video: data?.video?.map((v: object) => Object.assign(v, {
               isAdultContent: false,
               isDirty: false,
@@ -352,10 +322,28 @@ export default class ViuNetworkModule extends Feature {
               midroll_adbreaks: [],
               requiredLogin: false
             })) ?? []
-          })), { headers: { 'Content-Type': 'application/json' } })
+          })
           break
+        case /\/encore\/.*/.test(url.pathname):
+          ctx.response = new Response((await response.clone().text()).split('\n').map(patchRSC).join('\n'), { headers: Object.fromEntries(response.headers.entries()) })
+          return
         default:
-          logger.debug('fetch passthrough:', url.pathname, data)
+          return
+      }
+  }
+
+  ctx.response = new Response(JSON.stringify(data), { headers: Object.fromEntries(response.headers.entries()) })
+}
+
+export default class ViuNetworkModule extends Feature {
+  protected activate(): boolean {
+    addInterceptNetworkCallback(async ctx => {
+      switch (ctx.state) {
+        case NetworkState.UNSENT:
+          await processRequest(ctx)
+          break
+        case NetworkState.SUCCESS:
+          await processResponse(ctx)
           break
       }
     })

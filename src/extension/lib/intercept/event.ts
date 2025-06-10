@@ -7,6 +7,12 @@ interface InterceptListenerEntry {
 
 const logger = new Logger('INTERCEPT-EVENT')
 
+const PreventDispatchEventSymbol = Symbol()
+
+export function preventDispatchEvent(evt: Event): void {
+  if (PreventDispatchEventSymbol in evt && typeof evt[PreventDispatchEventSymbol] === 'function') evt[PreventDispatchEventSymbol]()
+}
+
 export default class InterceptEventTargetAdapter<TTarget, TMap> {
   /// Public ///
 
@@ -23,12 +29,12 @@ export default class InterceptEventTargetAdapter<TTarget, TMap> {
     eventTarget.removeEventListener = <EventTarget['removeEventListener']>this.removeEventListener.bind(this)
   }
 
-  public addEventListener<KM extends keyof TMap>(type: KM, listener: (evt: TMap[KM]) => void, options?: AddEventListenerOptions): void {
+  public addEventListener<KM extends keyof TMap>(type: KM, listener: (evt: TMap[KM]) => Promise<void> | void, options?: AddEventListenerOptions): void {
     this.getListenerList(type).push({ listener, options })
     this.activateEvent(type)
   }
 
-  public removeEventListener<KM extends keyof TMap>(type: KM, listener: (evt: TMap[KM]) => void): void {
+  public removeEventListener<KM extends keyof TMap>(type: KM, listener: (evt: TMap[KM]) => Promise<void> | void): void {
     const listenerList = this.eventListenerMap[type]
     if (listenerList == null) return
 
@@ -77,30 +83,37 @@ export default class InterceptEventTargetAdapter<TTarget, TMap> {
     delete this.blockedEventMap[type]
   }
 
-  public dispatchEvent<KM extends keyof TMap>(type: KM, evt: Event): void {
+  public async dispatchEvent<KM extends keyof TMap>(type: KM, evt: Event): Promise<void> {
     const listenerList = this.eventListenerMap[type]
     if (listenerList == null) return
 
-    logger.debug('intercepted event:', type, listenerList)
+    logger.trace('intercepted event:', type, listenerList)
 
     const isBlocked = this.blockedEventMap[type] === true
     if (isBlocked) return
 
+    let isPreventDispatch = false
+    Object.defineProperty(evt, PreventDispatchEventSymbol, { configurable: true, enumerable: false, value() { isPreventDispatch = true } })
+
     for (const { listener, options } of listenerList) {
+      logger.trace('dispatch event:', type, listener, options)
+
       const once = options?.once
       const aborted = options?.signal?.aborted
 
       if (!aborted) {
         try {
-          listener(evt)
+          await listener(evt)
         } catch (error) {
-          logger.error(error)
+          logger.error('event listener error:', error)
         }
       }
 
       if (once || aborted) this.removeEventListener(type, <(evt: TMap[KM]) => void>listener)
-      if (evt.defaultPrevented) break
+      if (isPreventDispatch) break
     }
+
+    delete evt[PreventDispatchEventSymbol as unknown as keyof typeof evt]
   }
 
   /// Private ///

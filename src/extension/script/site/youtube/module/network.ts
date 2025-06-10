@@ -1,7 +1,7 @@
 import { Feature } from '@ext/lib/feature'
-import InterceptFetch, { FetchContext, FetchContextState, FetchInput, FetchState } from '@ext/lib/intercept/fetch'
+import { preventDispatchEvent } from '@ext/lib/intercept/event'
 import InterceptImage from '@ext/lib/intercept/image'
-import InterceptXMLHttpRequest from '@ext/lib/intercept/xhr'
+import { addInterceptNetworkCallback, NetworkContext, NetworkContextState, NetworkRequestContext, NetworkState } from '@ext/lib/intercept/network'
 import Logger from '@ext/lib/logger'
 import { buildPathnameRegexp } from '@ext/lib/regexp'
 import { processYTRenderer } from '@ext/site/youtube/api/processor'
@@ -9,13 +9,6 @@ import { YTRendererSchemaMap } from '@ext/site/youtube/api/renderer'
 import { isYTLoggedIn } from '@ext/site/youtube/module/bootstrap'
 
 const logger = new Logger('YT-NETWORK')
-
-const enum RequestBehaviour {
-  NORMAL,
-  PASSTHROUGH,
-  INTERRUPT,
-  BLOCK
-}
 
 const BYPASS_ID = '__ytbu_bpid__'
 const INNERTUBE_API_REGEXP = /(?<=^\/youtubei\/v\d+\/).*$/
@@ -40,49 +33,69 @@ const LOGIN_WHITELIST_PATH = buildPathnameRegexp([
 
 const bypassIdSet = new Set<number>()
 
-function getRequestBehaviour(url: URL, input?: FetchInput, init?: RequestInit): RequestBehaviour {
-  const bypassId = Number(init != null && BYPASS_ID in init ? init[BYPASS_ID] : null)
+function processRequest(ctx: NetworkRequestContext): void {
+  const { url, request } = ctx
+
+  const bypassId = Number(request != null && BYPASS_ID in request ? request[BYPASS_ID] : null)
   if (bypassIdSet.has(bypassId)) {
     bypassIdSet.delete(bypassId)
-    return RequestBehaviour.PASSTHROUGH
+    ctx.passthrough = true
+    return
   }
 
   const path = url.pathname + url.search
 
   // Ignore request with fake url
-  if (input instanceof Request && Object.getOwnPropertyDescriptor(input, 'url')?.get?.toString().includes(url.pathname)) return RequestBehaviour.PASSTHROUGH
+  if (request != null && Object.getOwnPropertyDescriptor(request, 'url')?.get?.toString().includes(url.pathname)) {
+    ctx.passthrough = true
+    return
+  }
 
-  if (isYTLoggedIn() && LOGIN_WHITELIST_PATH.test(path)) return RequestBehaviour.NORMAL
-  if (INTERRUPT_PATH_REGEXP.test(path)) return RequestBehaviour.INTERRUPT
-  if (BLOCKED_PATH_REGEXP.test(path)) return RequestBehaviour.BLOCK
+  // Ignore whitelisted request
+  if (isYTLoggedIn() && LOGIN_WHITELIST_PATH.test(path)) return
 
-  return RequestBehaviour.NORMAL
+  if (INTERRUPT_PATH_REGEXP.test(path)) {
+    // Generate error response for interrupted request
+    logger.debug('network request interrupted:', url.href)
+    Object.assign<NetworkContext, NetworkContextState>(ctx, { state: NetworkState.SUCCESS, response: new Response(undefined, { status: 403 }) })
+    return
+  }
+
+  if (BLOCKED_PATH_REGEXP.test(path)) {
+    // Force blocked request to fail
+    logger.debug('network request blocked:', url.href)
+    Object.assign<NetworkContext, NetworkContextState>(ctx, { state: NetworkState.FAILED, error: new Error('Failed') })
+    return
+  }
+
+  logger.debug('network request:', url.href)
 }
 
-function processInnertubeResponse(endpoint: string, data: object): boolean {
-  const renderer = `${endpoint.replace(/[/_][a-z]/g, s => s[1].toUpperCase())}Response` as keyof typeof YTRendererSchemaMap
-
-  processYTRenderer(renderer, data)
-
-  return true
-}
-
-function processResponse(url: URL, data: object): boolean {
+async function processResponse(ctx: NetworkContext<unknown, NetworkState.SUCCESS>): Promise<void> {
+  const { url, response } = ctx
   const { pathname } = url
 
-  const innertubeEndpoint = INNERTUBE_API_REGEXP.exec(pathname)?.[0]
-  if (innertubeEndpoint != null) return processInnertubeResponse(innertubeEndpoint, data)
+  let data = null
+  try { data = await response.clone().json() } catch { }
 
-  return false
+  const innertubeEndpoint = INNERTUBE_API_REGEXP.exec(pathname)?.[0]
+  if (innertubeEndpoint != null) {
+    const renderer = `${innertubeEndpoint.replace(/[/_][a-z]/g, s => s[1].toUpperCase())}Response` as keyof typeof YTRendererSchemaMap
+    processYTRenderer(renderer, data)
+    ctx.response = new Response(JSON.stringify(data), { headers: Object.fromEntries(response.headers.entries()) })
+  }
+
+  logger.debug('network response:', url.href, data)
 }
 
 export function bypassFetch(input: string, init: RequestInit = {}): Promise<Response> {
   const bypassId = Date.now() + Math.floor(Math.random() * 1e6) - 5e5
+  const request = new Request(input, init)
 
-  Object.defineProperty(init, BYPASS_ID, { value: bypassId })
+  Object.defineProperty(request, BYPASS_ID, { value: bypassId })
   bypassIdSet.add(bypassId)
 
-  return fetch(input, init)
+  return fetch(request)
 }
 
 export default class YTNetworkModule extends Feature {
@@ -91,95 +104,29 @@ export default class YTNetworkModule extends Feature {
       value: null
     })
 
-    InterceptXMLHttpRequest.setCallback<RequestBehaviour>(function (type) {
-      const url = this.requestURL
-      switch (type) {
-        case 'loadstart': {
-          const behaviour = getRequestBehaviour(url)
-          this.userData = behaviour
-
-          switch (behaviour) {
-            case RequestBehaviour.BLOCK:
-              // Abort blocked request
-              logger.debug('xhr blocked:', url.href)
-              this.abort()
-              break
-            case RequestBehaviour.INTERRUPT:
-              // Generate empty response for interrupted request
-              logger.debug('xhr interrupt:', url.href)
-              this.generateResponse('')
-              break
-          }
-          break
-        }
-        case 'load': {
-          if (this.userData === RequestBehaviour.PASSTHROUGH) {
-            logger.debug('xhr passthrough:', url.href)
-            break
-          }
-
-          let data = null
-          try { data = JSON.parse(this.responseText) } catch { }
-
-          if (processResponse(url, data)) this.setOverrideResponse(data)
-
-          logger.debug('xhr response:', url.href, data)
-          break
-        }
-      }
-    })
-
-    InterceptFetch.setCallback<RequestBehaviour>(async (ctx) => {
+    addInterceptNetworkCallback(async ctx => {
       switch (ctx.state) {
-        case FetchState.UNSENT: {
-          const behaviour = getRequestBehaviour(ctx.url, ctx.input, ctx.init)
-          ctx.userData = behaviour
-
-          switch (behaviour) {
-            case RequestBehaviour.BLOCK:
-              // Force blocked request to fail
-              logger.debug('fetch blocked:', ctx.url.href)
-              Object.assign<FetchContext, FetchContextState>(ctx, { state: FetchState.FAILED, error: new Error('Failed') })
-              break
-            case RequestBehaviour.INTERRUPT:
-              // Generate empty response for interrupted request
-              logger.debug('fetch interrupt:', ctx.url.href)
-              Object.assign<FetchContext, FetchContextState>(ctx, { state: FetchState.SUCCESS, response: new Response(undefined, { status: 403 }) })
-              break
-          }
+        case NetworkState.UNSENT:
+          processRequest(ctx)
           break
-        }
-        case FetchState.SUCCESS: {
-          const { url, response } = ctx
-
-          if (ctx.userData === RequestBehaviour.PASSTHROUGH) {
-            logger.debug('fetch passthrough:', url.href)
-            break
-          }
-
-          let data = null
-          try { data = await response.clone().json() } catch { }
-
-          if (processResponse(url, data)) ctx.response = new Response(JSON.stringify(data), { headers: Object.fromEntries(response.headers.entries()) })
-
-          logger.debug('fetch response:', url.href, data)
+        case NetworkState.SUCCESS:
+          await processResponse(ctx)
           break
-        }
       }
     })
 
-    InterceptImage.setCallback(function (type, evt) {
+    InterceptImage.setCallback((type, event) => {
       if (type !== 'srcchange') return
 
-      const url = new URL((<CustomEvent<string>>evt).detail, location.href)
+      const { pathname } = new URL((<CustomEvent<string>>event).detail, location.href)
 
-      // Abort blocked or interrupted request
-      if (getRequestBehaviour(url) !== RequestBehaviour.PASSTHROUGH) {
-        evt.preventDefault()
+      // Prevent interrupted or blocked path from loading
+      if (INTERRUPT_PATH_REGEXP.test(pathname) || BLOCKED_PATH_REGEXP.test(pathname)) {
+        preventDispatchEvent(event)
         return
       }
 
-      logger.debug('image load:', url.pathname)
+      logger.debug('image load:', pathname)
     })
 
     return true
