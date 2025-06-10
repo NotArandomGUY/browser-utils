@@ -27,17 +27,33 @@ async function handleXHRSend(this: InterceptXMLHttpRequest): Promise<boolean> {
 
   const { requestMethod, requestHeaders, requestBody } = this
 
-  const ctx = await onRequestCallback(this.requestURL, {
+  const init: RequestInit = {
     method: requestMethod,
-    headers: requestHeaders,
-    body: requestBody instanceof Document ? new XMLSerializer().serializeToString(requestBody) : requestBody
-  })
+    headers: requestHeaders
+  }
+  switch (requestMethod.toUpperCase()) {
+    case 'GET':
+    case 'HEAD':
+      break
+    default:
+      init.body = requestBody instanceof Document ? new XMLSerializer().serializeToString(requestBody) : requestBody
+      break
+  }
+
+  const ctx = await onRequestCallback(this.requestURL, init)
   this.ctx = ctx
 
-  if (ctx.state === NetworkState.UNSENT) return false
-
-  // Complete request
-  await this.complete()
+  // Invoke respective handler if response is set
+  switch (ctx.state) {
+    case NetworkState.SUCCESS:
+      await handleXHRLoad.call(this)
+      break
+    case NetworkState.FAILED:
+      await handleXHRError.call(this)
+      break
+    default:
+      return false
+  }
 
   return true
 }
@@ -126,6 +142,8 @@ class InterceptXMLHttpRequest extends XMLHttpRequest {
     const externalData: Record<string | symbol, unknown> = {}
     const prototype = (nativeXHR ?? window.XMLHttpRequest).prototype
 
+    this.addEventListener = eventTarget.addEventListener.bind(eventTarget)
+    this.removeEventListener = eventTarget.removeEventListener.bind(eventTarget)
     this.eventTarget = eventTarget
 
     return new Proxy(this, { // NOSONAR
@@ -228,8 +246,15 @@ class InterceptXMLHttpRequest extends XMLHttpRequest {
     this.requestBody = body ?? null
 
     handleXHRSend.call(this)
-      .then(isIntercepted => isIntercepted || super.send(body))
-      .catch(() => this.abort())
+      .then(isIntercepted => {
+        if (isIntercepted) return
+
+        super.send(body)
+      })
+      .catch(error => {
+        logger.warn('send handler error:', error)
+        this.abort()
+      })
   }
 
   public changeReadyState(targetReadyState: number): void {
@@ -243,7 +268,7 @@ class InterceptXMLHttpRequest extends XMLHttpRequest {
 
       // Specific event for ready state
       switch (readyState) {
-        case 1:
+        case 2:
           eventTarget.dispatchEvent('loadstart', new ProgressEvent('loadstart'))
           break
         case 4:
