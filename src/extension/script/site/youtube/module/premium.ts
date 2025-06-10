@@ -87,6 +87,7 @@ export default class YTPremiumModule extends Feature {
 
       return HookResult.EXECUTION_IGNORE
     })
+    Object.defineProperty(window, 'google_ad_status', { configurable: true, enumerable: true, value: null })
 
     setInterval(generateActivity, 15e3)
 

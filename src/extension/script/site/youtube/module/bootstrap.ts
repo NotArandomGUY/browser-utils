@@ -147,7 +147,12 @@ export default class YTBootstrapModule extends Feature {
     ytcfg = Object.assign(window.ytcfg ?? {}, {
       init_: false,
       d() {
-        return window.yt && yt.config_ || ytcfg.data_ || (ytcfg.data_ = {})
+        return window.yt && yt.config_ || ytcfg.data_ || (ytcfg.data_ = new Proxy({}, {
+          set(target, p, newValue, receiver) {
+            if (p === 'CATSTAT' || p === 'DCLKSTAT') logger.debug('set detection stat:', p, newValue)
+            return Reflect.set(target, p, newValue, receiver)
+          }
+        }))
       },
       get(key, defaultValue) {
         return key in ytcfg.d() ? ytcfg.d()[key] : defaultValue
