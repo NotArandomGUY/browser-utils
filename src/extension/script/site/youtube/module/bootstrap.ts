@@ -258,8 +258,6 @@ export default class YTBootstrapModule extends Feature {
       return HookResult.EXECUTION_IGNORE
     }).call
 
-    logger.info('bootstrap loaded')
-
     return true
   }
 
