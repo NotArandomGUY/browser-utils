@@ -5,8 +5,8 @@ import { buildHostnameRegexp } from '@ext/lib/regexp'
 
 const logger = new Logger('ADBLOCK-NAVIGATOR')
 
-// These sites doesn't like user agent to be changed and will get emotional damage from it
-const WHITELIST_HOST_REGEXP = buildHostnameRegexp(['google.com', 'reddit.com'])
+// These sites uses user agent to determine if anti adblock should run
+const WHITELIST_HOST_REGEXP = buildHostnameRegexp(['allmusic.com'])
 
 // Some site disable tracking report & anti ad block check if user agent is a bot
 const BOT_UA = ['googlebot', 'mediapartners-google', 'adsbot-google', 'facebookexternalhit', 'bingbot', 'bingpreview', 'googleweblight', 'yandex', 'cxensebot', 'duckduckbot', 'archive.org_bot', 'baiduspider', 'slurp', 'affilimate-puppeteer']
@@ -63,8 +63,8 @@ export default class AdblockNavigatorModule extends Feature {
     // Ensure environment is valid
     if (typeof hostname !== 'string' || typeof userAgent !== 'string') throw new Error('invalid environment')
 
-    // Don't activate if host is in whitelist
-    if (WHITELIST_HOST_REGEXP.test(this.hostname)) return false
+    // Only activate if host is in whitelist
+    if (!WHITELIST_HOST_REGEXP.test(this.hostname)) return false
 
     const userAgentProxy = new ProxyChain({
       ...UserAgentProxyOptions,
