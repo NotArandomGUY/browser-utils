@@ -73,7 +73,8 @@ const INTERRUPT_PATH_REGEXP = buildPathnameRegexp([
   '/error_204',
   '/generate_204',
   '/pagead',
-  '/videoplayback\\?.*?&ctier=L&.*?%2Cctier%2C.*'
+  '/videoplayback\\?.*?&ctier=L&.*?%2Cctier%2C.*',
+  '/ccm/collect'
 ])
 const LOGIN_WHITELIST_PATH = buildPathnameRegexp([
   '/api/stats/(playback|delayplay|watchtime)'
