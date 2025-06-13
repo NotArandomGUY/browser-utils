@@ -31,7 +31,7 @@ const logger = new Logger('INTERCEPT-NETWORK')
 const callbacks = new Set<NetworkCallback>()
 
 async function onRequest(input: RequestInput, init?: RequestInit): Promise<NetworkContext> {
-  const request = input instanceof Request ? input : new Request(input, init)
+  const request = new Request(input, init)
   const ctx: NetworkContext = {
     url: new URL(request.url),
     request,
