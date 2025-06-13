@@ -54,13 +54,19 @@ function activateFeatureGroup(groupId: string): void {
     return
   }
 
+  const begin = performance.now()
+  const steps: number[] = []
+
   for (const [featureId, feature] of group.featureMap) {
     if (feature.setState(FeatureState.ACTIVE)) {
       logger.debug(`active feature '${groupId}.${featureId}'`)
     } else {
       logger.debug(`inactive feature '${groupId}.${featureId}'`)
     }
+    steps.push(performance.now())
   }
+
+  logger.info(`feature group '${groupId}' activation performance:`, steps.map((step, i) => [step - (steps[i - 1] ?? begin), step - begin]))
 }
 
 function resolveDependencies(depGroupId: string): void {
