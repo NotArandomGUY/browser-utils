@@ -38,17 +38,10 @@ function invokeHooks<T, A extends unknown[], R, U = unknown>(ctx: CallContext<T,
     const resultExecution = hookResult & 0x0F
     const resultAction = hookResult & 0xF0
 
-    switch (resultExecution) {
-      case HookResult.EXECUTION_IGNORE:
-        break
-      case HookResult.EXECUTION_CONTINUE:
-      case HookResult.EXECUTION_RETURN:
-      case HookResult.EXECUTION_THROW:
-        result = resultExecution
-        break
-      default:
-        throw new Error('invalid hook result')
+    if (resultExecution & (HookResult.EXECUTION_CONTINUE | HookResult.EXECUTION_RETURN | HookResult.EXECUTION_THROW)) {
+      result = resultExecution
     }
+
     switch (resultAction) {
       case HookResult.ACTION_NONE:
         break

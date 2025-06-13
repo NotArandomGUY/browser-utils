@@ -62,7 +62,7 @@ export default class InterceptDOM {
         set(v) {
           (set ?? node.setHTMLUnsafe).call(node, v)
           InterceptDOM.onCreateNode(node)
-        },
+        }
       })
     }
 
