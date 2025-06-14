@@ -8,13 +8,13 @@ const STAT_METHOD_MAP = {
   bufferhealth: 'getBufferHealth',
   livelatency: 'getLiveLatency'
 } satisfies Record<string, keyof YTVideoPlayer>
-const LATENCY_STEP = 250
+const LATENCY_STEP = 100
 const LATENCY_DEVIATION = 50
-const BUFFER_HEALTH_TARGET = 1000
-const BUFFER_HEALTH_DEVIATION = 150
+const BUFFER_HEALTH_TARGET = 1500
+const BUFFER_HEALTH_DEVIATION = 250
 const MIN_SYNC_RATE = 0.9
 const MAX_SYNC_RATE = 1.1
-const AVG_SAMPLE_SIZE = 10
+const AVG_SAMPLE_SIZE = 4
 
 interface YTVideoPlayer {
   loop: boolean
