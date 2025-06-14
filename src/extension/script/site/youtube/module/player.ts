@@ -42,6 +42,7 @@ interface YTVideoPlayer {
 let moduleCtor: Function | null = null
 let player: YTVideoPlayer | null = null
 
+let isSyncLiveHeadEnabled = false
 let lastSyncLiveHeadTime = 0
 let syncLiveHeadDeltaTime = 0
 let averageHealth = 0
@@ -127,7 +128,7 @@ function syncLiveHeadUpdate(): void {
   syncLiveHeadDeltaTime = ((syncLiveHeadDeltaTime * (AVG_SAMPLE_SIZE - 1)) + delta) / AVG_SAMPLE_SIZE
   lastSyncLiveHeadTime = now
 
-  if (player == null || !player.isAtLiveHead?.() || !player.isPlaying?.()) return
+  if (!isSyncLiveHeadEnabled || player == null || !player.isAtLiveHead?.() || !player.isPlaying?.()) return
 
   const currentHealth = Number(player.getBufferHealth?.())
   const currentLatency = Number(player.getLiveLatency?.())
@@ -154,6 +155,15 @@ function syncLiveHeadUpdate(): void {
 
   const playbackRate = Math.abs(averageLatencyDelta) < MAX_DEVIATION ? 1 : Math.max(MIN_SYNC_RATE, Math.min(MAX_SYNC_RATE, (syncLiveHeadDeltaTime + (latencyDelta * 1e3)) / syncLiveHeadDeltaTime))
   player.setPlaybackRate?.(playbackRate)
+}
+
+export function getSyncLiveHeadEnable(): boolean {
+  return isSyncLiveHeadEnabled
+}
+
+export function setSyncLiveHeadEnable(state: boolean): void {
+  isSyncLiveHeadEnabled = state
+  player?.setPlaybackRate?.(1)
 }
 
 export default class YTPlayerModule extends Feature {

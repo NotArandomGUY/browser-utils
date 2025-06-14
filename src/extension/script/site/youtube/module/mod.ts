@@ -8,6 +8,7 @@ import { YTIconType } from '@ext/site/youtube/api/types/icon'
 import { YTSizeType } from '@ext/site/youtube/api/types/size'
 import { dispatchYTSignalAction, registerYTSignalActionHandler } from '@ext/site/youtube/module/action'
 import { isYTLoggedIn } from '@ext/site/youtube/module/bootstrap'
+import { getSyncLiveHeadEnable, setSyncLiveHeadEnable } from '@ext/site/youtube/module/player'
 
 const logger = new Logger('YT-MOD')
 
@@ -65,7 +66,7 @@ function processPlayerResponse(data: YTRendererData<YTRenderer<'playerResponse'>
             signalServiceEndpoint: {
               signal: 'CLIENT_SIGNAL',
               actions: [
-                { signalAction: { signal: YTSignalActionType.BU_MOD_DELAYED_PLAY_PLAYER } }
+                { signalAction: { signal: YTSignalActionType.MOD_DELAYED_PLAY_PLAYER } }
               ]
             }
           }
@@ -136,7 +137,7 @@ function setDesktopTopbarRendererContent(data: YTRendererData<YTRenderer<'deskto
                       signalServiceEndpoint: {
                         signal: 'CLIENT_SIGNAL',
                         actions: [
-                          { signalAction: { signal: YTSignalActionType.BU_MOD_SHORTS_SHOW } },
+                          { signalAction: { signal: YTSignalActionType.MOD_SHORTS_SHOW } },
                           { signalAction: { signal: YTSignalActionType.RELOAD_PAGE } }
                         ]
                       }
@@ -147,7 +148,7 @@ function setDesktopTopbarRendererContent(data: YTRendererData<YTRenderer<'deskto
                       signalServiceEndpoint: {
                         signal: 'CLIENT_SIGNAL',
                         actions: [
-                          { signalAction: { signal: YTSignalActionType.BU_MOD_SHORTS_HIDE } },
+                          { signalAction: { signal: YTSignalActionType.MOD_SHORTS_HIDE } },
                           { signalAction: { signal: YTSignalActionType.RELOAD_PAGE } }
                         ]
                       }
@@ -163,7 +164,7 @@ function setDesktopTopbarRendererContent(data: YTRendererData<YTRenderer<'deskto
                       signalServiceEndpoint: {
                         signal: 'CLIENT_SIGNAL',
                         actions: [
-                          { signalAction: { signal: YTSignalActionType.BU_MOD_LIVE_SHOW } },
+                          { signalAction: { signal: YTSignalActionType.MOD_LIVE_SHOW } },
                           { signalAction: { signal: YTSignalActionType.SOFT_RELOAD_PAGE } }
                         ]
                       }
@@ -174,7 +175,7 @@ function setDesktopTopbarRendererContent(data: YTRendererData<YTRenderer<'deskto
                       signalServiceEndpoint: {
                         signal: 'CLIENT_SIGNAL',
                         actions: [
-                          { signalAction: { signal: YTSignalActionType.BU_MOD_LIVE_HIDE } },
+                          { signalAction: { signal: YTSignalActionType.MOD_LIVE_HIDE } },
                           { signalAction: { signal: YTSignalActionType.SOFT_RELOAD_PAGE } }
                         ]
                       }
@@ -190,7 +191,7 @@ function setDesktopTopbarRendererContent(data: YTRendererData<YTRenderer<'deskto
                       signalServiceEndpoint: {
                         signal: 'CLIENT_SIGNAL',
                         actions: [
-                          { signalAction: { signal: YTSignalActionType.BU_MOD_VIDEO_SHOW } },
+                          { signalAction: { signal: YTSignalActionType.MOD_VIDEO_SHOW } },
                           { signalAction: { signal: YTSignalActionType.SOFT_RELOAD_PAGE } }
                         ]
                       }
@@ -201,12 +202,39 @@ function setDesktopTopbarRendererContent(data: YTRendererData<YTRenderer<'deskto
                       signalServiceEndpoint: {
                         signal: 'CLIENT_SIGNAL',
                         actions: [
-                          { signalAction: { signal: YTSignalActionType.BU_MOD_VIDEO_HIDE } },
+                          { signalAction: { signal: YTSignalActionType.MOD_VIDEO_HIDE } },
                           { signalAction: { signal: YTSignalActionType.SOFT_RELOAD_PAGE } }
                         ]
                       }
                     },
                     isToggled: isShowVideo
+                  }
+                },
+                {
+                  toggleMenuServiceItemRenderer: {
+                    defaultIcon: { iconType: YTIconType.CLOCK },
+                    defaultText: { simpleText: 'Live Behaviour: Normal' },
+                    defaultServiceEndpoint: {
+                      signalServiceEndpoint: {
+                        signal: 'CLIENT_SIGNAL',
+                        actions: [
+                          { signalAction: { signal: YTSignalActionType.MOD_LIVE_BEHAVIOUR_LOW_LATENCY } },
+                          { signalAction: { signal: YTSignalActionType.SOFT_RELOAD_PAGE } }
+                        ]
+                      }
+                    },
+                    toggledIcon: { iconType: YTIconType.CLOCK },
+                    toggledText: { simpleText: 'Live Behaviour: Low Latency' },
+                    toggledServiceEndpoint: {
+                      signalServiceEndpoint: {
+                        signal: 'CLIENT_SIGNAL',
+                        actions: [
+                          { signalAction: { signal: YTSignalActionType.MOD_LIVE_BEHAVIOUR_NORMAL } },
+                          { signalAction: { signal: YTSignalActionType.SOFT_RELOAD_PAGE } }
+                        ]
+                      }
+                    },
+                    isToggled: getSyncLiveHeadEnable()
                   }
                 }
               ]
@@ -379,34 +407,43 @@ export default class YTModModule extends Feature {
     isShowShorts = Number(localStorage.getItem('bu-show-shorts') ?? 1) !== 0
     isShowLive = Number(localStorage.getItem('bu-show-live') ?? 1) !== 0
     isShowVideo = Number(localStorage.getItem('bu-show-video') ?? 1) !== 0
+    setSyncLiveHeadEnable(Number(localStorage.getItem('bu-live-behaviour') ?? 0) !== 0)
 
-    registerYTSignalActionHandler(YTSignalActionType.BU_MOD_DELAYED_PLAY_PLAYER, () => {
+    registerYTSignalActionHandler(YTSignalActionType.MOD_DELAYED_PLAY_PLAYER, () => {
       // TODO: improve reliability by hooking into player internal events
       setTimeout(() => dispatchYTSignalAction(YTSignalActionType.PLAY_PLAYER), 1e3)
     })
-    registerYTSignalActionHandler(YTSignalActionType.BU_MOD_SHORTS_HIDE, () => {
+    registerYTSignalActionHandler(YTSignalActionType.MOD_SHORTS_HIDE, () => {
       isShowShorts = false
       localStorage.setItem('bu-show-shorts', '0')
     })
-    registerYTSignalActionHandler(YTSignalActionType.BU_MOD_SHORTS_SHOW, () => {
+    registerYTSignalActionHandler(YTSignalActionType.MOD_SHORTS_SHOW, () => {
       isShowShorts = true
       localStorage.setItem('bu-show-shorts', '1')
     })
-    registerYTSignalActionHandler(YTSignalActionType.BU_MOD_LIVE_HIDE, () => {
+    registerYTSignalActionHandler(YTSignalActionType.MOD_LIVE_HIDE, () => {
       isShowLive = false
       localStorage.setItem('bu-show-live', '0')
     })
-    registerYTSignalActionHandler(YTSignalActionType.BU_MOD_LIVE_SHOW, () => {
+    registerYTSignalActionHandler(YTSignalActionType.MOD_LIVE_SHOW, () => {
       isShowLive = true
       localStorage.setItem('bu-show-live', '1')
     })
-    registerYTSignalActionHandler(YTSignalActionType.BU_MOD_VIDEO_HIDE, () => {
+    registerYTSignalActionHandler(YTSignalActionType.MOD_VIDEO_HIDE, () => {
       isShowVideo = false
       localStorage.setItem('bu-show-video', '0')
     })
-    registerYTSignalActionHandler(YTSignalActionType.BU_MOD_VIDEO_SHOW, () => {
+    registerYTSignalActionHandler(YTSignalActionType.MOD_VIDEO_SHOW, () => {
       isShowVideo = true
       localStorage.setItem('bu-show-video', '1')
+    })
+    registerYTSignalActionHandler(YTSignalActionType.MOD_LIVE_BEHAVIOUR_NORMAL, () => {
+      setSyncLiveHeadEnable(false)
+      localStorage.setItem('bu-live-behaviour', '0')
+    })
+    registerYTSignalActionHandler(YTSignalActionType.MOD_LIVE_BEHAVIOUR_LOW_LATENCY, () => {
+      setSyncLiveHeadEnable(true)
+      localStorage.setItem('bu-live-behaviour', '1')
     })
 
     InterceptDOM.setAppendChildCallback(ctx => {
