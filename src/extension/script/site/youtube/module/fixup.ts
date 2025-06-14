@@ -14,11 +14,16 @@ function filterItemsContainer(data: YTRendererData<YTRenderer<'guideSectionRende
   return data.items != null && data.items.length > 0
 }
 
+function filterShoppingOverlay(data: YTRendererData<YTRenderer<'shoppingOverlayRenderer'>>): boolean {
+  return data.productsData != null && data.productsData.length > 0
+}
+
 export default class YTFixupModule extends Feature {
   protected activate(): boolean {
     removeYTRendererPost(YTRendererSchemaMap['guideSectionRenderer'], filterItemsContainer)
     removeYTRendererPost(YTRendererSchemaMap['reelShelfRenderer'], filterItemsContainer)
     removeYTRendererPost(YTRendererSchemaMap['richItemRenderer'], filterContentContainer)
+    removeYTRendererPost(YTRendererSchemaMap['shoppingOverlayRenderer'], filterShoppingOverlay)
 
     InterceptDOM.setAppendChildCallback(ctx => {
       const node = ctx.args[0]
