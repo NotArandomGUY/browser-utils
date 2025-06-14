@@ -82,6 +82,11 @@ function processPlayerResponse(data: YTRendererData<YTRenderer<'playerResponse'>
     data.actions.push(...playerActions)
   }
 
+  const startMinReadaheadPolicy = data.playerConfig?.mediaCommonConfig?.serverPlaybackStartConfig?.playbackStartPolicy?.startMinReadaheadPolicy
+  if (startMinReadaheadPolicy != null && startMinReadaheadPolicy.length > 0) {
+    startMinReadaheadPolicy.forEach(policy => policy.minReadaheadMs ??= 50)
+  }
+
   return true
 }
 
