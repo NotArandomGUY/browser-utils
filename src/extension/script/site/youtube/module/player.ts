@@ -9,16 +9,16 @@ const STAT_METHOD_MAP = {
   livelatency: 'getLiveLatency'
 } satisfies Record<string, keyof YTVideoPlayer>
 const LATENCY_TARGET_STEPS = [60, 30, 25, 20, 15, 10, 7.5, 7, 6, 5, 4, 3, 2.5]
-const MIN_LATENCY_TARGET = LATENCY_TARGET_STEPS[LATENCY_TARGET_STEPS.length - 1]
-const MAX_LATENCY_TARGET = LATENCY_TARGET_STEPS[0]
-const BUFFER_HEALTH_THRESHOLD = 1.25
-const MIN_SYNC_RATE = 0.95
-const MAX_SYNC_RATE = 1.05
-const AVG_SAMPLE_SIZE = 10
-
-for (let target = 2; target >= 0.5; target -= 0.25) {
+for (let target = 2; target >= 0.5; target -= 0.1) {
   LATENCY_TARGET_STEPS.push(target)
 }
+const MIN_LATENCY_TARGET = LATENCY_TARGET_STEPS[LATENCY_TARGET_STEPS.length - 1]
+const MAX_LATENCY_TARGET = LATENCY_TARGET_STEPS[0]
+const BUFFER_HEALTH_THRESHOLD = 1
+const MAX_DEVIATION = 0.05
+const MIN_SYNC_RATE = 0.9
+const MAX_SYNC_RATE = 1.1
+const AVG_SAMPLE_SIZE = 10
 
 interface YTVideoPlayer {
   loop: boolean
@@ -46,6 +46,7 @@ let lastSyncLiveHeadTime = 0
 let syncLiveHeadDeltaTime = 0
 let averageHealth = 0
 let averageLatency = 0
+let averageLatencyDelta = 0
 
 function onLoggerConstruct(instance: object): void {
   const proto = Object.getPrototypeOf(instance)
@@ -135,12 +136,23 @@ function syncLiveHeadUpdate(): void {
   averageHealth = ((averageHealth * (AVG_SAMPLE_SIZE - 1)) + currentHealth) / AVG_SAMPLE_SIZE
   averageLatency = ((averageLatency * (AVG_SAMPLE_SIZE - 1)) + currentLatency) / AVG_SAMPLE_SIZE
 
-  const targetLatency = averageHealth > BUFFER_HEALTH_THRESHOLD ?
-    (LATENCY_TARGET_STEPS.find(target => averageLatency > target) ?? MIN_LATENCY_TARGET) :
-    (LATENCY_TARGET_STEPS.findLast(target => target >= averageLatency) ?? MAX_LATENCY_TARGET)
-  const latencyDeltaMs = (currentLatency - targetLatency) * 1e3
-  const playbackRate = Math.max(MIN_SYNC_RATE, Math.min(MAX_SYNC_RATE, (syncLiveHeadDeltaTime + latencyDeltaMs) / syncLiveHeadDeltaTime))
+  let targetLatency: number
+  switch (true) {
+    case averageHealth >= BUFFER_HEALTH_THRESHOLD:
+      targetLatency = LATENCY_TARGET_STEPS.find(target => averageLatency > target) ?? MIN_LATENCY_TARGET
+      break
+    case averageHealth < (BUFFER_HEALTH_THRESHOLD - MAX_DEVIATION):
+      targetLatency = LATENCY_TARGET_STEPS.findLast(target => target >= averageLatency) ?? MAX_LATENCY_TARGET
+      break
+    default:
+      targetLatency = LATENCY_TARGET_STEPS.findLast(target => (target + MAX_DEVIATION) >= averageLatency) ?? MAX_LATENCY_TARGET
+      break
+  }
 
+  const latencyDelta = currentLatency - targetLatency
+  averageLatencyDelta = ((averageLatencyDelta * (AVG_SAMPLE_SIZE - 1)) + latencyDelta) / AVG_SAMPLE_SIZE
+
+  const playbackRate = Math.abs(averageLatencyDelta) < MAX_DEVIATION ? 1 : Math.max(MIN_SYNC_RATE, Math.min(MAX_SYNC_RATE, (syncLiveHeadDeltaTime + (latencyDelta * 1e3)) / syncLiveHeadDeltaTime))
   player.setPlaybackRate?.(playbackRate)
 }
 
