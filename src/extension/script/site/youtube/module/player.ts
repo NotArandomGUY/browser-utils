@@ -8,11 +8,12 @@ const STAT_METHOD_MAP = {
   bufferhealth: 'getBufferHealth',
   livelatency: 'getLiveLatency'
 } satisfies Record<string, keyof YTVideoPlayer>
+const HEALTH_AVG_SAMPLE_SIZE = 10
+const LATENCY_AVG_SAMPLE_SIZE = 4
 const LATENCY_STEP = 100
 const LATENCY_TOLERANCE = 50
 const MIN_SYNC_RATE = 0.9
 const MAX_SYNC_RATE = 1.1
-const AVG_SAMPLE_SIZE = 10
 
 interface YTVideoPlayer {
   loop: boolean
@@ -120,7 +121,7 @@ function syncLiveHeadUpdate(): void {
   const now = Date.now()
   const delta = Math.max(1, now - lastSyncLiveHeadTime)
 
-  syncLiveHeadDeltaTime = ((syncLiveHeadDeltaTime * (AVG_SAMPLE_SIZE - 1)) + delta) / AVG_SAMPLE_SIZE
+  syncLiveHeadDeltaTime = (syncLiveHeadDeltaTime + delta) / 2
   lastSyncLiveHeadTime = now
 
   if (!isSyncLiveHeadEnabled || player == null || !player.isAtLiveHead?.() || !player.isPlaying?.()) return
@@ -129,9 +130,9 @@ function syncLiveHeadUpdate(): void {
   const currentLatency = Number(player.getLiveLatency?.()) * 1e3
   if (isNaN(currentHealth) || isNaN(currentLatency)) return
 
-  healthAvg = ((healthAvg * (AVG_SAMPLE_SIZE - 1)) + currentHealth) / AVG_SAMPLE_SIZE
-  healthDev = ((healthDev * (AVG_SAMPLE_SIZE - 1)) + Math.abs(currentHealth - healthAvg)) / AVG_SAMPLE_SIZE
-  latencyAvg = ((latencyAvg * (AVG_SAMPLE_SIZE - 1)) + currentLatency) / AVG_SAMPLE_SIZE
+  healthAvg = ((healthAvg * (HEALTH_AVG_SAMPLE_SIZE - 1)) + currentHealth) / HEALTH_AVG_SAMPLE_SIZE
+  healthDev = ((healthDev * (HEALTH_AVG_SAMPLE_SIZE - 1)) + Math.abs(currentHealth - healthAvg)) / HEALTH_AVG_SAMPLE_SIZE
+  latencyAvg = ((latencyAvg * (LATENCY_AVG_SAMPLE_SIZE - 1)) + currentLatency) / LATENCY_AVG_SAMPLE_SIZE
 
   const targetHealth = healthDev * 3
 
@@ -152,7 +153,7 @@ function syncLiveHeadUpdate(): void {
   }
 
   const latencyDelta = currentLatency - targetLatency
-  latencyDeltaAvg = ((latencyDeltaAvg * (AVG_SAMPLE_SIZE - 1)) + latencyDelta) / AVG_SAMPLE_SIZE
+  latencyDeltaAvg = ((latencyDeltaAvg * (LATENCY_AVG_SAMPLE_SIZE - 1)) + latencyDelta) / LATENCY_AVG_SAMPLE_SIZE
 
   const playbackRate = Math.abs(latencyDeltaAvg) < LATENCY_TOLERANCE ? 1 : Math.max(MIN_SYNC_RATE, Math.min(MAX_SYNC_RATE, (syncLiveHeadDeltaTime + latencyDelta) / syncLiveHeadDeltaTime))
   player.setPlaybackRate?.(playbackRate)
