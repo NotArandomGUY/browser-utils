@@ -34,7 +34,7 @@ interface YTVideoPlayer {
   setPlaybackRate?(rate: number): void
 }
 
-let moduleCtor: Function | null = null
+let moduleCtor: string | null = null
 let player: YTVideoPlayer | null = null
 
 let isSyncLiveHeadEnabled = false
@@ -67,15 +67,20 @@ function onLoggerConstruct(instance: object): void {
   })
 }
 
-function onAppModuleConstruct(_instance: object): void {
-  return
+function onAppModuleConstruct(instance: object): void {
+  if (instance == null) return
+
+  Object.defineProperty(window, 'ytpm_app', { configurable: true, enumerable: false, value: instance })
 }
 
 function onVideoPlayerModuleConstruct(instance: object): void {
-  player = instance as YTVideoPlayer
+  if (instance == null) return
 
-  for (const prop of Object.values(instance)) {
-    if (prop == null || typeof prop !== 'object') continue
+  player = instance as YTVideoPlayer
+  Object.defineProperty(window, 'ytpm_videoplayer', { configurable: true, enumerable: false, value: instance })
+
+  Object.values(instance).forEach(prop => {
+    if (prop == null || typeof prop !== 'object') return
 
     for (const key in prop) {
       const value = prop[key]
@@ -84,10 +89,10 @@ function onVideoPlayerModuleConstruct(instance: object): void {
       for (const stat in STAT_METHOD_MAP) {
         if (!value.has(stat)) continue
 
-        player[STAT_METHOD_MAP[stat as keyof typeof STAT_METHOD_MAP]] = value.get(stat)
+        player![STAT_METHOD_MAP[stat as keyof typeof STAT_METHOD_MAP]] = value.get(stat)
       }
     }
-  }
+  })
 }
 
 function onModuleConstruct(instance: object): boolean {
@@ -174,13 +179,13 @@ export default class YTPlayerModule extends Feature {
     Object.prototype.hasOwnProperty = new Hook(Object.prototype.hasOwnProperty).install(ctx => { // NOSONAR
       if (ctx.self instanceof HTMLDivElement && (ctx.self.id === 'player-api' || ctx.self.classList.contains('ytd-player'))) {
         Function.prototype.call = new Hook(Function.prototype.call).install(ctx => { // NOSONAR
-          const fn = ctx.self
+          const fn = ctx.self.toString()
           const instance = ctx.args[0]
 
           let result = HookResult.EXECUTION_IGNORE
           if (moduleCtor == null) {
             const oldKeys = Object.keys(instance).length
-            ctx.returnValue = ctx.origin.apply(fn, ctx.args)
+            ctx.returnValue = ctx.origin.apply(ctx.self, ctx.args)
             const newKeys = Object.keys(instance).length
 
             if (oldKeys === newKeys) return HookResult.EXECUTION_CONTINUE
