@@ -8,10 +8,11 @@ const STAT_METHOD_MAP = {
   bufferhealth: 'getBufferHealth',
   livelatency: 'getLiveLatency'
 } satisfies Record<string, keyof YTVideoPlayer>
-const HEALTH_AVG_SAMPLE_SIZE = 10
-const LATENCY_AVG_SAMPLE_SIZE = 4
+const HEALTH_AVG_SAMPLE_SIZE = 20
+const LATENCY_AVG_SAMPLE_SIZE = 8
 const LATENCY_STEP = 100
 const LATENCY_TOLERANCE = 50
+const SYNC_INTERVAL = 250
 const MIN_SYNC_RATE = 0.9
 const MAX_SYNC_RATE = 1.1
 
@@ -139,7 +140,7 @@ function syncLiveHeadUpdate(): void {
   healthDev = ((healthDev * (HEALTH_AVG_SAMPLE_SIZE - 1)) + Math.abs(currentHealth - healthAvg)) / HEALTH_AVG_SAMPLE_SIZE
   latencyAvg = ((latencyAvg * (LATENCY_AVG_SAMPLE_SIZE - 1)) + currentLatency) / LATENCY_AVG_SAMPLE_SIZE
 
-  const targetHealth = healthDev * 3
+  const targetHealth = Math.max(syncLiveHeadDeltaTime * 2, healthDev) + healthDev
 
   let targetLatency: number
   switch (true) {
@@ -162,6 +163,17 @@ function syncLiveHeadUpdate(): void {
 
   const playbackRate = Math.abs(latencyDeltaAvg) < LATENCY_TOLERANCE ? 1 : Math.max(MIN_SYNC_RATE, Math.min(MAX_SYNC_RATE, (syncLiveHeadDeltaTime + latencyDelta) / syncLiveHeadDeltaTime))
   player.setPlaybackRate?.(playbackRate)
+
+  Object.defineProperty(window, 'ytpm_syncstat', {
+    configurable: true,
+    value: {
+      healthAvg,
+      healthDev,
+      latencyDeltaAvg,
+      targetHealth,
+      targetLatency
+    }
+  })
 }
 
 export function getSyncLiveHeadEnable(): boolean {
@@ -205,8 +217,8 @@ export default class YTPlayerModule extends Feature {
     }).call
 
     lastSyncLiveHeadTime = Date.now()
-    syncLiveHeadDeltaTime = 500
-    setInterval(syncLiveHeadUpdate, 500)
+    syncLiveHeadDeltaTime = SYNC_INTERVAL
+    setInterval(syncLiveHeadUpdate, SYNC_INTERVAL)
 
     return true
   }
