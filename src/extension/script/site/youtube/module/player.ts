@@ -9,6 +9,8 @@ const STAT_METHOD_MAP = {
   livelatency: 'getLiveLatency'
 } satisfies Record<string, keyof YTVideoPlayer>
 const HEALTH_AVG_SAMPLE_SIZE = 20
+const HEALTH_DEV_MUL = 1.05
+const HEALTH_DEV_DECAY_MUL = 0.95
 const LATENCY_AVG_SAMPLE_SIZE = 8
 const LATENCY_STEP = 100
 const LATENCY_TOLERANCE = 50
@@ -137,7 +139,7 @@ function syncLiveHeadUpdate(): void {
   if (isNaN(currentHealth) || isNaN(currentLatency)) return
 
   healthAvg = ((healthAvg * (HEALTH_AVG_SAMPLE_SIZE - 1)) + currentHealth) / HEALTH_AVG_SAMPLE_SIZE
-  healthDev = ((healthDev * (HEALTH_AVG_SAMPLE_SIZE - 1)) + Math.abs(currentHealth - healthAvg)) / HEALTH_AVG_SAMPLE_SIZE
+  healthDev = Math.max(healthDev * HEALTH_DEV_DECAY_MUL, Math.abs(currentHealth - healthAvg) * HEALTH_DEV_MUL)
   latencyAvg = ((latencyAvg * (LATENCY_AVG_SAMPLE_SIZE - 1)) + currentLatency) / LATENCY_AVG_SAMPLE_SIZE
 
   const targetHealth = Math.max(syncLiveHeadDeltaTime * 2, healthDev) + healthDev
