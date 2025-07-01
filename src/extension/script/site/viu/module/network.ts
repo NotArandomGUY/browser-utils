@@ -332,7 +332,7 @@ async function processResponse(ctx: NetworkContext<unknown, NetworkState.SUCCESS
       }
   }
 
-  ctx.response = new Response(JSON.stringify(data), { headers: Object.fromEntries(response.headers.entries()) })
+  ctx.response = new Response(JSON.stringify(data), { status: response.status, headers: Object.fromEntries(response.headers.entries()) })
 }
 
 export default class ViuNetworkModule extends Feature {

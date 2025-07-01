@@ -123,7 +123,7 @@ function processRequest(ctx: NetworkRequestContext): void {
 
 async function processUMPResponse(response: Response): Promise<Response> { // NOSONAR
   let data = new Uint8Array(await response.arrayBuffer())
-  if (data.length > 1024) return new Response(data, { headers: Object.fromEntries(response.headers.entries()) })
+  if (data.length > 1024) return new Response(data, { status: response.status, headers: Object.fromEntries(response.headers.entries()) })
 
   let pos = 0
 
@@ -181,7 +181,7 @@ async function processUMPResponse(response: Response): Promise<Response> { // NO
     pos = messagePos
   }
 
-  return new Response(data, { headers: Object.fromEntries(response.headers.entries()) })
+  return new Response(data, { status: response.status, headers: Object.fromEntries(response.headers.entries()) })
 }
 
 async function processInnertubeResponse(response: Response, endpoint: string): Promise<Response> {
@@ -197,7 +197,7 @@ async function processInnertubeResponse(response: Response, endpoint: string): P
 
   logger.debug('innertube response:', endpoint, data)
 
-  return new Response(JSON.stringify(data), { headers: Object.fromEntries(response.headers.entries()) })
+  return new Response(JSON.stringify(data), { status: response.status, headers: Object.fromEntries(response.headers.entries()) })
 }
 
 async function processResponse(ctx: NetworkContext<unknown, NetworkState.SUCCESS>): Promise<void> {

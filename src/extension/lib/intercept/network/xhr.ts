@@ -74,6 +74,7 @@ async function handleXHRLoad(this: InterceptXMLHttpRequest): Promise<void> {
     Object.assign<NetworkContext, NetworkContextState>(ctx, {
       state: NetworkState.SUCCESS,
       response: new Response(this.response, {
+        status: this.status,
         headers: this.getAllResponseHeaders()
           .split('\n')
           .map(line => HEADER_LINE_REGEXP.exec(line)?.slice(1))
