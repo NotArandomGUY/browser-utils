@@ -286,10 +286,11 @@ export const YTEntityMutationPayloadSchema = {
     externalVideoId: ytv_str(),
     key: ytv_str(),
     markersList: ytv_sch({
-      markerType: ytv_str(['MARKER_TYPE_HEATMAP']),
+      markerType: ytv_str(['MARKER_TYPE_HEATMAP', 'MARKER_TYPE_TIMESTAMPS']),
       markers: ytv_arr(ytv_sch({
         durationMillis: ytv_str(),
         intensityScoreNormalized: ytv_num(),
+        sourceType: ytv_str(['SOURCE_TYPE_SMART_SKIP']),
         startMillis: ytv_str()
       })),
       markersDecoration: ytv_sch({
@@ -474,6 +475,15 @@ export const YTEndpointSchemaMap = {
     isInitialLoad: ytv_bol(),
     opportunityType: ytv_str(['OPPORTUNITY_TYPE_ORGANIC_SEARCH_RESPONSE_RECEIVED', 'OPPORTUNITY_TYPE_REEL_WATCH_SEQUENCE_RESPONSE_RECEIVED'])
   },
+  changeMarkersVisibilityCommand: {
+    entityKeys: ytv_arr(ytv_str()),
+    isVisible: ytv_bol(),
+    visibilityRestrictionMode: ytv_str(['CHANGE_MARKERS_VISIBILITY_RESTRICTION_MODE_NOT_OVERWRITE_SAME_TYPE'])
+  },
+  changeTimelyActionVisibilityCommand: {
+    id: ytv_str(),
+    isVisible: ytv_bol()
+  },
   commandExecutorCommand: {
     commands: ytv_arr(ytv_enp())
   },
@@ -521,7 +531,7 @@ export const YTEndpointSchemaMap = {
     params: ytv_str()
   },
   getSurveyCommand: {
-    action: ytv_str(['SURVEY_TRIGGER_ACTION_AUTOPLAY_CANCEL']),
+    action: ytv_str(['SURVEY_TRIGGER_ACTION_AUTOPLAY_CANCEL', 'SURVEY_TRIGGER_ACTION_SMART_SKIP_JUMP_AHEAD']),
     endpoint: ytv_sch({
       watch: ytv_sch({
         hack: ytv_bol()
@@ -569,6 +579,10 @@ export const YTEndpointSchemaMap = {
     repeatStateEntityKey: ytv_str(),
     startTimeMs: ytv_str()
   },
+  seekToVideoTimestampCommand: {
+    offsetFromVideoStartMilliseconds: ytv_str(),
+    videoId: ytv_str()
+  },
   serialCommand: {
     commands: ytv_arr(ytv_enp()) // NOTE: probably not?
   },
@@ -596,6 +610,12 @@ export const YTEndpointSchemaMap = {
   showSponsorshipsGiftOfferDialogCommand: {
     contentCommand: ytv_enp()
   },
+  showTransientPlayerScrimOverlayCommand: {
+    durationMs: ytv_num(),
+    fadeInDurationMs: ytv_num(),
+    fadeOutDurationMs: ytv_num(),
+    overlayRenderer: ytv_ren()
+  },
   toggleLiveReactionsMuteCommand: {
     hack: ytv_bol()
   },
@@ -615,6 +635,7 @@ export const YTEndpointSchemaMap = {
 
   // Endpoint
   addToPlaylistServiceEndpoint: {
+    params: ytv_str(),
     videoId: ytv_str()
   },
   addUpcomingEventReminderEndpoint: {

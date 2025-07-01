@@ -375,14 +375,15 @@ export const YTButtonViewModelSchema = {
   customBackgroundColor: ytv_num(),
   customFontColor: ytv_num(),
   iconImage: ytv_sch(YTImageSourceSchema),
-  iconName: ytv_str(YTIconType),
+  iconName: ytv_str(),
+  iconPosition: ytv_str(['BUTTON_VIEW_MODEL_ICON_POSITION_LEADING', 'BUTTON_VIEW_MODEL_ICON_POSITION_TRAILING']),
   iconTrailing: ytv_bol(),
   isFullWidth: ytv_bol(),
   loggingDirectives: ytv_ren(YTLoggingDirectivesSchema),
   onTap: ytv_enp(),
   shouldLogGestures: ytv_bol(),
   state: ytv_str(['BUTTON_VIEW_MODEL_STATE_ACTIVE']),
-  style: ytv_str(['BUTTON_VIEW_MODEL_STYLE_CUSTOM', 'BUTTON_VIEW_MODEL_STYLE_MONO', 'BUTTON_VIEW_MODEL_STYLE_UNKNOWN']),
+  style: ytv_str(['BUTTON_VIEW_MODEL_STYLE_CUSTOM', 'BUTTON_VIEW_MODEL_STYLE_MONO', 'BUTTON_VIEW_MODEL_STYLE_OVERLAY', 'BUTTON_VIEW_MODEL_STYLE_UNKNOWN']),
   title: ytv_str(),
   titleFormatted: ytv_ren(YTTextViewModelSchema),
   tooltip: ytv_str(),
@@ -394,7 +395,9 @@ export const YTColorSupportedDatasSchema = {
 } satisfies YTRendererSchema
 
 export const YTCommandContextSchema = {
-  onTap: ytv_enp()
+  onHidden: ytv_enp(),
+  onTap: ytv_enp(),
+  onVisible: ytv_enp()
 } satisfies YTRendererSchema
 
 export const YTLoggingContextSchema = {
@@ -559,6 +562,7 @@ export const YTPlayerResponseSchema = {
   }),
   messages: ytv_arr(ytv_ren()),
   microformat: ytv_ren(),
+  paidContentOverlay: ytv_ren(),
   playabilityStatus: ytv_ren(YTPlayerPlayabilityStatusSchema),
   playbackTracking: ytv_ren(YTPlayerPlaybackTrackingSchema),
   playerAds: ytv_arr(ytv_ren()),
@@ -1720,6 +1724,10 @@ export const YTRendererSchemaMap = {
     syncButtonLabel: ytv_sch(YTTextSchema),
     syncModelEntityKey: ytv_str()
   },
+  markerRenderer: {
+    timeRangeStartMillis: ytv_num(),
+    title: ytv_sch(YTTextSchema)
+  },
   mealbarPromoRenderer: {
     actionButton: ytv_ren(),
     dismissButton: ytv_ren(),
@@ -1867,6 +1875,12 @@ export const YTRendererSchemaMap = {
     movingThumbnailDetails: ytv_sch(YTThumbnailSchema)
   },
   multiMarkersPlayerBarRenderer: {
+    markersMap: ytv_arr(ytv_sch({
+      key: ytv_str(),
+      value: ytv_ren({
+        markers: ytv_arr(ytv_ren())
+      })
+    })),
     visibleOnLoad: ytv_sch({
       key: ytv_str()
     })
@@ -1908,6 +1922,13 @@ export const YTRendererSchemaMap = {
   pageHeaderRenderer: {
     content: ytv_ren(),
     pageTitle: ytv_str()
+  },
+  paidContentOverlayRenderer: {
+    durationMs: ytv_str(),
+    icon: ytv_sch(YTIconSchema),
+    navigationEndpoint: ytv_enp(),
+    showInPip: ytv_bol(),
+    text: ytv_sch(YTTextSchema)
   },
   pdgCommentChipRenderer: {
     chipColorPalette: ytv_sch({
@@ -1956,8 +1977,9 @@ export const YTRendererSchemaMap = {
   },
   playerCaptionsTracklistRenderer: {
     audioTracks: ytv_arr(ytv_sch({
+      audioTrackId: ytv_str(),
       captionTrackIndices: ytv_arr(ytv_num()),
-      captionsInitialState: ytv_str(['CAPTIONS_INITIAL_STATE_OFF_RECOMMENDED', 'CAPTIONS_INITIAL_STATE_ON_RECOMMENDED']),
+      captionsInitialState: ytv_str(['CAPTIONS_INITIAL_STATE_OFF_RECOMMENDED', 'CAPTIONS_INITIAL_STATE_ON_RECOMMENDED', 'CAPTIONS_INITIAL_STATE_ON_REQUIRED']),
       defaultCaptionTrackIndex: ytv_num(),
       hasDefaultTrack: ytv_bol(),
       visibility: ytv_str(['ON', 'UNKNOWN'])
@@ -2075,6 +2097,7 @@ export const YTRendererSchemaMap = {
     showShareButtonFullscreen: ytv_bol(),
     showShareButtonSmallscreen: ytv_bol(),
     speedmasterUserEdu: ytv_ren(),
+    timelyActionsOverlayViewModel: ytv_ren(),
     videoDetails: ytv_ren()
   },
   playerOverlayVideoDetailsRenderer: {
@@ -2373,6 +2396,10 @@ export const YTRendererSchemaMap = {
     isLike: ytv_bol(),
     likeStatus: ytv_str(YTLikeStatus),
     likeStatusEntityKey: ytv_str()
+  },
+  smartSkipPlayerScrimOverlayRenderer: {
+    icon: ytv_sch(YTIconSchema),
+    text: ytv_sch(YTTextSchema)
   },
   sortFilterSubMenuRenderer: {
     accessibility: ytv_sch(YTAccessibilitySchema),
@@ -3225,6 +3252,37 @@ export const YTRendererSchemaMap = {
     backgroundColor: ytv_ren(YTThemedColorSchema),
     image: ytv_sch(YTImageSchema),
     overlays: ytv_arr(ytv_ren())
+  },
+  timelyActionsOverlayViewModel: {
+    rendererContext: ytv_ren(YTRendererContextSchema),
+    timelyActions: ytv_arr(ytv_ren())
+  },
+  timelyActionViewModel: {
+    additionalTrigger: ytv_arr(ytv_sch({
+      args: ytv_sch({
+        seekDirection: ytv_str(['TIMELY_ACTION_TRIGGER_DIRECTION_FORWARD', 'TIMELY_ACTION_TRIGGER_DIRECTION_BACKWARD']),
+        seekLengthMilliseconds: ytv_str()
+      }),
+      type: ytv_str(['TIMELY_ACTION_TRIGGER_TYPE_KEYBOARD_SEEK', 'TIMELY_ACTION_TRIGGER_TYPE_PLAYER_CONTROLS_SHOWN', 'TIMELY_ACTION_TRIGGER_TYPE_PROGRESS_BAR_SEEK', 'TIMELY_ACTION_TRIGGER_TYPE_SPEEDMASTER'])
+    })),
+    content: ytv_ren(),
+    cueRangeId: ytv_str(),
+    endTimeMilliseconds: ytv_str(),
+    maxShowCount: ytv_num(),
+    maxVisibleDurationMilliseconds: ytv_str(),
+    onCueRangeEnter: ytv_enp(),
+    onCueRangeExit: ytv_enp(),
+    rendererContext: ytv_ren(YTRendererContextSchema),
+    smartSkipMetadata: ytv_sch({
+      loggingData: ytv_sch({
+        algorithmId: ytv_str(),
+        endMilliseconds: ytv_str(),
+        isCounterfactual: ytv_bol(),
+        startMilliseconds: ytv_str()
+      }),
+      markerKey: ytv_str()
+    }),
+    startTimeMilliseconds: ytv_str()
   },
   toggleButtonViewModel: {
     defaultButtonViewModel: ytv_ren(),
