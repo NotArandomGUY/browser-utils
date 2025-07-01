@@ -227,6 +227,10 @@ export const YTEntityMutationPayloadSchema = {
         seconds: ytv_str()
       }),
       intensityScore: ytv_num(),
+      reactionsData: ytv_arr(ytv_sch({
+        reactionCount: ytv_num(),
+        unicodeEmojiId: ytv_str()
+      })),
       totalReactions: ytv_num()
     })),
     updateTimeUsec: ytv_str()
@@ -310,6 +314,12 @@ export const YTEntityMutationPayloadSchema = {
   playlistLoopStateEntity: ytv_sch({
     key: ytv_str(),
     state: ytv_str(['PLAYLIST_LOOP_STATE_ALL', 'PLAYLIST_LOOP_STATE_NONE', 'PLAYLIST_LOOP_STATE_ONE'])
+  }),
+  replyCountEntity: ytv_sch({
+    key: ytv_str(),
+    replyButtonAccessibilityText: ytv_str(),
+    replyCount: ytv_unk(), // YTTextViewModelSchema
+    replyCountNumber: ytv_str()
   }),
   subscriptionNotificationStateEntity: ytv_sch({
     key: ytv_str(),
@@ -446,6 +456,7 @@ export const YTEndpointSchemaMap = {
     onCreateListCommand: ytv_enp(),
     openListPanel: ytv_bol(),
     openMiniplayer: ytv_bol(),
+    videoCommand: ytv_enp(),
     videoId: ytv_str(),
     videoIds: ytv_arr(ytv_str())
   },
@@ -606,6 +617,9 @@ export const YTEndpointSchemaMap = {
   addToPlaylistServiceEndpoint: {
     videoId: ytv_str()
   },
+  addUpcomingEventReminderEndpoint: {
+    params: ytv_str()
+  },
   browseEndpoint: {
     browseId: ytv_str(),
     canonicalBaseUrl: ytv_str(),
@@ -721,6 +735,9 @@ export const YTEndpointSchemaMap = {
     updateKey: ytv_str(),
     ustreamerConfig: ytv_str(),
     videoId: ytv_str()
+  },
+  removeUpcomingEventReminderEndpoint: {
+    params: ytv_str()
   },
   searchEndpoint: {
     params: ytv_str(),

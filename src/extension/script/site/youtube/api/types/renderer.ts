@@ -149,6 +149,7 @@ export const YTResponseContextSchema = {
     })),
     service: ytv_str()
   })),
+  visitorData: ytv_str(),
   webResponseContextExtensionData: ytv_sch({
     hasDecorated: ytv_bol(),
     webPrefetchData: ytv_sch({
@@ -471,7 +472,7 @@ export const YTPlayerPlayabilityStatusSchema = {
   paygatedQualitiesMetadata: ytv_ren(YTPaygatedQualitiesMetadataSchema),
   playableInEmbed: ytv_bol(),
   reason: ytv_str(),
-  status: ytv_str(['AGE_CHECK_REQUIRED', 'AGE_VERIFICATION_REQUIRED', 'CONTENT_CHECK_REQUIRED', 'OK'])
+  status: ytv_str(['AGE_CHECK_REQUIRED', 'AGE_VERIFICATION_REQUIRED', 'CONTENT_CHECK_REQUIRED', 'LIVE_STREAM_OFFLINE', 'OK'])
 } satisfies YTRendererSchema
 
 export const YTPlayerPlaybackTrackingSchema = {
@@ -508,6 +509,7 @@ export const YTPlayerVideoDetailsSchema = {
   isOwnerViewing: ytv_bol(),
   isPrivate: ytv_bol(),
   isUnpluggedCorpus: ytv_bol(),
+  isUpcoming: ytv_bol(),
   keywords: ytv_arr(ytv_str()),
   latencyClass: ytv_str(['MDE_STREAM_OPTIMIZATIONS_RENDERER_LATENCY_NORMAL', 'MDE_STREAM_OPTIMIZATIONS_RENDERER_LATENCY_ULTRA_LOW']),
   lengthSeconds: ytv_str(),
@@ -528,6 +530,43 @@ export const YTRendererContextSchema = {
 export const YTThemedColorSchema = {
   darkTheme: ytv_num(),
   lightTheme: ytv_num()
+} satisfies YTRendererSchema
+
+export const YTPlayerResponseSchema = {
+  ...YTResponseCommonSchema,
+  adBreakHeartbeatParams: ytv_str(),
+  adPlacements: ytv_arr(ytv_ren()),
+  adSlots: ytv_arr(ytv_ren()),
+  annotations: ytv_arr(ytv_ren()),
+  attestation: ytv_ren(),
+  auxiliaryUi: ytv_sch({
+    messageRenderers: ytv_ren()
+  }),
+  captions: ytv_ren(),
+  cards: ytv_ren(),
+  endscreen: ytv_ren(),
+  frameworkUpdates: ytv_enp(YTEndpointSchemaMap['entityUpdateCommand']),
+  heartbeatParams: ytv_sch({
+    drmSessionId: ytv_str(),
+    heartbeatAttestationConfig: ytv_sch({
+      requiresAttestation: ytv_bol()
+    }),
+    heartbeatServerData: ytv_str(),
+    heartbeatToken: ytv_str(),
+    intervalMilliseconds: ytv_str(),
+    maxRetries: ytv_str(),
+    softFailOnError: ytv_bol()
+  }),
+  messages: ytv_arr(ytv_ren()),
+  microformat: ytv_ren(),
+  playabilityStatus: ytv_ren(YTPlayerPlayabilityStatusSchema),
+  playbackTracking: ytv_ren(YTPlayerPlaybackTrackingSchema),
+  playerAds: ytv_arr(ytv_ren()),
+  playerConfig: ytv_ren(YTPlayerConfigSchema),
+  responseContext: ytv_ren(YTResponseContextSchema),
+  storyboards: ytv_ren(),
+  streamingData: ytv_ren(YTPlayerStreamingDataSchema),
+  videoDetails: ytv_ren(YTPlayerVideoDetailsSchema)
 } satisfies YTRendererSchema
 
 export const YTRendererSchemaMap = {
@@ -584,39 +623,7 @@ export const YTRendererSchemaMap = {
     survey: ytv_ren(),
     topbar: ytv_ren()
   },
-  playerResponse: {
-    ...YTResponseCommonSchema,
-    adBreakHeartbeatParams: ytv_str(),
-    adPlacements: ytv_arr(ytv_ren()),
-    adSlots: ytv_arr(ytv_ren()),
-    annotations: ytv_arr(ytv_ren()),
-    attestation: ytv_ren(),
-    auxiliaryUi: ytv_sch({
-      messageRenderers: ytv_ren()
-    }),
-    captions: ytv_ren(),
-    cards: ytv_ren(),
-    endscreen: ytv_ren(),
-    frameworkUpdates: ytv_enp(YTEndpointSchemaMap['entityUpdateCommand']),
-    heartbeatParams: ytv_sch({
-      drmSessionId: ytv_str(),
-      heartbeatServerData: ytv_str(),
-      heartbeatToken: ytv_str(),
-      intervalMilliseconds: ytv_str(),
-      maxRetries: ytv_str(),
-      softFailOnError: ytv_bol()
-    }),
-    messages: ytv_arr(ytv_ren()),
-    microformat: ytv_ren(),
-    playabilityStatus: ytv_ren(YTPlayerPlayabilityStatusSchema),
-    playbackTracking: ytv_ren(YTPlayerPlaybackTrackingSchema),
-    playerAds: ytv_arr(ytv_ren()),
-    playerConfig: ytv_ren(YTPlayerConfigSchema),
-    responseContext: ytv_ren(YTResponseContextSchema),
-    storyboards: ytv_ren(),
-    streamingData: ytv_ren(YTPlayerStreamingDataSchema),
-    videoDetails: ytv_ren(YTPlayerVideoDetailsSchema)
-  },
+  playerResponse: YTPlayerResponseSchema,
   playerHeartbeatResponse: {
     ...YTResponseCommonSchema,
     adBreakHeartbeatParams: ytv_str(),
@@ -1657,7 +1664,10 @@ export const YTRendererSchemaMap = {
   },
   liveStreamOfflineSlateRenderer: {
     actionButtons: ytv_arr(ytv_ren()),
+    canShowCountdown: ytv_bol(),
     mainText: ytv_sch(YTTextSchema),
+    offlineSlateStyle: ytv_str(['OFFLINE_SLATE_STYLE_ABSTRACT']),
+    scheduledStartTime: ytv_str(),
     subtitleText: ytv_sch(YTTextSchema),
     thumbnail: ytv_sch(YTThumbnailSchema)
   },
@@ -2225,6 +2235,18 @@ export const YTRendererSchemaMap = {
     subtitle: ytv_sch(YTTextSchema),
     title: ytv_sch(YTTextSchema)
   },
+  richMetadataRenderer: {
+    callToAction: ytv_sch(YTTextSchema),
+    callToActionIcon: ytv_sch(YTIconSchema),
+    endpoint: ytv_enp(),
+    style: ytv_str(['RICH_METADATA_RENDERER_STYLE_BOX_ART']),
+    subtitle: ytv_sch(YTTextSchema),
+    thumbnail: ytv_sch(YTThumbnailSchema),
+    title: ytv_sch(YTTextSchema),
+  },
+  richMetadataRowRenderer: {
+    contents: ytv_arr(ytv_ren())
+  },
   richSectionRenderer: {
     content: ytv_ren()
   },
@@ -2480,6 +2502,7 @@ export const YTRendererSchemaMap = {
     accessibilityData: ytv_sch(YTAccessibilitySchema),
     defaultIcon: ytv_sch(YTIconSchema),
     defaultServiceEndpoint: ytv_enp(),
+    defaultText: ytv_sch(YTTextSchema),
     defaultTooltip: ytv_str(),
     isDisabled: ytv_bol(),
     isToggled: ytv_bol(),
@@ -2494,6 +2517,7 @@ export const YTRendererSchemaMap = {
     toggledIcon: ytv_sch(YTIconSchema),
     toggledServiceEndpoint: ytv_enp(),
     toggledStyle: ytv_ren(YTStyleSchema),
+    toggledText: ytv_sch(YTTextSchema),
     toggledTooltip: ytv_str()
   },
   toggleMenuServiceItemRenderer: {
@@ -2590,6 +2614,7 @@ export const YTRendererSchemaMap = {
   },
   videoOwnerRenderer: {
     badges: ytv_arr(ytv_ren()),
+    hideMembershipButtonIfUnsubscribed: ytv_bol(),
     membershipButton: ytv_ren(),
     navigationEndpoint: ytv_enp(),
     subscriberCountText: ytv_sch(YTTextSchema),
@@ -2725,6 +2750,10 @@ export const YTRendererSchemaMap = {
         triggerReason: ytv_str(['YOU_THERE_TRIGGER_REASON_2'])
       })
     })
+  },
+  ypcTrailerRenderer: {
+    fullVideoMessage: ytv_sch(YTTextSchema),
+    unserializedPlayerResponse: ytv_sch(YTPlayerResponseSchema)
   },
 
   // ViewModel
