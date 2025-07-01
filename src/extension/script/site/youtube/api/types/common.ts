@@ -1,4 +1,4 @@
-import { YTEndpoint, YTEndpointKey } from './endpoint'
+import { YTEndpoint, YTEndpointKey, YTEndpointOuterData } from './endpoint'
 import { YTRenderer, YTRendererKey, YTRendererMixinSchema } from './renderer'
 
 type MaxRecursion = 20
@@ -38,7 +38,7 @@ export type YTValueData<S extends YTValueSchema = YTValueSchema, RL extends numb
   S extends YTValueSchemaOf<YTValueType.OBJECT> ? Record<YTValueData<S['key'], Subtract<RL, 1>>, YTValueData<S['value'], Subtract<RL, 1>>> :
   S extends YTValueSchemaOf<YTValueType.SCHEMA> ? YTObjectData<S['schema'], Subtract<RL, 1>> :
   S extends YTValueSchemaOf<YTValueType.ARRAY> ? YTValueData<S['value'], Subtract<RL, 1>>[] :
-  S extends YTValueSchemaOf<YTValueType.ENDPOINT> ? (S['schema'] extends YTEndpointSchema ? YTEndpointData<S['schema'], Subtract<RL, 1>> : { [K in YTEndpointKey]?: YTEndpointData<YTEndpoint<K>, Subtract<RL, 1>> }) :
+  S extends YTValueSchemaOf<YTValueType.ENDPOINT> ? (S['schema'] extends YTEndpointSchema ? YTEndpointData<S['schema'], Subtract<RL, 1>> : ({ [K in YTEndpointKey]?: YTEndpointData<YTEndpoint<K>, Subtract<RL, 1>> } & YTEndpointOuterData)) :
   S extends YTValueSchemaOf<YTValueType.RENDERER> ? (S['schema'] extends YTRendererSchema ? YTRendererData<S['schema'], Subtract<RL, 1>> : { [K in YTRendererKey]?: YTRendererData<YTRenderer<K>, Subtract<RL, 1>> }) :
   never
 ) : any
