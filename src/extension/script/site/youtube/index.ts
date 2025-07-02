@@ -8,6 +8,7 @@ import YTModModule from '@ext/site/youtube/module/mod'
 import YTNetworkModule from '@ext/site/youtube/module/network'
 import YTPlayerModule from '@ext/site/youtube/module/player'
 import YTPremiumModule from '@ext/site/youtube/module/premium'
+import YTSmartSkipModule from '@ext/site/youtube/module/smart-skip'
 
 registerFeatureGroup('youtube', group => {
   registerFeature(group, YTBootstrapModule)
@@ -18,6 +19,7 @@ registerFeatureGroup('youtube', group => {
   registerFeature(group, YTPremiumModule)
   registerFeature(group, YTNetworkModule)
   registerFeature(group, YTModModule)
+  registerFeature(group, YTSmartSkipModule)
 
   hideOwnWebpackRuntimeFromGlobal()
 }, ['adblock', 'privacy'])

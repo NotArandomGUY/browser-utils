@@ -478,7 +478,7 @@ export const YTEndpointSchemaMap = {
   changeMarkersVisibilityCommand: {
     entityKeys: ytv_arr(ytv_str()),
     isVisible: ytv_bol(),
-    visibilityRestrictionMode: ytv_str(['CHANGE_MARKERS_VISIBILITY_RESTRICTION_MODE_NOT_OVERWRITE_SAME_TYPE'])
+    visibilityRestrictionMode: ytv_str(['CHANGE_MARKERS_VISIBILITY_RESTRICTION_MODE_NOT_OVERWRITE_SAME_TYPE', 'CHANGE_MARKERS_VISIBILITY_RESTRICTION_MODE_UNKNOWN'])
   },
   changeTimelyActionVisibilityCommand: {
     id: ytv_str(),
