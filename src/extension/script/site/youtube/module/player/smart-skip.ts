@@ -232,6 +232,8 @@ async function fetchSegmentEntries(videoId: string | null): Promise<SkipSegmentE
       segmentEntriesCacheMap.set(videoId, entries)
     }
 
+    logger.debug('skip segments for video:', videoId, entries)
+
     return entries
   } catch (error) {
     logger.warn('fetch skip segments error:', error)
@@ -241,9 +243,15 @@ async function fetchSegmentEntries(videoId: string | null): Promise<SkipSegmentE
   }
 }
 
-async function updatePlayerResponse(data: YTRendererData<YTRenderer<'playerResponse'>>): Promise<boolean> {
+async function processPlayerResponse(data: YTRendererData<YTRenderer<'playerResponse'>>): Promise<boolean> {
   lastLoadedVideoId = data.videoDetails?.videoId ?? null
 
+  await fetchSegmentEntries(lastLoadedVideoId)
+
+  return true
+}
+
+async function updateNextResponse(data: YTRendererData<YTRenderer<'nextResponse'>>): Promise<boolean> {
   const segmentEntries = await fetchSegmentEntries(lastLoadedVideoId)
 
   data.onResponseReceivedEndpoints ??= []
@@ -303,7 +311,8 @@ async function updateTimelyActionsOverlayViewModel(data: YTRendererData<YTRender
 
 export default class YTPlayerSmartSkipModule extends Feature {
   protected activate(): boolean {
-    registerYTRendererPreProcessor(YTRendererSchemaMap['playerResponse'], updatePlayerResponse)
+    registerYTRendererPreProcessor(YTRendererSchemaMap['nextResponse'], updateNextResponse)
+    registerYTRendererPreProcessor(YTRendererSchemaMap['playerResponse'], processPlayerResponse)
     registerYTRendererPreProcessor(YTRendererSchemaMap['playerOverlayRenderer'], updatePlayerOverlayRenderer)
     registerYTRendererPreProcessor(YTRendererSchemaMap['timelyActionsOverlayViewModel'], updateTimelyActionsOverlayViewModel)
 
