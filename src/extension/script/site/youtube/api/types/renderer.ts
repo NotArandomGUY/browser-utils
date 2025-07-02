@@ -1214,6 +1214,9 @@ export const YTRendererSchemaMap = {
     showLessText: ytv_sch(YTTextSchema),
     showMoreText: ytv_sch(YTTextSchema)
   },
+  expandedShelfContentsRenderer: {
+    items: ytv_arr(ytv_ren())
+  },
   factoidRenderer: {
     accessibilityText: ytv_str(),
     label: ytv_sch(YTTextSchema),
@@ -2495,6 +2498,7 @@ export const YTRendererSchemaMap = {
     survey: ytv_ren()
   },
   tabRenderer: {
+    accessibility: ytv_sch(YTAccessibilitySchema),
     content: ytv_ren(),
     endpoint: ytv_enp(),
     selected: ytv_bol(),
@@ -2959,7 +2963,7 @@ export const YTRendererSchemaMap = {
     image: ytv_sch(YTImageSchema),
     layoutMode: ytv_str(['CONTENT_PREVIEW_IMAGE_LAYOUT_MODE_UNKNOWN']),
     rendererContext: ytv_ren(YTRendererContextSchema),
-    style: ytv_str(['CONTENT_PREVIEW_IMAGE_STYLE_SQUARE'])
+    style: ytv_str(['CONTENT_PREVIEW_IMAGE_STYLE_CIRCLE', 'CONTENT_PREVIEW_IMAGE_STYLE_SQUARE'])
   },
   creatorHeartViewModel: {
     creatorThumbnail: ytv_sch(YTImageSchema),
@@ -3067,6 +3071,7 @@ export const YTRendererSchemaMap = {
   },
   pageHeaderViewModel: {
     actions: ytv_ren(),
+    animatedImage: ytv_ren(),
     attribution: ytv_ren(),
     banner: ytv_ren(),
     description: ytv_ren(),

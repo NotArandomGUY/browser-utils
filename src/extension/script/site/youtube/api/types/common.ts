@@ -142,6 +142,7 @@ export const YTImageSourceSchema = {
 
 export const YTImageSchema = {
   contentMode: ytv_str(['CONTENT_MODE_SCALE_ASPECT_FILL']),
+  imageFormatHint: ytv_str(['IMAGE_FORMAT_ANIMATED_WEBP']),
   processor: ytv_obj(ytv_str(), ytv_unk()),
   sources: ytv_arr(ytv_sch(YTImageSourceSchema))
 } satisfies YTObjectSchema
