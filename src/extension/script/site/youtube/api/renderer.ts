@@ -6,6 +6,8 @@ import { YTRenderer, YTResponseContextSchema } from '@ext/site/youtube/api/types
 export { YTLoggingDirectivesSchema, YTRendererData, YTRendererSchema } from '@ext/site/youtube/api/types/common'
 export * from '@ext/site/youtube/api/types/renderer'
 
+export type YTRendererProcessor<S extends YTRendererSchema = YTRendererSchema> = (data: YTRendererData, schema: S) => Promise<boolean> | boolean
+
 export const OVERRIDE_TRACKING_PARAMS = 'CAAQACIMCAAVAAAAAB0AAAAA'
 
 const logger = new Logger('YT-RENDERER')
@@ -16,8 +18,8 @@ const serviceTrackingOverrideConfig: {
   }
 } = {}
 
-const preProcessorMap = new Map<YTRendererSchema, Array<(data: YTRendererData, schema: YTRendererSchema) => boolean>>()
-const postProcessorMap = new Map<YTRendererSchema, Array<(data: YTRendererData, schema: YTRendererSchema) => boolean>>()
+const preProcessorMap = new Map<YTRendererSchema, Array<YTRendererProcessor>>()
+const postProcessorMap = new Map<YTRendererSchema, Array<YTRendererProcessor>>()
 
 function removeNode<S extends YTRendererSchema>(data: YTRendererData<S>, schema: S): boolean {
   logger.debug('remove node:', data, schema)
@@ -37,24 +39,24 @@ export function setYTServiceTrackingOverride(service: string, key: string, value
   serviceOverride[key] = value
 }
 
-export function registerYTRendererPreProcessor<S extends YTRendererSchema>(schema: S, processor: (data: YTRendererData<S>, schema: S) => boolean): void {
+export function registerYTRendererPreProcessor<S extends YTRendererSchema>(schema: S, processor: YTRendererProcessor<S>): void {
   let processors = preProcessorMap.get(schema)
   if (processors == null) {
     processors = []
     preProcessorMap.set(schema, processors)
   }
 
-  processors.push(processor as (data: YTRendererData, schema: YTRendererSchema) => boolean)
+  processors.push(processor as YTRendererProcessor)
 }
 
-export function registerYTRendererPostProcessor<S extends YTRendererSchema>(schema: S, processor: (data: YTRendererData<S>, schema: S) => boolean): void {
+export function registerYTRendererPostProcessor<S extends YTRendererSchema>(schema: S, processor: YTRendererProcessor<S>): void {
   let processors = postProcessorMap.get(schema)
   if (processors == null) {
     processors = []
     postProcessorMap.set(schema, processors)
   }
 
-  processors.push(processor as (data: YTRendererData, schema: YTRendererSchema) => boolean)
+  processors.push(processor as YTRendererProcessor)
 }
 
 export function removeYTRendererPre<S extends YTRendererSchema>(schema: S, filter?: (data: YTRendererData<S>) => boolean) {
@@ -75,17 +77,29 @@ export function removeYTRendererPost<S extends YTRendererSchema>(schema: S, filt
   )
 }
 
-export function onPreProcessYTRenderer<S extends YTRendererSchema>(data: YTRendererData<S>, schema: S): boolean {
+export async function onPreProcessYTRenderer<S extends YTRendererSchema>(data: YTRendererData<S>, schema: S): Promise<boolean> {
   if (data.clickTrackingParams != null) data.clickTrackingParams = OVERRIDE_TRACKING_PARAMS
   if (data.trackingParams != null) data.trackingParams = OVERRIDE_TRACKING_PARAMS
 
   const processors = preProcessorMap.get(schema)
-  return processors?.find(processor => processor(data, schema) === false) == null
+  if (processors == null) return true
+
+  for (const processor of processors) {
+    if (!await processor(data, schema)) return false
+  }
+
+  return true
 }
 
-export function onPostProcessYTRenderer<S extends YTRendererSchema>(data: YTRendererData<S>, schema: S): boolean {
+export async function onPostProcessYTRenderer<S extends YTRendererSchema>(data: YTRendererData<S>, schema: S): Promise<boolean> {
   const processors = postProcessorMap.get(schema)
-  return processors?.find(processor => processor(data, schema) === false) == null
+  if (processors == null) return true
+
+  for (const processor of processors) {
+    if (!await processor(data, schema)) return false
+  }
+
+  return true
 }
 
 registerYTRendererPreProcessor(YTResponseContextSchema, (data: YTRendererData<typeof YTResponseContextSchema>) => {

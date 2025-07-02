@@ -193,7 +193,7 @@ async function processInnertubeResponse(response: Response, endpoint: string): P
   }
 
   const renderer = `${endpoint.replace(/[/_][a-z]/g, s => s[1].toUpperCase())}Response` as keyof typeof YTRendererSchemaMap
-  processYTRenderer(renderer, data)
+  await processYTRenderer(renderer, data)
 
   logger.debug('innertube response:', endpoint, data)
 

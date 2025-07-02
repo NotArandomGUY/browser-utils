@@ -164,7 +164,7 @@ const APP_ELEMENT_PAGE_MAP: Record<string, YTInitDataResponse['page']> = {
 let ytcfg: YTConfig
 
 async function getProcessedInitialCommand(initCommand: YTValueData<{ type: YTValueType.ENDPOINT }>): Promise<YTValueData<{ type: YTValueType.ENDPOINT }>> {
-  processYTValueSchema(ytv_enp(), initCommand, null)
+  await processYTValueSchema(ytv_enp(), initCommand, null)
 
   logger.debug('initial command:', initCommand)
 
@@ -175,19 +175,19 @@ async function getProcessedInitialData(initData: YTInitData): Promise<YTInitData
   switch (initData.page) {
     case 'browse':
     case 'channel':
-      processYTRenderer('browseResponse', initData.response)
+      await processYTRenderer('browseResponse', initData.response)
       break
     case 'search':
-      processYTRenderer('searchResponse', initData.response)
+      await processYTRenderer('searchResponse', initData.response)
       break
     case 'shorts':
-      processYTRenderer('reelReelItemWatchResponse', initData.response)
+      await processYTRenderer('reelReelItemWatchResponse', initData.response)
       break
     case 'watch':
-      processYTRenderer('nextResponse', initData.response)
+      await processYTRenderer('nextResponse', initData.response)
       break
     case 'live_chat':
-      processYTRenderer('liveChatGetLiveChatResponse', initData.response)
+      await processYTRenderer('liveChatGetLiveChatResponse', initData.response)
       break
     default:
       logger.warn('unhandled page type', initData)
@@ -199,14 +199,14 @@ async function getProcessedInitialData(initData: YTInitData): Promise<YTInitData
   return initData
 }
 
-function createPlayer(create: (...args: unknown[]) => void, container: HTMLElement, config?: YTPlayerConfig, webPlayerContextConfig?: YTPlayerWebPlayerContextConfig): void {
-  logger.debug('create player:', container, config, webPlayerContextConfig)
-
+async function createPlayer(create: (...args: unknown[]) => void, container: HTMLElement, config?: YTPlayerConfig, webPlayerContextConfig?: YTPlayerWebPlayerContextConfig): Promise<void> {
   if (webPlayerContextConfig != null) {
     webPlayerContextConfig.enableCsiLogging = false
   }
 
-  processYTRenderer('playerResponse', config?.args?.raw_player_response)
+  await processYTRenderer('playerResponse', config?.args?.raw_player_response)
+
+  logger.debug('create player:', container, config, webPlayerContextConfig)
 
   onBeforeCreateYTPlayer()
   create(container, config, webPlayerContextConfig)

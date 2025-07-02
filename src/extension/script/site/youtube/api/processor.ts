@@ -33,15 +33,15 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
 }
 
-function processYTObjectFieldSchema(keySchema: YTValueSchema, valueSchema: YTValueSchema, key: unknown, value: object): void {
+async function processYTObjectFieldSchema(keySchema: YTValueSchema, valueSchema: YTValueSchema, key: unknown, value: object): Promise<void> {
   try {
-    if (!processYTValueSchema(keySchema, key, value)) {
+    if (!await processYTValueSchema(keySchema, key, value)) {
       delete value[key as keyof typeof value]
       logger.trace('key processor removed field:', keySchema, valueSchema, key, value)
       return
     }
 
-    if (!processYTValueSchema(valueSchema, value[key as keyof typeof value], value)) {
+    if (!await processYTValueSchema(valueSchema, value[key as keyof typeof value], value)) {
       delete value[key as keyof typeof value]
       logger.trace('value processor removed field:', keySchema, valueSchema, key, value)
     }
@@ -50,7 +50,7 @@ function processYTObjectFieldSchema(keySchema: YTValueSchema, valueSchema: YTVal
   }
 }
 
-function processYTSchemaFieldSchema(schema: YTObjectSchema, key: string, value: object): boolean {
+async function processYTSchemaFieldSchema(schema: YTObjectSchema, key: string, value: object): Promise<boolean> {
   try {
     const fieldSchema = schema[key]
     if (fieldSchema == null) throw new Error('unhandled field')
@@ -58,7 +58,7 @@ function processYTSchemaFieldSchema(schema: YTObjectSchema, key: string, value: 
     const fieldValue = value[key as keyof typeof value]
     if (fieldValue == null) return false
 
-    if (!processYTValueSchema(fieldSchema, fieldValue, value)) {
+    if (!await processYTValueSchema(fieldSchema, fieldValue, value)) {
       delete value[key as keyof typeof value]
       logger.trace('value processor removed field:', fieldValue, schema, key, value)
       return false
@@ -70,16 +70,16 @@ function processYTSchemaFieldSchema(schema: YTObjectSchema, key: string, value: 
   return true
 }
 
-function processYTArrayValueSchema(schema: YTValueSchema, index: number, value: unknown[]): boolean {
+async function processYTArrayValueSchema(schema: YTValueSchema, index: number, value: unknown[]): Promise<boolean> {
   try {
-    return processYTValueSchema(schema, value[index], value)
+    return await processYTValueSchema(schema, value[index], value)
   } catch (error) {
     logger.debug('array index error:', errorMessage(error), schema, index, value)
     return true
   }
 }
 
-export function processYTValueSchema<P = null>(schema: YTValueSchema, value: unknown, parent: P): boolean { // NOSONAR
+export async function processYTValueSchema<P = null>(schema: YTValueSchema, value: unknown, parent: P): Promise<boolean> { // NOSONAR
   if (value == null) return false
 
   switch (schema.type) {
@@ -105,14 +105,14 @@ export function processYTValueSchema<P = null>(schema: YTValueSchema, value: unk
     case YTValueType.OBJECT:
       if (typeof value !== 'object') throwMismatchTypeError('object', value)
       for (const key in value) {
-        processYTObjectFieldSchema(schema.key, schema.value, key, value)
+        await processYTObjectFieldSchema(schema.key, schema.value, key, value)
       }
       break
     case YTValueType.SCHEMA: {
       if (typeof value !== 'object') throwMismatchTypeError('object', value)
       let isNotEmpty = false
       for (const key in value) {
-        isNotEmpty = processYTSchemaFieldSchema(schema.schema, key, value) || isNotEmpty
+        isNotEmpty = (await processYTSchemaFieldSchema(schema.schema, key, value)) || isNotEmpty
       }
       if (!isNotEmpty) return false
       break
@@ -120,7 +120,7 @@ export function processYTValueSchema<P = null>(schema: YTValueSchema, value: unk
     case YTValueType.ARRAY:
       if (!Array.isArray(value)) throwMismatchTypeError('array', value)
       for (let i = value.length - 1; i >= 0; i--) {
-        if (processYTArrayValueSchema(schema.value, i, value)) continue
+        if (await processYTArrayValueSchema(schema.value, i, value)) continue
 
         value.splice(i, 1)
         logger.trace('value processor removed index:', schema.value, i, value)
@@ -133,21 +133,21 @@ export function processYTValueSchema<P = null>(schema: YTValueSchema, value: unk
       const endpointSchema = schema.schema
       if (endpointSchema == null) {
         for (const key in value) {
-          if (!processYTSchemaFieldSchema(ENDPOINT_SCHEMA, key, value)) return false
+          if (!await processYTSchemaFieldSchema(ENDPOINT_SCHEMA, key, value)) return false
         }
         break
       }
 
-      if (!onPreProcessYTEndpoint(value, endpointSchema, parent as YTEndpointOuterData | null)) {
+      if (!await onPreProcessYTEndpoint(value, endpointSchema, parent as YTEndpointOuterData | null)) {
         logger.trace('pre processor removed endpoint:', endpointSchema, value)
         return false
       }
 
       for (const key in value) {
-        processYTSchemaFieldSchema(endpointSchema, key, value)
+        await processYTSchemaFieldSchema(endpointSchema, key, value)
       }
 
-      if (!onPostProcessYTEndpoint(value, endpointSchema, parent as YTEndpointOuterData | null)) {
+      if (!await onPostProcessYTEndpoint(value, endpointSchema, parent as YTEndpointOuterData | null)) {
         logger.trace('post processor removed endpoint:', endpointSchema, value)
         return false
       }
@@ -158,23 +158,23 @@ export function processYTValueSchema<P = null>(schema: YTValueSchema, value: unk
 
       if (schema.schema == null) {
         for (const key in value) {
-          if (!processYTSchemaFieldSchema(RENDERER_SCHEMA, key, value)) return false
+          if (!await processYTSchemaFieldSchema(RENDERER_SCHEMA, key, value)) return false
         }
         break
       }
 
       const rendererSchema = Object.assign(schema.schema, YTRendererMixinSchema)
 
-      if (!onPreProcessYTRenderer(value, rendererSchema)) {
+      if (!await onPreProcessYTRenderer(value, rendererSchema)) {
         logger.trace('pre processor removed renderer:', rendererSchema, value)
         return false
       }
 
       for (const key in value) {
-        processYTSchemaFieldSchema(rendererSchema, key, value)
+        await processYTSchemaFieldSchema(rendererSchema, key, value)
       }
 
-      if (!onPostProcessYTRenderer(value, rendererSchema)) {
+      if (!await onPostProcessYTRenderer(value, rendererSchema)) {
         logger.trace('post processor removed renderer:', rendererSchema, value)
         return false
       }
@@ -187,7 +187,7 @@ export function processYTValueSchema<P = null>(schema: YTValueSchema, value: unk
   return true
 }
 
-export function processYTRenderer(renderer: YTRendererKey, value: unknown): void {
+export async function processYTRenderer(renderer: YTRendererKey, value: unknown): Promise<void> {
   const schema = YTRendererSchemaMap[renderer]
   if (schema == null) {
     logger.debug('schema not found for renderer:', renderer)
@@ -195,7 +195,7 @@ export function processYTRenderer(renderer: YTRendererKey, value: unknown): void
   }
 
   try {
-    processYTValueSchema(ytv_ren(schema), value, null)
+    await processYTValueSchema(ytv_ren(schema), value, null)
   } catch (error) {
     logger.warn('renderer processor error:', errorMessage(error), renderer, value)
   }
