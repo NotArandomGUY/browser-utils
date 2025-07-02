@@ -33,7 +33,53 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
 }
 
-function processYTValueSchema<P = null>(schema: YTValueSchema, value: unknown, parent: P): boolean { // NOSONAR
+function processYTObjectFieldSchema(keySchema: YTValueSchema, valueSchema: YTValueSchema, key: unknown, value: object): void {
+  try {
+    if (!processYTValueSchema(keySchema, key, value)) {
+      delete value[key as keyof typeof value]
+      logger.trace('key processor removed field:', keySchema, valueSchema, key, value)
+      return
+    }
+
+    if (!processYTValueSchema(valueSchema, value[key as keyof typeof value], value)) {
+      delete value[key as keyof typeof value]
+      logger.trace('value processor removed field:', keySchema, valueSchema, key, value)
+    }
+  } catch (error) {
+    logger.debug('object field error:', errorMessage(error), keySchema, valueSchema, key, value)
+  }
+}
+
+function processYTSchemaFieldSchema(schema: YTObjectSchema, key: string, value: object): boolean {
+  try {
+    const fieldSchema = schema[key]
+    if (fieldSchema == null) throw new Error('unhandled field')
+
+    const fieldValue = value[key as keyof typeof value]
+    if (fieldValue == null) return false
+
+    if (!processYTValueSchema(fieldSchema, fieldValue, value)) {
+      delete value[key as keyof typeof value]
+      logger.trace('value processor removed field:', fieldValue, schema, key, value)
+      return false
+    }
+  } catch (error) {
+    logger.debug('schema field error:', errorMessage(error), schema, key, value)
+  }
+
+  return true
+}
+
+function processYTArrayValueSchema(schema: YTValueSchema, index: number, value: unknown[]): boolean {
+  try {
+    return processYTValueSchema(schema, value[index], value)
+  } catch (error) {
+    logger.debug('array index error:', errorMessage(error), schema, index, value)
+    return true
+  }
+}
+
+export function processYTValueSchema<P = null>(schema: YTValueSchema, value: unknown, parent: P): boolean { // NOSONAR
   if (value == null) return false
 
   switch (schema.type) {
@@ -139,52 +185,6 @@ function processYTValueSchema<P = null>(schema: YTValueSchema, value: unknown, p
   }
 
   return true
-}
-
-function processYTObjectFieldSchema(keySchema: YTValueSchema, valueSchema: YTValueSchema, key: unknown, value: object): void {
-  try {
-    if (!processYTValueSchema(keySchema, key, value)) {
-      delete value[key as keyof typeof value]
-      logger.trace('key processor removed field:', keySchema, valueSchema, key, value)
-      return
-    }
-
-    if (!processYTValueSchema(valueSchema, value[key as keyof typeof value], value)) {
-      delete value[key as keyof typeof value]
-      logger.trace('value processor removed field:', keySchema, valueSchema, key, value)
-    }
-  } catch (error) {
-    logger.debug('object field error:', errorMessage(error), keySchema, valueSchema, key, value)
-  }
-}
-
-function processYTSchemaFieldSchema(schema: YTObjectSchema, key: string, value: object): boolean {
-  try {
-    const fieldSchema = schema[key]
-    if (fieldSchema == null) throw new Error('unhandled field')
-
-    const fieldValue = value[key as keyof typeof value]
-    if (fieldValue == null) return false
-
-    if (!processYTValueSchema(fieldSchema, fieldValue, value)) {
-      delete value[key as keyof typeof value]
-      logger.trace('value processor removed field:', fieldValue, schema, key, value)
-      return false
-    }
-  } catch (error) {
-    logger.debug('schema field error:', errorMessage(error), schema, key, value)
-  }
-
-  return true
-}
-
-function processYTArrayValueSchema(schema: YTValueSchema, index: number, value: unknown[]): boolean {
-  try {
-    return processYTValueSchema(schema, value[index], value)
-  } catch (error) {
-    logger.debug('array index error:', errorMessage(error), schema, index, value)
-    return true
-  }
 }
 
 export function processYTRenderer(renderer: YTRendererKey, value: unknown): void {

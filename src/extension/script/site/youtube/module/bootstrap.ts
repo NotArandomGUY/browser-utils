@@ -2,8 +2,10 @@ import { Feature } from '@ext/lib/feature'
 import Hook, { HookResult } from '@ext/lib/intercept/hook'
 import Logger from '@ext/lib/logger'
 import { YTEndpoint } from '@ext/site/youtube/api/endpoint'
-import { processYTRenderer } from '@ext/site/youtube/api/processor'
+import { processYTRenderer, processYTValueSchema } from '@ext/site/youtube/api/processor'
 import { YTRenderer, YTRendererData } from '@ext/site/youtube/api/renderer'
+import { ytv_enp, YTValueData, YTValueType } from '@ext/site/youtube/api/types/common'
+import { onBeforeCreateYTPlayer } from '@ext/site/youtube/module/player'
 
 type YTInitDataResponse = {
   page: 'browse' | 'channel'
@@ -78,10 +80,62 @@ interface YTInnertubeContext {
   }
 }
 
-interface YTPlayer {
+interface YTPlayerConfig {
+  args?: Partial<{
+    author: string
+    length_seconds: string
+    raw_player_response: YTRendererData<YTRenderer<'playerResponse'>>
+    title: string
+    ucid: string
+    video_id: string
+  }>
+}
+
+interface YTPlayerWebPlayerContextConfig {
+  transparentBackground: boolean
+  showMiniplayerButton: boolean
+  externalFullscreen: boolean
+  showMiniplayerUiWhenMinimized: boolean
+  rootElementId: string
+  jsUrl: string
+  cssUrl: string
+  contextId: string
+  eventLabel: string
+  contentRegion: string
+  hl: string
+  hostLanguage: string
+  playerStyle: string
+  innertubeApiKey: string
+  innertubeApiVersion: string
+  innertubeContextClientVersion: string
+  device: {
+    brand: string
+    model: string
+    browser: string
+    browserVersion: string
+    os: string
+    osVersion: string
+    platform: string
+    interfaceName: string
+    interfaceVersion: string
+  }
+  serializedExperimentIds: string
+  serializedExperimentFlags: string
+  cspNonce: string
+  canaryState: string
+  enableCsiLogging: boolean
+  csiPageType: string
+  datasyncId: string
+  allowWoffleManagement: boolean
+  cinematicSettingsAvailable: boolean
+  canaryStage: string
+}
+
+interface YTPlayerGlobal {
   bootstrapPlayerContainer: HTMLElement
-  bootstrapWebPlayerContextConfig: object
+  bootstrapWebPlayerContextConfig: YTPlayerWebPlayerContextConfig
   bootstrapPlayerResponse: YTRendererData<YTRenderer<'playerResponse'>>
+  config: YTPlayerConfig
 }
 
 interface YTSearchboxSettings {
@@ -108,10 +162,16 @@ const APP_ELEMENT_PAGE_MAP: Record<string, YTInitDataResponse['page']> = {
 }
 
 let ytcfg: YTConfig
-let nativeGetInitialData: (() => object) | null = null
 
-function overrideGetInitialData(initData?: YTInitData) {
-  initData = (nativeGetInitialData?.() ?? initData ?? {}) as YTInitData
+async function getProcessedInitialCommand(initCommand: YTValueData<{ type: YTValueType.ENDPOINT }>): Promise<YTValueData<{ type: YTValueType.ENDPOINT }>> {
+  processYTValueSchema(ytv_enp(), initCommand, null)
+
+  logger.debug('initial command:', initCommand)
+
+  return initCommand
+}
+
+async function getProcessedInitialData(initData: YTInitData): Promise<YTInitData> {
   switch (initData.page) {
     case 'browse':
     case 'channel':
@@ -133,8 +193,23 @@ function overrideGetInitialData(initData?: YTInitData) {
       logger.warn('unhandled page type', initData)
       break
   }
+
   logger.debug('initial data:', initData)
+
   return initData
+}
+
+function createPlayer(create: (...args: unknown[]) => void, container: HTMLElement, config?: YTPlayerConfig, webPlayerContextConfig?: YTPlayerWebPlayerContextConfig): void {
+  logger.debug('create player:', container, config, webPlayerContextConfig)
+
+  if (webPlayerContextConfig != null) {
+    webPlayerContextConfig.enableCsiLogging = false
+  }
+
+  processYTRenderer('playerResponse', config?.args?.raw_player_response)
+
+  onBeforeCreateYTPlayer()
+  create(container, config, webPlayerContextConfig)
 }
 
 export function isYTLoggedIn(): boolean {
@@ -207,39 +282,77 @@ export default class YTBootstrapModule extends Feature {
     } as YTConfig)
     Object.defineProperty(window, 'ytcfg', { value: ytcfg, configurable: false, writable: false })
 
-    // Obtain player object
-    const ytplayer = window.ytplayer ?? {} as YTPlayer
-    Object.defineProperty(window, 'ytplayer', {
-      get() {
-        return ytplayer
-      }
+    // Override player application create
+    Object.defineProperty(window, 'yt', {
+      value: {
+        player: {
+          Application: new Proxy({}, {
+            set(target, p, newValue, receiver) {
+              if (String(p).startsWith('create') && typeof newValue === 'function') {
+                newValue = createPlayer.bind(target, newValue)
+              }
+              return Reflect.set(target, p, newValue, receiver)
+            }
+          })
+        }
+      },
+      configurable: true,
+      writable: true
     })
 
-    // Override get initial data with processed initial data
-    nativeGetInitialData = window.getInitialData ?? null
+    // Process initial data for get initial global
+    Object.defineProperty(window, 'getInitialCommand', {
+      configurable: true,
+      get() {
+        return undefined
+      },
+      set(getInitialCommand) {
+        if (typeof getInitialCommand !== 'function') {
+          logger.warn('invalid get initial command function:', getInitialCommand)
+          return
+        }
+
+        const initialCommand = getInitialCommand() as YTValueData<{ type: YTValueType.ENDPOINT }>
+        getProcessedInitialCommand(initialCommand)
+          .catch(error => logger.warn('process initial command error:', error))
+          .finally(() => {
+            Object.defineProperty(window, 'getInitialCommand', {
+              configurable: true,
+              writable: true,
+              value: () => initialCommand
+            })
+
+            if (typeof window.loadInitialCommand === 'function') window.loadInitialCommand(initialCommand)
+          })
+      }
+    })
     Object.defineProperty(window, 'getInitialData', {
+      configurable: true,
       get() {
-        return overrideGetInitialData
+        return undefined
       },
-      set(v) {
-        nativeGetInitialData = v
+      set(getInitialData) {
+        if (typeof getInitialData !== 'function') {
+          logger.warn('invalid get initial data function:', getInitialData)
+          return
+        }
+
+        const initialData = getInitialData() as YTInitData
+        getProcessedInitialData(initialData)
+          .catch(error => logger.warn('process initial data error:', error))
+          .finally(() => {
+            Object.defineProperty(window, 'getInitialData', {
+              configurable: true,
+              writable: true,
+              value: () => initialData
+            })
+
+            if (typeof window.loadInitialData === 'function') window.loadInitialData(initialData)
+          })
       }
     })
 
-    // Process bootstrap player response
-    let bootstrapPlayerResponse: YTRendererData<YTRenderer<'playerResponse'>> | null = null
-    Object.defineProperty(ytplayer, 'bootstrapPlayerResponse', {
-      get() {
-        return bootstrapPlayerResponse
-      },
-      set(v) {
-        processYTRenderer('playerResponse', v)
-        logger.debug('initial player response:', v)
-        bootstrapPlayerResponse = v
-      }
-    })
-
-    // Process initial data before app element ready
+    // Process initial data for app element
     customElements.define = new Hook(customElements.define).install(ctx => {
       const customElement = ctx.args[1]
       if (customElement == null) return HookResult.EXECUTION_IGNORE
@@ -247,15 +360,21 @@ export default class YTBootstrapModule extends Feature {
       const { connectedCallback } = customElement.prototype ?? {}
 
       const page = APP_ELEMENT_PAGE_MAP[ctx.args[0].toLowerCase()]
-      if (page != null && typeof connectedCallback === 'function') {
-        customElement.prototype.connectedCallback = new Hook(connectedCallback).install(() => {
-          overrideGetInitialData({ page, response: window.ytInitialData } as YTInitData)
+      if (page == null || typeof connectedCallback !== 'function') return HookResult.EXECUTION_IGNORE
 
-          return HookResult.EXECUTION_IGNORE
-        }).call
-      }
+      customElement.prototype.connectedCallback = new Hook(connectedCallback).install(ctx => {
+        logger.debug('custom element connected', customElement, ctx.self)
 
-      return HookResult.EXECUTION_IGNORE
+        getProcessedInitialData({ page, response: window.ytInitialData } as YTInitData)
+          .catch(error => logger.warn('process initial data error:', error))
+          .finally(() => ctx.origin.apply(ctx.self, ctx.args))
+
+        return HookResult.EXECUTION_CONTINUE
+      }).call
+
+      customElements.define = ctx.origin
+
+      return HookResult.EXECUTION_IGNORE | HookResult.ACTION_UNINSTALL
     }).call
 
     return true

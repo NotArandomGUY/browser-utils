@@ -187,37 +187,39 @@ export function setSyncLiveHeadEnable(state: boolean): void {
   player?.setPlaybackRate?.(1)
 }
 
+export function onBeforeCreateYTPlayer(): void {
+  // Override player internal modules
+  Object.prototype.hasOwnProperty = new Hook(Object.prototype.hasOwnProperty).install(ctx => { // NOSONAR
+    if (ctx.self instanceof HTMLDivElement && (ctx.self.id === 'player-api' || ctx.self.classList.contains('ytd-player'))) {
+      Function.prototype.call = new Hook(Function.prototype.call).install(ctx => { // NOSONAR
+        const fn = ctx.self.toString()
+        const instance = ctx.args[0]
+
+        let result = HookResult.EXECUTION_IGNORE
+        if (moduleCtor == null) {
+          const oldKeys = Object.keys(instance).length
+          ctx.returnValue = ctx.origin.apply(ctx.self, ctx.args)
+          const newKeys = Object.keys(instance).length
+
+          if (oldKeys === newKeys) return HookResult.EXECUTION_CONTINUE
+
+          moduleCtor = fn
+          result = HookResult.EXECUTION_CONTINUE
+        }
+
+        if (fn !== moduleCtor || onModuleConstruct(instance)) return result
+
+        Function.prototype.call = ctx.origin // NOSONAR
+        return HookResult.ACTION_UNINSTALL | result
+      }).call
+    }
+
+    return HookResult.EXECUTION_IGNORE
+  }).call
+}
+
 export default class YTPlayerModule extends Feature {
   protected activate(): boolean {
-    // Override player internal modules
-    Object.prototype.hasOwnProperty = new Hook(Object.prototype.hasOwnProperty).install(ctx => { // NOSONAR
-      if (ctx.self instanceof HTMLDivElement && (ctx.self.id === 'player-api' || ctx.self.classList.contains('ytd-player'))) {
-        Function.prototype.call = new Hook(Function.prototype.call).install(ctx => { // NOSONAR
-          const fn = ctx.self.toString()
-          const instance = ctx.args[0]
-
-          let result = HookResult.EXECUTION_IGNORE
-          if (moduleCtor == null) {
-            const oldKeys = Object.keys(instance).length
-            ctx.returnValue = ctx.origin.apply(ctx.self, ctx.args)
-            const newKeys = Object.keys(instance).length
-
-            if (oldKeys === newKeys) return HookResult.EXECUTION_CONTINUE
-
-            moduleCtor = fn
-            result = HookResult.EXECUTION_CONTINUE
-          }
-
-          if (fn !== moduleCtor || onModuleConstruct(instance)) return result
-
-          Function.prototype.call = ctx.origin // NOSONAR
-          return HookResult.ACTION_UNINSTALL | result
-        }).call
-      }
-
-      return HookResult.EXECUTION_IGNORE
-    }).call
-
     lastSyncLiveHeadTime = Date.now()
     syncLiveHeadDeltaTime = SYNC_INTERVAL
     setInterval(syncLiveHeadUpdate, SYNC_INTERVAL)

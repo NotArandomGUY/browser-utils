@@ -9,7 +9,10 @@ declare var mcd: { bridge: unknown, [key: string]: unknown }
 
 declare var _lact: number
 declare var _fact: number
+declare var getInitialCommand: () => object
 declare var getInitialData: () => object
+declare var loadInitialCommand: (command: object) => void
+declare var loadInitialData: (data: object) => void
 declare var yt: { config_: object, logging: object }
 declare var ytcfg: object | undefined
 declare var ytglobal: object | undefined
