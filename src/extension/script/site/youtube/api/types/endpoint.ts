@@ -399,6 +399,9 @@ export const YTEndpointSchemaMap = {
     popup: ytv_ren(),
     popupType: ytv_str(['DIALOG', 'DROPDOWN', 'HINT', 'LOCKED_MODAL', 'NOTIFICATION', 'RESPONSIVE_DROPDOWN', 'SURVEY', 'TOP_ALIGNED_DIALOG', 'TOAST'])
   },
+  removeChatItemAction: {
+    targetItemId: ytv_str()
+  },
   replaceEnclosingAction: {
     groupDismissal: ytv_sch({
       behavior: ytv_str(['GROUP_DISMISSAL_BEHAVIOR_REMOVE_SUBSEQUENT_ITEMS']),
