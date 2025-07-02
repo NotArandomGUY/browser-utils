@@ -1,6 +1,6 @@
 {
   "name": "Browser Utils",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "Browser utils extension pack",
   "background": {
     "service_worker": "js/worker.js"
