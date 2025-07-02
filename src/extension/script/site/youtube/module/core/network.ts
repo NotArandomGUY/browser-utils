@@ -8,9 +8,9 @@ import { makeTag, WireType } from '@ext/lib/protobuf/wiretag'
 import { buildPathnameRegexp } from '@ext/lib/regexp'
 import { processYTRenderer } from '@ext/site/youtube/api/processor'
 import { YTRendererSchemaMap } from '@ext/site/youtube/api/renderer'
-import { isYTLoggedIn } from '@ext/site/youtube/module/bootstrap'
+import { isYTLoggedIn } from '@ext/site/youtube/module/core/bootstrap'
 
-const logger = new Logger('YT-NETWORK')
+const logger = new Logger('YTCORE-NETWORK')
 
 const enum UMPPayloadType {
   ONESIE_HEADER = 10,
@@ -228,7 +228,7 @@ export function bypassFetch(input: string, init: RequestInit = {}): Promise<Resp
   return fetch(request)
 }
 
-export default class YTNetworkModule extends Feature {
+export default class YTCoreNetworkModule extends Feature {
   protected activate(): boolean {
     Object.defineProperty(navigator, 'sendBeacon', {
       value: null

@@ -1,8 +1,8 @@
 import { Feature } from '@ext/lib/feature'
 import Logger from '@ext/lib/logger'
-import { dispatchYTOpenPopupAction } from '@ext/site/youtube/module/action'
+import { dispatchYTOpenPopupAction } from '@ext/site/youtube/module/core/action'
 
-const logger = new Logger('YT-LOGGING')
+const logger = new Logger('YTCORE-LOGGING')
 
 const enum YTLoggingBiscottiBasedDetectionResult {
   BISCOTTI_BASED_DETECTION_RESULT_DETECTED = 0,
@@ -158,7 +158,7 @@ function handleClientError(payload: YTLoggingImsPayloadVariants['clientError']):
   logger.warn('client error, info:', payload)
 }
 
-export default class YTLoggingModule extends Feature {
+export default class YTCoreLoggingModule extends Feature {
   protected activate(): boolean {
     window.yt = window.yt ?? {}
     window.yt.logging = window.yt.logging ?? {}

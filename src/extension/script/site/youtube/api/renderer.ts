@@ -10,7 +10,7 @@ export type YTRendererProcessor<S extends YTRendererSchema = YTRendererSchema> =
 
 export const OVERRIDE_TRACKING_PARAMS = 'CAAQACIMCAAVAAAAAB0AAAAA'
 
-const logger = new Logger('YT-RENDERER')
+const logger = new Logger('YTAPI-RENDERER')
 
 const serviceTrackingOverrideConfig: {
   [service: string]: {

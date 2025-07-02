@@ -4,7 +4,7 @@ import { HookResult } from '@ext/lib/intercept/hook'
 import Logger from '@ext/lib/logger'
 import { removeYTRendererPost, YTRenderer, YTRendererData, YTRendererSchemaMap } from '@ext/site/youtube/api/renderer'
 
-const logger = new Logger('YT-FIXUP')
+const logger = new Logger('YTMISCS-FIXUP')
 
 function filterContentContainer(data: YTRendererData<YTRenderer<'richItemRenderer'>>): boolean {
   return data.content != null && Object.keys(data.content).length > 0
@@ -18,7 +18,7 @@ function filterShoppingOverlay(data: YTRendererData<YTRenderer<'shoppingOverlayR
   return data.productsData != null && data.productsData.length > 0
 }
 
-export default class YTFixupModule extends Feature {
+export default class YTMiscsFixupModule extends Feature {
   protected activate(): boolean {
     removeYTRendererPost(YTRendererSchemaMap['guideSectionRenderer'], filterItemsContainer)
     removeYTRendererPost(YTRendererSchemaMap['reelShelfRenderer'], filterItemsContainer)

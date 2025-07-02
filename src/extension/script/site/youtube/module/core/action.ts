@@ -3,7 +3,7 @@ import Logger from '@ext/lib/logger'
 import { YTEndpoint, YTSignalActionType } from '@ext/site/youtube/api/endpoint'
 import { YTEndpointData } from '@ext/site/youtube/api/types/common'
 
-const logger = new Logger('YT-ACTION')
+const logger = new Logger('YTCORE-ACTION')
 
 export type YTActionHandler = (event: YTActionEvent) => void
 
@@ -46,7 +46,7 @@ export function registerYTSignalActionHandler(signal: YTSignalActionType, handle
   registerYTActionHandler(getSignalActionName(signal), handler)
 }
 
-export default class YTActionModule extends Feature {
+export default class YTCoreActionModule extends Feature {
   protected activate(): boolean {
     window.addEventListener('load', () => {
       app = document.querySelector('ytd-app,yt-live-chat-app')

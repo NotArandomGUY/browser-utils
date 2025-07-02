@@ -7,7 +7,7 @@ import { YTEntityMutationSchema } from '@ext/site/youtube/api/endpoint'
 import { registerYTRendererPreProcessor, YTRenderer, YTRendererData, YTRendererSchemaMap } from '@ext/site/youtube/api/renderer'
 import { YTObjectData, YTValueData, YTValueType } from '@ext/site/youtube/api/types/common'
 
-const logger = new Logger('YT-SKIP')
+const logger = new Logger('YTPLAYER-SKIP')
 
 interface VideoSkipSegmentInfo {
   videoID: string
@@ -301,7 +301,7 @@ async function updateTimelyActionsOverlayViewModel(data: YTRendererData<YTRender
   return true
 }
 
-export default class YTSmartSkipModule extends Feature {
+export default class YTPlayerSmartSkipModule extends Feature {
   protected activate(): boolean {
     registerYTRendererPreProcessor(YTRendererSchemaMap['playerResponse'], updatePlayerResponse)
     registerYTRendererPreProcessor(YTRendererSchemaMap['playerOverlayRenderer'], updatePlayerOverlayRenderer)

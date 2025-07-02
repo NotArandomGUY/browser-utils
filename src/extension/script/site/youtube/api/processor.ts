@@ -5,7 +5,7 @@ import { YTRendererKey, YTRendererMixinSchema, YTRendererSchemaMap } from '@ext/
 import { onPostProcessYTEndpoint, onPreProcessYTEndpoint } from './endpoint'
 import { onPostProcessYTRenderer, onPreProcessYTRenderer } from './renderer'
 
-const logger = new Logger('YT-PROCESSOR')
+const logger = new Logger('YTAPI-PROCESSOR')
 
 const ENDPOINT_SCHEMA = {
   ...YTEndpointOuterSchema,
@@ -97,7 +97,7 @@ export async function processYTValueSchema<P = null>(schema: YTValueSchema, valu
       if (Array.isArray(schema.enum)) {
         if (!schema.enum.includes(value)) throwMismatchTypeError(schema.enum.join('|'), value, true)
       } else if (typeof schema.enum === 'object') {
-        if (schema.enum[value] == null) throwMismatchTypeError(Object.keys(schema.enum).filter((v, i, a) => a.indexOf(v) === i).join('|'), value, true)
+        if (schema.enum[value.split(':')[0]] == null) throwMismatchTypeError(Object.keys(schema.enum).filter((v, i, a) => a.indexOf(v) === i).join('|'), value, true)
       } else {
         throw new Error('invalid schema enum definition')
       }

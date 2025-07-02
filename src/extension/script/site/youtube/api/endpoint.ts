@@ -8,7 +8,7 @@ export * from '@ext/site/youtube/api/types/endpoint'
 
 export type YTEndpointProcessor<S extends YTEndpointSchema = YTEndpointSchema> = (data: YTEndpointData, schema: S, parent: YTEndpointOuterData | null) => Promise<boolean> | boolean
 
-const logger = new Logger('YT-ENDPOINT')
+const logger = new Logger('YTAPI-ENDPOINT')
 
 const preProcessorMap = new Map<YTEndpointSchema, Array<YTEndpointProcessor>>()
 const postProcessorMap = new Map<YTEndpointSchema, Array<YTEndpointProcessor>>()

@@ -5,7 +5,6 @@ import { YTEndpoint } from '@ext/site/youtube/api/endpoint'
 import { processYTRenderer, processYTValueSchema } from '@ext/site/youtube/api/processor'
 import { YTRenderer, YTRendererData } from '@ext/site/youtube/api/renderer'
 import { ytv_enp, YTValueData, YTValueType } from '@ext/site/youtube/api/types/common'
-import { onBeforeCreateYTPlayer } from '@ext/site/youtube/module/player'
 
 type YTInitDataResponse = {
   page: 'browse' | 'channel'
@@ -155,11 +154,13 @@ interface YTSearchboxSettings {
   HIDE_REMOVE_LINK: false
 }
 
-const logger = new Logger('YT-BOOTSTRAP')
+const logger = new Logger('YTCORE-BOOTSTRAP')
 
 const APP_ELEMENT_PAGE_MAP: Record<string, YTInitDataResponse['page']> = {
   'yt-live-chat-app': 'live_chat'
 }
+
+const createPlayerCallbacks: (() => void)[] = []
 
 let ytcfg: YTConfig
 
@@ -208,7 +209,12 @@ async function createPlayer(create: (...args: unknown[]) => void, container: HTM
 
   logger.debug('create player:', container, config, webPlayerContextConfig)
 
-  onBeforeCreateYTPlayer()
+  try {
+    createPlayerCallbacks.forEach(callback => callback())
+  } catch (error) {
+    logger.warn('before create player callback error:', error)
+  }
+
   create(container, config, webPlayerContextConfig)
 }
 
@@ -216,7 +222,11 @@ export function isYTLoggedIn(): boolean {
   return ytcfg?.get('LOGGED_IN', false) ?? false
 }
 
-export default class YTBootstrapModule extends Feature {
+export function registerCreateYTPlayerCallback(callback: () => void): void {
+  createPlayerCallbacks.push(callback)
+}
+
+export default class YTCoreBootstrapModule extends Feature {
   protected activate(): boolean {
     // Override config
     ytcfg = Object.assign(window.ytcfg ?? {}, {
