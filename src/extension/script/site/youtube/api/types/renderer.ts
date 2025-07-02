@@ -775,6 +775,9 @@ export const YTRendererSchemaMap = {
     onDisabledCommand: ytv_enp(),
     onEnabledCommand: ytv_enp()
   },
+  browseFeedActionsRenderer: {
+    contents: ytv_arr(ytv_ren())
+  },
   bubbleHintRenderer: {
     detailsText: ytv_sch(YTTextSchema),
     isVisible: ytv_bol(),
@@ -785,7 +788,7 @@ export const YTRendererSchemaMap = {
     accessibilityData: ytv_sch(YTAccessibilitySchema),
     command: ytv_enp(),
     icon: ytv_sch(YTIconSchema),
-    iconPosition: ytv_str(['BUTTON_ICON_POSITION_TYPE_LEFT_OF_TEXT']),
+    iconPosition: ytv_str(['BUTTON_ICON_POSITION_TYPE_LEFT_OF_TEXT', 'BUTTON_ICON_POSITION_TYPE_RIGHT_OF_TEXT']),
     isDisabled: ytv_bol(),
     navigationEndpoint: ytv_enp(),
     serviceEndpoint: ytv_enp(),
@@ -1427,8 +1430,12 @@ export const YTRendererSchemaMap = {
       siub: ytv_str()
     })
   },
+  itemSectionHeaderRenderer: {
+    title: ytv_sch(YTTextSchema)
+  },
   itemSectionRenderer: {
     contents: ytv_arr(ytv_ren()),
+    header: ytv_ren(),
     sectionIdentifier: ytv_str(),
     targetId: ytv_str()
   },
@@ -2310,6 +2317,12 @@ export const YTRendererSchemaMap = {
     }),
     title: ytv_sch(YTTextSchema)
   },
+  searchBoxRenderer: {
+    clearButton: ytv_ren(),
+    endpoint: ytv_enp(),
+    placeholderText: ytv_sch(YTTextSchema),
+    searchButton: ytv_ren()
+  },
   searchFilterGroupRenderer: {
     filters: ytv_arr(ytv_ren()),
     title: ytv_sch(YTTextSchema)
@@ -2594,6 +2607,7 @@ export const YTRendererSchemaMap = {
     tooltip: ytv_str()
   },
   twoColumnBrowseResultsRenderer: {
+    secondaryContents: ytv_ren(),
     tabs: ytv_arr(ytv_ren())
   },
   twoColumnSearchResultsRenderer: {
