@@ -51,21 +51,27 @@ const enum UMPPartType {
   SNACKBAR_MESSAGE = 67
 }
 
-const partialPartDataMap: Map<UMPPartType, UMPPartData> = new Map()
+const partialPartMap: Map<UMPPartType, UMPPart> = new Map()
 
-class UMPPartData {
+class UMPPart {
   private readonly chunks: Uint8Array[]
-  private readonly reportedSize: number
+  private readonly fulfillSize: number
+  private type: UMPPartType
   private currentSize: number
 
-  public constructor(size: number) {
+  public constructor(type: UMPPartType, size: number) {
     this.chunks = []
-    this.reportedSize = size
+    this.fulfillSize = size
+    this.type = type
     this.currentSize = 0
   }
 
-  public get isComplete(): boolean {
-    return this.currentSize >= this.reportedSize
+  public get isFulfilled(): boolean {
+    return this.currentSize >= this.fulfillSize
+  }
+
+  public getType(): UMPPartType {
+    return this.type
   }
 
   public getBuffer(): Uint8Array {
@@ -74,6 +80,10 @@ class UMPPartData {
 
   public getSize(): number {
     return this.currentSize
+  }
+
+  public setType(type: UMPPartType): void {
+    this.type = type
   }
 
   public setBuffer(data: Uint8Array): void {
@@ -87,11 +97,11 @@ class UMPPartData {
     this.chunks.push(chunk)
     this.currentSize += chunk.length
 
-    return this.isComplete
+    return this.isFulfilled
   }
 }
 
-function replaceSection(stream: CodedStream, position: number, size: number, data: Uint8Array): void {
+function replaceChunk(stream: CodedStream, position: number, size: number, data: Uint8Array): void {
   const sizeDelta = data.length - size
   const oldBuffer = stream.getBuffer()
   const newBuffer = new Uint8Array(oldBuffer.length + sizeDelta)
@@ -104,7 +114,7 @@ function replaceSection(stream: CodedStream, position: number, size: number, dat
   stream.setPosition(position + data.length)
 }
 
-function removeSection(stream: CodedStream, position: number, size: number): void {
+function removeChunk(stream: CodedStream, position: number, size: number): void {
   const oldBuffer = stream.getBuffer()
   const newBuffer = new Uint8Array(oldBuffer.length - size)
 
@@ -115,28 +125,28 @@ function removeSection(stream: CodedStream, position: number, size: number): voi
   stream.setPosition(position)
 }
 
-function processUMPPart(type: UMPPartType, data: UMPPartData): boolean {
-  switch (type) {
+function processUMPPart(part: UMPPart): boolean {
+  switch (part.getType()) {
     case UMPPartType.NEXT_REQUEST_POLICY: {
-      const message = new UMPNextRequestPolicy().deserialize(data.getBuffer())
+      const message = new UMPNextRequestPolicy().deserialize(part.getBuffer())
 
       logger.debug('next request policy:', message)
       return true
     }
     case UMPPartType.SABR_CONTEXT_UPDATE: {
-      const message = new UMPSabrContextUpdate().deserialize(data.getBuffer())
+      const message = new UMPSabrContextUpdate().deserialize(part.getBuffer())
 
       logger.debug('sabr context update:', message)
       return true
     }
     case UMPPartType.SNACKBAR_MESSAGE: {
-      const message = new UMPSnackbarMessage().deserialize(data.getBuffer())
+      const message = new UMPSnackbarMessage().deserialize(part.getBuffer())
 
       logger.debug('snackbar message:', message)
       return false
     }
     default:
-      logger.debug('part type:', type, 'size:', data.getSize())
+      logger.debug('part type:', part.getType(), 'size:', part.getSize())
       return true
   }
 }
@@ -148,29 +158,29 @@ async function processUMPResponse(response: Response): Promise<Response> {
 
   try {
     while (!stream.isEnd) {
-      const partPosition = stream.getPosition()
+      const chunkPosition = stream.getPosition()
       const partType = stream.readVUInt32()
-      const partDataSize = stream.readVUInt32()
-      const partHeadSize = stream.getPosition() - partPosition
+      const partSize = stream.readVUInt32()
+      const chunkHeadSize = stream.getPosition() - chunkPosition
 
-      const partData = partialPartDataMap.get(partType) ?? new UMPPartData(partDataSize)
-      const partDataChunk = stream.readRawBytes(Math.min(stream.getRemainSize(), partDataSize))
-      const sectionSize = partHeadSize + partDataChunk.length
+      const chunkData = stream.readRawBytes(Math.min(stream.getRemainSize(), partSize))
+      const chunkSize = chunkHeadSize + chunkData.length
 
-      logger.trace('part chunk type:', partType, 'pos:', partPosition, 'size:', partDataSize)
+      logger.trace('chunk type:', partType, 'pos:', chunkPosition, 'size:', chunkData.length)
 
-      if (!partData.addChunk(partDataChunk)) {
-        partialPartDataMap.set(partType, partData)
-        removeSection(stream, partPosition, sectionSize)
+      const part = partialPartMap.get(partType) ?? new UMPPart(partType, partSize)
+      if (!part.addChunk(chunkData)) {
+        partialPartMap.set(partType, part)
+        removeChunk(stream, chunkPosition, chunkSize)
         continue
       }
 
-      partialPartDataMap.delete(partType)
+      partialPartMap.delete(partType)
 
-      if (processUMPPart(partType, partData)) {
-        replaceSection(stream, partPosition, sectionSize, bufferConcat([varint32Encode(partType)[0], varint32Encode(partData.getSize())[0], partData.getBuffer()]))
+      if (processUMPPart(part)) {
+        replaceChunk(stream, chunkPosition, chunkSize, bufferConcat([varint32Encode(part.getType())[0], varint32Encode(part.getSize())[0], part.getBuffer()]))
       } else {
-        removeSection(stream, partPosition, sectionSize)
+        removeChunk(stream, chunkPosition, chunkSize)
       }
     }
   } catch (error) {
