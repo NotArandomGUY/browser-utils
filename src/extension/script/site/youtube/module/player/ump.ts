@@ -151,6 +151,25 @@ function processUMPPart(part: UMPPart): boolean {
   }
 }
 
+async function processUMPRequest(request: Request): Promise<Request> {
+  const stream = new CodedStream(new Uint8Array(await request.arrayBuffer()))
+
+  logger.debug('request size:', stream.getBuffer().length)
+
+  return new Request(request.url, {
+    method: request.method,
+    headers: request.headers,
+    body: stream.getBuffer(),
+    referrer: request.referrer,
+    referrerPolicy: request.referrerPolicy,
+    mode: request.mode,
+    credentials: request.credentials,
+    cache: request.cache,
+    redirect: request.redirect,
+    integrity: request.integrity,
+  })
+}
+
 async function processUMPResponse(response: Response): Promise<Response> {
   const stream = new CodedStream(new Uint8Array(await response.arrayBuffer()))
 
@@ -193,14 +212,16 @@ async function processUMPResponse(response: Response): Promise<Response> {
 export default class YTPlayerUMPModule extends Feature {
   protected activate(): boolean {
     addInterceptNetworkCallback(async ctx => {
-      if (ctx.state !== NetworkState.SUCCESS) return
+      if (ctx.url.pathname !== '/videoplayback') return
 
-      const { url, response } = ctx
-      const { pathname } = url
-
-      if (pathname !== '/videoplayback') return
-
-      ctx.response = await processUMPResponse(response)
+      switch (ctx.state) {
+        case NetworkState.UNSENT:
+          ctx.request = await processUMPRequest(ctx.request)
+          break
+        case NetworkState.SUCCESS:
+          ctx.response = await processUMPResponse(ctx.response)
+          break
+      }
     })
 
     return true
