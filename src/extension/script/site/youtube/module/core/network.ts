@@ -3,56 +3,12 @@ import { preventDispatchEvent } from '@ext/lib/intercept/event'
 import InterceptImage from '@ext/lib/intercept/image'
 import { addInterceptNetworkCallback, NetworkContext, NetworkContextState, NetworkRequestContext, NetworkState } from '@ext/lib/intercept/network'
 import Logger from '@ext/lib/logger'
-import CodedStream from '@ext/lib/protobuf/coded-stream'
 import { buildPathnameRegexp } from '@ext/lib/regexp'
 import { processYTRenderer } from '@ext/site/youtube/api/processor'
-import NextRequestPolicy from '@ext/site/youtube/api/proto/ump/next-request-policy'
-import SabrContextUpdate from '@ext/site/youtube/api/proto/ump/sabr-context-update'
 import { YTRendererSchemaMap } from '@ext/site/youtube/api/renderer'
 import { isYTLoggedIn } from '@ext/site/youtube/module/core/bootstrap'
 
 const logger = new Logger('YTCORE-NETWORK')
-
-const enum UMPPayloadType {
-  ONESIE_HEADER = 10,
-  ONESIE_DATA = 11,
-  MEDIA_HEADER = 20,
-  MEDIA = 21,
-  MEDIA_END = 22,
-  LIVE_METADATA = 31,
-  HOSTNAME_CHANGE_HINT = 32,
-  LIVE_METADATA_PROMISE = 33,
-  LIVE_METADATA_PROMISE_CANCELLATION = 34,
-  NEXT_REQUEST_POLICY = 35,
-  USTREAMER_VIDEO_AND_FORMAT_DATA = 36,
-  FORMAT_SELECTION_CONFIG = 37,
-  USTREAMER_SELECTED_MEDIA_STREAM = 38,
-  FORMAT_INITIALIZATION_METADATA = 42,
-  SABR_REDIRECT = 43,
-  SABR_ERROR = 44,
-  SABR_SEEK = 45,
-  RELOAD_PLAYER_RESPONSE = 46,
-  PLAYBACK_START_POLICY = 47,
-  ALLOWED_CACHED_FORMATS = 48,
-  START_BW_SAMPLING_HINT = 49,
-  PAUSE_BW_SAMPLING_HINT = 50,
-  SELECTABLE_FORMATS = 51,
-  REQUEST_IDENTIFIER = 52,
-  REQUEST_CANCELLATION_POLICY = 53,
-  ONESIE_PREFETCH_REJECTION = 54,
-  TIMELINE_CONTEXT = 55,
-  REQUEST_PIPELINING = 56,
-  SABR_CONTEXT_UPDATE = 57,
-  STREAM_PROTECTION_STATUS = 58,
-  SABR_CONTEXT_SENDING_POLICY = 59,
-  LAWNMOWER_POLICY = 60,
-  SABR_ACK = 61,
-  END_OF_TRACK = 62,
-  CACHE_LOAD_POLICY = 63,
-  LAWNMOWER_MESSAGING_POLICY = 64,
-  PREWARM_CONNECTION = 65,
-  SNACKBAR_MESSAGE = 67
-}
 
 const BYPASS_ID = '__ytbu_bpid__'
 const INNERTUBE_API_REGEXP = /(?<=^\/youtubei\/v\d+\/).*$/
@@ -122,63 +78,6 @@ function processRequest(ctx: NetworkRequestContext): void {
   logger.debug('network request:', url.href)
 }
 
-async function processUMPResponse(response: Response): Promise<Response> { // NOSONAR
-  let data = new Uint8Array(await response.arrayBuffer())
-  if (data.length > 1024) return new Response(data, { status: response.status, headers: Object.fromEntries(response.headers.entries()) })
-
-  const stream = new CodedStream(data)
-
-  while (!stream.isEnd) {
-    const messagePos = stream.getPosition()
-    const payloadType = stream.readUInt32()
-    const payloadSize = stream.readUInt32()
-    const headerSize = stream.getPosition() - messagePos
-
-    if (payloadType < 0 || payloadSize < 0) break
-
-    const payload = stream.getReadBuffer().subarray(0, payloadSize)
-
-    logger.trace(`ump response message(${payloadType})@${messagePos}/${payloadSize}`)
-
-    let isValidMessage = true
-
-    switch (payloadType) {
-      case UMPPayloadType.NEXT_REQUEST_POLICY: {
-        const message = new NextRequestPolicy().deserialize(payload)
-
-        logger.debug('ump next request policy:', message)
-        break
-      }
-      case UMPPayloadType.SABR_CONTEXT_UPDATE: {
-        const message = new SabrContextUpdate().deserialize(payload)
-
-        logger.debug('ump sabr context:', message)
-        break
-      }
-      case UMPPayloadType.SNACKBAR_MESSAGE:
-        isValidMessage = false
-        break
-      default:
-        break
-    }
-
-    if (isValidMessage) {
-      stream.setPosition(messagePos + headerSize + payloadSize)
-      continue
-    }
-
-    const slicedData = new Uint8Array(data.length - headerSize - payloadSize)
-    slicedData.set(data.subarray(0, messagePos), 0)
-    slicedData.set(data.subarray(messagePos + headerSize + payloadSize), messagePos)
-    data = slicedData
-
-    stream.setBuffer(data)
-    stream.setPosition(messagePos)
-  }
-
-  return new Response(data, { status: response.status, headers: Object.fromEntries(response.headers.entries()) })
-}
-
 async function processInnertubeResponse(response: Response, endpoint: string): Promise<Response> {
   let data = null
   try {
@@ -199,18 +98,10 @@ async function processResponse(ctx: NetworkContext<unknown, NetworkState.SUCCESS
   const { url, response } = ctx
   const { pathname } = url
 
-  switch (pathname) { // NOSONAR: Might add more endpoints later
-    case '/videoplayback':
-      ctx.response = await processUMPResponse(response)
-      break
-    default: {
-      const innertubeEndpoint = INNERTUBE_API_REGEXP.exec(pathname)?.[0]
-      if (innertubeEndpoint == null) break
+  const innertubeEndpoint = INNERTUBE_API_REGEXP.exec(pathname)?.[0]
+  if (innertubeEndpoint == null) return
 
-      ctx.response = await processInnertubeResponse(response, innertubeEndpoint)
-      break
-    }
-  }
+  ctx.response = await processInnertubeResponse(response, innertubeEndpoint)
 }
 
 export function bypassFetch(input: string, init: RequestInit = {}): Promise<Response> {

@@ -1,5 +1,5 @@
 import { bufferFromString, bufferReadBigInt64LE, bufferReadBigUInt64LE, bufferReadDoubleLE, bufferReadFloatLE, bufferReadInt32LE, bufferReadUInt32LE, bufferToString, bufferWriteBigInt64LE, bufferWriteBigUInt64LE, bufferWriteDoubleLE, bufferWriteFloatLE, bufferWriteInt32LE, bufferWriteUInt32LE } from '@ext/lib/buffer'
-import { varintDecode, varintDecode32, varintEncode } from '@ext/lib/protobuf/varint'
+import { varint32Decode, varint32Encode, varintDecode32, varintDecode64, varintEncode } from '@ext/lib/protobuf/varint'
 import { getTagFieldNumber, getTagWireType, WireType } from '@ext/lib/protobuf/wiretag'
 
 const INT32_MIN = 0x80000000
@@ -72,8 +72,18 @@ export default class CodedStream {
     return buffer.slice(0, position)
   }
 
+  public getBuffer(): Uint8Array {
+    return this.buffer
+  }
+
   public getPosition(): number {
     return this.position
+  }
+
+  public getRemainSize(): number {
+    const { buffer, position } = this
+
+    return buffer.length - position
   }
 
   public setBuffer(buffer: Uint8Array): void {
@@ -103,6 +113,10 @@ export default class CodedStream {
     return signed64(this.readUInt64())
   }
 
+  public readVInt32(): number {
+    return signed32(this.readVUInt32())
+  }
+
   public readUInt32(): number {
     const { buffer, position } = this
 
@@ -115,7 +129,16 @@ export default class CodedStream {
   public readUInt64(): bigint {
     const { buffer, position } = this
 
-    const [value, nextPosition] = varintDecode(buffer, position)
+    const [value, nextPosition] = varintDecode64(buffer, position)
+    this.position = nextPosition
+
+    return value
+  }
+
+  public readVUInt32(): number {
+    const { buffer, position } = this
+
+    const [value, nextPosition] = varint32Decode(buffer, position)
     this.position = nextPosition
 
     return value
@@ -161,7 +184,7 @@ export default class CodedStream {
     const { buffer, position } = this
 
     const nextPosition = position + size
-    if (nextPosition > buffer.length) throw new Error('Out of range')
+    if (nextPosition > buffer.length) throw new RangeError('Out of range')
 
     const bytes = buffer.slice(position, nextPosition)
     this.position = nextPosition
@@ -169,98 +192,120 @@ export default class CodedStream {
     return bytes
   }
 
-  public writeDouble(value: number): void {
+  public writeDouble(value: number): this {
     this.ensureCapacity(8)
 
     const { buffer, position } = this
 
     bufferWriteDoubleLE(buffer, value, position)
     this.position += 8
+
+    return this
   }
 
-  public writeFloat(value: number): void {
+  public writeFloat(value: number): this {
     this.ensureCapacity(4)
 
     const { buffer, position } = this
 
     bufferWriteFloatLE(buffer, value, position)
     this.position += 4
+
+    return this
   }
 
-  public writeInt32(value: number): void {
+  public writeInt32(value: number): this {
     return this.writeUInt32(unsigned32(value))
   }
 
-  public writeInt64(value: bigint): void {
+  public writeInt64(value: bigint): this {
     return this.writeUInt64(unsigned64(value))
   }
 
-  public writeUInt32(value: number): void {
-    this.writeRawBytes(varintEncode(value & UINT32_MAX)[0])
+  public writeVInt32(value: number): this {
+    return this.writeVUInt32(unsigned32(value))
   }
 
-  public writeUInt64(value: bigint): void {
-    this.writeRawBytes(varintEncode(value & UINT64_MAX)[0])
+  public writeUInt32(value: number): this {
+    return this.writeRawBytes(varintEncode(value & UINT32_MAX)[0])
   }
 
-  public writeSInt32(value: number): void {
-    this.writeUInt32(encodeZigZag32(value))
+  public writeUInt64(value: bigint): this {
+    return this.writeRawBytes(varintEncode(value & UINT64_MAX)[0])
   }
 
-  public writeSInt64(value: bigint): void {
-    this.writeUInt64(encodeZigZag64(value))
+  public writeVUInt32(value: number): this {
+    return this.writeRawBytes(varint32Encode(value & UINT32_MAX)[0])
   }
 
-  public writeFixed32(value: number): void {
+  public writeSInt32(value: number): this {
+    return this.writeUInt32(encodeZigZag32(value))
+  }
+
+  public writeSInt64(value: bigint): this {
+    return this.writeUInt64(encodeZigZag64(value))
+  }
+
+  public writeFixed32(value: number): this {
     this.ensureCapacity(4)
 
     const { buffer, position } = this
 
     bufferWriteUInt32LE(buffer, value, position)
     this.position += 4
+
+    return this
   }
 
-  public writeFixed64(value: bigint): void {
+  public writeFixed64(value: bigint): this {
     this.ensureCapacity(8)
 
     const { buffer, position } = this
 
     bufferWriteBigUInt64LE(buffer, value, position)
     this.position += 8
+
+    return this
   }
 
-  public writeSFixed32(value: number): void {
+  public writeSFixed32(value: number): this {
     this.ensureCapacity(4)
 
     const { buffer, position } = this
 
     bufferWriteInt32LE(buffer, value, position)
     this.position += 4
+
+    return this
   }
 
-  public writeSFixed64(value: bigint): void {
+  public writeSFixed64(value: bigint): this {
     this.ensureCapacity(8)
 
     const { buffer, position } = this
 
     bufferWriteBigInt64LE(buffer, value, position)
     this.position += 8
+
+    return this
   }
 
-  public writeBool(value: boolean): void {
-    this.writeUInt32(value ? 1 : 0)
+  public writeBool(value: boolean): this {
+    return this.writeUInt32(value ? 1 : 0)
   }
 
-  public writeString(value: string): void {
-    this.writeBytes(bufferFromString(value))
+  public writeString(value: string): this {
+    return this.writeBytes(bufferFromString(value))
   }
 
-  public writeBytes(bytes: Uint8Array): void {
+  public writeBytes(bytes: Uint8Array): this {
     this.writeUInt32(bytes.length)
     this.writeRawBytes(bytes)
+
+    return this
   }
 
-  public writeRawBytes(bytes: Uint8Array): void {
+  public writeRawBytes(bytes: Uint8Array): this {
     const size = bytes.length
     this.ensureCapacity(size)
 
@@ -268,6 +313,8 @@ export default class CodedStream {
 
     buffer.set(bytes, position)
     this.position = position + size
+
+    return this
   }
 
   public skipTag(tag: number, depth = 0): void {

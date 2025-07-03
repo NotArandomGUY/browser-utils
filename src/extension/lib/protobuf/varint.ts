@@ -8,103 +8,127 @@ const SHIFT = 7
 const MSBN = 0x80n
 const SHIFTN = 7n
 
-/**
- * Given a `buf`, starting at `offset` (default: 0), begin decoding bytes as
- * VarInt encoded bytes, for a maximum of 10 bytes (offset + 10). The returned
- * tuple is of the decoded varint 32-bit number, and the new offset with which
- * to continue decoding other data.
- *
- * If a `bigint` in return is undesired, the `decode32` function will return a
- * `number`, but this should only be used in cases where the varint is
- * _assured_ to be 32-bits. If in doubt, use `decode()`.
- *
- * To know how many bytes the VarInt took to encode, simply negate `offset`
- * from the returned new `offset`.
- */
-export function varintDecode(buf: Uint8Array, offset = 0): [bigint, number] {
-  for (
-    let i = offset,
-    len = Math.min(buf.length, offset + MaxVarIntLen64),
-    shift = 0,
-    decoded = 0n;
-    i < len;
-    i += 1, shift += SHIFT
-  ) {
-    let byte = buf[i]
+export function varintDecode64(buffer: Uint8Array, offset = 0): [value: bigint, offset: number] {
+  const len = Math.min(buffer.length, offset + MaxVarIntLen64)
+
+  for (let i = offset, shift = 0, decoded = 0n; i < len; i += 1, shift += SHIFT) {
+    const byte = buffer[i]
     decoded += BigInt((byte & REST) * Math.pow(2, shift))
-    if (!(byte & MSB) && decoded > MaxUInt64) {
-      throw new RangeError("overflow varint")
-    }
+    if (!(byte & MSB) && decoded > MaxUInt64) throw new RangeError('overflow varint')
     if (!(byte & MSB)) return [decoded, i + 1]
   }
-  throw new RangeError("malformed or overflow varint")
+
+  throw new RangeError('malformed or overflow varint')
 }
 
-/**
- * Given a `buf`, starting at `offset` (default: 0), begin decoding bytes as
- * VarInt encoded bytes, for a maximum of 5 bytes (offset + 5). The returned
- * tuple is of the decoded varint 32-bit number, and the new offset with which
- * to continue decoding other data.
- *
- * VarInts are _not 32-bit by default_ so this should only be used in cases
- * where the varint is _assured_ to be 32-bits. If in doubt, use `decode()`.
- *
- * To know how many bytes the VarInt took to encode, simply negate `offset`
- * from the returned new `offset`.
- */
-export function varintDecode32(buf: Uint8Array, offset = 0): [number, number] {
-  for (
-    let i = offset,
-    len = Math.min(buf.length, offset + MaxVarIntLen32),
-    shift = 0,
-    decoded = 0;
-    i <= len;
-    i += 1, shift += SHIFT
-  ) {
-    let byte = buf[i]
+export function varintDecode32(buffer: Uint8Array, offset = 0): [value: number, offset: number] {
+  const len = Math.min(buffer.length, offset + MaxVarIntLen32)
+
+  for (let i = offset, shift = 0, decoded = 0; i <= len; i += 1, shift += SHIFT) {
+    const byte = buffer[i]
     decoded += (byte & REST) * Math.pow(2, shift)
     if (!(byte & MSB)) return [decoded, i + 1]
   }
-  throw new RangeError("malformed or overflow varint")
+
+  throw new RangeError('malformed or overflow varint')
 }
 
-/**
- * Takes unsigned number `num` and converts it into a VarInt encoded
- * `Uint8Array`, returning a tuple consisting of a `Uint8Array` slice of the
- * encoded VarInt, and an offset where the VarInt encoded bytes end within the
- * `Uint8Array`.
- *
- * If `buf` is not given then a Uint8Array will be created.
- * `offset` defaults to `0`.
- *
- * If passed `buf` then that will be written into, starting at `offset`. The
- * resulting returned `Uint8Array` will be a slice of `buf`. The resulting
- * returned number is effectively `offset + bytesWritten`.
- *
- * ```ts
- * encode(1) == [Uint8Array.of(0x7F, 0x02), 2]
- * encode(300) == [Uint8Array.of(0x7F, 0x02), 2]
- * encode(4294967295n) == [Uint8Array.of(0xFF, 0xFF, 0xFF, 0xFF, 0x0F), 5]
- * ```
- */
-export function varintEncode(
-  num: bigint | number,
-  buf: Uint8Array = new Uint8Array(MaxVarIntLen64),
-  offset = 0,
-): [Uint8Array, number] {
-  num = BigInt(num)
-  if (num < 0n) throw new RangeError("signed input given")
-  for (
-    let i = offset, len = Math.min(buf.length, MaxVarIntLen64);
-    i <= len;
-    i++
-  ) {
-    if (num < MSBN) {
-      buf[i++] = Number(num) // NOSONAR
-      return [buf.slice(offset, i), i]
+export function varintEncode(value: bigint | number, buffer: Uint8Array = new Uint8Array(MaxVarIntLen64), offset = 0): [buffer: Uint8Array, offset: number] {
+  value = BigInt(value)
+  if (value < 0n) throw new RangeError('signed input given')
+
+  for (let i = offset, len = Math.min(buffer.length, MaxVarIntLen64); i <= len; i++) {
+    if (value < MSBN) {
+      buffer[i++] = Number(value) // NOSONAR
+      return [buffer.slice(offset, i), i]
     }
-    buf[i] = Number((num & 0xFFn) | MSBN)
-    num >>= SHIFTN
+    buffer[i] = Number((value & 0xFFn) | MSBN)
+    value >>= SHIFTN
   }
-  throw new RangeError(`${num} overflows uint64`)
+
+  throw new RangeError(`${value} overflows uint64`)
+}
+
+export function varint32Decode(buffer: Uint8Array, offset = 0): [value: number, offset: number] {
+  if (offset < 0 || offset >= buffer.length) throw new RangeError('offset out of bounds')
+
+  const byte = buffer[offset]
+
+  let size = 0
+  for (let shift = 0; shift < 5; shift++) {
+    if ((byte & (MSB >> shift)) === 0) {
+      size = shift + 1
+      break
+    }
+  }
+  if (buffer.length < offset + size) throw new RangeError('overflow varint32')
+
+  let value: number
+
+  switch (size) {
+    case 1:
+      value = byte
+      break
+    case 2:
+      value = (buffer[offset + 1] << 6) | (byte & 0x3F)
+      break
+    case 3:
+      value = (buffer[offset + 2] << 13) | (buffer[offset + 1] << 5) | (byte & 0x1F)
+      break
+    case 4:
+      value = (buffer[offset + 3] << 20) | (buffer[offset + 2] << 12) | (buffer[offset + 1] << 4) | (byte & 0x0F)
+      break
+    case 5:
+      value = ((buffer[offset + 4] << 24) >>> 0) | (buffer[offset + 3] << 16) | (buffer[offset + 2] << 8) | buffer[offset + 1]
+      break
+    default:
+      throw new RangeError('malformed varint32')
+  }
+
+  return [value, offset + size]
+}
+
+export function varint32Encode(value: number, buffer: Uint8Array = new Uint8Array(MaxVarIntLen32), offset = 0): [buffer: Uint8Array, offset: number] {
+  if (value < 0) throw new RangeError('signed input given')
+
+  let size = 5
+  for (let shift = 0; shift <= 21; shift += 7) {
+    if (value < (MSB << shift)) {
+      size = (shift / 7) + 1
+      break
+    }
+  }
+  size = Math.min(size, buffer.length)
+
+  switch (size) {
+    case 1:
+      buffer[offset] = value
+      break
+    case 2:
+      buffer[offset] = 0x80 | (value & 0x3F)
+      buffer[offset + 1] = (value >> 6) & 0xFF
+      break
+    case 3:
+      buffer[offset] = 0xC0 | (value & 0x1F)
+      buffer[offset + 1] = (value >> 5) & 0xFF
+      buffer[offset + 2] = (value >> 13) & 0xFF
+      break
+    case 4:
+      buffer[offset] = 0xE0 | (value & 0x0F)
+      buffer[offset + 1] = (value >> 4) & 0xFF
+      buffer[offset + 2] = (value >> 12) & 0xFF
+      buffer[offset + 3] = (value >> 20) & 0xFF
+      break
+    case 5:
+      buffer[offset] = 0xF0
+      buffer[offset + 1] = value & 0xFF
+      buffer[offset + 2] = (value >> 8) & 0xFF
+      buffer[offset + 3] = (value >> 16) & 0xFF
+      buffer[offset + 4] = (value >> 24) & 0xFF
+      break
+    default:
+      throw new RangeError(`${value} overflows uint32`)
+  }
+
+  return [buffer.slice(offset, offset + size), offset + size]
 }

@@ -1,6 +1,6 @@
 import { createMessage, ValueType } from '@ext/lib/protobuf/message'
 
-export const enum SabrContextScope {
+export const enum UMPSabrContextScope {
   SABR_CONTEXT_SCOPE_UNKNOWN = 0,
   SABR_CONTEXT_SCOPE_PLAYBACK = 1,
   SABR_CONTEXT_SCOPE_REQUEST = 2,
@@ -8,13 +8,13 @@ export const enum SabrContextScope {
   SABR_CONTEXT_SCOPE_CONTENT_ADS = 4
 }
 
-export const enum SabrContextWritePolicy {
+export const enum UMPSabrContextWritePolicy {
   SABR_CONTEXT_WRITE_POLICY_UNSPECIFIED = 0,
   SABR_CONTEXT_WRITE_POLICY_OVERWRITE = 1,
   SABR_CONTEXT_WRITE_POLICY_KEEP_EXISTING = 2
 }
 
-const SabrContextUpdate = createMessage({
+const UMPSabrContextUpdate = createMessage({
   type: [1, ValueType.INT32],
   scope: [2, ValueType.INT32],
   value: [3, ValueType.BYTES],
@@ -22,4 +22,4 @@ const SabrContextUpdate = createMessage({
   writePolicy: [5, ValueType.INT32]
 })
 
-export default SabrContextUpdate
+export default UMPSabrContextUpdate

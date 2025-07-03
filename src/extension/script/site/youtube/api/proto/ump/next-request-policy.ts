@@ -1,6 +1,6 @@
 import { createMessage, ValueType } from '@ext/lib/protobuf/message'
 
-const NextRequestPolicy = createMessage({
+const UMPNextRequestPolicy = createMessage({
   targetAudioReadaheadMs: [1, ValueType.INT32],
   targetVideoReadaheadMs: [2, ValueType.INT32],
   backoffTimeMs: [4, ValueType.INT32],
@@ -8,4 +8,4 @@ const NextRequestPolicy = createMessage({
   videoId: [8, ValueType.STRING]
 })
 
-export default NextRequestPolicy
+export default UMPNextRequestPolicy

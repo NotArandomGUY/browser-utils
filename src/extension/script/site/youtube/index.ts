@@ -19,6 +19,7 @@ import YTPlayerAgeCheckModule from '@ext/site/youtube/module/player/age-check'
 import YTPlayerBootstrapModule from '@ext/site/youtube/module/player/bootstrap'
 import YTPlayerLiveHeadModule from '@ext/site/youtube/module/player/live-head'
 import YTPlayerSmartSkipModule from '@ext/site/youtube/module/player/smart-skip'
+import YTPlayerUMPModule from '@ext/site/youtube/module/player/ump'
 
 registerFeatureGroup('youtube', group => {
   // Register core features
@@ -35,6 +36,7 @@ registerFeatureGroup('youtube', group => {
 
   // Register player features
   registerFeature(group, YTPlayerBootstrapModule)
+  registerFeature(group, YTPlayerUMPModule)
   registerFeature(group, YTPlayerLiveHeadModule)
   registerFeature(group, YTPlayerAgeCheckModule)
   registerFeature(group, YTPlayerSmartSkipModule)
