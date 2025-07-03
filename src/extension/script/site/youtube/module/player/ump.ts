@@ -1,6 +1,6 @@
 import { bufferConcat } from '@ext/lib/buffer'
 import { Feature } from '@ext/lib/feature'
-import { addInterceptNetworkCallback, NetworkState } from '@ext/lib/intercept/network'
+import { addInterceptNetworkCallback, NetworkContext, NetworkContextState, NetworkRequestContext, NetworkState } from '@ext/lib/intercept/network'
 import Logger from '@ext/lib/logger'
 import CodedStream from '@ext/lib/protobuf/coded-stream'
 import { varint32Encode } from '@ext/lib/protobuf/varint'
@@ -151,29 +151,29 @@ function processUMPPart(part: UMPPart): boolean {
   }
 }
 
-async function processUMPRequest(request: Request): Promise<Request> {
+async function processUMPRequest(ctx: NetworkRequestContext): Promise<void> {
+  const { url, request } = ctx
+
+  const ttl = Number(url.searchParams.get('expire')) - (Date.now() / 1e3)
+  if (isNaN(ttl) || ttl < 0 || ttl > 604800) {
+    logger.debug('blocked invalid ump request from sending')
+    Object.assign<NetworkContext, NetworkContextState>(ctx, { state: NetworkState.SUCCESS, response: new Response(undefined, { status: 403 }) })
+    return
+  }
+
   const stream = new CodedStream(new Uint8Array(await request.arrayBuffer()))
 
-  logger.debug('request size:', stream.getBuffer().length)
+  logger.debug('request size:', stream.getRemainSize())
 
-  return new Request(request.url, {
-    method: request.method,
-    headers: request.headers,
-    body: stream.getBuffer(),
-    referrer: request.referrer,
-    referrerPolicy: request.referrerPolicy,
-    mode: request.mode,
-    credentials: request.credentials,
-    cache: request.cache,
-    redirect: request.redirect,
-    integrity: request.integrity,
-  })
+  ctx.request = new Request(request, { body: stream.getBuffer() })
 }
 
-async function processUMPResponse(response: Response): Promise<Response> {
+async function processUMPResponse(ctx: NetworkContext<unknown, NetworkState.SUCCESS>): Promise<void> {
+  const { response } = ctx
+
   const stream = new CodedStream(new Uint8Array(await response.arrayBuffer()))
 
-  logger.debug('response size:', stream.getBuffer().length)
+  logger.debug('response size:', stream.getRemainSize())
 
   try {
     while (!stream.isEnd) {
@@ -206,7 +206,7 @@ async function processUMPResponse(response: Response): Promise<Response> {
     if (!(error instanceof RangeError)) logger.error('process response error:', error)
   }
 
-  return new Response(stream.getBuffer(), { status: response.status, headers: Object.fromEntries(response.headers.entries()) })
+  ctx.response = new Response(stream.getBuffer(), { status: response.status, headers: Object.fromEntries(response.headers.entries()) })
 }
 
 export default class YTPlayerUMPModule extends Feature {
@@ -216,10 +216,10 @@ export default class YTPlayerUMPModule extends Feature {
 
       switch (ctx.state) {
         case NetworkState.UNSENT:
-          ctx.request = await processUMPRequest(ctx.request)
+          await processUMPRequest(ctx)
           break
         case NetworkState.SUCCESS:
-          ctx.response = await processUMPResponse(ctx.response)
+          await processUMPResponse(ctx)
           break
       }
     })
