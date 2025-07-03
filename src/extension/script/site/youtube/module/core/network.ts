@@ -3,10 +3,11 @@ import { preventDispatchEvent } from '@ext/lib/intercept/event'
 import InterceptImage from '@ext/lib/intercept/image'
 import { addInterceptNetworkCallback, NetworkContext, NetworkContextState, NetworkRequestContext, NetworkState } from '@ext/lib/intercept/network'
 import Logger from '@ext/lib/logger'
-import { varintDecode32 } from '@ext/lib/protobuf/varint'
-import { makeTag, WireType } from '@ext/lib/protobuf/wiretag'
+import CodedStream from '@ext/lib/protobuf/coded-stream'
 import { buildPathnameRegexp } from '@ext/lib/regexp'
 import { processYTRenderer } from '@ext/site/youtube/api/processor'
+import NextRequestPolicy from '@ext/site/youtube/api/proto/ump/next-request-policy'
+import SabrContextUpdate from '@ext/site/youtube/api/proto/ump/sabr-context-update'
 import { YTRendererSchemaMap } from '@ext/site/youtube/api/renderer'
 import { isYTLoggedIn } from '@ext/site/youtube/module/core/bootstrap'
 
@@ -125,41 +126,33 @@ async function processUMPResponse(response: Response): Promise<Response> { // NO
   let data = new Uint8Array(await response.arrayBuffer())
   if (data.length > 1024) return new Response(data, { status: response.status, headers: Object.fromEntries(response.headers.entries()) })
 
-  let pos = 0
+  const stream = new CodedStream(data)
 
-  function readVarint(): number {
-    if (pos >= data.length) return 0
-
-    const [value, nextPos] = varintDecode32(data, pos)
-    pos = nextPos
-
-    return value
-  }
-
-  while (pos < data.length) {
-    const messagePos = pos
-    const payloadType = readVarint()
-    const payloadSize = readVarint()
-    const headerSize = pos - messagePos
+  while (!stream.isEnd) {
+    const messagePos = stream.getPosition()
+    const payloadType = stream.readUInt32()
+    const payloadSize = stream.readUInt32()
+    const headerSize = stream.getPosition() - messagePos
 
     if (payloadType < 0 || payloadSize < 0) break
 
-    logger.trace(`ump response message(${payloadType})@${messagePos}`)
+    const payload = stream.getReadBuffer().subarray(0, payloadSize)
+
+    logger.trace(`ump response message(${payloadType})@${messagePos}/${payloadSize}`)
 
     let isValidMessage = true
 
     switch (payloadType) {
-      case UMPPayloadType.NEXT_REQUEST_POLICY:
-        if (readVarint() !== makeTag(4, WireType.VARINT)) break
-        logger.warn('recv ump backoff time')
+      case UMPPayloadType.NEXT_REQUEST_POLICY: {
+        const message = new NextRequestPolicy().deserialize(payload)
+
+        logger.debug('ump next request policy:', message)
         break
+      }
       case UMPPayloadType.SABR_CONTEXT_UPDATE: {
-        if (readVarint() !== makeTag(1, WireType.VARINT)) break
-        const ctxType = readVarint()
-        if (readVarint() !== makeTag(2, WireType.VARINT)) break
-        const ctxScope = readVarint()
-        if (ctxType !== 5 || ctxScope !== 4) break
-        logger.warn('recv ump adb response')
+        const message = new SabrContextUpdate().deserialize(payload)
+
+        logger.debug('ump sabr context:', message)
         break
       }
       case UMPPayloadType.SNACKBAR_MESSAGE:
@@ -170,15 +163,17 @@ async function processUMPResponse(response: Response): Promise<Response> { // NO
     }
 
     if (isValidMessage) {
-      pos = messagePos + headerSize + payloadSize
+      stream.setPosition(messagePos + headerSize + payloadSize)
       continue
     }
 
-    const temp = new Uint8Array(data.length - headerSize - payloadSize)
-    temp.set(data.subarray(0, messagePos), 0)
-    temp.set(data.subarray(messagePos + headerSize + payloadSize), messagePos)
-    data = temp
-    pos = messagePos
+    const slicedData = new Uint8Array(data.length - headerSize - payloadSize)
+    slicedData.set(data.subarray(0, messagePos), 0)
+    slicedData.set(data.subarray(messagePos + headerSize + payloadSize), messagePos)
+    data = slicedData
+
+    stream.setBuffer(data)
+    stream.setPosition(messagePos)
   }
 
   return new Response(data, { status: response.status, headers: Object.fromEntries(response.headers.entries()) })

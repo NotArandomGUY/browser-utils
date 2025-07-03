@@ -1,7 +1,7 @@
 const CHARS_A = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'
 const CHARS_N = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-_'
 
-function getRandomValues(size: number, key?: string) {
+function getRandomValues(size: number, key?: string): number[] {
   const rand = new Uint8Array(size)
 
   if ('crypto' in window && 'getRandomValues' in window.crypto) {
@@ -63,7 +63,7 @@ function encode(key: string, chars: string, data: string[]): void {
   })
 }
 
-export function getNonce(size: number) {
+export function getNonce(size: number): string {
   return getRandomValues(size).map(v => CHARS_A[v % CHARS_A.length]).join('')
 }
 

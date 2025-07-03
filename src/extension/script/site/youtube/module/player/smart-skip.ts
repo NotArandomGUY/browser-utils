@@ -1,9 +1,8 @@
 import { Mutex } from '@ext/lib/async'
 import { Feature } from '@ext/lib/feature'
 import Logger from '@ext/lib/logger'
-import { varintEncode } from '@ext/lib/protobuf/varint'
-import { makeTag, WireType } from '@ext/lib/protobuf/wiretag'
 import { YTEntityMutationSchema } from '@ext/site/youtube/api/endpoint'
+import EntityKey from '@ext/site/youtube/api/proto/entity-key'
 import { registerYTRendererPreProcessor, YTRenderer, YTRendererData, YTRendererSchemaMap } from '@ext/site/youtube/api/renderer'
 import { YTObjectData, YTValueData, YTValueType } from '@ext/site/youtube/api/types/common'
 
@@ -77,15 +76,9 @@ const segmentFetchMutex = new Mutex()
 let lastLoadedVideoId: string | null = null
 
 function getSkipSegmentEntityKey(id: number): string {
-  const entityKey = new TextEncoder().encode(`SMART_SKIP_${id}`)
-  const [tag] = varintEncode(makeTag(2, WireType.LENGTH_DELIMITED))
-  const [len] = varintEncode(entityKey.length)
-
-  const buffer = new Uint8Array(tag.length + len.length + entityKey.length)
-
-  buffer.set(tag, 0)
-  buffer.set(len, tag.length)
-  buffer.set(entityKey, tag.length + len.length)
+  const buffer = new EntityKey({
+    key: `SMART_SKIP_${id}`
+  }).serialize()
 
   return encodeURIComponent(btoa(new Array(buffer.length).fill(0).map((_, i) => String.fromCharCode(buffer[i])).join('')))
 }
