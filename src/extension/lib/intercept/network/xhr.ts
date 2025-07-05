@@ -7,6 +7,7 @@ type XHRRequestBody = Document | XMLHttpRequestBodyInit
 
 const logger = new Logger('INTERCEPT-XHR')
 
+const NULL_BODY_STATUS = [101, 204, 205, 304]
 const HEADER_LINE_REGEXP = /^\s*(.*?)\s*:\s*(.*)\s*$/
 const XHR_EVENT_MAP = {
   onabort: 'abort',
@@ -73,7 +74,7 @@ async function handleXHRLoad(this: InterceptXMLHttpRequest): Promise<void> {
   if (ctx.state === NetworkState.UNSENT) {
     Object.assign<NetworkContext, NetworkContextState>(ctx, {
       state: NetworkState.SUCCESS,
-      response: new Response(this.response, {
+      response: new Response(NULL_BODY_STATUS.includes(this.status) ? null : this.response, {
         status: this.status,
         headers: this.getAllResponseHeaders()
           .split('\n')
