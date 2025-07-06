@@ -19,6 +19,10 @@ function filterShoppingOverlay(data: YTRendererData<YTRenderer<'shoppingOverlayR
 }
 
 export default class YTMiscsFixupModule extends Feature {
+  public constructor() {
+    super('miscs-fixup')
+  }
+
   protected activate(): boolean {
     removeYTRendererPost(YTRendererSchemaMap['guideSectionRenderer'], filterItemsContainer)
     removeYTRendererPost(YTRendererSchemaMap['reelShelfRenderer'], filterItemsContainer)

@@ -25,6 +25,10 @@ function updateNextResponse(data: YTRendererData<YTRenderer<'nextResponse'>>): b
 }
 
 export default class YTMiscsPopupModule extends Feature {
+  public constructor() {
+    super('miscs-popup')
+  }
+
   protected activate(): boolean {
     registerYTRendererPreProcessor(YTRendererSchemaMap['nextResponse'], updateNextResponse)
 

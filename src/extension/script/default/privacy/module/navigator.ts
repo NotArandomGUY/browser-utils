@@ -4,6 +4,10 @@ import Logger from '@ext/lib/logger'
 const logger = new Logger('PRIVACY-NAVIGATOR')
 
 export default class PrivacyNavigatorModule extends Feature {
+  public constructor() {
+    super('dummy-beacon')
+  }
+
   protected activate(): boolean {
     if (!('navigator' in window)) return false
 

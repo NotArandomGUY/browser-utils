@@ -16,9 +16,17 @@ function postToLiveChatWindow(message: YTIFrameMessage): void {
 }
 
 export default class YTChatBootstrapModule extends Feature {
+  public constructor() {
+    super('chat-bootstrap')
+  }
+
   protected activate(): boolean {
+    const { pathname } = location
+
+    if (!pathname.startsWith('/live_chat')) return false
+
     window.addEventListener('load', () => {
-      if (location.pathname === '/live_chat_replay') {
+      if (pathname === '/live_chat_replay') {
         // Fire initial progress event to load chat immediately
         postToLiveChatWindow({ 'yt-player-video-progress': 0 })
       }

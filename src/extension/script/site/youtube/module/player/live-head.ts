@@ -94,6 +94,10 @@ function updatePlayerResponse(data: YTRendererData<YTRenderer<'playerResponse'>>
 }
 
 export default class YTPlayerLiveHeadModule extends Feature {
+  public constructor() {
+    super('player-live-head')
+  }
+
   protected activate(): boolean {
     registerYTRendererPreProcessor(YTRendererSchemaMap['playerResponse'], updatePlayerResponse)
 

@@ -303,6 +303,10 @@ async function updateTimelyActionsOverlayViewModel(data: YTRendererData<YTRender
 }
 
 export default class YTPlayerSmartSkipModule extends Feature {
+  public constructor() {
+    super('player-smart-skip')
+  }
+
   protected activate(): boolean {
     registerYTRendererPreProcessor(YTRendererSchemaMap['nextResponse'], updateNextResponse)
     registerYTRendererPreProcessor(YTRendererSchemaMap['playerResponse'], processPlayerResponse)

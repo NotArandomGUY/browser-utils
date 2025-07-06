@@ -37,7 +37,11 @@ function filterMenuFlexibleItem(data: YTRendererData<YTRenderer<'menuFlexibleIte
   return isYTLoggedIn() || !['PLAYLIST_ADD'].includes(data.menuItem?.menuServiceItemRenderer?.icon?.iconType ?? '')
 }
 
-export default class YTFeedGuestModule extends Feature {
+export default class YTMiscsGuestModule extends Feature {
+  public constructor() {
+    super('miscs-guest')
+  }
+
   protected activate(): boolean {
     registerYTRendererPreProcessor(YTRendererSchemaMap['channelRenderer'], updateChannelRenderer)
     registerYTRendererPreProcessor(YTRendererSchemaMap['feedNudgeRenderer'], updateFeedNudgeRenderer)

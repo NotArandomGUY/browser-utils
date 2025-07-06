@@ -156,6 +156,10 @@ export function registerYTConfigMenuItem(item: YTConfigMenuItem): void {
 }
 
 export default class YTCoreConfigModule extends Feature {
+  public constructor() {
+    super('core-config')
+  }
+
   protected activate(): boolean {
     registerYTRendererPreProcessor(YTRendererSchemaMap['desktopTopbarRenderer'], updateDesktopTopbarRenderer)
 

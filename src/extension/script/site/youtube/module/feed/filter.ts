@@ -49,6 +49,10 @@ function filterVideo(data: YTRendererData<YTRenderer<'compactVideoRenderer' | 'v
 }
 
 export default class YTFeedFilterModule extends Feature {
+  public constructor() {
+    super('feed-filter')
+  }
+
   protected activate(): boolean {
     removeYTRendererPre(YTRendererSchemaMap['compactVideoRenderer'], filterVideo)
     removeYTRendererPre(YTRendererSchemaMap['guideEntryRenderer'], filterGuideEntry)

@@ -115,6 +115,10 @@ export function bypassFetch(input: string, init: RequestInit = {}): Promise<Resp
 }
 
 export default class YTCoreNetworkModule extends Feature {
+  public constructor() {
+    super('core-network')
+  }
+
   protected activate(): boolean {
     Object.defineProperty(navigator, 'sendBeacon', {
       value: null

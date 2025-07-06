@@ -158,6 +158,10 @@ export function getYTPInstance<T extends YTPInstanceType>(type: T): typeof insta
 }
 
 export default class YTPlayerBootstrapModule extends Feature {
+  public constructor() {
+    super('player-bootstrap')
+  }
+
   protected activate(): boolean {
     registerCreateYTPlayerCallback(onCreateYTPlayer)
 

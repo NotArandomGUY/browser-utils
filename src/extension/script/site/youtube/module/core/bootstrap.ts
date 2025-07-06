@@ -227,6 +227,10 @@ export function registerCreateYTPlayerCallback(callback: () => void): void {
 }
 
 export default class YTCoreBootstrapModule extends Feature {
+  public constructor() {
+    super('core-bootstrap')
+  }
+
   protected activate(): boolean {
     // Override config
     ytcfg = Object.assign((window.top as typeof window ?? window).ytcfg ?? {}, {

@@ -159,6 +159,10 @@ function handleClientError(payload: YTLoggingImsPayloadVariants['clientError']):
 }
 
 export default class YTCoreLoggingModule extends Feature {
+  public constructor() {
+    super('core-logging')
+  }
+
   protected activate(): boolean {
     window.yt = window.yt ?? {}
     window.yt.logging = window.yt.logging ?? {}

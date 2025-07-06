@@ -5,6 +5,10 @@ const PROXY_KEYS = ['bugsnag', 'bugsnagClient']
 const PROXY_CHAIN_OPTIONS = { trace: ['PRIVACY'] }
 
 export default class PrivacyBugsnagModule extends Feature {
+  public constructor() {
+    super('dummy-bugsnag')
+  }
+
   protected activate(): boolean {
     PROXY_KEYS.forEach(key => ProxyChain.assign(window, key, PROXY_CHAIN_OPTIONS))
 

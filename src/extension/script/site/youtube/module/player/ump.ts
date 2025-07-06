@@ -210,6 +210,10 @@ async function processUMPResponse(ctx: NetworkContext<unknown, NetworkState.SUCC
 }
 
 export default class YTPlayerUMPModule extends Feature {
+  public constructor() {
+    super('player-ump')
+  }
+
   protected activate(): boolean {
     addInterceptNetworkCallback(async ctx => {
       if (ctx.url.pathname !== '/videoplayback') return

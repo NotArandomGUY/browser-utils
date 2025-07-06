@@ -47,6 +47,10 @@ export function registerYTSignalActionHandler(signal: YTSignalActionType, handle
 }
 
 export default class YTCoreActionModule extends Feature {
+  public constructor() {
+    super('core-action')
+  }
+
   protected activate(): boolean {
     window.addEventListener('load', () => {
       app = document.querySelector('ytd-app,yt-live-chat-app')

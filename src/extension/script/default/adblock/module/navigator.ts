@@ -51,7 +51,7 @@ export default class AdblockNavigatorModule extends Feature {
   private readonly userAgent: string | undefined
 
   public constructor() {
-    super()
+    super('fake-useragent')
 
     this.hostname = location.hostname
     this.userAgent = window.navigator?.userAgent

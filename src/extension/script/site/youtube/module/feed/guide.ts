@@ -17,6 +17,10 @@ function filterGuideEntry(data: YTRendererData<YTRenderer<'guideEntryRenderer'>>
 }
 
 export default class YTFeedGuideModule extends Feature {
+  public constructor() {
+    super('feed-guide')
+  }
+
   protected activate(): boolean {
     removeYTRendererPre(YTRendererSchemaMap['guideEntryRenderer'], filterGuideEntry)
     removeYTRendererPre(YTRendererSchemaMap['guideSigninPromoRenderer'])

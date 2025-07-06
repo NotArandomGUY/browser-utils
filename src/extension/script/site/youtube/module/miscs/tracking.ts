@@ -19,6 +19,10 @@ function updatePlayerResponse(data: YTRendererData<YTRenderer<'playerResponse'>>
 }
 
 export default class YTMiscsTrackingModule extends Feature {
+  public constructor() {
+    super('miscs-tracking')
+  }
+
   protected activate(): boolean {
     setYTServiceTrackingOverride('CSI', 'yt_ad', '0')
     setYTServiceTrackingOverride('CSI', 'yt_red', '1')

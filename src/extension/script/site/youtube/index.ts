@@ -8,10 +8,10 @@ import YTCoreConfigModule from '@ext/site/youtube/module/core/config'
 import YTCoreLoggingModule from '@ext/site/youtube/module/core/logging'
 import YTCoreNetworkModule from '@ext/site/youtube/module/core/network'
 import YTFeedFilterModule from '@ext/site/youtube/module/feed/filter'
-import YTFeedGuestModule from '@ext/site/youtube/module/feed/guest'
 import YTFeedGuideModule from '@ext/site/youtube/module/feed/guide'
 import YTMiscsAdsModule from '@ext/site/youtube/module/miscs/ads'
 import YTMiscsFixupModule from '@ext/site/youtube/module/miscs/fixup'
+import YTMiscsGuestModule from '@ext/site/youtube/module/miscs/guest'
 import YTMiscsMerchModule from '@ext/site/youtube/module/miscs/merch'
 import YTMiscsPopupModule from '@ext/site/youtube/module/miscs/popup'
 import YTMiscsTrackingModule from '@ext/site/youtube/module/miscs/tracking'
@@ -32,7 +32,6 @@ registerFeatureGroup('youtube', group => {
   // Register feed features
   registerFeature(group, YTFeedGuideModule)
   registerFeature(group, YTFeedFilterModule)
-  registerFeature(group, YTFeedGuestModule)
 
   // Register player features
   registerFeature(group, YTPlayerBootstrapModule)
@@ -48,6 +47,7 @@ registerFeatureGroup('youtube', group => {
   // Register miscs features
   registerFeature(group, YTMiscsAdsModule)
   registerFeature(group, YTMiscsTrackingModule)
+  registerFeature(group, YTMiscsGuestModule)
   registerFeature(group, YTMiscsMerchModule)
   registerFeature(group, YTMiscsPopupModule)
   registerFeature(group, YTMiscsFixupModule)

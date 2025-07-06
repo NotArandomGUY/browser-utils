@@ -9,6 +9,10 @@ try {
 }
 
 export default class AdblockRedirectDebugModule extends Feature {
+  public constructor() {
+    super('redirect-debug')
+  }
+
   protected activate(): boolean {
     window.addEventListener('beforeunload', debug, false)
 

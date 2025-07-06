@@ -62,6 +62,10 @@ function updatePlayerResponse(data: YTRendererData<YTRenderer<'playerResponse'>>
 }
 
 export default class YTPlayerAgeCheckModule extends Feature {
+  public constructor() {
+    super('player-age-check')
+  }
+
   protected activate(): boolean {
     registerYTRendererPreProcessor(YTRendererSchemaMap['playerResponse'], updatePlayerResponse)
 
