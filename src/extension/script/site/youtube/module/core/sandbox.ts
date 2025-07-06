@@ -15,80 +15,89 @@ export default class YTCoreSandboxModule extends Feature {
     const { top } = window
     if (top == null || window === top) return false
 
-    const { fetch, XMLHttpRequest } = top as Window & typeof globalThis
+    try {
+      const { fetch, XMLHttpRequest } = top as Window & typeof globalThis
 
-    defineProperties(window, {
-      fetch: {
-        configurable: false,
-        enumerable: true,
-        get() {
-          return fetch
+      defineProperties(window, {
+        fetch: {
+          configurable: false,
+          enumerable: true,
+          get() {
+            return fetch
+          },
+          set() {
+            logger.debug('ignore override fetch')
+          }
         },
-        set() {
-          logger.debug('ignore override fetch')
+        XMLHttpRequest: {
+          configurable: false,
+          enumerable: false,
+          get() {
+            return XMLHttpRequest
+          },
+          set() {
+            logger.debug('ignore override xhr')
+          }
         }
-      },
-      XMLHttpRequest: {
-        configurable: false,
-        enumerable: false,
-        get() {
-          return XMLHttpRequest
-        },
-        set() {
-          logger.debug('ignore override xhr')
+      })
+
+      const definePropertiesHook = new Hook(defineProperties).install(ctx => {
+        const [object, props] = ctx.args
+        if (object == null || props == null || typeof props !== 'object') return HookResult.EXECUTION_IGNORE
+
+        for (const prop in props) {
+          const value = object[prop as keyof typeof object]
+          if (!defineIgnoreList.includes(value)) continue
+
+          logger.trace('ignore redefine property:', prop, props[prop])
+
+          return HookResult.EXECUTION_CONTINUE
         }
-      }
-    })
 
-    const definePropertiesHook = new Hook(defineProperties).install(ctx => {
-      const [object, props] = ctx.args
-      if (object == null || props == null || typeof props !== 'object') return HookResult.EXECUTION_IGNORE
+        return HookResult.EXECUTION_IGNORE
+      }).call
+      const definePropertyHook = new Hook(defineProperty).install(ctx => {
+        const [object, prop, attributes] = ctx.args
 
-      for (const prop in props) {
-        const value = object[prop as keyof typeof object]
-        if (!defineIgnoreList.includes(value)) continue
-
-        logger.trace('ignore redefine property:', prop, props[prop])
+        definePropertiesHook(object, { [prop]: attributes })
 
         return HookResult.EXECUTION_CONTINUE
+      }).call
+
+      const defineIgnoreList = [fetch, XMLHttpRequest, definePropertiesHook, definePropertyHook]
+
+      defineProperties(Object, {
+        defineProperties: {
+          configurable: false,
+          enumerable: false,
+          get() {
+            return definePropertiesHook
+          },
+          set() {
+            logger.debug('ignore override define properties')
+          }
+        },
+        defineProperty: {
+          configurable: false,
+          enumerable: false,
+          get() {
+            return definePropertyHook
+          },
+          set() {
+            logger.debug('ignore override define property')
+          }
+        }
+      })
+
+      return true
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'SecurityError') {
+        logger.debug('ignore security error:', error)
+        return false
       }
 
-      return HookResult.EXECUTION_IGNORE
-    }).call
-    const definePropertyHook = new Hook(defineProperty).install(ctx => {
-      const [object, prop, attributes] = ctx.args
-
-      definePropertiesHook(object, { [prop]: attributes })
-
-      return HookResult.EXECUTION_CONTINUE
-    }).call
-
-    const defineIgnoreList = [fetch, XMLHttpRequest, definePropertiesHook, definePropertyHook]
-
-    defineProperties(Object, {
-      defineProperties: {
-        configurable: false,
-        enumerable: false,
-        get() {
-          return definePropertiesHook
-        },
-        set() {
-          logger.debug('ignore override define properties')
-        }
-      },
-      defineProperty: {
-        configurable: false,
-        enumerable: false,
-        get() {
-          return definePropertyHook
-        },
-        set() {
-          logger.debug('ignore override define property')
-        }
-      }
-    })
-
-    return true
+      throw error
+    }
   }
 
   protected deactivate(): boolean {
