@@ -1,0 +1,252 @@
+.bu-overlay {
+  position: fixed;
+  z-index: 65535;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  font-family: Arial, sans-serif;
+  font-weight: initial;
+  pointer-events: none;
+}
+
+.bu-overlay h1,
+.bu-overlay h2,
+.bu-overlay h3,
+.bu-overlay h4,
+.bu-overlay h5,
+.bu-overlay h6,
+.bu-overlay a,
+.bu-overlay p,
+.bu-overlay span,
+.bu-overlay table,
+.bu-overlay thead,
+.bu-overlay tbody,
+.bu-overlay td,
+.bu-overlay th,
+.bu-overlay button,
+.bu-overlay input {
+  margin: 0 !important;
+  color: #C0C0C0 !important;
+  font-family: inherit !important;
+  font-weight: inherit;
+  line-height: 1em;
+
+  user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  -webkit-user-select: none;
+}
+
+.bu-overlay h1 {
+  font-size: 32px;
+}
+
+.bu-overlay h2 {
+  font-size: 28px;
+}
+
+.bu-overlay h3 {
+  font-size: 24px;
+}
+
+.bu-overlay h4 {
+  font-size: 22px;
+}
+
+.bu-overlay h5 {
+  font-size: 20px;
+}
+
+.bu-overlay h6 {
+  font-size: 18px;
+}
+
+.bu-overlay a,
+.bu-overlay p,
+.bu-overlay span,
+.bu-overlay td,
+.bu-overlay th,
+.bu-overlay button,
+.bu-overlay input {
+  font-size: 16px;
+}
+
+.bu-overlay button {
+  border: #808080 solid 2px !important;
+  border-radius: 0.75em !important;
+  outline: none !important;
+  background: none !important;
+  padding: 0.25em 0.75em !important;
+  line-height: 1em !important;
+  transition: border-color 250ms !important;
+  cursor: pointer !important;
+}
+
+.bu-overlay button:hover {
+  border: #C0C0C0 solid 2px !important;
+}
+
+.bu-overlay button:focus-visible {
+  border: #E0E0E0 solid 2px !important;
+}
+
+.bu-overlay button:disabled {
+  border: #404040 solid 2px !important;
+  color: #808080 !important;
+}
+
+.bu-overlay table {
+  border-collapse: collapse !important;
+  table-layout: auto !important;
+}
+
+.bu-overlay table tr {
+  background: initial !important;
+}
+
+.bu-overlay table tr:nth-child(2n) {
+  background: #101010 !important;
+}
+
+.bu-overlay table th {
+  font-weight: 600 !important;
+}
+
+.bu-overlay table th,
+.bu-overlay table td {
+  border: #808080 solid 1px !important;
+  background: none !important;
+  padding: 0.25em 0.5em !important;
+  line-height: 1em !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+}
+
+.bu-overlay .bu-overlay--backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #202020B0;
+  animation: fade-in 300ms linear;
+  pointer-events: all;
+}
+
+.bu-overlay .bu-overlay--modal {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: #A0A0A0 0 0 2px 2px;
+  box-sizing: border-box;
+  border-radius: 8px;
+  width: 90%;
+  height: 90%;
+  background: #202020;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  color: #C0C0C0;
+  animation: expand-center 150ms ease-in-out;
+  pointer-events: all;
+}
+
+.bu-overlay .bu-overlay--modal--topbar {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+}
+
+.bu-overlay .bu-overlay--modal--topbar--title {
+  flex-grow: 1;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.bu-overlay .bu-overlay--modal--topbar--close-btn {
+  font-weight: 900;
+}
+
+.bu-overlay .bu-overlay--modal--content {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  overflow: auto;
+  scrollbar-color: #A0A0A0 #202020;
+}
+
+.bu-overlay .bu-overlay--tab {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.bu-overlay .bu-overlay--tab--topbar {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  align-items: center;
+  overflow: auto hidden;
+}
+
+.bu-overlay .bu-overlay--tab--topbar--btn {
+  border-radius: 0 !important;
+}
+
+.bu-overlay .bu-overlay--tab--topbar--btn-active {
+  border-radius: 0 !important;
+  padding: 0.5em 0.75em !important;
+}
+
+.bu-overlay .bu-overlay--tab--content {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  overflow: auto;
+  scrollbar-color: #A0A0A0 #202020;
+}
+
+.bu-overlay .bu-overlay--section {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bu-overlay .bu-overlay--section--feature button {
+  width: 100%;
+}
+
+.bu-overlay .bu-overlay--section--feature--shrink {
+  width: 1px;
+  white-space: nowrap;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes expand-center {
+  from {
+    transform: translate(-50%, -50%) scale(0);
+  }
+
+  to {
+    transform: translate(-50%, -50%) scale(1);
+  }
+}

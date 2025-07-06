@@ -13,6 +13,8 @@ const CHUNK_GLOBAL_SEED = `bu-build-${Math.floor(Date.now() / (24 * 60e3))}`
 const CHUNK_GLOBAL_HASH = createHash('md5').update(CHUNK_GLOBAL_SEED).update(JSON.stringify(DEFAULT_SCRIPT_CONFIG)).update(JSON.stringify(SITE_SCRIPT_CONFIG)).digest('hex')
 const CHUNK_GLOBAL_ID = `__wprt_${CHUNK_GLOBAL_HASH}__`
 
+const EMC_KEY = createHash('md5').update(CHUNK_GLOBAL_SEED).update(CHUNK_GLOBAL_ID).digest()
+
 type ValidScriptConfig = ScriptConfig & { _filename: string }
 
 const SCRIPT_PATH_SUFFIX = ['.ts', '/index.ts']
@@ -85,6 +87,10 @@ function createConfig(prefix: string, config: Configuration): Configuration {
           test: /(?<!\.d)\.tsx?$/,
           use: 'ts-loader',
           exclude: /node_modules/,
+        },
+        {
+          test: /\.css$/,
+          use: ['style-loader', 'css-loader']
         }
       ]
     },
@@ -108,12 +114,22 @@ export default [
     entry: generateEntries(['worker'], 'extension', ''),
     plugins: [
       new VirtualModulesPlugin({
+        'node_modules/@virtual/emc-key': `module.exports={EMC_KEY:new Uint8Array([${EMC_KEY.join(',')}])}`,
         'node_modules/@virtual/script-config': `module.exports=${JSON.stringify(env)}`
       })
     ]
   }),
   createConfig('extension', {
+    entry: generateEntries(['isolated'], 'extension/script/preload', 'preload'),
+    plugins: [
+      new VirtualModulesPlugin({
+        'node_modules/@virtual/emc-key': `module.exports={EMC_KEY:new Uint8Array([${EMC_KEY.join(',')}])}`
+      })
+    ]
+  }),
+  createConfig('extension', {
     entry: {
+      ...generateEntries(['main'], 'extension/script/preload', 'preload'),
       ...generateScriptEntries('default', env.DEFAULT_SCRIPT_CONFIG),
       ...generateScriptEntries('site', env.SITE_SCRIPT_CONFIG)
     },
@@ -135,6 +151,7 @@ export default [
     },
     plugins: [
       new VirtualModulesPlugin({
+        'node_modules/@virtual/emc-key': `module.exports={EMC_KEY:new Uint8Array([${EMC_KEY.join(',')}])}`,
         'node_modules/@virtual/wprt': `module.exports=${JSON.stringify({ CHUNK_GLOBAL_ID })}`
       })
     ]
@@ -143,14 +160,6 @@ export default [
     entry: generateEntries(['main'], 'webapp', ''),
     output: {
       chunkFormat: false
-    },
-    module: {
-      rules: [
-        {
-          test: /\.css$/,
-          use: ['style-loader', 'css-loader']
-        }
-      ]
     },
     plugins: [
       new ProvidePlugin({

@@ -1,18 +1,31 @@
+import { bufferFromString, bufferToString } from '@ext/lib/buffer'
 import Logger from '@ext/lib/logger'
+
+const DMASK_STORAGE_KEY = 'bufeature-dmask'
 
 const logger = new Logger('FEATURE')
 
-const enum FeatureState {
+export const enum FeatureState {
   DISABLED,
   INACTIVE,
   ACTIVE
 }
 
 export abstract class Feature {
+  private readonly name: string | null
   private state: FeatureState
 
-  public constructor() {
+  public constructor(name?: string) {
+    this.name = name ?? null
     this.state = FeatureState.INACTIVE
+  }
+
+  public getName(): string | null {
+    return this.name
+  }
+
+  public getState(): FeatureState {
+    return this.state
   }
 
   public setState(state: FeatureState): boolean {
@@ -47,6 +60,8 @@ export interface FeatureGroup {
 
 const featureGroupMap = new Map<string, FeatureGroup>()
 
+let disableMaskMap: Map<string, Uint8Array> | null = null
+
 function activateFeatureGroup(groupId: string): void {
   const group = featureGroupMap.get(groupId)
   if (group == null) {
@@ -54,19 +69,36 @@ function activateFeatureGroup(groupId: string): void {
     return
   }
 
+  const disableMask = getFeatureGroupDisableMask(groupId)
+  const isGroupDisabled = disableMask.length > 0 && (disableMask[0] & 1) !== 0
+
   const begin = performance.now()
   const steps: number[] = []
 
+  let isReload = false
+
   for (const [featureId, feature] of group.featureMap) {
+    const disableMaskByte = disableMask[Math.floor((featureId + 1) / 8)] ?? 0
+    const isDisabled = isGroupDisabled || (disableMaskByte & (1 << ((featureId + 1) % 8))) !== 0
+
+    if (isDisabled) {
+      isReload = !feature.setState(FeatureState.DISABLED) || isReload
+      logger.debug(`disable feature '${groupId}.${featureId}'`)
+      continue
+    }
+
     if (feature.setState(FeatureState.ACTIVE)) {
       logger.debug(`active feature '${groupId}.${featureId}'`)
     } else {
       logger.debug(`inactive feature '${groupId}.${featureId}'`)
     }
+
     steps.push(performance.now())
   }
 
   logger.info(`feature group '${groupId}' activation performance:`, steps.map((step, i) => [step - (steps[i - 1] ?? begin), step - begin]))
+
+  if (isReload) location.reload()
 }
 
 function resolveDependencies(depGroupId: string): void {
@@ -82,6 +114,67 @@ function resolveDependencies(depGroupId: string): void {
     activateFeatureGroup(groupId)
     resolveDependencies(groupId)
   }
+}
+
+export function getAllFeatureGroupDisableMask(): Record<string, Uint8Array> {
+  if (disableMaskMap == null) {
+    try {
+      const decoded = JSON.parse(globalThis.localStorage.getItem(DMASK_STORAGE_KEY) ?? '')
+
+      disableMaskMap = new Map()
+
+      for (const groupId in decoded) {
+        disableMaskMap.set(groupId, bufferFromString(atob(String(decoded[groupId]))))
+      }
+    } catch {
+      disableMaskMap = new Map()
+    }
+  }
+
+  return Object.fromEntries(disableMaskMap.entries())
+}
+
+export function getFeatureGroupDisableMask(groupId: string): Uint8Array {
+  return getAllFeatureGroupDisableMask()[groupId] ?? new Uint8Array(0)
+}
+
+export function batchSetFeatureGroupDisableMask(masks: Record<string, Uint8Array>): void {
+  try {
+    disableMaskMap ??= new Map()
+
+    for (const groupId in masks) {
+      const mask = masks[groupId]
+      if (mask.findIndex(b => b !== 0) >= 0) {
+        disableMaskMap.set(groupId, mask)
+      } else {
+        disableMaskMap.delete(groupId)
+      }
+      activateFeatureGroup(groupId)
+    }
+
+    const { localStorage } = globalThis
+
+    if (disableMaskMap.size === 0) {
+      localStorage.removeItem(DMASK_STORAGE_KEY)
+      return
+    }
+
+    localStorage.setItem(DMASK_STORAGE_KEY, JSON.stringify(Object.fromEntries(Array.from(disableMaskMap.entries()).map(e => [e[0], btoa(bufferToString(e[1]))]))))
+  } catch {
+    // NOOP
+  }
+}
+
+export function setFeatureGroupDisableMask(groupId: string, mask: Uint8Array): void {
+  batchSetFeatureGroupDisableMask({ [groupId]: mask })
+}
+
+export function getAllFeatureGroup(): Record<string, FeatureGroup> {
+  return Object.fromEntries(featureGroupMap.entries())
+}
+
+export function getFeatureGroup(groupId: string): FeatureGroup | null {
+  return featureGroupMap.get(groupId) ?? null
 }
 
 export function registerFeature(group: FeatureGroup, feature: new () => Feature, featureId?: number): void {

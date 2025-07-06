@@ -1,3 +1,7 @@
+declare module '@virtual/emc-key' {
+  export const EMC_KEY: Uint8Array
+}
+
 declare module '@virtual/wprt' {
   export const CHUNK_GLOBAL_ID: string
 }

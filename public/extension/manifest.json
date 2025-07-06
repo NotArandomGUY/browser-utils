@@ -19,5 +19,8 @@
     "48": "images/icon48.png",
     "128": "images/icon128.png"
   },
+  "action": {
+    "default_title": "Open overlay"
+  },
   "manifest_version": 3
 }

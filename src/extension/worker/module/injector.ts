@@ -6,7 +6,8 @@ const logger = new Logger('WORKER-INJECTOR')
 
 const RUNTIME_PATHS = [
   'js/runtime.js',
-  'js/vendor.js'
+  'js/vendor.js',
+  'js/preload/main.js'
 ]
 
 const MATCH_ORIGIN_REGEXP = /^.+?:\/\/[^/]+?\/\*$/
@@ -31,7 +32,7 @@ function registerContentScripts(): void {
 
     return {
       ...CONTENT_SCRIPT_CONFIG,
-      id: config.script,
+      id: `main-${config.script}`,
       matchOriginAsFallback: config.matches?.find(m => !MATCH_ORIGIN_REGEXP.test(m)) == null,
       js: config.preventDefault ? [...RUNTIME_PATHS, path] : [path],
       matches: config.matches
@@ -44,7 +45,14 @@ function registerContentScripts(): void {
   chrome.scripting.registerContentScripts([
     {
       ...CONTENT_SCRIPT_CONFIG,
-      id: 'default',
+      id: 'isolated-preload',
+      matchOriginAsFallback: true,
+      js: ['js/preload/isolated.js'],
+      world: 'ISOLATED'
+    },
+    {
+      ...CONTENT_SCRIPT_CONFIG,
+      id: 'main-default',
       matchOriginAsFallback: true,
       excludeMatches,
       js: [
