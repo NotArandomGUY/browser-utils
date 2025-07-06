@@ -5,7 +5,7 @@ import Tab, { TabPageProps } from '@ext/overlay/components/tab'
 import FeaturePage from '@ext/overlay/pages/feature'
 import { buildClass } from '@ext/overlay/style/class'
 import styles from '@ext/overlay/style/overlay.css'
-import van from 'vanjs-core'
+import van, { ChildDom } from 'vanjs-core'
 
 export interface OverlayProps {
   initIndex?: number
@@ -15,7 +15,7 @@ export interface OverlayProps {
 
 const additionalPageSet = new Set<TabPageProps>()
 
-export function registerOverlayPage(title: string, content: Element): void {
+export function registerOverlayPage(title: string, content: ChildDom): void {
   additionalPageSet.add({ title, content })
 }
 
@@ -48,7 +48,7 @@ class OverlayLifecycle extends Lifecycle<OverlayProps> {
         content: Tab({
           parentClassName: className,
           tabs: [
-            { title: 'Feature', content: FeaturePage({ parentClassName: className }) },
+            { title: 'Feature', content: FeaturePage.bind(null, { parentClassName: className }) },
             ...additionalPageSet.values()
           ],
           initIndex,

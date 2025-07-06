@@ -7,7 +7,7 @@ const { div } = van.tags
 
 export interface TabPageProps {
   title: string
-  content: Element
+  content: ChildDom
 }
 
 export interface TabProps extends ClassNameProps {
