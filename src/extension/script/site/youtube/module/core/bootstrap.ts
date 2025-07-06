@@ -1,3 +1,4 @@
+import { assign, defineProperties, defineProperty } from '@ext/global/object'
 import { Feature } from '@ext/lib/feature'
 import Hook, { HookResult } from '@ext/lib/intercept/hook'
 import Logger from '@ext/lib/logger'
@@ -233,7 +234,7 @@ export default class YTCoreBootstrapModule extends Feature {
 
   protected activate(): boolean {
     // Override config
-    ytcfg = Object.assign(window.ytcfg ?? {}, {
+    ytcfg = assign(window.ytcfg ?? {}, {
       init_: false,
       d() {
         return window.yt && yt.config_ || ytcfg.data_ || (ytcfg.data_ = new Proxy({}, {
@@ -251,7 +252,7 @@ export default class YTCoreBootstrapModule extends Feature {
           let data = (args[0] ?? {}) as { [key: string]: unknown }
 
           if (!ytcfg.init_) {
-            data = Object.assign(ytcfg.d(), data)
+            data = assign(ytcfg.d(), data)
             ytcfg.init_ = true
           }
 
@@ -266,7 +267,7 @@ export default class YTCoreBootstrapModule extends Feature {
         if (!isYTLoggedIn()) {
           switch (key) {
             case 'INNERTUBE_CONTEXT':
-              Object.assign((value as YTInnertubeContext).client, {
+              assign((value as YTInnertubeContext).client, {
                 browserName: 'Unknown',
                 browserVersion: '0.0.0.0',
                 osName: 'Linux',
@@ -283,7 +284,7 @@ export default class YTCoreBootstrapModule extends Feature {
               value = true
               break
             case 'SBOX_SETTINGS':
-              Object.assign(value as YTSearchboxSettings, {
+              assign(value as YTSearchboxSettings, {
                 SEND_VISITOR_DATA: false,
                 VISITOR_DATA: ''
               })
@@ -294,10 +295,10 @@ export default class YTCoreBootstrapModule extends Feature {
         ytcfg.d()[key] = value
       }
     } as YTConfig)
-    Object.defineProperty(window, 'ytcfg', { value: ytcfg, configurable: false, writable: false })
+    defineProperty(window, 'ytcfg', { value: ytcfg, configurable: false, writable: false })
 
     // Override player application create
-    Object.defineProperty(window, 'yt', {
+    defineProperty(window, 'yt', {
       value: {
         player: {
           Application: new Proxy({}, {
@@ -318,7 +319,7 @@ export default class YTCoreBootstrapModule extends Feature {
     let bootstrapLoadInitialData: ((data: object) => void) | null = null
 
     // Process initial data for get initial global
-    Object.defineProperties(window, {
+    defineProperties(window, {
       loadInitialCommand: {
         configurable: true,
         get() {
@@ -352,7 +353,7 @@ export default class YTCoreBootstrapModule extends Feature {
           getProcessedInitialCommand(initialCommand)
             .catch(error => logger.warn('process initial command error:', error))
             .finally(() => {
-              Object.defineProperty(window, 'getInitialCommand', {
+              defineProperty(window, 'getInitialCommand', {
                 configurable: true,
                 writable: true,
                 value: () => initialCommand
@@ -377,7 +378,7 @@ export default class YTCoreBootstrapModule extends Feature {
           getProcessedInitialData(initialData)
             .catch(error => logger.warn('process initial data error:', error))
             .finally(() => {
-              Object.defineProperty(window, 'getInitialData', {
+              defineProperty(window, 'getInitialData', {
                 configurable: true,
                 writable: true,
                 value: () => initialData

@@ -1,3 +1,5 @@
+import { defineProperty } from '@ext/global/object'
+
 export const enum HookType {
   PRE,
   MAIN,
@@ -116,7 +118,7 @@ export default class Hook<T, A extends unknown[], R, U = unknown> {
 if (!activeHookMap.has(Function.prototype.bind as OriginFn)) {
   Function.prototype.bind = new Hook(Function.prototype.bind).install(ctx => { // NOSONAR
     const fn = ctx.origin.apply(ctx.self, ctx.args)
-    Object.defineProperty(fn, BoundTargetSymbol, { enumerable: false, value: ctx.self })
+    defineProperty(fn, BoundTargetSymbol, { enumerable: false, value: ctx.self })
     ctx.returnValue = fn
     return HookResult.EXECUTION_CONTINUE
   }).call

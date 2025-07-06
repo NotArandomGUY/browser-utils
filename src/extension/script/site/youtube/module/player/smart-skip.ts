@@ -1,3 +1,4 @@
+import { floor, max } from '@ext/global/math'
 import { Mutex } from '@ext/lib/async'
 import { Feature } from '@ext/lib/feature'
 import Logger from '@ext/lib/logger'
@@ -116,7 +117,7 @@ function buildTimelyActionFromSegmentEntry(entry: SkipSegmentEntry, startTimeMs?
 
   const duration = endTimeMs - startTimeMs
   const entityKey = getSkipSegmentEntityKey(entry.segmentId)
-  const title = ['Skip', entry.category, 'segment', `(${Math.floor(duration / 1e3)}s)`].join(' ')
+  const title = ['Skip', entry.category, 'segment', `(${floor(duration / 1e3)}s)`].join(' ')
 
   return {
     timelyActionViewModel: {
@@ -129,7 +130,7 @@ function buildTimelyActionFromSegmentEntry(entry: SkipSegmentEntry, startTimeMs?
       cueRangeId: entry.segmentId.toString(),
       startTimeMilliseconds: startTimeMs.toString(),
       endTimeMilliseconds: endTimeMs.toString(),
-      maxVisibleDurationMilliseconds: Math.floor(Math.max(3e3, duration * 0.75)).toString(),
+      maxVisibleDurationMilliseconds: floor(max(3e3, duration * 0.75)).toString(),
       smartSkipMetadata: {
         markerKey: entityKey
       },

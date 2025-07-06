@@ -1,3 +1,4 @@
+import { max, min } from '@ext/global/math'
 import { Feature } from '@ext/lib/feature'
 import Logger from '@ext/lib/logger'
 import { playerGetCurrentTime, playerGetDuration, playerGetMute, playerGetSubtitle, playerGetVolume, playerIsPlaying, playerPause, playerPlay, playerSeek, playerSetMute, playerSetVolume } from '@ext/site/viu/module/player'
@@ -166,18 +167,18 @@ function onDataConnection(dataConn: DataConnection): void {
         playerSeek(playerGetCurrentTime() - (Date.now() - data.time) / 1e3)
         return
       case BURemoteCmd.CMD_RELATIVE_SEEK:
-        playerSeek(Math.max(0, Math.min(playerGetDuration(), playerGetCurrentTime() + data.offset)))
+        playerSeek(max(0, min(playerGetDuration(), playerGetCurrentTime() + data.offset)))
         return
       case BURemoteCmd.CMD_ABSOLUTE_SEEK:
-        playerSeek(Math.max(0, Math.min(playerGetDuration(), data.pos)))
+        playerSeek(max(0, min(playerGetDuration(), data.pos)))
         return
       case BURemoteCmd.CMD_RELATIVE_VOLUME:
         if (data.value > 0 && playerGetMute()) playerSetMute(false)
-        playerSetVolume(Math.max(0, Math.min(100, playerGetVolume() + data.value)))
+        playerSetVolume(max(0, min(100, playerGetVolume() + data.value)))
         return
       case BURemoteCmd.CMD_ABSOLUTE_VOLUME:
         if (data.value > 0 && playerGetMute()) playerSetMute(false)
-        playerSetVolume(Math.max(0, Math.min(100, data.value)))
+        playerSetVolume(max(0, min(100, data.value)))
         return
     }
 

@@ -1,3 +1,5 @@
+import { ceil, floor, max, min } from '@ext/global/math'
+
 const DATE_PADDING = [4, 2, 2]
 const TIME_PADDING = [2, 2, 2]
 
@@ -37,12 +39,12 @@ export class DateTimeRange {
   }
 
   public getElapsedTime(): number {
-    return Math.max(0, this.getEndTime() - this.getBeginTime())
+    return max(0, this.getEndTime() - this.getBeginTime())
   }
 
   public withBegin(begin: DateLike): DateTimeRange {
     return new DateTimeRange(
-      Math.max(normalizeDate(begin).getTime(), this.begin.getTime()),
+      max(normalizeDate(begin).getTime(), this.begin.getTime()),
       this.end,
     )
   }
@@ -50,7 +52,7 @@ export class DateTimeRange {
   public withEnd(end: DateLike): DateTimeRange {
     return new DateTimeRange(
       this.begin,
-      Math.min(this.end.getTime(), normalizeDate(end).getTime()),
+      min(this.end.getTime(), normalizeDate(end).getTime()),
     )
   }
 }
@@ -114,14 +116,14 @@ export function isTimeInRange(time: DateLike, timeRange: DateTimeRange): boolean
 export function ceilAlignDateTime(date: DateLike, intervalMs: number, offsetMs: number = 0): Date {
   if (intervalMs <= 0) intervalMs = 1
   date = normalizeDate(date)
-  date.setTime((Math.ceil(date.getTime() / intervalMs) * intervalMs) + offsetMs)
+  date.setTime((ceil(date.getTime() / intervalMs) * intervalMs) + offsetMs)
   return date
 }
 
 export function floorAlignDateTime(date: DateLike, intervalMs: number, offsetMs: number = 0): Date {
   if (intervalMs <= 0) intervalMs = 1
   date = normalizeDate(date)
-  date.setTime((Math.floor(date.getTime() / intervalMs) * intervalMs) + offsetMs)
+  date.setTime((floor(date.getTime() / intervalMs) * intervalMs) + offsetMs)
   return date
 }
 

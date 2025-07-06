@@ -1,3 +1,4 @@
+import { defineProperty } from '@ext/global/object'
 import { Feature } from '@ext/lib/feature'
 import InterceptDOM from '@ext/lib/intercept/dom'
 import { HookResult } from '@ext/lib/intercept/hook'
@@ -50,7 +51,7 @@ export default class YTMiscsAdsModule extends Feature {
 
       return HookResult.EXECUTION_IGNORE
     })
-    Object.defineProperty(window, 'google_ad_status', { configurable: true, enumerable: true, value: null })
+    defineProperty(window, 'google_ad_status', { configurable: true, enumerable: true, value: null })
 
     return true
   }

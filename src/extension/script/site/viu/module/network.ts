@@ -1,3 +1,5 @@
+import { floor } from '@ext/global/math'
+import { assign, entries, fromEntries } from '@ext/global/object'
 import { Feature } from '@ext/lib/feature'
 import { addInterceptNetworkCallback, NetworkContext, NetworkContextState, NetworkRequestContext, NetworkState } from '@ext/lib/intercept/network'
 import Logger from '@ext/lib/logger'
@@ -16,7 +18,7 @@ const BLOCKED_HOSTNAME_REGEXP = buildHostnameRegexp([
 ])
 
 function getTimeSecond(date: Date = new Date()): number {
-  return Math.floor(date.getTime() / 1e3)
+  return floor(date.getTime() / 1e3)
 }
 
 function makeApiResponse<T>(data: T) {
@@ -56,7 +58,7 @@ function patchRSC(line: string | null): string | null {
 async function processRequest(ctx: NetworkRequestContext): Promise<void> {
   if (BLOCKED_HOSTNAME_REGEXP.test(ctx.url.hostname)) {
     logger.debug('network request blocked:', ctx.url.href)
-    Object.assign<NetworkContext, NetworkContextState>(ctx, { state: NetworkState.FAILED, error: new Error('Failed') })
+    assign<NetworkContext, NetworkContextState>(ctx, { state: NetworkState.FAILED, error: new Error('Failed') })
     return
   }
 
@@ -156,7 +158,7 @@ async function processRequest(ctx: NetworkRequestContext): Promise<void> {
           provider: 'BU Extension',
           isRecurringSubscription: true,
           isRecurringCanceled: false,
-          planValidUntil: `${Math.floor(new Date().setFullYear(new Date().getFullYear() + 2) / 1e3)}`,
+          planValidUntil: `${floor(new Date().setFullYear(new Date().getFullYear() + 2) / 1e3)}`,
           skuInfo: {
             deactivation_allowed_off_network: false
           }
@@ -168,7 +170,7 @@ async function processRequest(ctx: NetworkRequestContext): Promise<void> {
       return
   }
 
-  Object.assign<NetworkContext, NetworkContextState>(ctx, { state: NetworkState.SUCCESS, response: new Response(JSON.stringify(await Promise.resolve(data))) })
+  assign<NetworkContext, NetworkContextState>(ctx, { state: NetworkState.SUCCESS, response: new Response(JSON.stringify(await Promise.resolve(data))) })
 }
 
 async function processResponse(ctx: NetworkContext<unknown, NetworkState.SUCCESS>): Promise<void> { // NOSONAR
@@ -185,8 +187,8 @@ async function processResponse(ctx: NetworkContext<unknown, NetworkState.SUCCESS
         VIU_STATE.ccsProductIdMap.clear()
         for (const prod of product_list) VIU_STATE.ccsProductIdMap.set(prod.product_id, prod.ccs_product_id)
 
-        Object.assign(data.data, {
-          product_list: product_list.map((prod: object) => Object.assign(prod, {
+        assign(data.data, {
+          product_list: product_list.map((prod: object) => assign(prod, {
             allow_download: 1,
             allow_telstb: '1',
             allow_tv: '1',
@@ -199,7 +201,7 @@ async function processResponse(ctx: NetworkContext<unknown, NetworkState.SUCCESS
       if (current_product != null) {
         VIU_STATE.currentProductId = current_product.product_id
 
-        Object.assign(current_product, {
+        assign(current_product, {
           ad: [],
           vmap_ad: { enabled: '0' },
           allow_download: 1,
@@ -212,7 +214,7 @@ async function processResponse(ctx: NetworkContext<unknown, NetworkState.SUCCESS
       }
 
       if (series != null) {
-        Object.assign(series, {
+        assign(series, {
           allow_telstb: '1',
           is_watermark: '0',
           watermark_url: null
@@ -220,7 +222,7 @@ async function processResponse(ctx: NetworkContext<unknown, NetworkState.SUCCESS
       }
 
       if (setting != null) {
-        Object.assign(setting, {
+        assign(setting, {
           ad: null,
           ad_account: null,
           fan_ad: { pre_ad: null, mid_ad: null },
@@ -242,7 +244,7 @@ async function processResponse(ctx: NetworkContext<unknown, NetworkState.SUCCESS
       if (user.user_id == null) {
         VIU_STATE.loggedIn = false
 
-        Object.assign(user, {
+        assign(user, {
           account_type: 0,
           type: 3,
           user_id: 1,
@@ -259,9 +261,9 @@ async function processResponse(ctx: NetworkContext<unknown, NetworkState.SUCCESS
         VIU_STATE.loggedIn = true
       }
 
-      Object.assign(data, {
+      assign(data, {
         data: {
-          user: Object.assign(user, {
+          user: assign(user, {
             privileges: {
               planName: user.privileges.planName,
               ads: 'NO_ADS',
@@ -287,10 +289,10 @@ async function processResponse(ctx: NetworkContext<unknown, NetworkState.SUCCESS
       break
     }
     case '/api/subscription/status':
-      Object.assign(data, {
+      assign(data, {
         hasSubscription: true,
         paymentStatus: 'premium+',
-        plan: Object.assign(data?.plan, {
+        plan: assign(data?.plan, {
           privileges: ['PREMIUM_PLUS_GRANTED', 'NO_ADS'],
           specialContentAllowed: 'SP_CONTENT_ALLOWED'
         }),
@@ -302,8 +304,8 @@ async function processResponse(ctx: NetworkContext<unknown, NetworkState.SUCCESS
 
       const { url, url2 } = data.data.stream
       const urlList = <[string, string][]>[
-        ...Object.entries(url ?? {}).map(e => [`1${e[0]}`, e[1]]),
-        ...Object.entries(url2 ?? {}).map(e => [`2${e[0]}`, e[1]])
+        ...entries(url ?? {}).map(e => [`1${e[0]}`, e[1]]),
+        ...entries(url2 ?? {}).map(e => [`2${e[0]}`, e[1]])
       ]
 
       for (const [id, url] of urlList) VIU_STATE.streamSourceMap.set(id, url)
@@ -314,8 +316,8 @@ async function processResponse(ctx: NetworkContext<unknown, NetworkState.SUCCESS
     default:
       switch (true) {
         case /\/production\/programmes\/.*?\/videos/.test(url.pathname):
-          Object.assign(data, {
-            video: data?.video?.map((v: object) => Object.assign(v, {
+          assign(data, {
+            video: data?.video?.map((v: object) => assign(v, {
               isAdultContent: false,
               isDirty: false,
               offAirDate: new Date(new Date().getFullYear() + 10, 11, 31, 23, 59, 59).getTime(),
@@ -325,14 +327,14 @@ async function processResponse(ctx: NetworkContext<unknown, NetworkState.SUCCESS
           })
           break
         case /\/encore\/.*/.test(url.pathname):
-          ctx.response = new Response((await response.clone().text()).split('\n').map(patchRSC).join('\n'), { headers: Object.fromEntries(response.headers.entries()) })
+          ctx.response = new Response((await response.clone().text()).split('\n').map(patchRSC).join('\n'), { headers: fromEntries(response.headers.entries()) })
           return
         default:
           return
       }
   }
 
-  ctx.response = new Response(JSON.stringify(data), { status: response.status, headers: Object.fromEntries(response.headers.entries()) })
+  ctx.response = new Response(JSON.stringify(data), { status: response.status, headers: fromEntries(response.headers.entries()) })
 }
 
 export default class ViuNetworkModule extends Feature {

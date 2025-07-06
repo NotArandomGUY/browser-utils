@@ -1,3 +1,4 @@
+import { defineProperty, getOwnPropertyDescriptor, getOwnPropertyDescriptors, getPrototypeOf, keys } from '@ext/global/object'
 import { Feature } from '@ext/lib/feature'
 import InterceptDOM from '@ext/lib/intercept/dom'
 import { HookResult } from '@ext/lib/intercept/hook'
@@ -7,7 +8,7 @@ import { removeYTRendererPost, YTRenderer, YTRendererData, YTRendererSchemaMap }
 const logger = new Logger('YTMISCS-FIXUP')
 
 function filterContentContainer(data: YTRendererData<YTRenderer<'richItemRenderer'>>): boolean {
-  return data.content != null && Object.keys(data.content).length > 0
+  return data.content != null && keys(data.content).length > 0
 }
 
 function filterItemsContainer(data: YTRendererData<YTRenderer<'guideSectionRenderer' | 'reelShelfRenderer'>>): boolean {
@@ -32,10 +33,10 @@ export default class YTMiscsFixupModule extends Feature {
     InterceptDOM.setAppendChildCallback(ctx => {
       const node = ctx.args[0]
 
-      if (node instanceof HTMLIFrameElement && Object.getOwnPropertyDescriptor(node, 'contentDocument') == null) {
+      if (node instanceof HTMLIFrameElement && getOwnPropertyDescriptor(node, 'contentDocument') == null) {
         // Make yt fallback to using src property instead
-        const { get } = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(node), 'contentDocument') ?? {}
-        Object.defineProperty(node, 'contentDocument', {
+        const { get } = getOwnPropertyDescriptor(getPrototypeOf(node), 'contentDocument') ?? {}
+        defineProperty(node, 'contentDocument', {
           get() {
             const contentDocument: Document = get?.call(node)
             if (contentDocument == null || contentDocument.location.href === 'about:blank') return null
@@ -45,7 +46,7 @@ export default class YTMiscsFixupModule extends Feature {
         })
         if (node.sandbox.length > 0) node.sandbox.add('allow-same-origin', 'allow-scripts')
 
-        logger.debug('patched iframe element', node, Object.getOwnPropertyDescriptors(node))
+        logger.debug('patched iframe element', node, getOwnPropertyDescriptors(node))
       }
 
       return HookResult.EXECUTION_IGNORE

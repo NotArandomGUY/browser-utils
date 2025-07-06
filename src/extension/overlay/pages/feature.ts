@@ -1,3 +1,5 @@
+import { floor } from '@ext/global/math'
+import { entries } from '@ext/global/object'
 import { Feature, FeatureGroup, FeatureState, getAllFeatureGroup, getFeatureGroupDisableMask, setFeatureGroupDisableMask } from '@ext/lib/feature'
 import { buildClass, ClassNameProps } from '@ext/overlay/style/class'
 import van, { State } from 'vanjs-core'
@@ -56,7 +58,7 @@ function FeatureTableItem({ parentClassName, groupId, featureId, feature, visibl
   van.derive(() => enabled.val = groupEnabled.val ? feature.getState() === FeatureState.ACTIVE : false)
 
   const handleToggleClick = (): void => {
-    const index = Math.floor((featureId + 1) / 8)
+    const index = floor((featureId + 1) / 8)
     const bit = 1 << ((featureId + 1) % 8)
 
     let mask = getFeatureGroupDisableMask(groupId)
@@ -90,7 +92,7 @@ function FeaturePage({ parentClassName }: FeatureSectionProps): Element {
       thead(
         tr(th('Group'), th('Feature'), th('Action'))
       ),
-      tbody(Object.entries(featureGroupMap.val).flatMap(e => FeatureGroupTableItem({ parentClassName: className, groupId: e[0], group: e[1] })))
+      tbody(entries(featureGroupMap.val).flatMap(e => FeatureGroupTableItem({ parentClassName: className, groupId: e[0], group: e[1] })))
     )
   )
 }

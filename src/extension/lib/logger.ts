@@ -1,3 +1,4 @@
+import { defineProperty } from '@ext/global/object'
 import { toDateTimeString } from '@ext/lib/time'
 
 const { now } = Date
@@ -134,7 +135,7 @@ export default class Logger {
 }
 
 if (!('buLogLevel' in globalThis)) {
-  Object.defineProperty(globalThis, 'buLogLevel', {
+  defineProperty(globalThis, 'buLogLevel', {
     configurable: false,
     writable: false,
     value(prefix?: string, level?: string | number) {

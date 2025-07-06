@@ -1,3 +1,4 @@
+import { defineProperty, getOwnPropertyNames, getPrototypeOf, keys, values } from '@ext/global/object'
 import { Feature } from '@ext/lib/feature'
 import InterceptDOM from '@ext/lib/intercept/dom'
 import Hook, { HookResult } from '@ext/lib/intercept/hook'
@@ -47,13 +48,13 @@ const instances: Partial<{
 }> = {}
 
 function onCreateLogger(instance: object): void {
-  const proto = Object.getPrototypeOf(instance)
+  const proto = getPrototypeOf(instance)
 
   if (proto[LOGGER_OVERRIDE_ID]) return
   proto[LOGGER_OVERRIDE_ID] = true
 
   // Override logger methods
-  Object.getOwnPropertyNames(proto).forEach(m => {
+  getOwnPropertyNames(proto).forEach(m => {
     if (m === 'constructor') return
 
     const method = Logger.prototype[m as keyof typeof Logger.prototype] ?? Logger.prototype.debug
@@ -79,7 +80,7 @@ function onCreateVideoPlayerInstance(instance?: YTPVideoPlayerInstance): void {
 
   instances[YTPInstanceType.VIDEO_PLAYER] = instance
 
-  Object.values(instance).forEach(prop => {
+  values(instance).forEach(prop => {
     if (prop == null || typeof prop !== 'object') return
 
     for (const key in prop) {
@@ -96,12 +97,12 @@ function onCreateVideoPlayerInstance(instance?: YTPVideoPlayerInstance): void {
 }
 
 function onCreateInstance(instance: object): boolean {
-  Object.defineProperty(instance, 'logger', {
+  defineProperty(instance, 'logger', {
     configurable: true,
     set(logger) {
       onCreateLogger(logger)
 
-      Object.defineProperty(instance, 'logger', {
+      defineProperty(instance, 'logger', {
         configurable: true,
         writable: true,
         value: logger
@@ -132,9 +133,9 @@ function onCreateYTPlayer(): void {
 
         let result = HookResult.EXECUTION_IGNORE
         if (ctor == null) {
-          const oldKeys = Object.keys(instance).length
+          const oldKeys = keys(instance).length
           ctx.returnValue = ctx.origin.apply(ctx.self, ctx.args)
-          const newKeys = Object.keys(instance).length
+          const newKeys = keys(instance).length
 
           if (oldKeys === newKeys) return HookResult.EXECUTION_CONTINUE
 

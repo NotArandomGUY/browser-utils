@@ -1,3 +1,4 @@
+import { assign, getPrototypeOf } from '@ext/global/object'
 import Hook, { HookResult } from '@ext/lib/intercept/hook'
 import Logger from '@ext/lib/logger'
 import type vjs from '@ext/types/videojs.d.ts'
@@ -38,7 +39,7 @@ function init(plugin: typeof vjs.Plugin): void {
       super(player, options)
 
       const setState = (this as unknown as { setState(state: object): void }).setState
-      Object.assign(this, {
+      assign(this, {
         setState(state: object) {
           setState.call(this, { ...state, enableAgeGate: false })
         }
@@ -56,7 +57,7 @@ Object.assign = new Hook(Object.assign).install(ctx => {
   const [target] = ctx.args
   if (!('player' in target)) return HookResult.EXECUTION_IGNORE
 
-  const ctor = Object.getPrototypeOf(Object.getPrototypeOf(target)).constructor
+  const ctor = getPrototypeOf(getPrototypeOf(target)).constructor
   if (!('BASE_PLUGIN_NAME' in ctor)) return HookResult.EXECUTION_IGNORE
 
   init(ctor)

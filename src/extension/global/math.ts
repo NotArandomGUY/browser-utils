@@ -1,0 +1,3 @@
+const { abs, acos, acosh, asin, asinh, atan, atan2, atanh, cbrt, ceil, clz32, cos, cosh, E, exp, expm1, floor, fround, hypot, imul, LN10, LN2, log, log10, LOG10E, log1p, log2, LOG2E, max, min, PI, pow, random, round, sign, sin, sinh, sqrt, SQRT1_2, SQRT2, tan, tanh, trunc } = Math
+
+export { abs, acos, acosh, asin, asinh, atan, atan2, atanh, cbrt, ceil, clz32, cos, cosh, E, exp, expm1, floor, fround, hypot, imul, LN10, LN2, log, log10, LOG10E, log1p, log2, LOG2E, max, min, PI, pow, random, round, sign, sin, sinh, sqrt, SQRT1_2, SQRT2, tan, tanh, trunc }

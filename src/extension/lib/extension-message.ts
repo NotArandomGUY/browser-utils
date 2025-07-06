@@ -1,9 +1,9 @@
+import { floor, max, random } from '@ext/global/math'
 import { LogLevel } from '@ext/lib/logger'
 import { EMC_KEY } from '@virtual/emc-key'
 
-const { Date, JSON, Math, Uint8Array } = globalThis // NOSONAR
+const { Date, JSON, Uint8Array } = globalThis // NOSONAR
 const { now } = Date
-const { floor, max, random } = Math
 const { stringify } = JSON
 
 const encode = TextEncoder.prototype.encode.bind(new TextEncoder())

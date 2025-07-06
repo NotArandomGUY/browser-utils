@@ -1,20 +1,21 @@
+import { assign, entries, fromEntries, keys } from '@ext/global/object'
 import Logger from '@ext/lib/logger'
+import { onPostProcessYTEndpoint, onPreProcessYTEndpoint } from '@ext/site/youtube/api/endpoint'
+import { onPostProcessYTRenderer, onPreProcessYTRenderer } from '@ext/site/youtube/api/renderer'
 import { YTObjectSchema, ytv_enp, ytv_ren, YTValueSchema, YTValueType } from '@ext/site/youtube/api/types/common'
 import { YTEndpointOuterData, YTEndpointOuterSchema, YTEndpointSchemaMap } from '@ext/site/youtube/api/types/endpoint'
 import { YTRendererKey, YTRendererMixinSchema, YTRendererSchemaMap } from '@ext/site/youtube/api/types/renderer'
-import { onPostProcessYTEndpoint, onPreProcessYTEndpoint } from './endpoint'
-import { onPostProcessYTRenderer, onPreProcessYTRenderer } from './renderer'
 
 const logger = new Logger('YTAPI-PROCESSOR')
 
 const ENDPOINT_SCHEMA = {
   ...YTEndpointOuterSchema,
-  ...Object.fromEntries(Object.entries(YTEndpointSchemaMap).map(e => [e[0], ytv_enp(e[1])]))
+  ...fromEntries(entries(YTEndpointSchemaMap).map(e => [e[0], ytv_enp(e[1])]))
 } satisfies YTObjectSchema
 
 const RENDERER_SCHEMA = {
   ...YTRendererMixinSchema,
-  ...Object.fromEntries(Object.entries(YTRendererSchemaMap).map(e => [e[0], ytv_ren(Object.assign(e[1], YTRendererMixinSchema))]))
+  ...fromEntries(entries(YTRendererSchemaMap).map(e => [e[0], ytv_ren(assign(e[1], YTRendererMixinSchema))]))
 } satisfies YTObjectSchema
 
 class MismatchTypeError extends Error {
@@ -97,7 +98,7 @@ export async function processYTValueSchema<P = null>(schema: YTValueSchema, valu
       if (Array.isArray(schema.enum)) {
         if (!schema.enum.includes(value)) throwMismatchTypeError(schema.enum.join('|'), value, true)
       } else if (typeof schema.enum === 'object') {
-        if (schema.enum[value.split(':')[0]] == null) throwMismatchTypeError(Object.keys(schema.enum).filter((v, i, a) => a.indexOf(v) === i).join('|'), value, true)
+        if (schema.enum[value.split(':')[0]] == null) throwMismatchTypeError(keys(schema.enum).filter((v, i, a) => a.indexOf(v) === i).join('|'), value, true)
       } else {
         throw new Error('invalid schema enum definition')
       }
@@ -163,7 +164,7 @@ export async function processYTValueSchema<P = null>(schema: YTValueSchema, valu
         break
       }
 
-      const rendererSchema = Object.assign(schema.schema, YTRendererMixinSchema)
+      const rendererSchema = assign(schema.schema, YTRendererMixinSchema)
 
       if (!await onPreProcessYTRenderer(value, rendererSchema)) {
         logger.trace('pre processor removed renderer:', rendererSchema, value)

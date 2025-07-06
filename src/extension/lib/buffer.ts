@@ -1,3 +1,5 @@
+import { abs, floor, LN2, log, pow } from '@ext/global/math'
+
 type Encoding = 'utf8' | 'ascii' | 'latin1'
 
 function checkOffset(buffer: Uint8Array, offset: number, ext: number): void {
@@ -70,10 +72,10 @@ function ieee754Read(
   } else if (e === eMax) {
     return m ? NaN : (s ? -1 : 1) * Infinity
   } else {
-    m = m + Math.pow(2, mLen)
+    m = m + pow(2, mLen)
     e = e - eBias
   }
-  return (s ? -1 : 1) * m * Math.pow(2, e - mLen)
+  return (s ? -1 : 1) * m * pow(2, e - mLen)
 }
 
 /**
@@ -99,26 +101,26 @@ function ieee754Write(
   let eLen: number = nBytes * 8 - mLen - 1
   const eMax: number = (1 << eLen) - 1
   const eBias: number = eMax >> 1
-  const rt: number = mLen === 23 ? Math.pow(2, -24) - Math.pow(2, -77) : 0
+  const rt: number = mLen === 23 ? pow(2, -24) - pow(2, -77) : 0
   let i: number = isLE ? 0 : nBytes - 1
   const d: number = isLE ? 1 : -1
   const s: number = value < 0 || (value === 0 && 1 / value < 0) ? 1 : 0
 
-  value = Math.abs(value)
+  value = abs(value)
 
   if (isNaN(value) || value === Infinity) {
     m = isNaN(value) ? 1 : 0
     e = eMax
   } else {
-    e = Math.floor(Math.log(value) / Math.LN2)
-    if (value * (c = Math.pow(2, -e)) < 1) {
+    e = floor(log(value) / LN2)
+    if (value * (c = pow(2, -e)) < 1) {
       e--
       c *= 2
     }
     if (e + eBias >= 1) {
       value += rt / c
     } else {
-      value += rt * Math.pow(2, 1 - eBias)
+      value += rt * pow(2, 1 - eBias)
     }
     if (value * c >= 2) {
       e++
@@ -129,10 +131,10 @@ function ieee754Write(
       m = 0
       e = eMax
     } else if (e + eBias >= 1) {
-      m = (value * c - 1) * Math.pow(2, mLen)
+      m = (value * c - 1) * pow(2, mLen)
       e = e + eBias
     } else {
-      m = value * Math.pow(2, eBias - 1) * Math.pow(2, mLen)
+      m = value * pow(2, eBias - 1) * pow(2, mLen)
       e = 0
     }
   }
@@ -231,7 +233,7 @@ export function bufferReadIntLE(buffer: Uint8Array, offset: number, byteLength: 
   }
   mul *= 0x80
 
-  if (val >= mul) val -= Math.pow(2, 8 * byteLength)
+  if (val >= mul) val -= pow(2, 8 * byteLength)
 
   return val
 }
@@ -249,7 +251,7 @@ export function bufferReadIntBE(buffer: Uint8Array, offset: number, byteLength: 
   }
   mul *= 0x80
 
-  if (val >= mul) val -= Math.pow(2, 8 * byteLength)
+  if (val >= mul) val -= pow(2, 8 * byteLength)
 
   return val
 }
@@ -456,7 +458,7 @@ export function bufferWriteUIntLE(buffer: Uint8Array, value: number, offset: num
   offset = offset >>> 0
   byteLength = byteLength >>> 0
 
-  const maxBytes = Math.pow(2, 8 * byteLength) - 1
+  const maxBytes = pow(2, 8 * byteLength) - 1
   checkInt(buffer, value, offset, byteLength, maxBytes, 0)
 
   let i = 0
@@ -474,7 +476,7 @@ export function bufferWriteUIntBE(buffer: Uint8Array, value: number, offset: num
   offset = offset >>> 0
   byteLength = byteLength >>> 0
 
-  const maxBytes = Math.pow(2, 8 * byteLength) - 1
+  const maxBytes = pow(2, 8 * byteLength) - 1
   checkInt(buffer, value, offset, byteLength, maxBytes, 0)
 
   let i = byteLength - 1
@@ -547,7 +549,7 @@ export function bufferWriteIntLE(buffer: Uint8Array, value: number, offset: numb
   value = +value
   offset = offset >>> 0
 
-  const limit = Math.pow(2, (8 * byteLength) - 1)
+  const limit = pow(2, (8 * byteLength) - 1)
   checkInt(buffer, value, offset, byteLength, limit - 1, -limit)
 
   let i = 0
@@ -568,7 +570,7 @@ export function bufferWriteIntBE(buffer: Uint8Array, value: number, offset: numb
   value = +value
   offset = offset >>> 0
 
-  const limit = Math.pow(2, (8 * byteLength) - 1)
+  const limit = pow(2, (8 * byteLength) - 1)
   checkInt(buffer, value, offset, byteLength, limit - 1, -limit)
 
   let i = byteLength - 1

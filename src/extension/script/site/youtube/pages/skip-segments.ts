@@ -1,8 +1,8 @@
+import { floor } from '@ext/global/math'
 import { SkipSegmentEntry } from '@ext/site/youtube/module/player/smart-skip'
 import van, { ChildDom, State } from 'vanjs-core'
 
 const { table, tbody, td, th, thead, tr } = van.tags
-const { floor } = Math
 
 export interface YTSkipSegmentPageProps {
   segments: State<SkipSegmentEntry[]>
@@ -12,7 +12,7 @@ function getTimestamp(time: number): string {
   const sec = floor(time / 1e3)
 
   return [
-    Math.floor(sec / 3600),
+    floor(sec / 3600),
     floor(sec / 60) % 60,
     sec % 60
   ].map(n => n.toString().padStart(2, '0')).join(':')

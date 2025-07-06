@@ -1,4 +1,4 @@
-const { floor, random } = Math
+import { floor, random } from '@ext/global/math'
 
 function getSuffix(): string {
   let suffix = ''

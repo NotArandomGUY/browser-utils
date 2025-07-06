@@ -1,3 +1,4 @@
+import { defineProperty, getOwnPropertyDescriptor, getPrototypeOf } from '@ext/global/object'
 import Hook, { CallContext, HookFn, HookResult, OriginFn } from '@ext/lib/intercept/hook'
 import Logger from '@ext/lib/logger'
 
@@ -50,9 +51,9 @@ export default class InterceptDOM {
   private static onCreateNode(node: Node): void {
     const { callbacks } = InterceptDOM
 
-    if (node instanceof HTMLElement && Object.getOwnPropertyDescriptor(node, 'innerHTML') == null) {
-      const { get, set } = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(node), 'innerHTML') ?? {}
-      Object.defineProperty(node, 'innerHTML', {
+    if (node instanceof HTMLElement && getOwnPropertyDescriptor(node, 'innerHTML') == null) {
+      const { get, set } = getOwnPropertyDescriptor(getPrototypeOf(node), 'innerHTML') ?? {}
+      defineProperty(node, 'innerHTML', {
         enumerable: true,
         get() {
           return (get ?? node.getHTML).call(node)

@@ -1,3 +1,5 @@
+import { min, pow } from '@ext/global/math'
+
 export const MaxUInt64 = 18446744073709551615n
 export const MaxVarIntLen64 = 10
 export const MaxVarIntLen32 = 5
@@ -9,11 +11,11 @@ const MSBN = 0x80n
 const SHIFTN = 7n
 
 export function varintDecode64(buffer: Uint8Array, offset = 0): [value: bigint, offset: number] {
-  const len = Math.min(buffer.length, offset + MaxVarIntLen64)
+  const len = min(buffer.length, offset + MaxVarIntLen64)
 
   for (let i = offset, shift = 0, decoded = 0n; i < len; i += 1, shift += SHIFT) {
     const byte = buffer[i]
-    decoded += BigInt((byte & REST) * Math.pow(2, shift))
+    decoded += BigInt((byte & REST) * pow(2, shift))
     if (!(byte & MSB) && decoded > MaxUInt64) throw new RangeError('overflow varint')
     if (!(byte & MSB)) return [decoded, i + 1]
   }
@@ -22,11 +24,11 @@ export function varintDecode64(buffer: Uint8Array, offset = 0): [value: bigint, 
 }
 
 export function varintDecode32(buffer: Uint8Array, offset = 0): [value: number, offset: number] {
-  const len = Math.min(buffer.length, offset + MaxVarIntLen32)
+  const len = min(buffer.length, offset + MaxVarIntLen32)
 
   for (let i = offset, shift = 0, decoded = 0; i <= len; i += 1, shift += SHIFT) {
     const byte = buffer[i]
-    decoded += (byte & REST) * Math.pow(2, shift)
+    decoded += (byte & REST) * pow(2, shift)
     if (!(byte & MSB)) return [decoded, i + 1]
   }
 
@@ -37,7 +39,7 @@ export function varintEncode(value: bigint | number, buffer: Uint8Array = new Ui
   value = BigInt(value)
   if (value < 0n) throw new RangeError('signed input given')
 
-  for (let i = offset, len = Math.min(buffer.length, MaxVarIntLen64); i <= len; i++) {
+  for (let i = offset, len = min(buffer.length, MaxVarIntLen64); i <= len; i++) {
     if (value < MSBN) {
       buffer[i++] = Number(value) // NOSONAR
       return [buffer.slice(offset, i), i]
@@ -98,7 +100,7 @@ export function varint32Encode(value: number, buffer: Uint8Array = new Uint8Arra
       break
     }
   }
-  size = Math.min(size, buffer.length)
+  size = min(size, buffer.length)
 
   switch (size) {
     case 1:

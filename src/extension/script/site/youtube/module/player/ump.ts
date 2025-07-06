@@ -1,3 +1,5 @@
+import { min } from '@ext/global/math'
+import { assign, fromEntries } from '@ext/global/object'
 import { bufferConcat } from '@ext/lib/buffer'
 import { Feature } from '@ext/lib/feature'
 import { addInterceptNetworkCallback, NetworkContext, NetworkContextState, NetworkRequestContext, NetworkState } from '@ext/lib/intercept/network'
@@ -157,7 +159,7 @@ async function processUMPRequest(ctx: NetworkRequestContext): Promise<void> {
   const ttl = Number(url.searchParams.get('expire')) - (Date.now() / 1e3)
   if (isNaN(ttl) || ttl < 0 || ttl > 604800) {
     logger.debug('blocked invalid ump request from sending')
-    Object.assign<NetworkContext, NetworkContextState>(ctx, { state: NetworkState.SUCCESS, response: new Response(undefined, { status: 403 }) })
+    assign<NetworkContext, NetworkContextState>(ctx, { state: NetworkState.SUCCESS, response: new Response(undefined, { status: 403 }) })
     return
   }
 
@@ -182,7 +184,7 @@ async function processUMPResponse(ctx: NetworkContext<unknown, NetworkState.SUCC
       const partSize = stream.readVUInt32()
       const chunkHeadSize = stream.getPosition() - chunkPosition
 
-      const chunkData = stream.readRawBytes(Math.min(stream.getRemainSize(), partSize))
+      const chunkData = stream.readRawBytes(min(stream.getRemainSize(), partSize))
       const chunkSize = chunkHeadSize + chunkData.length
 
       logger.trace('chunk type:', partType, 'pos:', chunkPosition, 'size:', chunkData.length)
@@ -206,7 +208,7 @@ async function processUMPResponse(ctx: NetworkContext<unknown, NetworkState.SUCC
     if (!(error instanceof RangeError)) logger.error('process response error:', error)
   }
 
-  ctx.response = new Response(stream.getBuffer(), { status: response.status, headers: Object.fromEntries(response.headers.entries()) })
+  ctx.response = new Response(stream.getBuffer(), { status: response.status, headers: fromEntries(response.headers.entries()) })
 }
 
 export default class YTPlayerUMPModule extends Feature {

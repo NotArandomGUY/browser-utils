@@ -1,3 +1,4 @@
+import { defineProperty } from '@ext/global/object'
 import Logger from '@ext/lib/logger'
 
 interface InterceptListenerEntry {
@@ -93,7 +94,7 @@ export default class InterceptEventTargetAdapter<TTarget, TMap> {
     if (isBlocked) return
 
     let isPreventDispatch = false
-    Object.defineProperty(evt, PreventDispatchEventSymbol, { configurable: true, enumerable: false, value() { isPreventDispatch = true } })
+    defineProperty(evt, PreventDispatchEventSymbol, { configurable: true, enumerable: false, value() { isPreventDispatch = true } })
 
     for (const { listener, options } of listenerList) {
       logger.trace('dispatch event:', type, listener, options)

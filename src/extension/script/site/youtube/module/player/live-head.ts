@@ -1,3 +1,5 @@
+import { abs, max, min, round } from '@ext/global/math'
+import { defineProperty } from '@ext/global/object'
 import { Feature } from '@ext/lib/feature'
 import { YTSignalActionType } from '@ext/site/youtube/api/endpoint'
 import { registerYTRendererPreProcessor, YTRenderer, YTRendererData, YTRendererSchemaMap } from '@ext/site/youtube/api/renderer'
@@ -29,7 +31,7 @@ export function isSyncLiveHeadEnabled(): boolean {
 
 function syncLiveHeadUpdate(): void {
   const now = Date.now()
-  const delta = Math.max(1, now - lastSyncLiveHeadTime)
+  const delta = max(1, now - lastSyncLiveHeadTime)
 
   syncLiveHeadDeltaTime = (syncLiveHeadDeltaTime + delta) / 2
   lastSyncLiveHeadTime = now
@@ -44,34 +46,34 @@ function syncLiveHeadUpdate(): void {
   if (isNaN(currentHealth) || isNaN(currentLatency)) return
 
   healthAvg = ((healthAvg * (HEALTH_AVG_SAMPLE_SIZE - 1)) + currentHealth) / HEALTH_AVG_SAMPLE_SIZE
-  healthDev = Math.max(healthDev * HEALTH_DEV_DECAY_MUL, Math.abs(currentHealth - healthAvg) * HEALTH_DEV_MUL)
+  healthDev = max(healthDev * HEALTH_DEV_DECAY_MUL, abs(currentHealth - healthAvg) * HEALTH_DEV_MUL)
   latencyAvg = ((latencyAvg * (LATENCY_AVG_SAMPLE_SIZE - 1)) + currentLatency) / LATENCY_AVG_SAMPLE_SIZE
 
-  const targetHealth = Math.max(syncLiveHeadDeltaTime * 2, healthDev) + healthDev
+  const targetHealth = max(syncLiveHeadDeltaTime * 2, healthDev) + healthDev
 
   let targetLatency: number
   switch (true) {
     case healthAvg > (targetHealth + healthDev):
       // Decrease latency if buffer health is sufficient
-      targetLatency = (Math.round(latencyAvg / LATENCY_STEP) - 1) * LATENCY_STEP
+      targetLatency = (round(latencyAvg / LATENCY_STEP) - 1) * LATENCY_STEP
       break
     case healthAvg < (targetHealth - healthDev):
       // Increase latency if buffer health is insufficient
-      targetLatency = (Math.round(latencyAvg / LATENCY_STEP) + 1) * LATENCY_STEP
+      targetLatency = (round(latencyAvg / LATENCY_STEP) + 1) * LATENCY_STEP
       break
     default:
       // Use current latency by default
-      targetLatency = Math.round(latencyAvg / LATENCY_STEP) * LATENCY_STEP
+      targetLatency = round(latencyAvg / LATENCY_STEP) * LATENCY_STEP
       break
   }
 
   const latencyDelta = currentLatency - targetLatency
   latencyDeltaAvg = ((latencyDeltaAvg * (LATENCY_AVG_SAMPLE_SIZE - 1)) + latencyDelta) / LATENCY_AVG_SAMPLE_SIZE
 
-  const playbackRate = Math.abs(latencyDeltaAvg) < LATENCY_TOLERANCE ? 1 : Math.max(MIN_SYNC_RATE, Math.min(MAX_SYNC_RATE, (syncLiveHeadDeltaTime + latencyDelta) / syncLiveHeadDeltaTime))
+  const playbackRate = abs(latencyDeltaAvg) < LATENCY_TOLERANCE ? 1 : max(MIN_SYNC_RATE, min(MAX_SYNC_RATE, (syncLiveHeadDeltaTime + latencyDelta) / syncLiveHeadDeltaTime))
   player.setPlaybackRate?.(playbackRate)
 
-  Object.defineProperty(window, 'ytp_live_head', {
+  defineProperty(window, 'ytp_live_head', {
     configurable: true,
     value: {
       healthAvg,

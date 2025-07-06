@@ -1,3 +1,4 @@
+import { random } from '@ext/global/math'
 import { Feature } from '@ext/lib/feature'
 import { registerYTRendererPreProcessor, removeYTRendererPre, YTRenderer, YTRendererData, YTRendererSchemaMap } from '@ext/site/youtube/api/renderer'
 
@@ -6,7 +7,7 @@ interface YTGlobal {
 }
 
 function generateActivity(): void {
-  if (Math.random() > 0.15) return
+  if (random() > 0.15) return
 
   const ytglobal = window.ytglobal as YTGlobal
   if (ytglobal == null) return

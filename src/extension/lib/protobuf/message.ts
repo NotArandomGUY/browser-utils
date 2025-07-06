@@ -1,3 +1,4 @@
+import { assign, defineProperties, fromEntries } from '@ext/global/object'
 import CodedStream from '@ext/lib/protobuf/coded-stream'
 import { makeTag, WireType } from '@ext/lib/protobuf/wiretag'
 
@@ -212,7 +213,7 @@ class MessageBase<D extends MessageDefinition> {
       }
     }
 
-    Object.defineProperties(this, {
+    defineProperties(this, {
       fieldMap: { configurable: false, enumerable: false, value: fieldMap, writable: false },
       reset: { configurable: false, enumerable: false, value: reset.bind(this), writable: false },
       serialize: { configurable: false, enumerable: false, value: serialize.bind(this), writable: false },
@@ -223,7 +224,7 @@ class MessageBase<D extends MessageDefinition> {
   public reset(): void {
     const { fieldMap } = this
 
-    Object.assign(this, Object.fromEntries(Array.from(fieldMap.values()).map(f => [f[0], getFieldDefault(f)])))
+    assign(this, fromEntries(Array.from(fieldMap.values()).map(f => [f[0], getFieldDefault(f)])))
   }
 
   public serialize(): Uint8Array {

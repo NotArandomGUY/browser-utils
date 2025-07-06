@@ -1,3 +1,5 @@
+import { floor, random } from '@ext/global/math'
+import { assign, defineProperties, defineProperty, fromEntries, getOwnPropertyNames, getPrototypeOf, keys } from '@ext/global/object'
 import Hook, { HookResult } from '@ext/lib/intercept/hook'
 import Logger from '@ext/lib/logger'
 import { proxyBind } from '@ext/lib/proxy/bind'
@@ -179,7 +181,7 @@ const DEFAULT_RUNTIME_CONFIG: WebpackRuntimeConfig = {
 
 const { error, warn, debug } = new Logger('WPRT')
 
-const getProto: (obj: any) => any = Object.getPrototypeOf ? ((obj: any) => Object.getPrototypeOf(obj)) : ((obj: { __proto__: any }) => obj.__proto__)
+const getProto: (obj: any) => any = getPrototypeOf ? ((obj: any) => getPrototypeOf(obj)) : ((obj: { __proto__: any }) => obj.__proto__)
 
 const leafPrototypes = [null, getProto({}), getProto([]), getProto(getProto)]
 
@@ -359,7 +361,7 @@ export class WebpackRuntime {
     this.inProgress = {}
     this.policy = null
     this.deferred = []
-    this.installedChunks = Object.fromEntries(installedChunkList.map(id => [id, 0]))
+    this.installedChunks = fromEntries(installedChunkList.map(id => [id, 0]))
 
     this.proxy = this.createProxy()
     this.moduleAlias = {}
@@ -404,7 +406,7 @@ export class WebpackRuntime {
   public ensureChunk(chunkId: ChunkID): Promise<[]> {
     const { ensureChunkHandlers } = this
 
-    return Promise.all(Object.keys(ensureChunkHandlers).reduce(function (promises, key) {
+    return Promise.all(keys(ensureChunkHandlers).reduce(function (promises, key) {
       ensureChunkHandlers[key](chunkId, promises)
       return promises
     }, []))
@@ -419,13 +421,13 @@ export class WebpackRuntime {
   public definePropertyGetters(exports: any, ...args: any[]): void {
     const definition: any = {}
 
-    if (args.length === 1) Object.assign(definition, args[0])
+    if (args.length === 1) assign(definition, args[0])
     else if (args.length === 2) definition[args[0]] = args[1]
     else throw new Error('Invalid arguments')
 
     for (let key in definition) {
       if (this.hasOwnProperty(definition, key) && !this.hasOwnProperty(exports, key)) {
-        Object.defineProperty(exports, key, { enumerable: true, get: definition[key] })
+        defineProperty(exports, key, { enumerable: true, get: definition[key] })
       }
     }
   }
@@ -437,9 +439,9 @@ export class WebpackRuntime {
   public makeNamespaceObject(exports: any): void {
     // define __esModule on exports
     if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
-      Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' })
+      defineProperty(exports, Symbol.toStringTag, { value: 'Module' })
     }
-    Object.defineProperty(exports, '__esModule', { value: true })
+    defineProperty(exports, '__esModule', { value: true })
   }
 
   /**
@@ -468,7 +470,7 @@ export class WebpackRuntime {
     const def: any = {}
 
     for (let current = mode & 2 && value; typeof current == 'object' && !~leafPrototypes.indexOf(current); current = getProto(current)) {
-      Object.getOwnPropertyNames(current).forEach(function (key) {
+      getOwnPropertyNames(current).forEach(function (key) {
         def[key] = () => value[key]
       })
     }
@@ -498,7 +500,7 @@ export class WebpackRuntime {
   public harmonyModuleDecorator(module: object | null): object {
     const newModule = Object.create(module)
     if (!newModule.children) newModule.children = []
-    Object.defineProperty(newModule, 'exports', {
+    defineProperty(newModule, 'exports', {
       enumerable: true,
       set: function () {
         throw new Error('ES Modules may not assign module.exports or exports.*, Use ESM export syntax, instead: ' + newModule.id)
@@ -667,7 +669,7 @@ export class WebpackRuntime {
 
       let fulfilled = true
       for (let j = 0; j < chunkIds.length; j++) {
-        if (((priority & 1) === 0 || notFulfilled >= priority) && Object.keys(onChunksLoaded).every(key => (<RuntimeProxy[RuntimeField.onChunksLoaded]><unknown>onChunksLoaded)[key](chunkIds[j]))) {
+        if (((priority & 1) === 0 || notFulfilled >= priority) && keys(onChunksLoaded).every(key => (<RuntimeProxy[RuntimeField.onChunksLoaded]><unknown>onChunksLoaded)[key](chunkIds[j]))) {
           chunkIds.splice(j--, 1)
         } else {
           fulfilled = false
@@ -945,7 +947,7 @@ export class WebpackRuntime {
       }
 
       // Create field proxy
-      Object.defineProperty(proxy, RuntimeField[<keyof typeof RuntimeField>field], {
+      defineProperty(proxy, RuntimeField[<keyof typeof RuntimeField>field], {
         enumerable: true,
         get: () => {
           const value = this[<keyof this>field]
@@ -1015,8 +1017,8 @@ export class WebpackRuntime {
 
 export const __webpack_runtime_list__: WebpackRuntime[] = []
 
-const INTERRUPT_ID = `__wprt_inid_${(((Math.floor(Math.random() * 0x10000) << 16) | Math.floor(Math.random() * 0x10000)) ^ Date.now()) >>> 0}__`
-const BYPASS_ID = `__wprt_bpid_${(((Math.floor(Math.random() * 0x10000) << 16) | Math.floor(Math.random() * 0x10000)) ^ Date.now()) >>> 0}__`
+const INTERRUPT_ID = `__wprt_inid_${(((floor(random() * 0x10000) << 16) | floor(random() * 0x10000)) ^ Date.now()) >>> 0}__`
+const BYPASS_ID = `__wprt_bpid_${(((floor(random() * 0x10000) << 16) | floor(random() * 0x10000)) ^ Date.now()) >>> 0}__`
 
 /**
  * Remove our own webpack chunk loading global
@@ -1043,13 +1045,13 @@ export function interruptWebpackRuntime(filter: (chunkLoadingGlobal: string) => 
       set(target, prop, value) {
         if (typeof prop === 'string' && Array.isArray(value) && !value.hasOwnProperty(INTERRUPT_ID) && prop.startsWith('webpackChunk')) {
           let push = value.push
-          Object.defineProperties(value, {
+          defineProperties(value, {
             [INTERRUPT_ID]: { value: true },
             forEach: {
               value: new Hook(value.forEach).install(() => {
                 if (value.hasOwnProperty(BYPASS_ID)) return HookResult.EXECUTION_IGNORE
                 if (filter(prop)) {
-                  Object.defineProperty(value, BYPASS_ID, { configurable: true, value: true })
+                  defineProperty(value, BYPASS_ID, { configurable: true, value: true })
                   return HookResult.EXECUTION_IGNORE
                 }
 
@@ -1071,12 +1073,12 @@ export function interruptWebpackRuntime(filter: (chunkLoadingGlobal: string) => 
           })
         }
 
-        Object.defineProperty(target, prop, { configurable: true, writable: true, value })
+        defineProperty(target, prop, { configurable: true, writable: true, value })
         return true
       }
     })
 
-    Object.defineProperty(self, 'self', {
+    defineProperty(self, 'self', {
       configurable: true,
       get() {
         return globalObject
@@ -1114,7 +1116,7 @@ export function createWebpackRuntime(entryModuleId: string | number, runtimeConf
   try {
     const chunkLoadingGlobal: LoadingChunkData[] = (<any>self)[entryModuleId] = (<any>self)[entryModuleId] ?? []
 
-    Object.defineProperty(chunkLoadingGlobal, BYPASS_ID, { configurable: true, value: true })
+    defineProperty(chunkLoadingGlobal, BYPASS_ID, { configurable: true, value: true })
     chunkLoadingGlobal.forEach(__webpack_runtime__.webpackJsonpCallback.bind(__webpack_runtime__, 0))
     chunkLoadingGlobal.push = __webpack_runtime__.webpackJsonpCallback.bind(__webpack_runtime__, Array.prototype.push.bind(chunkLoadingGlobal))
   } catch (e) {
@@ -1138,7 +1140,7 @@ export function createWebpackRuntimeFromScript(script: string): object {
   }
 
   function matchMap(regexp: RegExp, transform?: (id: number, value: string) => string): { [id: number]: string } {
-    return Object.fromEntries(Array.from(script.matchAll(regexp)).map(e => [parseInt(e[1]), transform?.(parseInt(e[1]), e[2]) ?? e[2]]))
+    return fromEntries(Array.from(script.matchAll(regexp)).map(e => [parseInt(e[1]), transform?.(parseInt(e[1]), e[2]) ?? e[2]]))
   }
 
   const publicPath = matchStr(/(?<=\.p=").*?(?=")/)

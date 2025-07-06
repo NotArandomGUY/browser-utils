@@ -1,3 +1,4 @@
+import { assign, defineProperty } from '@ext/global/object'
 import Logger from '@ext/lib/logger'
 import { isProxyBound, proxyBind } from '@ext/lib/proxy/bind'
 import PrimitiveProxy from '@ext/lib/proxy/primitive'
@@ -24,7 +25,7 @@ export interface ProxyChainOptions<T = object> {
 
 function createTarget<T>(options: ProxyChainOptions<T>): ToObjectType<T> {
   if (options.target == null) {
-    return Object.assign(function () { }, {
+    return assign(function () { }, {
       [FakeSymbol]: true,
       [Symbol.toPrimitive]() {
         return options.primitive
@@ -60,7 +61,7 @@ function isRawProperty<T, P extends keyof ToObjectType<T>>(options: ProxyChainOp
 class ProxyChainImpl<T> {
   public static assign<T = object>(target: object, name: string, options: ProxyChainOptions<T> = {}): ToObjectType<T> {
     const value = new ProxyChain({ ...options, trace: [...options.trace ?? [], name] })
-    Object.defineProperty(target, name, { get() { return value }, set() { } })
+    defineProperty(target, name, { get() { return value }, set() { } })
     return value as ToObjectType<T>
   }
 

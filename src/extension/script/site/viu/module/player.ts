@@ -1,3 +1,4 @@
+import { assign, defineProperties, defineProperty } from '@ext/global/object'
 import { Feature } from '@ext/lib/feature'
 import Logger from '@ext/lib/logger'
 import { updateCanvasStyle } from '@ext/site/viu/module/render'
@@ -143,7 +144,7 @@ function onBitmovinPlayerInit(): void {
     currentVideo = video
   }
 
-  Object.defineProperty(bitmovinPlayer, 'load', {
+  defineProperty(bitmovinPlayer, 'load', {
     get() {
       return overrideLoad
     },
@@ -161,8 +162,8 @@ function onBitmovinPlayerModuleLoad(exports: { Player: unknown }): void {
     onBitmovinPlayerInit()
     return bitmovinPlayer
   }
-  Object.assign(overridePlayerCtor, nativePlayerCtor)
-  Object.defineProperty(exports, 'Player', {
+  assign(overridePlayerCtor, nativePlayerCtor)
+  defineProperty(exports, 'Player', {
     get() {
       return overridePlayerCtor
     },
@@ -230,7 +231,7 @@ function initJWPlayerModule(): void {
     return player
   }
 
-  Object.defineProperties(overridePlayerCtor, {
+  defineProperties(overridePlayerCtor, {
     '_': {
       enumerable: true,
       get: () => nativePlayerCtor?._,
@@ -253,7 +254,7 @@ function initJWPlayerModule(): void {
     }
   })
 
-  Object.defineProperty(window, 'jwplayer', {
+  defineProperty(window, 'jwplayer', {
     enumerable: true,
     get() {
       return nativePlayerCtor == null ? null : overridePlayerCtor
@@ -278,7 +279,7 @@ export function onNetworkPlaybackDistribute(): void {
 }
 
 export function playerIsPlaying(): boolean {
-  return bitmovinPlayer?.isPlaying() ?? (jwPlayer?.getState() === 'playing') ?? false
+  return bitmovinPlayer?.isPlaying() ?? (jwPlayer?.getState() === 'playing')
 }
 
 export function playerPlay(): void {

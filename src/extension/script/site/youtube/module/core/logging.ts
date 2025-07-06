@@ -1,3 +1,4 @@
+import { defineProperty } from '@ext/global/object'
 import { Feature } from '@ext/lib/feature'
 import Logger from '@ext/lib/logger'
 import { dispatchYTOpenPopupAction } from '@ext/site/youtube/module/core/action'
@@ -168,12 +169,12 @@ export default class YTCoreLoggingModule extends Feature {
     window.yt.logging = window.yt.logging ?? {}
 
     let ims: object | undefined = undefined
-    Object.defineProperty(window.yt.logging, 'ims', {
+    defineProperty(window.yt.logging, 'ims', {
       get() {
         return ims
       },
       set(v) {
-        Object.defineProperty(v, 'storePayload', {
+        defineProperty(v, 'storePayload', {
           value(info: YTLoggingImsInfo, payload: YTLoggingImsPayload) {
             const path = [info.auth ?? 'undefined', info.isJspb ?? 'undefined', info.cttAuthInfo ?? 'undefined', info.tier ?? 'undefined'].join('/')
             logger.trace(`ims payload(${path}):`, payload)

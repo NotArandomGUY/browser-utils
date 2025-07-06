@@ -1,3 +1,4 @@
+import { assign } from '@ext/global/object'
 import InterceptEventTargetAdapter from '@ext/lib/intercept/event'
 import { NetworkContext, NetworkContextState, NetworkRequestCallback, NetworkResponseCallback, NetworkResponseContext, NetworkState } from '@ext/lib/intercept/network'
 import Logger from '@ext/lib/logger'
@@ -72,7 +73,7 @@ async function handleXHRLoad(this: InterceptXMLHttpRequest): Promise<void> {
 
   // Create response context
   if (ctx.state === NetworkState.UNSENT) {
-    Object.assign<NetworkContext, NetworkContextState>(ctx, {
+    assign<NetworkContext, NetworkContextState>(ctx, {
       state: NetworkState.SUCCESS,
       response: new Response(NULL_BODY_STATUS.includes(this.status) ? null : this.response, {
         status: this.status,
@@ -99,7 +100,7 @@ async function handleXHRError(this: InterceptXMLHttpRequest): Promise<void> {
 
   // Create response context
   if (ctx.state === NetworkState.UNSENT) {
-    Object.assign<NetworkContext, NetworkContextState>(ctx, {
+    assign<NetworkContext, NetworkContextState>(ctx, {
       state: NetworkState.FAILED,
       error: new Error('Network error')
     })

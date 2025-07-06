@@ -1,3 +1,4 @@
+import { defineProperty } from '@ext/global/object'
 import { monitorSelector } from '@ext/lib/dom'
 import { Feature } from '@ext/lib/feature'
 import InterceptDOM from '@ext/lib/intercept/dom'
@@ -37,7 +38,7 @@ class UET {
 
 export default class ViuAdblockModule extends Feature {
   protected activate(): boolean {
-    Object.defineProperty(window, 'UET', { value: UET })
+    defineProperty(window, 'UET', { value: UET })
 
     InterceptDOM.setAppendChildCallback(ctx => {
       const node = ctx.args[0]

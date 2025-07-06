@@ -1,3 +1,5 @@
+import { floor, random } from '@ext/global/math'
+import { assign, defineProperty, entries, fromEntries, getOwnPropertyDescriptor } from '@ext/global/object'
 import { Feature } from '@ext/lib/feature'
 import { preventDispatchEvent } from '@ext/lib/intercept/event'
 import InterceptImage from '@ext/lib/intercept/image'
@@ -52,7 +54,7 @@ function processRequest(ctx: NetworkRequestContext): void {
   const path = url.pathname + url.search
 
   // Ignore request with fake url
-  if (request != null && Object.getOwnPropertyDescriptor(request, 'url')?.get?.toString().includes(url.pathname)) {
+  if (request != null && getOwnPropertyDescriptor(request, 'url')?.get?.toString().includes(url.pathname)) {
     ctx.passthrough = true
     return
   }
@@ -62,16 +64,16 @@ function processRequest(ctx: NetworkRequestContext): void {
 
   if (INTERRUPT_PATH_REGEXP.test(path)) {
     // Generate response for interrupted request
-    const status = Object.entries(INTERRUPT_STATUS_MAP).find(e => new RegExp('^' + e[0]).test(path))?.[1] ?? 200
+    const status = entries(INTERRUPT_STATUS_MAP).find(e => new RegExp('^' + e[0]).test(path))?.[1] ?? 200
     logger.debug('network request interrupted:', url.href, status)
-    Object.assign<NetworkContext, NetworkContextState>(ctx, { state: NetworkState.SUCCESS, response: new Response(undefined, { status }) })
+    assign<NetworkContext, NetworkContextState>(ctx, { state: NetworkState.SUCCESS, response: new Response(undefined, { status }) })
     return
   }
 
   if (BLOCKED_PATH_REGEXP.test(path)) {
     // Force blocked request to fail
     logger.debug('network request blocked:', url.href)
-    Object.assign<NetworkContext, NetworkContextState>(ctx, { state: NetworkState.FAILED, error: new Error('Failed') })
+    assign<NetworkContext, NetworkContextState>(ctx, { state: NetworkState.FAILED, error: new Error('Failed') })
     return
   }
 
@@ -91,7 +93,7 @@ async function processInnertubeResponse(response: Response, endpoint: string): P
 
   logger.debug('innertube response:', endpoint, data)
 
-  return new Response(JSON.stringify(data), { status: response.status, headers: Object.fromEntries(response.headers.entries()) })
+  return new Response(JSON.stringify(data), { status: response.status, headers: fromEntries(response.headers.entries()) })
 }
 
 async function processResponse(ctx: NetworkContext<unknown, NetworkState.SUCCESS>): Promise<void> {
@@ -105,10 +107,10 @@ async function processResponse(ctx: NetworkContext<unknown, NetworkState.SUCCESS
 }
 
 export function bypassFetch(input: string, init: RequestInit = {}): Promise<Response> {
-  const bypassId = Date.now() + Math.floor(Math.random() * 1e6) - 5e5
+  const bypassId = Date.now() + floor(random() * 1e6) - 5e5
   const request = new Request(input, init)
 
-  Object.defineProperty(request, BYPASS_ID, { value: bypassId })
+  defineProperty(request, BYPASS_ID, { value: bypassId })
   bypassIdSet.add(bypassId)
 
   return fetch(request)
@@ -120,7 +122,7 @@ export default class YTCoreNetworkModule extends Feature {
   }
 
   protected activate(): boolean {
-    Object.defineProperty(navigator, 'sendBeacon', {
+    defineProperty(navigator, 'sendBeacon', {
       value: null
     })
 

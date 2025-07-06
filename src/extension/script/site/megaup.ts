@@ -1,3 +1,4 @@
+import { round } from '@ext/global/math'
 import Logger from '@ext/lib/logger'
 
 const logger = new Logger('MUPBypass')
@@ -19,8 +20,8 @@ function decryptHash(inp1: string, inp2: string): string {
   const width = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth
   const height = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight
   if (width <= 0 || height <= 0) {
-    out += out[Math.round(out.length / 3)]
-    out += out[Math.round(out.length / 2)]
+    out += out[round(out.length / 3)]
+    out += out[round(out.length / 2)]
   }
 
   return out

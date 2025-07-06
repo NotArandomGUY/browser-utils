@@ -1,3 +1,5 @@
+import { floor } from '@ext/global/math'
+import { fromEntries } from '@ext/global/object'
 import { bufferFromString, bufferToString } from '@ext/lib/buffer'
 import Logger from '@ext/lib/logger'
 
@@ -78,7 +80,7 @@ function activateFeatureGroup(groupId: string): void {
   let isReload = false
 
   for (const [featureId, feature] of group.featureMap) {
-    const disableMaskByte = disableMask[Math.floor((featureId + 1) / 8)] ?? 0
+    const disableMaskByte = disableMask[floor((featureId + 1) / 8)] ?? 0
     const isDisabled = isGroupDisabled || (disableMaskByte & (1 << ((featureId + 1) % 8))) !== 0
 
     if (isDisabled) {
@@ -131,7 +133,7 @@ export function getAllFeatureGroupDisableMask(): Record<string, Uint8Array> {
     }
   }
 
-  return Object.fromEntries(disableMaskMap.entries())
+  return fromEntries(disableMaskMap.entries())
 }
 
 export function getFeatureGroupDisableMask(groupId: string): Uint8Array {
@@ -159,7 +161,7 @@ export function batchSetFeatureGroupDisableMask(masks: Record<string, Uint8Array
       return
     }
 
-    localStorage.setItem(DMASK_STORAGE_KEY, JSON.stringify(Object.fromEntries(Array.from(disableMaskMap.entries()).map(e => [e[0], btoa(bufferToString(e[1]))]))))
+    localStorage.setItem(DMASK_STORAGE_KEY, JSON.stringify(fromEntries(Array.from(disableMaskMap.entries()).map(e => [e[0], btoa(bufferToString(e[1]))]))))
   } catch {
     // NOOP
   }
@@ -170,7 +172,7 @@ export function setFeatureGroupDisableMask(groupId: string, mask: Uint8Array): v
 }
 
 export function getAllFeatureGroup(): Record<string, FeatureGroup> {
-  return Object.fromEntries(featureGroupMap.entries())
+  return fromEntries(featureGroupMap.entries())
 }
 
 export function getFeatureGroup(groupId: string): FeatureGroup | null {

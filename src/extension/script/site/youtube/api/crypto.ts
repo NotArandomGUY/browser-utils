@@ -1,3 +1,5 @@
+import { floor, random } from '@ext/global/math'
+
 const CHARS_A = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'
 const CHARS_N = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-_'
 
@@ -13,8 +15,8 @@ function getRandomValues(size: number, key?: string): number[] {
 
   for (let i = 0; i < size; i++) {
     const now = Date.now()
-    for (let j = 0; j < now % 23; j++) Math.random() // NOSONAR
-    rand[i] = Math.floor(Math.random() * 256)
+    for (let j = 0; j < now % 23; j++) random() // NOSONAR
+    rand[i] = floor(random() * 256)
   }
 
   if (key) {

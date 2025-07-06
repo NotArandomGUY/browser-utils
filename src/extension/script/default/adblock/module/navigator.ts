@@ -1,3 +1,4 @@
+import { defineProperty } from '@ext/global/object'
 import { Feature } from '@ext/lib/feature'
 import Logger from '@ext/lib/logger'
 import ProxyChain, { ProxyChainOptions } from '@ext/lib/proxy/chain'
@@ -72,7 +73,7 @@ export default class AdblockNavigatorModule extends Feature {
       trace: ['ADBLOCK', 'navigator', 'userAgent']
     })
 
-    Object.defineProperty(window.navigator, 'userAgent', {
+    defineProperty(window.navigator, 'userAgent', {
       configurable: true,
       enumerable: false,
       get() { // NOSONAR
@@ -89,7 +90,7 @@ export default class AdblockNavigatorModule extends Feature {
     // Ensure environment is valid
     if (typeof userAgent !== 'string') throw new Error('invalid environment')
 
-    Object.defineProperty(window.navigator, 'userAgent', {
+    defineProperty(window.navigator, 'userAgent', {
       configurable: true,
       enumerable: false,
       get() {

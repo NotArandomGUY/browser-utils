@@ -1,3 +1,4 @@
+import { max, min } from '@ext/global/math'
 import { bufferFromString, bufferReadBigInt64LE, bufferReadBigUInt64LE, bufferReadDoubleLE, bufferReadFloatLE, bufferReadInt32LE, bufferReadUInt32LE, bufferToString, bufferWriteBigInt64LE, bufferWriteBigUInt64LE, bufferWriteDoubleLE, bufferWriteFloatLE, bufferWriteInt32LE, bufferWriteUInt32LE } from '@ext/lib/buffer'
 import { varint32Decode, varint32Encode, varintDecode32, varintDecode64, varintEncode } from '@ext/lib/protobuf/varint'
 import { getTagFieldNumber, getTagWireType, WireType } from '@ext/lib/protobuf/wiretag'
@@ -90,7 +91,7 @@ export default class CodedStream {
     const { position } = this
 
     this.buffer = buffer
-    this.position = Math.min(position, buffer.length)
+    this.position = min(position, buffer.length)
   }
 
   public setPosition(position: number): void {
@@ -361,7 +362,7 @@ export default class CodedStream {
     const requiredCapacity = position + additionalBytes
     if (requiredCapacity <= buffer.length) return
 
-    const newBuffer = new Uint8Array(Math.max(buffer.length * 2, requiredCapacity))
+    const newBuffer = new Uint8Array(max(buffer.length * 2, requiredCapacity))
     newBuffer.set(buffer)
 
     this.buffer = newBuffer

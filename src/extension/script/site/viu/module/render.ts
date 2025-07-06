@@ -1,3 +1,4 @@
+import { floor, min } from '@ext/global/math'
 import { monitorSelector } from '@ext/lib/dom'
 import { Feature } from '@ext/lib/feature'
 import Logger from '@ext/lib/logger'
@@ -18,7 +19,7 @@ let qrHeight: number = 0
 function renderText(color: string, text: string) {
   if (ctx == null) return
 
-  ctx.font = `900 ${Math.floor(qrWidth / 12)}px Arial`
+  ctx.font = `900 ${floor(qrWidth / 12)}px Arial`
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
 
@@ -35,7 +36,7 @@ function render() {
 
   if (document.fullscreenElement == null) {
     const { width, height } = container.getBoundingClientRect()
-    const rectSize = Math.min(width, height)
+    const rectSize = min(width, height)
 
     qrWidth = canvas.width = rectSize - 8
     qrHeight = canvas.height = rectSize - 8
