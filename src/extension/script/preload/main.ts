@@ -10,6 +10,7 @@ const logger = new Logger('PRELOAD-MAIN')
 const { sendMessageToWorker } = getExtensionMessageSender(ExtensionMessageSource.MAIN)
 
 let overlay: HTMLElement | null = null
+let overlayIndex = 0
 
 function onMessage(message?: ExtensionMessage): void {
   if (message == null) return
@@ -34,6 +35,10 @@ function onMessage(message?: ExtensionMessage): void {
       logger.info('open extension overlay')
 
       overlay = Overlay({
+        initIndex: overlayIndex,
+        onTabChange(index) {
+          overlayIndex = index
+        },
         onClose() {
           overlay?.parentNode?.removeChild(overlay)
           overlay = null

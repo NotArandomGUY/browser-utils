@@ -8,6 +8,8 @@ import styles from '@ext/overlay/style/overlay.css'
 import van from 'vanjs-core'
 
 export interface OverlayProps {
+  initIndex?: number
+  onTabChange?(index: number): void
   onClose(): void
 }
 
@@ -28,7 +30,7 @@ class OverlayLifecycle extends Lifecycle<OverlayProps> {
     return Lifecycle.create(props, OverlayLifecycle.ID) as OverlayLifecycle
   }
 
-  protected override onCreate({ onClose }: OverlayProps): void {
+  protected override onCreate({ initIndex, onTabChange, onClose }: OverlayProps): void {
     const { classList } = this
 
     const className = buildClass('bu-overlay')
@@ -48,7 +50,9 @@ class OverlayLifecycle extends Lifecycle<OverlayProps> {
           tabs: [
             { title: 'Feature', content: FeaturePage({ parentClassName: className }) },
             ...additionalPageSet.values()
-          ]
+          ],
+          initIndex,
+          onTabChange
         })
       })
     )
