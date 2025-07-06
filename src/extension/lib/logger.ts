@@ -1,6 +1,8 @@
 import { toDateTimeString } from '@ext/lib/time'
 
-export enum LogLevel {
+const { now } = Date
+
+export const enum LogLevel {
   TRACE = 0,
   DEBUG,
   INFO,
@@ -9,13 +11,51 @@ export enum LogLevel {
   SILENT
 }
 
+function fromLogLevel(level: LogLevel): string {
+  switch (level) {
+    case LogLevel.TRACE:
+      return 'TRACE'
+    case LogLevel.DEBUG:
+      return 'DEBUG'
+    case LogLevel.INFO:
+      return 'INFO'
+    case LogLevel.WARN:
+      return 'WARN'
+    case LogLevel.ERROR:
+      return 'ERROR'
+    case LogLevel.SILENT:
+      return 'SILENT'
+    default:
+      return 'UNKNOWN'
+  }
+}
+
+function toLogLevel(level: string | null, defaultLevel = LogLevel.INFO): LogLevel {
+  switch (level?.trim().toUpperCase()) {
+    case 'TRACE':
+      return LogLevel.TRACE
+    case 'DEBUG':
+      return LogLevel.DEBUG
+    case 'INFO':
+      return LogLevel.INFO
+    case 'WARN':
+      return LogLevel.WARN
+    case 'ERROR':
+      return LogLevel.ERROR
+    case 'SILENT':
+      return LogLevel.SILENT
+    default:
+      return defaultLevel
+  }
+}
+
 function logWrapper<TArgs extends any[]>(
   log: (prefix: string, ...args: TArgs) => void,
   type: string,
   prefix: string,
   ...args: TArgs
 ): void {
-  log(`\x1b[m[${toDateTimeString(Date.now())}][${type}\x1b[m][${prefix}]`, ...args)
+  log(`\x1b[m[${toDateTimeString(now())}][${type}\x1b[m][${prefix}]`, ...args)
 }
 
 const debug = logWrapper.bind(null, console.debug, '\x1b[96mDBG')
@@ -74,14 +114,18 @@ export default class Logger {
   }
 
   private loadLevelFromStorage(event?: StorageEvent) {
-    const key = `bulog-[${this.prefix}]`
-    if (event != null && event.key !== key) return
+    try {
+      const key = `bulog-[${this.prefix}]`
+      if (event != null && event.key !== key) return
 
-    const load = globalThis.localStorage?.getItem?.bind(globalThis.localStorage)
-    const level = LogLevel[load?.(key) as keyof typeof LogLevel] ?? LogLevel[load?.('bulog-default') as keyof typeof LogLevel] ?? LogLevel.INFO
-    if (level === this.level) return
+      const load = globalThis.localStorage?.getItem?.bind(globalThis.localStorage)
+      const level = toLogLevel(load?.(key), toLogLevel(load?.('bulog-default')))
+      if (level === this.level) return
 
-    this.level = level
+      this.level = level
+    } catch {
+      this.level = LogLevel.INFO
+    }
   }
 
   private formatArgs<A extends unknown[]>(args: A): A {
@@ -93,14 +137,14 @@ if (!('buLogLevel' in globalThis)) {
   Object.defineProperty(globalThis, 'buLogLevel', {
     configurable: false,
     writable: false,
-    value(prefix?: string, level?: LogLevel) {
+    value(prefix?: string, level?: string | number) {
       if (prefix == null || level == null) return loggers.values()
 
       if (!('localStorage' in globalThis)) return
 
       const key = `bulog-[${prefix}]`
       const oldValue = globalThis.localStorage.getItem(key)
-      const newValue = typeof level === 'string' ? level : LogLevel[level]
+      const newValue = fromLogLevel(typeof level === 'string' ? toLogLevel(level) : level)
 
       globalThis.localStorage.setItem(key, newValue)
       globalThis.dispatchEvent(new StorageEvent('storage', {
