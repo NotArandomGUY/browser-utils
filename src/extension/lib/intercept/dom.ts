@@ -10,15 +10,13 @@ export default class InterceptDOM {
     const { hooks, callbacks } = InterceptDOM
 
     if (hooks.length === 0) {
-      HTMLElement.prototype.appendChild = InterceptDOM.installAppendHook(HTMLElement.prototype.appendChild)
-      HTMLElement.prototype.insertBefore = InterceptDOM.installAppendHook(HTMLElement.prototype.insertBefore)
-      DocumentFragment.prototype.appendChild = InterceptDOM.installAppendHook(DocumentFragment.prototype.appendChild)
-      DocumentFragment.prototype.insertBefore = InterceptDOM.installAppendHook(DocumentFragment.prototype.insertBefore)
+      Node.prototype.appendChild = InterceptDOM.installAppendHook(Node.prototype.appendChild)
+      Node.prototype.insertBefore = InterceptDOM.installAppendHook(Node.prototype.insertBefore)
+      Node.prototype.replaceChild = InterceptDOM.installAppendHook(Node.prototype.replaceChild)
 
       document.createElement = InterceptDOM.installCreateHook(document.createElement)
       document.importNode = InterceptDOM.installCreateHook(document.importNode)
       Node.prototype.cloneNode = InterceptDOM.installCreateHook(Node.prototype.cloneNode)
-      DocumentFragment.prototype.cloneNode = InterceptDOM.installCreateHook(DocumentFragment.prototype.cloneNode)
 
       logger.debug('dom hooks activated')
     }
