@@ -233,7 +233,7 @@ export default class YTCoreBootstrapModule extends Feature {
 
   protected activate(): boolean {
     // Override config
-    ytcfg = Object.assign((window.top as typeof window ?? window).ytcfg ?? {}, {
+    ytcfg = Object.assign(window.ytcfg ?? {}, {
       init_: false,
       d() {
         return window.yt && yt.config_ || ytcfg.data_ || (ytcfg.data_ = new Proxy({}, {

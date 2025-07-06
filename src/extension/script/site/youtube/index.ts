@@ -7,6 +7,7 @@ import YTCoreBootstrapModule from '@ext/site/youtube/module/core/bootstrap'
 import YTCoreConfigModule from '@ext/site/youtube/module/core/config'
 import YTCoreLoggingModule from '@ext/site/youtube/module/core/logging'
 import YTCoreNetworkModule from '@ext/site/youtube/module/core/network'
+import YTCoreSandboxModule from '@ext/site/youtube/module/core/sandbox'
 import YTFeedFilterModule from '@ext/site/youtube/module/feed/filter'
 import YTFeedGuideModule from '@ext/site/youtube/module/feed/guide'
 import YTMiscsAdsModule from '@ext/site/youtube/module/miscs/ads'
@@ -23,6 +24,7 @@ import YTPlayerUMPModule from '@ext/site/youtube/module/player/ump'
 
 registerFeatureGroup('youtube', group => {
   // Register core features
+  registerFeature(group, YTCoreSandboxModule)
   registerFeature(group, YTCoreBootstrapModule)
   registerFeature(group, YTCoreLoggingModule)
   registerFeature(group, YTCoreNetworkModule)
