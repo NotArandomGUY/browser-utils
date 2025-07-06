@@ -3,13 +3,15 @@ import { registerYTRendererPreProcessor, removeYTRendererPre, YTRenderer, YTRend
 import { isYTLoggedIn } from '@ext/site/youtube/module/core/bootstrap'
 
 function updateFeedNudgeRenderer(data: YTRendererData<YTRenderer<'feedNudgeRenderer'>>): boolean {
-  data.title = { simpleText: 'Oh hi!' }
-  data.subtitle = {
-    runs: [
-      { text: 'Home feed has been disabled~\n' },
-      { text: 'Sign in to use it!\n' },
-      { text: 'P.S. let me know if it suddenly works, it should not' }
-    ]
+  if (!isYTLoggedIn()) {
+    data.title = { simpleText: 'Oh hi!' }
+    data.subtitle = {
+      runs: [
+        { text: 'Home feed has been disabled~\n' },
+        { text: 'Sign in to use it!\n' },
+        { text: 'P.S. let me know if it suddenly works, it should not' }
+      ]
+    }
   }
 
   return true
