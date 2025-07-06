@@ -314,55 +314,78 @@ export default class YTCoreBootstrapModule extends Feature {
       writable: true
     })
 
+    let bootstrapLoadInitialCommand: ((data: object) => void) | null = null
+    let bootstrapLoadInitialData: ((data: object) => void) | null = null
+
     // Process initial data for get initial global
-    Object.defineProperty(window, 'getInitialCommand', {
-      configurable: true,
-      get() {
-        return undefined
-      },
-      set(getInitialCommand) {
-        if (typeof getInitialCommand !== 'function') {
-          logger.warn('invalid get initial command function:', getInitialCommand)
-          return
+    Object.defineProperties(window, {
+      loadInitialCommand: {
+        configurable: true,
+        get() {
+          return undefined
+        },
+        set(fn) {
+          bootstrapLoadInitialCommand = fn
         }
-
-        const initialCommand = getInitialCommand() as YTValueData<{ type: YTValueType.ENDPOINT }>
-        getProcessedInitialCommand(initialCommand)
-          .catch(error => logger.warn('process initial command error:', error))
-          .finally(() => {
-            Object.defineProperty(window, 'getInitialCommand', {
-              configurable: true,
-              writable: true,
-              value: () => initialCommand
-            })
-
-            if (typeof window.loadInitialCommand === 'function') window.loadInitialCommand(initialCommand)
-          })
-      }
-    })
-    Object.defineProperty(window, 'getInitialData', {
-      configurable: true,
-      get() {
-        return undefined
       },
-      set(getInitialData) {
-        if (typeof getInitialData !== 'function') {
-          logger.warn('invalid get initial data function:', getInitialData)
-          return
+      loadInitialData: {
+        configurable: true,
+        get() {
+          return undefined
+        },
+        set(fn) {
+          bootstrapLoadInitialData = fn
         }
+      },
+      getInitialCommand: {
+        configurable: true,
+        get() {
+          return undefined
+        },
+        set(getInitialCommand) {
+          if (typeof getInitialCommand !== 'function') {
+            logger.warn('invalid get initial command function:', getInitialCommand)
+            return
+          }
 
-        const initialData = getInitialData() as YTInitData
-        getProcessedInitialData(initialData)
-          .catch(error => logger.warn('process initial data error:', error))
-          .finally(() => {
-            Object.defineProperty(window, 'getInitialData', {
-              configurable: true,
-              writable: true,
-              value: () => initialData
+          const initialCommand = getInitialCommand() as YTValueData<{ type: YTValueType.ENDPOINT }>
+          getProcessedInitialCommand(initialCommand)
+            .catch(error => logger.warn('process initial command error:', error))
+            .finally(() => {
+              Object.defineProperty(window, 'getInitialCommand', {
+                configurable: true,
+                writable: true,
+                value: () => initialCommand
+              })
+
+              if (typeof bootstrapLoadInitialCommand === 'function') bootstrapLoadInitialCommand(initialCommand)
             })
+        }
+      },
+      getInitialData: {
+        configurable: true,
+        get() {
+          return undefined
+        },
+        set(getInitialData) {
+          if (typeof getInitialData !== 'function') {
+            logger.warn('invalid get initial data function:', getInitialData)
+            return
+          }
 
-            if (typeof window.loadInitialData === 'function') window.loadInitialData(initialData)
-          })
+          const initialData = getInitialData() as YTInitData
+          getProcessedInitialData(initialData)
+            .catch(error => logger.warn('process initial data error:', error))
+            .finally(() => {
+              Object.defineProperty(window, 'getInitialData', {
+                configurable: true,
+                writable: true,
+                value: () => initialData
+              })
+
+              if (typeof bootstrapLoadInitialData === 'function') bootstrapLoadInitialData(initialData)
+            })
+        }
       }
     })
 
