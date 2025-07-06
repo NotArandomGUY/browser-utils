@@ -1,14 +1,25 @@
 import { Mutex } from '@ext/lib/async'
 import { Feature } from '@ext/lib/feature'
 import Logger from '@ext/lib/logger'
+import { registerOverlayPage } from '@ext/overlay'
 import { YTEntityMutationSchema } from '@ext/site/youtube/api/endpoint'
 import EntityKey from '@ext/site/youtube/api/proto/entity-key'
 import { registerYTRendererPreProcessor, YTRenderer, YTRendererData, YTRendererSchemaMap } from '@ext/site/youtube/api/renderer'
 import { YTObjectData, YTValueData, YTValueType } from '@ext/site/youtube/api/types/common'
+import YTSkipSegmentPage from '@ext/site/youtube/pages/skip-segments'
+import van, { State } from 'vanjs-core'
 
 const logger = new Logger('YTPLAYER-SKIP')
 
-interface VideoSkipSegmentInfo {
+export interface SkipSegmentEntry {
+  videoId: string
+  segmentId: number
+  startTimeMs: number
+  endTimeMs: number
+  category?: string
+}
+
+interface VideoSegmentInfo {
   videoID: string
   segments: {
     segment: [number, number]
@@ -20,14 +31,6 @@ interface VideoSkipSegmentInfo {
     videoDuration: number
     description: string
   }[]
-}
-
-interface SkipSegmentEntry {
-  videoId: string
-  segmentId: number
-  startTimeMs: number
-  endTimeMs: number
-  category?: string
 }
 
 const DB_API_HOST = 'https://sponsor.ajay.app'
@@ -74,6 +77,7 @@ const segmentEntriesCacheMap = new Map<string, SkipSegmentEntry[]>()
 const segmentFetchMutex = new Mutex()
 
 let lastLoadedVideoId: string | null = null
+let state: State<SkipSegmentEntry[]> | null = null
 
 function getSkipSegmentEntityKey(id: number): string {
   const buffer = new EntityKey({
@@ -171,6 +175,7 @@ function addTimelyActionFromSegmentEntry(timelyActions: YTValueData<{ type: YTVa
     if (timelyActionViewModel == null) continue
 
     const { startTimeMilliseconds, endTimeMilliseconds } = timelyActionViewModel
+
     const actionStartMs = Number(startTimeMilliseconds)
     const actionEndMs = Number(endTimeMilliseconds)
     if (isNaN(actionStartMs) || isNaN(actionEndMs) || actionStartMs > endTimeMs || actionEndMs < startTimeMs) continue
@@ -205,7 +210,7 @@ async function fetchSegmentEntries(videoId: string | null): Promise<SkipSegmentE
     const rsp = await fetch(`${DB_API_HOST}/api/skipSegments/${hash.slice(0, 4)}?actionType=skip&trimUUIDs=1`, { signal: controller.signal })
     clearTimeout(timer)
 
-    const data = Array.from<VideoSkipSegmentInfo>(await rsp.json())
+    const data = Array.from<VideoSegmentInfo>(await rsp.json())
 
     for (const info of data) {
       if (segmentEntriesCacheMap.get(info.videoID)?.length === info.segments?.length) continue
@@ -245,19 +250,19 @@ async function processPlayerResponse(data: YTRendererData<YTRenderer<'playerResp
 }
 
 async function updateNextResponse(data: YTRendererData<YTRenderer<'nextResponse'>>): Promise<boolean> {
-  const segmentEntries = await fetchSegmentEntries(lastLoadedVideoId)
+  const entries = await fetchSegmentEntries(lastLoadedVideoId)
 
   data.onResponseReceivedEndpoints ??= []
   data.onResponseReceivedEndpoints.push({
     loadMarkersCommand: {
-      entityKeys: segmentEntries.map(entry => getSkipSegmentEntityKey(entry.segmentId))
+      entityKeys: entries.map(entry => getSkipSegmentEntityKey(entry.segmentId))
     }
   })
 
   data.frameworkUpdates ??= {}
   data.frameworkUpdates.entityBatchUpdate ??= {}
   data.frameworkUpdates.entityBatchUpdate.mutations ??= []
-  data.frameworkUpdates.entityBatchUpdate.mutations.push(...segmentEntries.map(entry => ({
+  data.frameworkUpdates.entityBatchUpdate.mutations.push(...entries.map(entry => ({
     entityKey: getSkipSegmentEntityKey(entry.segmentId),
     type: 'ENTITY_MUTATION_TYPE_REPLACE',
     payload: {
@@ -287,7 +292,7 @@ function updatePlayerOverlayRenderer(data: YTRendererData<YTRenderer<'playerOver
 }
 
 async function updateTimelyActionsOverlayViewModel(data: YTRendererData<YTRenderer<'timelyActionsOverlayViewModel'>>): Promise<boolean> {
-  const segmentEntries = await fetchSegmentEntries(lastLoadedVideoId)
+  const entries = await fetchSegmentEntries(lastLoadedVideoId)
 
   let timelyActions = data.timelyActions
   if (!Array.isArray(timelyActions)) {
@@ -295,9 +300,11 @@ async function updateTimelyActionsOverlayViewModel(data: YTRendererData<YTRender
     data.timelyActions = timelyActions
   }
 
-  for (const entry of segmentEntries) {
+  for (const entry of entries) {
     addTimelyActionFromSegmentEntry(timelyActions, entry)
   }
+
+  if (state != null) state.val = entries
 
   return true
 }
@@ -313,10 +320,16 @@ export default class YTPlayerSmartSkipModule extends Feature {
     registerYTRendererPreProcessor(YTRendererSchemaMap['playerOverlayRenderer'], updatePlayerOverlayRenderer)
     registerYTRendererPreProcessor(YTRendererSchemaMap['timelyActionsOverlayViewModel'], updateTimelyActionsOverlayViewModel)
 
+    state = van.state<SkipSegmentEntry[]>([])
+
+    registerOverlayPage('Skip Segments', YTSkipSegmentPage.bind(null, { segments: state }))
+
     return true
   }
 
   protected deactivate(): boolean {
+    state = null
+
     return false
   }
 }
