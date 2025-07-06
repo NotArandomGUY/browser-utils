@@ -1,11 +1,11 @@
 import Backdrop from '@ext/overlay/components/backdrop'
+import Lifecycle from '@ext/overlay/components/lifecycle'
 import Modal from '@ext/overlay/components/modal'
 import Tab, { TabPageProps } from '@ext/overlay/components/tab'
 import FeaturePage from '@ext/overlay/pages/feature'
 import { buildClass } from '@ext/overlay/style/class'
+import styles from '@ext/overlay/style/overlay.css'
 import van from 'vanjs-core'
-
-const { div } = van.tags
 
 export interface OverlayProps {
   onClose(): void
@@ -17,29 +17,50 @@ export function registerOverlayPage(title: string, content: Element): void {
   additionalPageSet.add({ title, content })
 }
 
-function Overlay({ onClose }: OverlayProps): HTMLDivElement {
-  const className = buildClass('bu-overlay')
+class OverlayLifecycle extends Lifecycle<OverlayProps> {
+  private static readonly ID = Lifecycle.getId('overlay')
 
-  return div(
-    { class: className },
-    Backdrop({ parentClassName: className, onClick: onClose }),
-    Modal({
-      parentClassName: className,
-      title: 'Browser Utils',
-      onClose,
-      content: Tab({
+  public static override define(): void {
+    Lifecycle.define(OverlayLifecycle, OverlayLifecycle.ID)
+  }
+
+  public static override create(props: OverlayProps): OverlayLifecycle {
+    return Lifecycle.create(props, OverlayLifecycle.ID) as OverlayLifecycle
+  }
+
+  protected override onCreate({ onClose }: OverlayProps): void {
+    const { classList } = this
+
+    const className = buildClass('bu-overlay')
+    classList.add(className)
+
+    styles.use()
+
+    van.add(
+      this,
+      Backdrop({ parentClassName: className, onClick: onClose }),
+      Modal({
         parentClassName: className,
-        tabs: [
-          { title: 'Feature', content: FeaturePage({ parentClassName: className }) },
-          ...additionalPageSet.values()
-        ]
+        title: 'Browser Utils',
+        onClose,
+        content: Tab({
+          parentClassName: className,
+          tabs: [
+            { title: 'Feature', content: FeaturePage({ parentClassName: className }) },
+            ...additionalPageSet.values()
+          ]
+        })
       })
-    })
-  )
+    )
+  }
+
+  protected override onDestroy(): void {
+    styles.unuse()
+  }
 }
 
-window.addEventListener('load', () => {
-  import(/* webpackMode: "eager" */'@ext/overlay/style/overlay.css').catch(console.warn)
-})
+OverlayLifecycle.define()
+
+const Overlay = OverlayLifecycle.create
 
 export default Overlay
