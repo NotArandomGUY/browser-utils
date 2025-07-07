@@ -46,8 +46,12 @@ export default class YTCoreSandboxModule extends Feature {
         if (object == null || props == null || typeof props !== 'object') return HookResult.EXECUTION_IGNORE
 
         for (const prop in props) {
-          const value = object[prop as keyof typeof object]
-          if (!defineIgnoreList.includes(value)) continue
+          try {
+            const value = object[prop as keyof typeof object]
+            if (!defineIgnoreList.includes(value)) continue
+          } catch {
+            continue
+          }
 
           logger.trace('ignore redefine property:', prop, props[prop])
 
