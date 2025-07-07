@@ -575,6 +575,9 @@ export const YTEndpointSchemaMap = {
     repeatStateEntityKey: ytv_str(),
     startTimeMs: ytv_str()
   },
+  resetChannelUnreadCountCommand: {
+    channelId: ytv_str()
+  },
   seekToVideoTimestampCommand: {
     offsetFromVideoStartMilliseconds: ytv_str(),
     videoId: ytv_str()

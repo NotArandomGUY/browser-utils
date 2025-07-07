@@ -38,6 +38,7 @@ export enum YTMediaFormatQualityOrdinal {
 export const YTResponseCommonSchema = {
   actions: ytv_arr(ytv_enp()),
   command: ytv_enp(),
+  frameworkUpdates: ytv_enp(YTEndpointSchemaMap['entityUpdateCommand']),
   onResponseReceivedActions: ytv_arr(ytv_enp()),
   onResponseReceivedCommand: ytv_arr(ytv_enp()),
   onResponseReceivedEndpoints: ytv_arr(ytv_enp())
@@ -175,7 +176,7 @@ export const YTPaygatedQualitiesMetadataSchema = {
 } satisfies YTRendererSchema
 
 export const YTStyleSchema = {
-  styleType: ytv_str(['STYLE_DEFAULT', 'STYLE_DEFAULT_ACTIVE', 'STYLE_GREY_TEXT', 'STYLE_HOME_FILTER'])
+  styleType: ytv_str(['STYLE_DEFAULT', 'STYLE_DEFAULT_ACTIVE', 'STYLE_GREY_TEXT', 'STYLE_HOME_FILTER', 'STYLE_TEXT'])
 } satisfies YTRendererSchema
 
 export const YTFeaturedChannelSchema = {
@@ -549,7 +550,6 @@ export const YTPlayerResponseSchema = {
   captions: ytv_ren(),
   cards: ytv_ren(),
   endscreen: ytv_ren(),
-  frameworkUpdates: ytv_enp(YTEndpointSchemaMap['entityUpdateCommand']),
   heartbeatParams: ytv_sch({
     drmSessionId: ytv_str(),
     heartbeatAttestationConfig: ytv_sch({
@@ -579,7 +579,6 @@ export const YTRendererSchemaMap = {
   browseResponse: {
     ...YTResponseCommonSchema,
     contents: ytv_ren(),
-    frameworkUpdates: ytv_enp(YTEndpointSchemaMap['entityUpdateCommand']),
     header: ytv_ren(),
     metadata: ytv_ren(),
     microformat: ytv_ren(),
@@ -588,7 +587,6 @@ export const YTRendererSchemaMap = {
   },
   browseEditPlaylistResponse: {
     ...YTResponseCommonSchema,
-    frameworkUpdates: ytv_enp(YTEndpointSchemaMap['entityUpdateCommand']),
     playlistEditResults: ytv_arr(ytv_sch({
       playlistEditVideoAddedResultData: ytv_sch({
         setVideoId: ytv_str(),
@@ -608,7 +606,6 @@ export const YTRendererSchemaMap = {
     continuationContents: ytv_sch({
       liveChatContinuation: ytv_ren(YTLiveChatRendererSchema)
     }),
-    frameworkUpdates: ytv_enp(YTEndpointSchemaMap['entityUpdateCommand']),
     liveChatStreamingResponseExtension: ytv_sch({
       lastPublishAtUsec: ytv_str()
     }),
@@ -621,7 +618,6 @@ export const YTRendererSchemaMap = {
     contents: ytv_ren(),
     currentVideoEndpoint: ytv_enp(),
     engagementPanels: ytv_arr(ytv_ren()),
-    frameworkUpdates: ytv_enp(YTEndpointSchemaMap['entityUpdateCommand']),
     pageVisualEffects: ytv_arr(ytv_ren()),
     playerOverlays: ytv_ren(),
     responseContext: ytv_ren(YTResponseContextSchema),
@@ -641,7 +637,6 @@ export const YTRendererSchemaMap = {
     ...YTResponseCommonSchema,
     background: ytv_ren(),
     engagementPanels: ytv_arr(ytv_ren()),
-    frameworkUpdates: ytv_enp(YTEndpointSchemaMap['entityUpdateCommand']),
     overlay: ytv_ren(),
     replacementEndpoint: ytv_enp(),
     responseContext: ytv_ren(YTResponseContextSchema),
@@ -669,7 +664,6 @@ export const YTRendererSchemaMap = {
   updatedMetadataResponse: {
     ...YTResponseCommonSchema,
     continuation: ytv_ren(YTRendererContinuationSchema),
-    frameworkUpdates: ytv_enp(YTEndpointSchemaMap['entityUpdateCommand']),
     responseContext: ytv_ren(YTResponseContextSchema)
   },
 
@@ -775,18 +769,25 @@ export const YTRendererSchemaMap = {
     onDisabledCommand: ytv_enp(),
     onEnabledCommand: ytv_enp()
   },
+  backstageImageRenderer: {
+    icon: ytv_sch(YTIconSchema),
+    image: ytv_sch(YTThumbnailSchema)
+  },
   browseFeedActionsRenderer: {
     contents: ytv_arr(ytv_ren())
   },
   bubbleHintRenderer: {
+    accessibility: ytv_sch(YTAccessibilityDataSchema),
     detailsText: ytv_sch(YTTextSchema),
     isVisible: ytv_bol(),
+    style: ytv_str(['BUBBLE_HINT_STYLE_BLUE_TOOLTIP']),
     text: ytv_sch(YTTextSchema)
   },
   buttonRenderer: {
     accessibility: ytv_sch(YTAccessibilityDataSchema),
     accessibilityData: ytv_sch(YTAccessibilitySchema),
     command: ytv_enp(),
+    hint: ytv_ren(),
     icon: ytv_sch(YTIconSchema),
     iconPosition: ytv_str(['BUTTON_ICON_POSITION_TYPE_LEFT_OF_TEXT', 'BUTTON_ICON_POSITION_TYPE_RIGHT_OF_TEXT']),
     isDisabled: ytv_bol(),
@@ -868,6 +869,7 @@ export const YTRendererSchemaMap = {
   },
   chipCloudChipRenderer: {
     isSelected: ytv_bol(),
+    location: ytv_str(['CHIP_LOCATION_SEARCH_RESULTS']),
     navigationEndpoint: ytv_enp(),
     style: ytv_ren(YTStyleSchema),
     targetId: ytv_str(),
@@ -977,6 +979,13 @@ export const YTRendererSchemaMap = {
     bottomRightThumbnail: ytv_sch(YTThumbnailSchema),
     leftThumbnail: ytv_sch(YTThumbnailSchema),
     topRightThumbnail: ytv_sch(YTThumbnailSchema)
+  },
+  commentActionButtonsRenderer: {
+    dislikeButton: ytv_ren(),
+    likeButton: ytv_ren(),
+    replyButton: ytv_ren(),
+    shareButton: ytv_ren(),
+    style: ytv_str(['COMMENT_ACTION_BUTTON_STYLE_TYPE_DESKTOP_TOOLBAR'])
   },
   commentRepliesRenderer: {
     contents: ytv_arr(ytv_ren()),
@@ -1204,6 +1213,55 @@ export const YTRendererSchemaMap = {
     title: ytv_sch(YTTextSchema),
     visibilityButton: ytv_ren(),
   },
+  expandableMetadataRenderer: {
+    collapseButton: ytv_ren(),
+    colorData: ytv_sch({
+      darkColorPalette: ytv_sch({
+        section1Color: ytv_num(),
+        section2Color: ytv_num(),
+        section3Color: ytv_num(),
+        primaryTitleColor: ytv_num(),
+        secondaryTitleColor: ytv_num(),
+        iconActivatedColor: ytv_num(),
+        iconInactiveColor: ytv_num(),
+        section4Color: ytv_num(),
+        iconDisabledColor: ytv_num()
+      }),
+      lightColorPalette: ytv_sch({
+        section1Color: ytv_num(),
+        section2Color: ytv_num(),
+        section3Color: ytv_num(),
+        primaryTitleColor: ytv_num(),
+        secondaryTitleColor: ytv_num(),
+        iconActivatedColor: ytv_num(),
+        iconInactiveColor: ytv_num(),
+        section4Color: ytv_num(),
+        iconDisabledColor: ytv_num()
+      }),
+      vibrantColorPalette: ytv_sch({
+        section1Color: ytv_num(),
+        section2Color: ytv_num(),
+        section3Color: ytv_num(),
+        primaryTitleColor: ytv_num(),
+        secondaryTitleColor: ytv_num(),
+        iconActivatedColor: ytv_num(),
+        iconInactiveColor: ytv_num(),
+        section4Color: ytv_num(),
+        iconDisabledColor: ytv_num()
+      })
+    }),
+    expandButton: ytv_ren(),
+    expandedContent: ytv_ren(),
+    header: ytv_sch({
+      collapsedLabel: ytv_sch(YTTextSchema),
+      collapsedThumbnail: ytv_sch(YTThumbnailSchema),
+      collapsedTitle: ytv_sch(YTTextSchema),
+      expandedTitle: ytv_sch(YTTextSchema),
+      showLeadingCollapsedLabel: ytv_bol()
+    }),
+    loggingDirectives: ytv_ren(YTLoggingDirectivesSchema),
+    useCustomColors: ytv_bol()
+  },
   expandableTabRenderer: {
     endpoint: ytv_enp(),
     expandedText: ytv_str(),
@@ -1359,6 +1417,7 @@ export const YTRendererSchemaMap = {
     hintCap: ytv_sch({
       impressionCap: ytv_str()
     }),
+    hintId: ytv_str(),
     suggestedPosition: ytv_sch({
       type: ytv_str(['HINT_SUGGESTED_POSITION_TYPE_ABOVE', 'HINT_SUGGESTED_POSITION_TYPE_BELOW'])
     })
@@ -1367,6 +1426,8 @@ export const YTRendererSchemaMap = {
     cards: ytv_arr(ytv_ren()),
     footerButton: ytv_ren(),
     header: ytv_ren(),
+    nextButton: ytv_ren(),
+    previousButton: ytv_ren(),
     style: ytv_sch({
       type: ytv_str(['HORIZONTAL_CARD_LIST_STYLE_TYPE_ENGAGEMENT_PANEL_SECTION'])
     })
@@ -1726,6 +1787,7 @@ export const YTRendererSchemaMap = {
       section4Color: ytv_num()
     }),
     endRepeatCommand: ytv_enp(),
+    isHighlighted: ytv_bol(),
     layout: ytv_str(['MACRO_MARKERS_LIST_ITEM_RENDERER_LAYOUT_VERTICAL']),
     lightColorPalette: ytv_sch({
       primaryTitleColor: ytv_num(),
@@ -1800,6 +1862,7 @@ export const YTRendererSchemaMap = {
     isDisabled: ytv_bol(),
     items: ytv_arr(ytv_ren()),
     loggingDirectives: ytv_ren(YTLoggingDirectivesSchema),
+    menuPopupAccessibility: ytv_sch(YTAccessibilityDataSchema),
     targetId: ytv_str(),
     topLevelButtons: ytv_arr(ytv_ren())
   },
@@ -2189,6 +2252,22 @@ export const YTRendererSchemaMap = {
     header: ytv_ren(),
     liveChatPollId: ytv_str()
   },
+  postRenderer: {
+    actionButtons: ytv_ren(),
+    actionMenu: ytv_ren(),
+    authorEndpoint: ytv_enp(),
+    authorText: ytv_sch(YTTextSchema),
+    authorThumbnail: ytv_sch(YTThumbnailSchema),
+    backstageAttachment: ytv_ren(),
+    contentText: ytv_sch(YTTextSchema),
+    loggingDirectives: ytv_ren(YTLoggingDirectivesSchema),
+    navigationEndpoint: ytv_enp(),
+    postId: ytv_str(),
+    publishedTimeText: ytv_sch(YTTextSchema),
+    surface: ytv_str(['BACKSTAGE_SURFACE_TYPE_SEARCH']),
+    voteCount: ytv_sch(YTTextSchema),
+    voteStatus: ytv_str(['INDIFFERENT'])
+  },
   productListHeaderRenderer: {
     suppressPaddingDisclaimer: ytv_bol(),
     title: ytv_sch(YTTextSchema)
@@ -2334,6 +2413,7 @@ export const YTRendererSchemaMap = {
   searchFilterRenderer: {
     label: ytv_sch(YTTextSchema),
     navigationEndpoint: ytv_enp(),
+    status: ytv_str(['FILTER_STATUS_SELECTED']),
     tooltip: ytv_str()
   },
   searchHeaderRenderer: {
@@ -2561,6 +2641,7 @@ export const YTRendererSchemaMap = {
     accessibility: ytv_sch(YTAccessibilityDataSchema),
     accessibilityData: ytv_sch(YTAccessibilitySchema),
     defaultIcon: ytv_sch(YTIconSchema),
+    defaultNavigationEndpoint: ytv_enp(),
     defaultServiceEndpoint: ytv_enp(),
     defaultText: ytv_sch(YTTextSchema),
     defaultTooltip: ytv_str(),
@@ -2575,6 +2656,7 @@ export const YTRendererSchemaMap = {
       })
     }),
     toggledIcon: ytv_sch(YTIconSchema),
+    toggledNavigationEndpoint: ytv_enp(),
     toggledServiceEndpoint: ytv_enp(),
     toggledStyle: ytv_ren(YTStyleSchema),
     toggledText: ytv_sch(YTTextSchema),
@@ -2700,6 +2782,8 @@ export const YTRendererSchemaMap = {
     badges: ytv_arr(ytv_ren()),
     channelThumbnailSupportedRenderers: ytv_ren(),
     descriptionSnippet: ytv_sch(YTTextSchema),
+    detailedMetadataSnippets: ytv_arr(ytv_unk()),
+    expandableMetadata: ytv_ren(),
     inlinePlaybackEndpoint: ytv_enp(),
     isWatched: ytv_bol(),
     lengthText: ytv_sch(YTTextSchema),
@@ -2710,6 +2794,7 @@ export const YTRendererSchemaMap = {
     ownerText: ytv_sch(YTTextSchema),
     publishedTimeText: ytv_sch(YTTextSchema),
     richThumbnail: ytv_ren(),
+    searchVideoResultEntityKey: ytv_str(),
     shortBylineText: ytv_sch(YTTextSchema),
     shortViewCountText: ytv_sch(YTTextSchema),
     showActionMenu: ytv_bol(),
@@ -2916,11 +3001,16 @@ export const YTRendererSchemaMap = {
     secondaryButton: ytv_ren(YTButtonViewModelSchema),
     title: ytv_ren(YTTextViewModelSchema)
   },
-  buttonViewModel: YTButtonViewModelSchema,
   buttonBannerViewModel: {
     ctaButton: ytv_ren(),
     subtext: ytv_ren(YTTextViewModelSchema)
   },
+  buttonCardViewModel: {
+    image: ytv_sch(YTImageSchema),
+    rendererContext: ytv_ren(YTRendererContextSchema),
+    title: ytv_str()
+  },
+  buttonViewModel: YTButtonViewModelSchema,
   carouselItemViewModel: {
     carouselItem: ytv_ren(),
     itemType: ytv_str(['VIDEO_METADATA_CAROUSEL_PAGINATION_TYPE_LIVE_CHAT_STATIC_TEXT'])
@@ -3081,6 +3171,11 @@ export const YTRendererSchemaMap = {
     contentImage: ytv_ren(),
     contentType: ytv_str(['LOCKUP_CONTENT_TYPE_ALBUM', 'LOCKUP_CONTENT_TYPE_PLAYLIST']),
     metadata: ytv_ren(),
+    rendererContext: ytv_ren(YTRendererContextSchema)
+  },
+  officialCardViewModel: {
+    backgroundColor: ytv_ren(YTThemedColorSchema),
+    header: ytv_ren(),
     rendererContext: ytv_ren(YTRendererContextSchema)
   },
   pageHeaderViewModel: {
