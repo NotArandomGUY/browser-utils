@@ -253,7 +253,7 @@ class InterceptXMLHttpRequest extends XMLHttpRequest {
       .then(isIntercepted => {
         if (isIntercepted) return
 
-        super.send(body)
+        super.send(this.requestBody)
       })
       .catch(error => {
         logger.warn('send handler error:', error)
