@@ -65,14 +65,14 @@ async function processInnertubeRequest(request: Request, endpoint: string): Prom
       case 'player': {
         const params = new PlayerParams()
         if (typeof data?.params === 'string') {
-          params.deserialize(bufferFromString(atob(decodeURIComponent(data.params)), 'latin1'))
+          params.deserialize(bufferFromString(atob(decodeURIComponent(data.params).replace(/-/g, '+').replace(/_/g, '/')), 'latin1'))
         }
 
         innertubeRequestProcessorMap[endpoint]?.forEach(processor => processor(params))
 
         const encodedParams = params.serialize()
         if (encodedParams.length > 0) {
-          data.params = encodeURIComponent(btoa(bufferToString(encodedParams, 'latin1')))
+          data.params = encodeURIComponent(btoa(bufferToString(encodedParams, 'latin1')).replace(/\+/g, '-').replace(/\//g, '_'))
         } else {
           delete data.params
         }
