@@ -149,14 +149,20 @@ function processUMPPart(part: UMPPart): boolean {
 
       logger.debug('sabr context update:', message)
 
-      if (message.type === 5 && message.scope === UMPSabrContextScope.SABR_CONTEXT_SCOPE_CONTENT_ADS) {
-        const context = new UMPContentAdsSabrContext().deserialize(new UMPSabrContextValue().deserialize(message.value).content)
+      if (message.type === 5 && message.scope === UMPSabrContextScope.SABR_CONTEXT_SCOPE_CONTENT_ADS && message.value != null) {
+        const value = new UMPSabrContextValue().deserialize(message.value)
+        if (value.content == null) return true
+
+        const context = new UMPContentAdsSabrContext().deserialize(value.content)
+
+        const backoffTimeMs = context.backoffTimeMs ?? 0
+        if (backoffTimeMs <= 0) return true
 
         dispatchYTOpenPopupAction({
-          durationHintMs: context.backoffTimeMs,
+          durationHintMs: backoffTimeMs,
           popup: {
             notificationActionRenderer: {
-              responseText: { runs: [{ text: `Waiting for server ad delay (${Math.ceil(context.backoffTimeMs / 1e3)}s)...` }] }
+              responseText: { runs: [{ text: `Waiting for server ad delay (${Math.ceil(backoffTimeMs / 1e3)}s)...` }] }
             }
           },
           popupType: 'TOAST'

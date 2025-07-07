@@ -56,7 +56,7 @@ type ValueData<T extends ValueType> = {
 }[T]
 type FieldData<D extends FieldDefinition> = D[3] extends true ? ValueData<D[1]>[] : ValueData<D[1]>
 type MessageData<D extends MessageDefinition> = {
-  [F in keyof D]: FieldData<D[F]>
+  [F in keyof D]: FieldData<D[F]> | null
 }
 
 function toWireType(valueType: ValueType): WireType {
@@ -167,11 +167,11 @@ function getFieldDefault<
 function getField<D extends MessageDefinition, K extends MessageKey<D>>(
   message: MessageData<D>,
   fieldDefinition: NamedFieldDefinition<D, K>
-): FieldData<D[K]> {
+): FieldData<D[K]> | null {
   const [fieldName, , type] = fieldDefinition
 
   const value = message[fieldName]
-  if (!checkValueType(type, value)) throw new Error('Invalid value')
+  if (value != null && !checkValueType(type, value)) throw new Error('Invalid value')
 
   return value
 }
@@ -179,20 +179,22 @@ function getField<D extends MessageDefinition, K extends MessageKey<D>>(
 function setField<D extends MessageDefinition, K extends MessageKey<D>>(
   message: MessageData<D>,
   fieldDefinition: NamedFieldDefinition<D, K>,
-  value: FieldData<D[K]>
+  value: FieldData<D[K]> | null
 ): void {
   const [fieldName, , type] = fieldDefinition
 
-  if (!checkValueType(type, value)) throw new Error('Invalid value')
+  if (value != null && !checkValueType(type, value)) throw new Error('Invalid value')
 
   message[fieldName] = value
 }
 
 class MessageBase<D extends MessageDefinition> {
   private readonly fieldMap: Map<number, NamedFieldDefinition<D>>
+  private readonly skippedTags: [number, Uint8Array][]
 
   public constructor(messageDefinition: D, initData?: MessageData<D>) {
     this.fieldMap = new Map()
+    this.skippedTags = []
 
     const { fieldMap, reset, serialize, deserialize } = this
 
@@ -222,20 +224,21 @@ class MessageBase<D extends MessageDefinition> {
   }
 
   public reset(): void {
-    const { fieldMap } = this
+    const { fieldMap, skippedTags } = this
 
     assign(this, fromEntries(Array.from(fieldMap.values()).map(f => [f[0], getFieldDefault(f)])))
+    skippedTags.splice(0)
   }
 
   public serialize(): Uint8Array {
-    const { fieldMap } = this
+    const { fieldMap, skippedTags } = this
 
     const message = this as Message<D>
     const stream = new CodedStream()
 
     for (const [fieldTag, fieldDefinition] of fieldMap) {
       const value = getField(message, fieldDefinition)
-      if (value === getFieldDefault(fieldDefinition)) continue
+      if (value == null || value === getFieldDefault(fieldDefinition)) continue
 
       stream.writeUInt32(fieldTag)
       switch (fieldDefinition[2]) {
@@ -289,13 +292,18 @@ class MessageBase<D extends MessageDefinition> {
       }
     }
 
+    for (const [tag, value] of skippedTags) {
+      stream.writeUInt32(tag)
+      stream.writeRawBytes(value)
+    }
+
     return stream.getWriteBuffer()
   }
 
   public deserialize(buffer: Uint8Array | CodedStream): this {
     this.reset()
 
-    const { fieldMap } = this
+    const { fieldMap, skippedTags } = this
 
     const message = this as Message<D>
     const stream = buffer instanceof CodedStream ? buffer : new CodedStream(buffer)
@@ -305,7 +313,9 @@ class MessageBase<D extends MessageDefinition> {
 
       const fieldDefinition = fieldMap.get(tag)
       if (fieldDefinition == null) {
+        const begin = stream.getPosition()
         stream.skipTag(tag)
+        skippedTags.push([tag, stream.getBuffer().slice(begin, stream.getPosition())])
         continue
       }
 
