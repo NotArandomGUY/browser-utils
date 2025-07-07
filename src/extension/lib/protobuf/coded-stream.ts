@@ -328,9 +328,11 @@ export default class CodedStream {
       case WireType.FIXED64:
         this.position += 8
         break
-      case WireType.LENGTH_DELIMITED:
-        this.position += this.readUInt32()
+      case WireType.LENGTH_DELIMITED: {
+        const size = this.readUInt32()
+        this.position += size
         break
+      }
       case WireType.START_GROUP: {
         const startField = getTagFieldNumber(tag)
 
