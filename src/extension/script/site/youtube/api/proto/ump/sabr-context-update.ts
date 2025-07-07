@@ -14,6 +14,12 @@ export const enum UMPSabrContextWritePolicy {
   SABR_CONTEXT_WRITE_POLICY_KEEP_EXISTING = 2
 }
 
+export const UMPSabrContextValue = createMessage({
+  content: [1, ValueType.BYTES],
+  sign: [2, ValueType.BYTES],
+  unknown: [5, ValueType.INT32]
+})
+
 const UMPSabrContextUpdate = createMessage({
   type: [1, ValueType.INT32],
   scope: [2, ValueType.INT32],

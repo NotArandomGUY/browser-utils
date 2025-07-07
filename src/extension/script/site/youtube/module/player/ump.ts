@@ -7,8 +7,11 @@ import Logger from '@ext/lib/logger'
 import CodedStream from '@ext/lib/protobuf/coded-stream'
 import { varint32Encode } from '@ext/lib/protobuf/varint'
 import UMPNextRequestPolicy from '@ext/site/youtube/api/proto/ump/next-request-policy'
-import UMPSabrContextUpdate from '@ext/site/youtube/api/proto/ump/sabr-context-update'
+import UMPSabrContextUpdate, { UMPSabrContextScope, UMPSabrContextValue } from '@ext/site/youtube/api/proto/ump/sabr-context-update'
+import UMPContentAdsSabrContext from '@ext/site/youtube/api/proto/ump/sabr-context/content-ads'
+import UMPSabrError from '@ext/site/youtube/api/proto/ump/sabr-error'
 import UMPSnackbarMessage from '@ext/site/youtube/api/proto/ump/snackbar-message'
+import { dispatchYTOpenPopupAction } from '@ext/site/youtube/module/core/action'
 
 const logger = new Logger('YTPLAYER-UMP')
 
@@ -135,10 +138,30 @@ function processUMPPart(part: UMPPart): boolean {
       logger.debug('next request policy:', message)
       return true
     }
+    case UMPPartType.SABR_ERROR: {
+      const message = new UMPSabrError().deserialize(part.getBuffer())
+
+      logger.warn('sabr error:', message)
+      return true
+    }
     case UMPPartType.SABR_CONTEXT_UPDATE: {
       const message = new UMPSabrContextUpdate().deserialize(part.getBuffer())
 
       logger.debug('sabr context update:', message)
+
+      if (message.type === 5 && message.scope === UMPSabrContextScope.SABR_CONTEXT_SCOPE_CONTENT_ADS) {
+        const context = new UMPContentAdsSabrContext().deserialize(new UMPSabrContextValue().deserialize(message.value).content)
+
+        dispatchYTOpenPopupAction({
+          durationHintMs: context.backoffTimeMs,
+          popup: {
+            notificationActionRenderer: {
+              responseText: { runs: [{ text: `Waiting for server ad delay (${Math.ceil(context.backoffTimeMs / 1e3)}s)...` }] }
+            }
+          },
+          popupType: 'TOAST'
+        })
+      }
       return true
     }
     case UMPPartType.SNACKBAR_MESSAGE: {

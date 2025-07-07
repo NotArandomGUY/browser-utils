@@ -1,9 +1,7 @@
 import { Feature } from '@ext/lib/feature'
-import Logger from '@ext/lib/logger'
 import { YTEndpoint, YTSignalActionType } from '@ext/site/youtube/api/endpoint'
 import { YTEndpointData } from '@ext/site/youtube/api/types/common'
-
-const logger = new Logger('YTCORE-ACTION')
+import { getYTAppElement } from '@ext/site/youtube/module/core/bootstrap'
 
 export type YTActionHandler = (event: YTActionEvent) => void
 
@@ -14,22 +12,27 @@ export interface YTActionEvent {
   returnValue?: unknown[]
 }
 
-let app: Element | null = null
-
 const actionHandlerMap: Record<string, YTActionHandler> = {}
+const actionEventQueue: YTActionEvent[] = []
 
 function getSignalActionName(signal: YTSignalActionType): string {
   return `yt-signal-action-${signal.toLowerCase().replace(/_/g, '-')}`
 }
 
 export function dispatchYTAction(action: YTActionEvent): void {
-  app?.dispatchEvent(new CustomEvent<YTActionEvent>('yt-action', { detail: action }))
+  const appElement = getYTAppElement()
+  if (appElement == null) {
+    actionEventQueue.push(action)
+    return
+  }
+
+  appElement.dispatchEvent(new CustomEvent<YTActionEvent>('yt-action', { detail: action }))
 }
 
 export function dispatchYTOpenPopupAction(data: YTEndpointData<YTEndpoint<'openPopupAction'>>): void {
   dispatchYTAction({
     actionName: 'yt-open-popup-action',
-    args: [{ openPopupAction: data }, app],
+    args: [{ openPopupAction: data }, getYTAppElement()],
     returnValue: []
   })
 }
@@ -53,16 +56,21 @@ export default class YTCoreActionModule extends Feature {
 
   protected activate(): boolean {
     window.addEventListener('load', () => {
-      app = document.querySelector('ytd-app,yt-live-chat-app')
-      if (app == null) {
-        logger.warn('failed to obtain app instance')
-        return
-      }
+      const appElement = getYTAppElement()
+      if (appElement == null) return
 
-      app.addEventListener('yt-action', event => {
+      appElement.addEventListener('yt-action', event => {
+        getYTAppElement()
         const { detail } = event as CustomEvent<YTActionEvent>
         actionHandlerMap[detail.actionName]?.(detail)
       })
+
+      while (true) {
+        const action = actionEventQueue.shift()
+        if (action == null) break
+
+        dispatchYTAction(action)
+      }
     })
 
     return true

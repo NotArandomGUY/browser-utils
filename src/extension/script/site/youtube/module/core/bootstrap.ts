@@ -157,13 +157,15 @@ interface YTSearchboxSettings {
 
 const logger = new Logger('YTCORE-BOOTSTRAP')
 
-const APP_ELEMENT_PAGE_MAP: Record<string, YTInitDataResponse['page']> = {
+const APP_ELEMENT_PAGE_MAP: Record<string, YTInitDataResponse['page'] | false> = {
+  'ytd-app': false,
   'yt-live-chat-app': 'live_chat'
 }
 
 const createPlayerCallbacks: (() => void)[] = []
 
 let ytcfg: YTConfig
+let appElement: HTMLElement | null = null
 
 async function getProcessedInitialCommand(initCommand: YTValueData<{ type: YTValueType.ENDPOINT }>): Promise<YTValueData<{ type: YTValueType.ENDPOINT }>> {
   await processYTValueSchema(ytv_enp(), initCommand, null)
@@ -217,6 +219,10 @@ async function createPlayer(create: (...args: unknown[]) => void, container: HTM
   }
 
   create(container, config, webPlayerContextConfig)
+}
+
+export function getYTAppElement(): HTMLElement | null {
+  return appElement
 }
 
 export function isYTLoggedIn(): boolean {
@@ -401,7 +407,15 @@ export default class YTCoreBootstrapModule extends Feature {
       if (page == null || typeof connectedCallback !== 'function') return HookResult.EXECUTION_IGNORE
 
       customElement.prototype.connectedCallback = new Hook(connectedCallback).install(ctx => {
-        logger.debug('custom element connected', customElement, ctx.self)
+        if (ctx.self instanceof HTMLElement) {
+          appElement = ctx.self
+          logger.debug('app element connected', customElement, appElement)
+        } else {
+          logger.warn('invalid app element type', ctx.self)
+          return HookResult.EXECUTION_IGNORE
+        }
+
+        if (!page) return HookResult.EXECUTION_IGNORE
 
         getProcessedInitialData({ page, response: window.ytInitialData } as YTInitData)
           .catch(error => logger.warn('process initial data error:', error))
