@@ -5,6 +5,7 @@ import { HookResult } from '@ext/lib/intercept/hook'
 import Logger from '@ext/lib/logger'
 import { removeYTEndpointPre, YTEndpoint, YTEndpointData, YTEndpointSchemaMap } from '@ext/site/youtube/api/endpoint'
 import { registerYTRendererPreProcessor, removeYTRendererPost, removeYTRendererPre, YTRenderer, YTRendererData, YTRendererSchemaMap } from '@ext/site/youtube/api/renderer'
+import { registerYTInnertubeRequestProcessor } from '@ext/site/youtube/module/core/network'
 
 const logger = new Logger('YTMISCS-ADS')
 
@@ -34,6 +35,11 @@ export default class YTMiscsAdsModule extends Feature {
     removeYTRendererPost(YTRendererSchemaMap['adPlayerOverlayRenderer'])
     removeYTRendererPost(YTRendererSchemaMap['adSlotRenderer'])
     removeYTRendererPost(YTRendererSchemaMap['topBannerImageTextIconButtonedLayoutViewModel'])
+
+    registerYTInnertubeRequestProcessor('player', params => {
+      params.isInlinePlaybackMuted = false
+      params.isInlinePlayback = true
+    })
 
     InterceptDOM.setAppendChildCallback(ctx => {
       const node = ctx.args[0]

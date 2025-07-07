@@ -1,5 +1,6 @@
 import { floor, random } from '@ext/global/math'
 import { assign, defineProperty, entries, fromEntries, getOwnPropertyDescriptor } from '@ext/global/object'
+import { bufferFromString, bufferToString } from '@ext/lib/buffer'
 import { Feature } from '@ext/lib/feature'
 import { preventDispatchEvent } from '@ext/lib/intercept/event'
 import InterceptImage from '@ext/lib/intercept/image'
@@ -7,6 +8,7 @@ import { addInterceptNetworkCallback, NetworkContext, NetworkContextState, Netwo
 import Logger from '@ext/lib/logger'
 import { buildPathnameRegexp } from '@ext/lib/regexp'
 import { processYTRenderer } from '@ext/site/youtube/api/processor'
+import PlayerParams from '@ext/site/youtube/api/proto/player-params'
 import { YTRendererSchemaMap } from '@ext/site/youtube/api/renderer'
 import { isYTLoggedIn } from '@ext/site/youtube/module/core/bootstrap'
 
@@ -39,9 +41,72 @@ const LOGIN_WHITELIST_PATH = buildPathnameRegexp([
   '/api/stats/(playback|delayplay|watchtime)'
 ])
 
-const bypassIdSet = new Set<number>()
+type InnertubeRequestProcessorParamsMap = {
+  'player': [params: InstanceType<typeof PlayerParams>]
+}
+type InnertubeRequestEndpoint = keyof InnertubeRequestProcessorParamsMap
+type InnertubeRequestProcessorParams<E extends InnertubeRequestEndpoint> = InnertubeRequestProcessorParamsMap[E]
 
-function processRequest(ctx: NetworkRequestContext): void {
+export type InnertubeRequestProcessor<E extends InnertubeRequestEndpoint> = (...args: InnertubeRequestProcessorParams<E>) => Promise<void> | void
+
+const bypassIdSet = new Set<number>()
+const innertubeRequestProcessorMap: { [E in InnertubeRequestEndpoint]?: Set<InnertubeRequestProcessor<E>> } = {}
+
+async function processInnertubeRequest(request: Request, endpoint: string): Promise<Request> {
+  let data = null
+  try {
+    data = await request.clone().json()
+  } catch {
+    return request
+  }
+
+  try {
+    switch (endpoint) { // NOSONAR: add more endpoints later
+      case 'player': {
+        const params = new PlayerParams()
+        if (typeof data?.params === 'string') {
+          params.deserialize(bufferFromString(atob(decodeURIComponent(data.params)), 'latin1'))
+        }
+
+        innertubeRequestProcessorMap[endpoint]?.forEach(processor => processor(params))
+
+        const encodedParams = params.serialize()
+        if (encodedParams.length > 0) {
+          data.params = encodeURIComponent(btoa(bufferToString(encodedParams, 'latin1')))
+        } else {
+          delete data.params
+        }
+        break
+      }
+    }
+  } catch (error) {
+    logger.warn('process innertube request error:', error)
+  }
+
+  return new Request(request.url, {
+    method: request.method,
+    headers: request.headers,
+    body: JSON.stringify(data)
+  })
+}
+
+async function processInnertubeResponse(response: Response, endpoint: string): Promise<Response> {
+  let data = null
+  try {
+    data = await response.clone().json()
+  } catch {
+    return response
+  }
+
+  const renderer = `${endpoint.replace(/[/_][a-z]/g, s => s[1].toUpperCase())}Response` as keyof typeof YTRendererSchemaMap
+  await processYTRenderer(renderer, data)
+
+  logger.debug('innertube response:', endpoint, data)
+
+  return new Response(JSON.stringify(data), { status: response.status, headers: fromEntries(response.headers.entries()) })
+}
+
+async function processRequest(ctx: NetworkRequestContext): Promise<void> {
   const { url, request } = ctx
 
   const bypassId = Number(request != null && BYPASS_ID in request ? request[BYPASS_ID] : null)
@@ -78,22 +143,11 @@ function processRequest(ctx: NetworkRequestContext): void {
   }
 
   logger.debug('network request:', url.href)
-}
 
-async function processInnertubeResponse(response: Response, endpoint: string): Promise<Response> {
-  let data = null
-  try {
-    data = await response.clone().json()
-  } catch {
-    return response
-  }
+  const innertubeEndpoint = INNERTUBE_API_REGEXP.exec(url.pathname)?.[0]
+  if (innertubeEndpoint == null) return
 
-  const renderer = `${endpoint.replace(/[/_][a-z]/g, s => s[1].toUpperCase())}Response` as keyof typeof YTRendererSchemaMap
-  await processYTRenderer(renderer, data)
-
-  logger.debug('innertube response:', endpoint, data)
-
-  return new Response(JSON.stringify(data), { status: response.status, headers: fromEntries(response.headers.entries()) })
+  ctx.request = await processInnertubeRequest(request, innertubeEndpoint)
 }
 
 async function processResponse(ctx: NetworkContext<unknown, NetworkState.SUCCESS>): Promise<void> {
@@ -116,6 +170,16 @@ export function bypassFetch(input: string, init: RequestInit = {}): Promise<Resp
   return fetch(request)
 }
 
+export function registerYTInnertubeRequestProcessor<E extends InnertubeRequestEndpoint>(endpoint: E, processor: InnertubeRequestProcessor<E>): void {
+  let processors = innertubeRequestProcessorMap[endpoint]
+  if (processors == null) {
+    processors = new Set()
+    innertubeRequestProcessorMap[endpoint] = processors
+  }
+
+  processors.add(processor)
+}
+
 export default class YTCoreNetworkModule extends Feature {
   public constructor() {
     super('core-network')
@@ -129,7 +193,7 @@ export default class YTCoreNetworkModule extends Feature {
     addInterceptNetworkCallback(async ctx => {
       switch (ctx.state) {
         case NetworkState.UNSENT:
-          processRequest(ctx)
+          await processRequest(ctx)
           break
         case NetworkState.SUCCESS:
           await processResponse(ctx)

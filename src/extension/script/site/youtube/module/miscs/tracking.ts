@@ -1,5 +1,6 @@
 import { Feature } from '@ext/lib/feature'
 import { registerYTRendererPreProcessor, setYTServiceTrackingOverride, YTLoggingDirectivesSchema, YTRenderer, YTRendererData, YTRendererSchemaMap } from '@ext/site/youtube/api/renderer'
+import { registerYTInnertubeRequestProcessor } from '@ext/site/youtube/module/core/network'
 
 function updateLoggingDirectives(data: YTRendererData<typeof YTLoggingDirectivesSchema>): boolean {
   delete data.clientVeSpec
@@ -29,6 +30,10 @@ export default class YTMiscsTrackingModule extends Feature {
 
     registerYTRendererPreProcessor(YTLoggingDirectivesSchema, updateLoggingDirectives)
     registerYTRendererPreProcessor(YTRendererSchemaMap['playerResponse'], updatePlayerResponse)
+
+    registerYTInnertubeRequestProcessor('player', params => {
+      params.searchQuery = null
+    })
 
     return true
   }
