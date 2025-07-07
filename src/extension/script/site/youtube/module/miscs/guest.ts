@@ -29,12 +29,6 @@ function updateVideoOwnerRenderer(data: YTRendererData<YTRenderer<'videoOwnerRen
   return true
 }
 
-function updatePageHeaderViewModel(data: YTRendererData<YTRenderer<'pageHeaderViewModel'>>): boolean {
-  if (!isYTLoggedIn()) delete data.actions
-
-  return true
-}
-
 function filterMenuFlexibleItem(data: YTRendererData<YTRenderer<'menuFlexibleItemRenderer'>>): boolean {
   return isYTLoggedIn() || !['PLAYLIST_ADD'].includes(data.menuItem?.menuServiceItemRenderer?.icon?.iconType ?? '')
 }
@@ -48,13 +42,13 @@ export default class YTMiscsGuestModule extends Feature {
     registerYTRendererPreProcessor(YTRendererSchemaMap['channelRenderer'], updateChannelRenderer)
     registerYTRendererPreProcessor(YTRendererSchemaMap['feedNudgeRenderer'], updateFeedNudgeRenderer)
     registerYTRendererPreProcessor(YTRendererSchemaMap['gridChannelRenderer'], updateChannelRenderer)
-    registerYTRendererPreProcessor(YTRendererSchemaMap['pageHeaderViewModel'], updatePageHeaderViewModel)
     registerYTRendererPreProcessor(YTRendererSchemaMap['videoOwnerRenderer'], updateVideoOwnerRenderer)
 
     removeYTRendererPre(YTRendererSchemaMap['commentSimpleboxRenderer'], isYTLoggedIn)
     removeYTRendererPre(YTRendererSchemaMap['menuFlexibleItemRenderer'], filterMenuFlexibleItem)
     removeYTRendererPre(YTRendererSchemaMap['segmentedLikeDislikeButtonViewModel'], isYTLoggedIn)
     removeYTRendererPre(YTRendererSchemaMap['subscribeButtonRenderer'], isYTLoggedIn)
+    removeYTRendererPre(YTRendererSchemaMap['subscribeButtonViewModel'], isYTLoggedIn)
 
     return true
   }
