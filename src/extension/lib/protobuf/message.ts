@@ -196,7 +196,7 @@ class MessageBase<D extends MessageDefinition> {
     this.fieldMap = new Map()
     this.skippedTags = []
 
-    const { fieldMap, reset, serialize, deserialize } = this
+    const { fieldMap, skippedTags, reset, serialize, deserialize } = this
 
     for (const fieldName in messageDefinition) {
       const fieldDefinition = [fieldName, ...messageDefinition[fieldName] as FieldDefinition] as NamedFieldDefinition<D>
@@ -217,6 +217,7 @@ class MessageBase<D extends MessageDefinition> {
 
     defineProperties(this, {
       fieldMap: { configurable: false, enumerable: false, value: fieldMap, writable: false },
+      skippedTags: { configurable: false, enumerable: false, value: skippedTags, writable: false },
       reset: { configurable: false, enumerable: false, value: reset.bind(this), writable: false },
       serialize: { configurable: false, enumerable: false, value: serialize.bind(this), writable: false },
       deserialize: { configurable: false, enumerable: false, value: deserialize.bind(this), writable: false }
