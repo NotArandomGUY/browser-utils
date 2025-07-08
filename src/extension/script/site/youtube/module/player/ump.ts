@@ -6,6 +6,7 @@ import { addInterceptNetworkCallback, NetworkContext, NetworkContextState, Netwo
 import Logger from '@ext/lib/logger'
 import CodedStream from '@ext/lib/protobuf/coded-stream'
 import { varint32Encode } from '@ext/lib/protobuf/varint'
+import UMPMediaHeader from '@ext/site/youtube/api/proto/ump/media-header'
 import UMPNextRequestPolicy from '@ext/site/youtube/api/proto/ump/next-request-policy'
 import UMPSabrContextUpdate, { UMPSabrContextScope, UMPSabrContextValue } from '@ext/site/youtube/api/proto/ump/sabr-context-update'
 import UMPContentAdsSabrContext from '@ext/site/youtube/api/proto/ump/sabr-context/content-ads'
@@ -57,6 +58,8 @@ const enum UMPPartType {
 }
 
 const partialPartMap: Map<UMPPartType, UMPPart> = new Map()
+
+let isFirstInterrupt = true
 
 class UMPPart {
   private readonly chunks: Uint8Array[]
@@ -132,6 +135,12 @@ function removeChunk(stream: CodedStream, position: number, size: number): void 
 
 function processUMPPart(part: UMPPart): boolean {
   switch (part.getType()) {
+    case UMPPartType.MEDIA_HEADER: {
+      const message = new UMPMediaHeader().deserialize(part.getBuffer())
+
+      logger.debug('media header:', message)
+      return true
+    }
     case UMPPartType.NEXT_REQUEST_POLICY: {
       const message = new UMPNextRequestPolicy().deserialize(part.getBuffer())
 
@@ -157,6 +166,11 @@ function processUMPPart(part: UMPPart): boolean {
 
         const backoffTimeMs = context.backoffTimeMs ?? 0
         if (backoffTimeMs <= 0) return true
+
+        if (isFirstInterrupt) {
+          isFirstInterrupt = false
+          throw new Response(null, { status: 403 })
+        }
 
         dispatchYTOpenPopupAction({
           durationHintMs: backoffTimeMs,
@@ -234,6 +248,11 @@ async function processUMPResponse(ctx: NetworkContext<unknown, NetworkState.SUCC
       }
     }
   } catch (error) {
+    if (error instanceof Response) {
+      ctx.response = error
+      return
+    }
+
     if (!(error instanceof RangeError)) logger.error('process response error:', error)
   }
 
