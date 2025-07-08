@@ -162,7 +162,7 @@ const APP_ELEMENT_PAGE_MAP: Record<string, YTInitDataResponse['page'] | false> =
   'yt-live-chat-app': 'live_chat'
 }
 
-const createPlayerCallbacks: (() => void)[] = []
+const createPlayerCallbacks: ((container: HTMLElement) => void)[] = []
 
 let ytcfg: YTConfig
 let appElement: HTMLElement | null = null
@@ -213,7 +213,7 @@ async function createPlayer(create: (...args: unknown[]) => void, container: HTM
   logger.debug('create player:', container, config, webPlayerContextConfig)
 
   try {
-    createPlayerCallbacks.forEach(callback => callback())
+    createPlayerCallbacks.forEach(callback => callback(container))
   } catch (error) {
     logger.warn('before create player callback error:', error)
   }
@@ -229,7 +229,7 @@ export function isYTLoggedIn(): boolean {
   return ytcfg?.get('LOGGED_IN', false) ?? false
 }
 
-export function registerCreateYTPlayerCallback(callback: () => void): void {
+export function registerCreateYTPlayerCallback(callback: (container: HTMLElement) => void): void {
   createPlayerCallbacks.push(callback)
 }
 

@@ -124,9 +124,9 @@ function onCreateInstance(instance: object): boolean {
   return true
 }
 
-function onCreateYTPlayer(): void {
+function onCreateYTPlayer(container: HTMLElement): void {
   Object.prototype.hasOwnProperty = new Hook(Object.prototype.hasOwnProperty).install(ctx => { // NOSONAR
-    if (ctx.self instanceof HTMLDivElement && (ctx.self.id === 'player-api' || ctx.self.classList.contains('ytd-player'))) {
+    if (ctx.self === container) {
       Function.prototype.call = new Hook(Function.prototype.call).install(ctx => { // NOSONAR
         const fn = ctx.self.toString()
         const instance = ctx.args[0]
