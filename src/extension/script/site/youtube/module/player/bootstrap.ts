@@ -47,10 +47,12 @@ const instances: Partial<{
   [YTPInstanceType.VIDEO_PLAYER]: YTPVideoPlayerInstance
 }> = {}
 
-function onCreateLogger(instance: object): void {
+function onCreateLogger(instance: object): boolean {
+  if (instance == null || 'logger' in instance) return false
+
   const proto = getPrototypeOf(instance)
 
-  if (proto[LOGGER_OVERRIDE_ID]) return
+  if (proto[LOGGER_OVERRIDE_ID]) return true
   proto[LOGGER_OVERRIDE_ID] = true
 
   // Override logger methods
@@ -67,6 +69,8 @@ function onCreateLogger(instance: object): void {
       method.apply(instance, args)
     }
   })
+
+  return true
 }
 
 function onCreateAppInstance(instance?: YTPAppInstance): void {
@@ -100,13 +104,13 @@ function onCreateInstance(instance: object): boolean {
   defineProperty(instance, 'logger', {
     configurable: true,
     set(logger) {
-      onCreateLogger(logger)
-
       defineProperty(instance, 'logger', {
         configurable: true,
         writable: true,
         value: logger
       })
+
+      if (!onCreateLogger(logger)) return
 
       setTimeout(() => {
         switch (logger?.tag) {
