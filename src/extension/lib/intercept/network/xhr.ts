@@ -53,9 +53,13 @@ async function handleXHRSend(this: InterceptXMLHttpRequest): Promise<boolean> {
     case NetworkState.FAILED:
       await handleXHRError.call(this)
       break
-    default:
-      this.requestBody = await ctx.request.clone().blob()
+    default: {
+      const request = ctx.request.clone()
+      this.requestMethod = request.method
+      this.requestHeaders = Object.fromEntries(request.headers.entries())
+      this.requestBody = await request.blob()
       return false
+    }
   }
 
   return true
@@ -233,8 +237,6 @@ class InterceptXMLHttpRequest extends XMLHttpRequest {
 
   public setRequestHeader(name: string, value: string): void {
     this.requestHeaders[name] = value
-
-    super.setRequestHeader(name, value)
   }
 
   public open(method: string, url: string | URL): void {
@@ -253,7 +255,12 @@ class InterceptXMLHttpRequest extends XMLHttpRequest {
       .then(isIntercepted => {
         if (isIntercepted) return
 
-        super.send(this.requestBody)
+        const { requestHeaders, requestBody } = this
+
+        for (const name in requestHeaders) {
+          super.setRequestHeader(name, requestHeaders[name])
+        }
+        super.send(requestBody)
       })
       .catch(error => {
         logger.warn('send handler error:', error)
