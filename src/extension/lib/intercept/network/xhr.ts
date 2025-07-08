@@ -17,6 +17,7 @@ const XHR_EVENT_MAP = {
   onloadend: 'loadend',
   onloadstart: 'loadstart',
   onprogress: 'progress',
+  onreadystatechange: 'readystatechange',
   ontimeout: 'timeout'
 } as const
 
@@ -147,7 +148,7 @@ class InterceptXMLHttpRequest extends XMLHttpRequest {
     this.addEventListener('timeout', handleXHRError.bind(this))
     this.addEventListener('load', handleXHRLoad.bind(this))
 
-    const eventTarget = new InterceptEventTargetAdapter<XMLHttpRequestEventTarget, XMLHttpRequestEventMap>(new EventTarget())
+    const eventTarget = new InterceptEventTargetAdapter<XMLHttpRequest, XMLHttpRequestEventMap>(new EventTarget())
     const externalData: Record<string | symbol, unknown> = {}
     const prototype = (nativeXHR ?? window.XMLHttpRequest).prototype
 
