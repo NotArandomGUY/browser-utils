@@ -138,6 +138,7 @@ class InterceptXMLHttpRequest extends XMLHttpRequest {
     this.requestBody = null
     this.overrideReadyState = 0
     this.overrideStatus = null
+    this.overrideHeaders = null
     this.overrideResponse = null
 
     this.addEventListener('readystatechange', handleXHRReadyStateChange.bind(this))
@@ -239,6 +240,14 @@ class InterceptXMLHttpRequest extends XMLHttpRequest {
     this.requestHeaders[name] = value
   }
 
+  public getAllResponseHeaders(): string {
+    const { overrideHeaders } = this
+
+    if (overrideHeaders == null) return super.getAllResponseHeaders()
+
+    return overrideHeaders
+  }
+
   public open(method: string, url: string | URL): void {
     if (typeof url === 'string') url = new URL(url, location.href)
 
@@ -311,6 +320,7 @@ class InterceptXMLHttpRequest extends XMLHttpRequest {
         const { response } = ctx
 
         this.overrideStatus = response.status
+        this.overrideHeaders = Array.from(response.headers.entries()).map(e => `${e[0]}: ${e[1]}`).join('\r\n')
         this.overrideResponse = await response.arrayBuffer()
         break
       }
@@ -328,6 +338,7 @@ class InterceptXMLHttpRequest extends XMLHttpRequest {
   private readonly eventTarget: InterceptEventTargetAdapter<XMLHttpRequestEventTarget, XMLHttpRequestEventMap>
   private overrideReadyState: number
   private overrideStatus: number | null
+  private overrideHeaders: string | null
   private overrideResponse: ArrayBuffer | null
 }
 
