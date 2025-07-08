@@ -37,6 +37,8 @@ export default class YTMiscsAdsModule extends Feature {
     removeYTRendererPost(YTRendererSchemaMap['topBannerImageTextIconButtonedLayoutViewModel'])
 
     registerYTInnertubeRequestProcessor('player', params => {
+      if (params.isInlinePlayback) return
+
       params.isInlinePlaybackMuted = false
       params.isInlinePlayback = true
     })
