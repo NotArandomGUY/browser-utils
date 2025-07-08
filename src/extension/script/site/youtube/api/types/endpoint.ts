@@ -239,6 +239,7 @@ export const YTEntityMutationPayloadSchema = {
     key: ytv_str(),
     likeCommand: ytv_enp(),
     menuCommand: ytv_enp(),
+    prepareAccountCommand: ytv_enp(),
     replyCommand: ytv_enp(),
     undislikeCommand: ytv_enp(),
     unlikeCommand: ytv_enp()
@@ -774,7 +775,7 @@ export const YTEndpointSchemaMap = {
   setSettingEndpoint: {
     boolValue: ytv_bol(),
     settingItemId: ytv_str(),
-    settingItemIdForClient: ytv_str(['AUTONAV_FOR_DESKTOP'])
+    settingItemIdForClient: ytv_str(['AUTONAV_FOR_DESKTOP', 'AUTONAV_FOR_SIGN_OUT'])
   },
   shareEntityEndpoint: {
     serializedShareEntity: ytv_str(),
@@ -799,6 +800,7 @@ export const YTEndpointSchemaMap = {
     }),
     forcePortrait: ytv_bol(),
     globalConfiguration: ytv_sch({
+      initialState: ytv_ren(),
       params: ytv_str()
     }),
     identifier: ytv_sch(YTEngagementPanelIdentifier),
@@ -895,6 +897,10 @@ export const YTEndpointSchemaMap = {
         countdownUiRelativeSecondsPrefetchCondition: ytv_num(),
         playbackRelativeSecondsPrefetchCondition: ytv_num(),
         prefetchPriority: ytv_num()
+      }),
+      sabrPrefetchEndpointConfig: ytv_sch({
+        disablePrefetch: ytv_bol(),
+        maximumAllowableTimeMsBeforePlaybackToPrefetch: ytv_num()
       })
     })
   },

@@ -3,6 +3,19 @@ import { YTEndpointSchemaMap } from './endpoint'
 import { YTIconSchema, YTIconType } from './icon'
 import { YTSizeSchema, YTSizeType } from './size'
 
+export enum YTAdLayoutType {
+  LAYOUT_TYPE_COMPOSITE_PLAYER_BYTES = 'LAYOUT_TYPE_COMPOSITE_PLAYER_BYTES',
+  LAYOUT_TYPE_DISPLAY_SQUARE_IMAGE = 'LAYOUT_TYPE_DISPLAY_SQUARE_IMAGE',
+  LAYOUT_TYPE_ENDCAP = 'LAYOUT_TYPE_ENDCAP',
+  LAYOUT_TYPE_LANDSCAPE_RECTANGLE = 'LAYOUT_TYPE_LANDSCAPE_RECTANGLE',
+  LAYOUT_TYPE_MEDIA = 'LAYOUT_TYPE_MEDIA',
+  LAYOUT_TYPE_MEDIA_BREAK = 'LAYOUT_TYPE_MEDIA_BREAK',
+  LAYOUT_TYPE_MEDIA_LAYOUT_PLAYER_OVERLAY = 'LAYOUT_TYPE_MEDIA_LAYOUT_PLAYER_OVERLAY',
+  LAYOUT_TYPE_PANEL = 'LAYOUT_TYPE_PANEL',
+  LAYOUT_TYPE_VIDEO_DISPLAY_BUTTON_GROUP = 'LAYOUT_TYPE_VIDEO_DISPLAY_BUTTON_GROUP',
+  LAYOUT_TYPE_VIDEO_DISPLAY_COMPACT_BUTTON_GROUP = 'LAYOUT_TYPE_VIDEO_DISPLAY_COMPACT_BUTTON_GROUP'
+}
+
 export enum YTButtonStyle {
   STYLE_BLUE_TEXT = 'STYLE_BLUE_TEXT',
   STYLE_BRAND = 'STYLE_BRAND',
@@ -57,13 +70,18 @@ export const YTAdLayoutLoggingDataSchema = {
 export const YTAdLayoutMetadataSchema = {
   adLayoutLoggingData: ytv_ren(YTAdLayoutLoggingDataSchema),
   layoutId: ytv_str(),
-  layoutType: ytv_str(['LAYOUT_TYPE_COMPOSITE_PLAYER_BYTES', 'LAYOUT_TYPE_LANDSCAPE_RECTANGLE', 'LAYOUT_TYPE_MEDIA', 'LAYOUT_TYPE_MEDIA_LAYOUT_PLAYER_OVERLAY', 'LAYOUT_TYPE_VIDEO_DISPLAY_BUTTON_GROUP', 'LAYOUT_TYPE_VIDEO_DISPLAY_COMPACT_BUTTON_GROUP'])
+  layoutType: ytv_str(YTAdLayoutType)
 } satisfies YTRendererSchema
 
 export const YTColorPaletteDataSchema = {
   backgroundColor: ytv_num(),
   foregroundBodyColor: ytv_num(),
   foregroundTitleColor: ytv_num()
+} satisfies YTRendererSchema
+
+export const YTLayoutExitedForReasonTrigger = {
+  layoutExitReason: ytv_str(['LAYOUT_EXIT_REASON_ERROR', 'LAYOUT_EXIT_REASON_NORMAL']),
+  triggeringLayoutId: ytv_str()
 } satisfies YTRendererSchema
 
 export const YTMediaFormatRangeSchema = {
@@ -679,6 +697,9 @@ export const YTRendererSchemaMap = {
       id: ytv_str(),
       layoutIdExitedTrigger: ytv_sch({
         triggeringLayoutId: ytv_str()
+      }),
+      onDifferentLayoutIdEnteredTrigger: ytv_sch({
+        layoutType: ytv_str(YTAdLayoutType)
       })
     })),
     renderingContent: ytv_ren()
@@ -741,12 +762,14 @@ export const YTRendererSchemaMap = {
     slotEntryTrigger: ytv_sch({
       beforeContentVideoIdStartedTrigger: ytv_unk(),
       id: ytv_str(),
+      layoutExitedForReasonTrigger: ytv_sch(YTLayoutExitedForReasonTrigger),
       layoutIdEnteredTrigger: ytv_sch({
         triggeringLayoutId: ytv_str()
       })
     }),
     slotExpirationTriggers: ytv_arr(ytv_sch({
       id: ytv_str(),
+      layoutExitedForReasonTrigger: ytv_sch(YTLayoutExitedForReasonTrigger),
       onNewPlaybackAfterContentVideoIdTrigger: ytv_unk(),
       slotIdExitedTrigger: ytv_sch({
         triggeringSlotId: ytv_str()
@@ -755,6 +778,9 @@ export const YTRendererSchemaMap = {
     slotFulfillmentTriggers: ytv_arr(ytv_sch({
       id: ytv_str(),
       slotIdEnteredTrigger: ytv_sch({
+        triggeringSlotId: ytv_str()
+      }),
+      slotIdScheduledTrigger: ytv_sch({
         triggeringSlotId: ytv_str()
       })
     }))
@@ -1191,6 +1217,7 @@ export const YTRendererSchemaMap = {
   engagementPanelSectionListRenderer: {
     content: ytv_ren(),
     continuationService: ytv_str(['ENGAGEMENT_PANEL_CONTINUATION_SERVICE_BROWSE']),
+    disablePullRefresh: ytv_bol(),
     header: ytv_ren(),
     identifier: ytv_sch(YTEngagementPanelIdentifier),
     loggingDirectives: ytv_ren(YTLoggingDirectivesSchema),
