@@ -52,8 +52,11 @@ export const YTResponseCommonSchema = {
   actions: ytv_arr(ytv_enp()),
   command: ytv_enp(),
   frameworkUpdates: ytv_enp(YTEndpointSchemaMap['entityUpdateCommand']),
+  onResponseReceivedAction: ytv_enp(),
+  onResponseReceivedCommand: ytv_enp(),
+  onResponseReceivedEndpoint: ytv_enp(),
   onResponseReceivedActions: ytv_arr(ytv_enp()),
-  onResponseReceivedCommand: ytv_arr(ytv_enp()),
+  onResponseReceivedCommands: ytv_arr(ytv_enp()),
   onResponseReceivedEndpoints: ytv_arr(ytv_enp())
 } satisfies YTRendererSchema
 
