@@ -406,7 +406,7 @@ export class WebpackRuntime {
   public ensureChunk(chunkId: ChunkID): Promise<[]> {
     const { ensureChunkHandlers } = this
 
-    return Promise.all(keys(ensureChunkHandlers).reduce(function (promises, key) {
+    return Promise.all(keys(ensureChunkHandlers).reduce((promises, key) => {
       ensureChunkHandlers[key](chunkId, promises)
       return promises
     }, []))
@@ -470,7 +470,7 @@ export class WebpackRuntime {
     const def: any = {}
 
     for (let current = mode & 2 && value; typeof current == 'object' && !~leafPrototypes.indexOf(current); current = getProto(current)) {
-      getOwnPropertyNames(current).forEach(function (key) {
+      getOwnPropertyNames(current).forEach(key => {
         def[key] = () => value[key]
       })
     }
@@ -502,7 +502,7 @@ export class WebpackRuntime {
     if (!newModule.children) newModule.children = []
     defineProperty(newModule, 'exports', {
       enumerable: true,
-      set: function () {
+      set() {
         throw new Error('ES Modules may not assign module.exports or exports.*, Use ESM export syntax, instead: ' + newModule.id)
       }
     })
@@ -558,7 +558,7 @@ export class WebpackRuntime {
 
     let timeout: number | null = null
 
-    const onScriptComplete = function (prev: ((evt: Event) => void) | null | undefined, evt: Event | object | string) {
+    const onScriptComplete = (prev: ((evt: Event) => void) | null | undefined, evt: Event | object | string): void => {
       // avoid mem leaks in IE.
       script.onerror = script.onload = null
       if (timeout != null) self.clearTimeout(timeout)
@@ -762,7 +762,7 @@ export class WebpackRuntime {
     } else {
       // setup Promise in chunk cache
       let promiseResolve: (value: any) => void, promiseReject: (reason?: any) => void
-      const promise = new Promise(function (resolve, reject) {
+      const promise = new Promise((resolve, reject) => {
         promiseResolve = resolve
         promiseReject = reject
       })
@@ -774,22 +774,22 @@ export class WebpackRuntime {
       const url = publicPath + this.getChunkScriptFilename(chunkId)
       // create error before stack unwound to get useful stacktrace later
       const error = new Error()
-      const loadingEnded = function (event: Event) {
-        if (hasOwnProperty(installedChunks, chunkId)) {
-          installedChunkData = installedChunks[chunkId]
-          if (installedChunkData !== 0) delete installedChunks[chunkId]
-          if (installedChunkData) {
-            const errorType = event && (event.type === 'load' ? 'missing' : event.type)
-            // @ts-ignore: optional src
-            const realSrc = event?.target?.src
-            error.message = 'Loading chunk ' + chunkId + ' failed.\\n(' + errorType + ': ' + realSrc + ')'
-            error.name = 'ChunkLoadError'
-            // @ts-ignore: extended error
-            error.type = errorType
-            // @ts-ignore: extended error
-            error.request = realSrc
-            installedChunkData[1](error)
-          }
+      const loadingEnded = (event: Event): void => {
+        if (!hasOwnProperty(installedChunks, chunkId)) return
+
+        installedChunkData = installedChunks[chunkId]
+        if (installedChunkData !== 0) delete installedChunks[chunkId]
+        if (installedChunkData) {
+          const errorType = event && (event.type === 'load' ? 'missing' : event.type)
+          // @ts-ignore: optional src
+          const realSrc = event?.target?.src
+          error.message = 'Loading chunk ' + chunkId + ' failed.\\n(' + errorType + ': ' + realSrc + ')'
+          error.name = 'ChunkLoadError'
+          // @ts-ignore: extended error
+          error.type = errorType
+          // @ts-ignore: extended error
+          error.request = realSrc
+          installedChunkData[1](error)
         }
       }
       this.loadScript(url, loadingEnded, "chunk-" + chunkId, chunkId)
@@ -1023,7 +1023,7 @@ const BYPASS_ID = `__wprt_bpid_${(((floor(random() * 0x10000) << 16) | floor(ran
 /**
  * Remove our own webpack chunk loading global
  */
-export function hideOwnWebpackRuntimeFromGlobal(): void {
+export const hideOwnWebpackRuntimeFromGlobal = (): void => {
   try {
     delete self[CHUNK_GLOBAL_ID as keyof typeof self]
   } catch (error) {
@@ -1035,7 +1035,7 @@ export function hideOwnWebpackRuntimeFromGlobal(): void {
  * Interrupt webpack runtime loading by filter function
  * @param {Function} filter
  */
-export function interruptWebpackRuntime(filter: (chunkLoadingGlobal: string) => boolean): void {
+export const interruptWebpackRuntime = (filter: (chunkLoadingGlobal: string) => boolean): void => {
   try {
     const globalObject = new Proxy(self, {
       get(target, prop, receiver) {
@@ -1098,7 +1098,7 @@ export function interruptWebpackRuntime(filter: (chunkLoadingGlobal: string) => 
  * @param {WebpackRuntimeConfig | null} [runtimeConfig=null]
  * @returns {object}
  */
-export function createWebpackRuntime(entryModuleId: string | number, runtimeConfig: Partial<WebpackRuntimeConfig> | null = null): object {
+export const createWebpackRuntime = (entryModuleId: string | number, runtimeConfig: Partial<WebpackRuntimeConfig> | null = null): object => {
   const fullRuntimeConfig = { ...DEFAULT_RUNTIME_CONFIG, ...(runtimeConfig ?? {}) }
   const { isLocal } = fullRuntimeConfig
 
@@ -1131,15 +1131,15 @@ export function createWebpackRuntime(entryModuleId: string | number, runtimeConf
  * @param {string} script
  * @returns {object}
  */
-export function createWebpackRuntimeFromScript(script: string): object {
+export const createWebpackRuntimeFromScript = (script: string): object => {
   const entryModuleId = script.match(/(?<=self\.)webpackChunk.*?(?==)/)?.[0]
   if (entryModuleId == null) throw new Error('failed to obtain entry module id')
 
-  function matchStr<TDef = string>(regexp: RegExp, index: number = 0, defaultValue?: TDef): string | TDef {
+  const matchStr = <TDef = string>(regexp: RegExp, index: number = 0, defaultValue?: TDef): string | TDef => {
     return script.match(regexp)?.[index] ?? defaultValue ?? ''
   }
 
-  function matchMap(regexp: RegExp, transform?: (id: number, value: string) => string): { [id: number]: string } {
+  const matchMap = (regexp: RegExp, transform?: (id: number, value: string) => string): { [id: number]: string } => {
     return fromEntries(Array.from(script.matchAll(regexp)).map(e => [parseInt(e[1]), transform?.(parseInt(e[1]), e[2]) ?? e[2]]))
   }
 

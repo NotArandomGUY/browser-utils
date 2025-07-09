@@ -1,6 +1,6 @@
 import { floor, random } from '@ext/global/math'
 
-function getSuffix(): string {
+const getSuffix = (): string => {
   let suffix = ''
   for (let i = 0; i < 4; i++) {
     suffix += floor(random() * 0x100).toString(16).padStart(2, '0')

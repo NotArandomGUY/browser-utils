@@ -6,7 +6,7 @@ const logger = new Logger('INTERCEPT-FETCH')
 
 let hook: Hook<unknown, [input: RequestInfo | URL, init?: RequestInit], Promise<Response>> | null = null
 
-async function doFetch(origin: typeof fetch, ctx: NetworkContext): Promise<NetworkResponseContext> {
+const doFetch = async (origin: typeof fetch, ctx: NetworkContext): Promise<NetworkResponseContext> => {
   if (ctx.state !== NetworkState.UNSENT) return ctx
 
   try {
@@ -24,7 +24,7 @@ async function doFetch(origin: typeof fetch, ctx: NetworkContext): Promise<Netwo
   }
 }
 
-export function registerInterceptNetworkFetchModule(onRequest: NetworkRequestCallback, onResponse: NetworkResponseCallback): void {
+export const registerInterceptNetworkFetchModule = (onRequest: NetworkRequestCallback, onResponse: NetworkResponseCallback): void => {
   if (hook != null) return
 
   hook = new Hook(window.fetch).install(ctx => {
@@ -60,7 +60,7 @@ export function registerInterceptNetworkFetchModule(onRequest: NetworkRequestCal
   logger.debug('fetch hook activated')
 }
 
-export function unregisterInterceptNetworkFetchModule(): void {
+export const unregisterInterceptNetworkFetchModule = (): void => {
   if (hook == null) return
 
   Object.defineProperty(window, 'fetch', {

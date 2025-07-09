@@ -9,7 +9,7 @@ export interface TabTopbarProps extends ClassNameProps {
   index: State<number>
 }
 
-function TabTopbar({ parentClassName, tabs, index }: TabTopbarProps): ChildDom {
+const TabTopbar = ({ parentClassName, tabs, index }: TabTopbarProps): ChildDom => {
   const className = buildClass(parentClassName, 'topbar')
 
   return div(

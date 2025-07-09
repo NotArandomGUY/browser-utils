@@ -13,7 +13,7 @@ export interface ClassNameProps<P extends string | undefined = string | undefine
   parentClassName: P
 }
 
-export function buildClass<const P extends ClassNameParams>(...p: P): ClassName<P> {
+export const buildClass = <const P extends ClassNameParams>(...p: P): ClassName<P> => {
   if (p.length === 0) return '' as ClassName<P>
 
   let size = p.findIndex(c => Array.isArray(c))

@@ -8,7 +8,7 @@ export interface TabContentProps extends ClassNameProps {
   index: State<number>
 }
 
-function TabContent({ parentClassName, tabs, index }: TabContentProps): ChildDom {
+const TabContent = ({ parentClassName, tabs, index }: TabContentProps): ChildDom => {
   const className = buildClass(parentClassName, 'content')
 
   return () => div({ class: className }, tabs[index.val])

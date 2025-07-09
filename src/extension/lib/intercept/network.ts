@@ -30,7 +30,7 @@ const logger = new Logger('INTERCEPT-NETWORK')
 
 const callbacks = new Set<NetworkCallback>()
 
-async function onRequest(input: RequestInput, init?: RequestInit): Promise<NetworkContext> {
+const onRequest = async (input: RequestInput, init?: RequestInit): Promise<NetworkContext> => {
   const request = new Request(input, init)
   const ctx: NetworkContext = {
     url: new URL(request.url),
@@ -53,7 +53,7 @@ async function onRequest(input: RequestInput, init?: RequestInit): Promise<Netwo
   return ctx
 }
 
-async function onResponse<U = unknown>(ctx: NetworkResponseContext<U>): Promise<NetworkResponseContext<U>> {
+const onResponse = async <U = unknown>(ctx: NetworkResponseContext<U>): Promise<NetworkResponseContext<U>> => {
   logger.trace('pre response:', ctx.url.href, ctx)
 
   for (const callback of callbacks) {
@@ -67,24 +67,24 @@ async function onResponse<U = unknown>(ctx: NetworkResponseContext<U>): Promise<
   return ctx
 }
 
-function registerInterceptNetworkModules(): void {
+const registerInterceptNetworkModules = (): void => {
   registerInterceptNetworkFetchModule(onRequest, onResponse)
   registerInterceptNetworkXHRModule(onRequest, onResponse)
 }
 
-function unregisterInterceptNetworkModules(): void {
+const unregisterInterceptNetworkModules = (): void => {
   unregisterInterceptNetworkFetchModule()
   unregisterInterceptNetworkXHRModule()
 }
 
-export function addInterceptNetworkCallback<U = unknown>(callback: NetworkCallback<U>): void {
+export const addInterceptNetworkCallback = <U = unknown>(callback: NetworkCallback<U>): void => {
   // Register modules on first callback added
   if (callbacks.size === 0) registerInterceptNetworkModules()
 
   callbacks.add(callback as NetworkCallback)
 }
 
-export function removeInterceptNetworkCallback<U = unknown>(callback: NetworkCallback<U>): void {
+export const removeInterceptNetworkCallback = <U = unknown>(callback: NetworkCallback<U>): void => {
   callbacks.delete(callback as NetworkCallback)
 
   // Unregister modules on first callback added

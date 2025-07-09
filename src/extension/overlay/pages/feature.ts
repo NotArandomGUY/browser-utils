@@ -21,7 +21,7 @@ interface FeatureTableItemProps extends ClassNameProps {
   groupEnabled: State<boolean>
 }
 
-function FeatureGroupTableItem({ parentClassName, groupId, group }: FeatureGroupTableItemProps): HTMLTableRowElement[] {
+const FeatureGroupTableItem = ({ parentClassName, groupId, group }: FeatureGroupTableItemProps): HTMLTableRowElement[] => {
   const expanded = van.state(false)
   const enabled = van.state(((getFeatureGroupDisableMask(groupId)[0] ?? 0) & 1) === 0)
 
@@ -52,7 +52,7 @@ function FeatureGroupTableItem({ parentClassName, groupId, group }: FeatureGroup
   ]
 }
 
-function FeatureTableItem({ parentClassName, groupId, featureId, feature, visible, groupEnabled }: FeatureTableItemProps): HTMLTableRowElement {
+const FeatureTableItem = ({ parentClassName, groupId, featureId, feature, visible, groupEnabled }: FeatureTableItemProps): HTMLTableRowElement => {
   const enabled = van.state(feature.getState() === FeatureState.ACTIVE)
 
   van.derive(() => enabled.val = groupEnabled.val ? feature.getState() === FeatureState.ACTIVE : false)
@@ -81,7 +81,7 @@ function FeatureTableItem({ parentClassName, groupId, featureId, feature, visibl
   )
 }
 
-function FeaturePage({ parentClassName }: FeatureSectionProps): Element {
+const FeaturePage = ({ parentClassName }: FeatureSectionProps): Element => {
   const className = buildClass(parentClassName, 'section', 'feature')
   const featureGroupMap = van.derive(getAllFeatureGroup)
 

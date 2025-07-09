@@ -1,7 +1,7 @@
 const BoundSymbol = Symbol()
 const bind = Function.prototype.bind
 
-export function isProxyBound(fn: Function): boolean {
+export const isProxyBound = (fn: Function): boolean => {
   return BoundSymbol in fn
 }
 

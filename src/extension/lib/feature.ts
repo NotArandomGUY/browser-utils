@@ -64,7 +64,7 @@ const featureGroupMap = new Map<string, FeatureGroup>()
 
 let disableMaskMap: Map<string, Uint8Array> | null = null
 
-function activateFeatureGroup(groupId: string): void {
+const activateFeatureGroup = (groupId: string): void => {
   const group = featureGroupMap.get(groupId)
   if (group == null) {
     logger.warn(`feature group '${groupId}' not found`)
@@ -103,7 +103,7 @@ function activateFeatureGroup(groupId: string): void {
   if (isReload) location.reload()
 }
 
-function resolveDependencies(depGroupId: string): void {
+const resolveDependencies = (depGroupId: string): void => {
   for (const [groupId, group] of featureGroupMap) {
     const index = group.dependencies.indexOf(depGroupId)
     if (index < 0) continue
@@ -118,7 +118,7 @@ function resolveDependencies(depGroupId: string): void {
   }
 }
 
-export function getAllFeatureGroupDisableMask(): Record<string, Uint8Array> {
+export const getAllFeatureGroupDisableMask = (): Record<string, Uint8Array> => {
   if (disableMaskMap == null) {
     try {
       const decoded = JSON.parse(globalThis.localStorage.getItem(DMASK_STORAGE_KEY) ?? '')
@@ -136,11 +136,11 @@ export function getAllFeatureGroupDisableMask(): Record<string, Uint8Array> {
   return fromEntries(disableMaskMap.entries())
 }
 
-export function getFeatureGroupDisableMask(groupId: string): Uint8Array {
+export const getFeatureGroupDisableMask = (groupId: string): Uint8Array => {
   return getAllFeatureGroupDisableMask()[groupId] ?? new Uint8Array(0)
 }
 
-export function batchSetFeatureGroupDisableMask(masks: Record<string, Uint8Array>): void {
+export const batchSetFeatureGroupDisableMask = (masks: Record<string, Uint8Array>): void => {
   try {
     disableMaskMap ??= new Map()
 
@@ -167,26 +167,26 @@ export function batchSetFeatureGroupDisableMask(masks: Record<string, Uint8Array
   }
 }
 
-export function setFeatureGroupDisableMask(groupId: string, mask: Uint8Array): void {
+export const setFeatureGroupDisableMask = (groupId: string, mask: Uint8Array): void => {
   batchSetFeatureGroupDisableMask({ [groupId]: mask })
 }
 
-export function getAllFeatureGroup(): Record<string, FeatureGroup> {
+export const getAllFeatureGroup = (): Record<string, FeatureGroup> => {
   return fromEntries(featureGroupMap.entries())
 }
 
-export function getFeatureGroup(groupId: string): FeatureGroup | null {
+export const getFeatureGroup = (groupId: string): FeatureGroup | null => {
   return featureGroupMap.get(groupId) ?? null
 }
 
-export function registerFeature(group: FeatureGroup, feature: new () => Feature, featureId?: number): void {
+export const registerFeature = (group: FeatureGroup, feature: new () => Feature, featureId?: number): void => {
   featureId ??= group.featureMap.size
   while (group.featureMap.has(featureId)) featureId++
 
   group.featureMap.set(featureId, new feature())
 }
 
-export function registerFeatureGroup(groupId: string, registerFn: (group: FeatureGroup) => void, dependencies: string[] = []): void {
+export const registerFeatureGroup = (groupId: string, registerFn: (group: FeatureGroup) => void, dependencies: string[] = []): void => {
   if (featureGroupMap.has(groupId)) {
     logger.warn(`duplicate feature group '${groupId}'`)
     return

@@ -23,7 +23,7 @@ export interface ProxyChainOptions<T = object> {
   ignoreReturn?: boolean
 }
 
-function createTarget<T>(options: ProxyChainOptions<T>): ToObjectType<T> {
+const createTarget = <T>(options: ProxyChainOptions<T>): ToObjectType<T> => {
   if (options.target == null) {
     return assign(function () { }, {
       [FakeSymbol]: true,
@@ -36,7 +36,7 @@ function createTarget<T>(options: ProxyChainOptions<T>): ToObjectType<T> {
   return new PrimitiveProxy(options.target)
 }
 
-function isRawProperty<T, P extends keyof ToObjectType<T>>(options: ProxyChainOptions<T>, p: P, v: ToObjectType<T>[P]): boolean {
+const isRawProperty = <T, P extends keyof ToObjectType<T>>(options: ProxyChainOptions<T>, p: P, v: ToObjectType<T>[P]): boolean => {
   // do not proxy if ignored
   if (options.ignoreProperties?.includes(p)) return true
 

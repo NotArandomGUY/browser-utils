@@ -9,7 +9,7 @@ export interface TabButtonProps extends ClassNameProps {
   onClick(): void
 }
 
-function TabButton({ parentClassName, title, active, onClick }: TabButtonProps): ChildDom {
+const TabButton = ({ parentClassName, title, active, onClick }: TabButtonProps): ChildDom => {
   return button(
     { class: () => buildClass(parentClassName, active.val ? 'btn-active' : 'btn'), onclick: onClick },
     title

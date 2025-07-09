@@ -5,12 +5,12 @@ const logger = new Logger('DOM')
 const elementMap: { [selectors: string]: Element } = {}
 const monitorSelectorList: [string, (element: Element) => void][] = []
 
-let timer: number | null = null
+let timer: ReturnType<typeof setTimeout> | null = null
 
-function update(): void {
+const update = (): void => {
   if (monitorSelectorList.length === 0) {
     if (timer != null) {
-      window.clearInterval(timer)
+      clearInterval(timer)
       timer = null
     }
     return
@@ -24,9 +24,9 @@ function update(): void {
   }
 }
 
-function ensureTimer(): void {
+const ensureTimer = (): void => {
   if (timer != null) return
-  timer = window.setInterval(update, 500)
+  timer = setInterval(update, 500)
 }
 
 export function querySelectorOnce<K extends keyof HTMLElementTagNameMap>(selectors: K): HTMLElementTagNameMap[K] | null
@@ -55,7 +55,7 @@ export function monitorSelector(selectors: string, callback: (element: Element) 
   return () => monitorSelectorList.splice(monitorSelectorList.indexOf(entry), 1)
 }
 
-export function getNextData<T>(prop: string, defaultValue: T): T {
+export const getNextData = <T>(prop: string, defaultValue: T): T => {
   const script = document.querySelector<HTMLScriptElement>('#__NEXT_DATA__')
   if (script == null) return defaultValue
 
@@ -83,7 +83,7 @@ export function getNextData<T>(prop: string, defaultValue: T): T {
   return defaultValue
 }
 
-export function setNextData<T>(prop: string, value: T): void {
+export const setNextData = <T>(prop: string, value: T): void => {
   const script = document.querySelector<HTMLScriptElement>('#__NEXT_DATA__')
   if (script == null) return
 

@@ -15,7 +15,7 @@ export interface OverlayProps {
 
 const additionalPageSet = new Set<TabPageProps>()
 
-export function registerOverlayPage(title: string, content: ChildDom): void {
+export const registerOverlayPage = (title: string, content: ChildDom): void => {
   additionalPageSet.add({ title, content })
 }
 

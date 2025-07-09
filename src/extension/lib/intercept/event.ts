@@ -10,7 +10,7 @@ const logger = new Logger('INTERCEPT-EVENT')
 
 const PreventDispatchEventSymbol = Symbol()
 
-export function preventDispatchEvent(evt: Event): void {
+export const preventDispatchEvent = (evt: Event): void => {
   if (PreventDispatchEventSymbol in evt && typeof evt[PreventDispatchEventSymbol] === 'function') evt[PreventDispatchEventSymbol]()
 }
 

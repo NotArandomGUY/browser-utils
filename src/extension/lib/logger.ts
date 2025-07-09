@@ -12,7 +12,7 @@ export const enum LogLevel {
   SILENT
 }
 
-function fromLogLevel(level: LogLevel): string {
+const fromLogLevel = (level: LogLevel): string => {
   switch (level) {
     case LogLevel.TRACE:
       return 'TRACE'
@@ -31,7 +31,7 @@ function fromLogLevel(level: LogLevel): string {
   }
 }
 
-function toLogLevel(level: string | null, defaultLevel = LogLevel.INFO): LogLevel {
+const toLogLevel = (level: string | null, defaultLevel = LogLevel.INFO): LogLevel => {
   switch (level?.trim().toUpperCase()) {
     case 'TRACE':
       return LogLevel.TRACE
@@ -50,12 +50,12 @@ function toLogLevel(level: string | null, defaultLevel = LogLevel.INFO): LogLeve
   }
 }
 
-function logWrapper<TArgs extends any[]>(
+const logWrapper = <TArgs extends any[]>(
   log: (prefix: string, ...args: TArgs) => void,
   type: string,
   prefix: string,
   ...args: TArgs
-): void {
+): void => {
   log(`\x1b[m[${toDateTimeString(now())}][${type}\x1b[m][${prefix}]`, ...args)
 }
 

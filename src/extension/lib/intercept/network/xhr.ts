@@ -343,7 +343,7 @@ class InterceptXMLHttpRequest extends XMLHttpRequest {
   private overrideResponse: ArrayBuffer | null
 }
 
-export function registerInterceptNetworkXHRModule(onRequest: NetworkRequestCallback, onResponse: NetworkResponseCallback): void {
+export const registerInterceptNetworkXHRModule = (onRequest: NetworkRequestCallback, onResponse: NetworkResponseCallback): void => {
   if (nativeXHR != null) return
 
   onRequestCallback = onRequest
@@ -360,7 +360,7 @@ export function registerInterceptNetworkXHRModule(onRequest: NetworkRequestCallb
   logger.debug('xhr hook activated')
 }
 
-export function unregisterInterceptNetworkXHRModule(): void {
+export const unregisterInterceptNetworkXHRModule = (): void => {
   if (nativeXHR == null) return
 
   Object.defineProperty(window, 'XMLHttpRequest', {

@@ -2,22 +2,22 @@ import { abs, floor, LN2, log, pow } from '@ext/global/math'
 
 type Encoding = 'utf8' | 'ascii' | 'latin1'
 
-function checkOffset(buffer: Uint8Array, offset: number, ext: number): void {
+const checkOffset = (buffer: Uint8Array, offset: number, ext: number): void => {
   if ((offset % 1) !== 0 || offset < 0) throw new RangeError('offset is not uint')
   if (offset + ext > buffer.length) throw new RangeError('Trying to access beyond buffer length')
 }
 
-function checkInt(buffer: Uint8Array, value: number, offset: number, ext: number, max: number, min: number): void {
+const checkInt = (buffer: Uint8Array, value: number, offset: number, ext: number, max: number, min: number): void => {
   if (value > max || value < min) throw new RangeError('int "value" argument is out of bounds')
   if (offset < 0 || offset + ext > buffer.length) throw new RangeError('Index out of range')
 }
 
-function checkBigInt(buffer: Uint8Array, value: bigint, offset: number, ext: number, max: bigint, min: bigint): void {
+const checkBigInt = (buffer: Uint8Array, value: bigint, offset: number, ext: number, max: bigint, min: bigint): void => {
   if (value > max || value < min) throw new RangeError('bigint "value" argument is out of bounds')
   if (offset < 0 || offset + ext > buffer.length) throw new RangeError('Index out of range')
 }
 
-function checkIEEE754(buffer: Uint8Array, value: number, offset: number, ext: number, max: number, min: number): void {
+const checkIEEE754 = (buffer: Uint8Array, value: number, offset: number, ext: number, max: number, min: number): void => {
   if (value > max || value < min) throw new RangeError('ieee754 "value" argument is out of bounds')
   if (offset < 0 || offset + ext > buffer.length) throw new RangeError('Index out of range')
 }
@@ -30,13 +30,13 @@ function checkIEEE754(buffer: Uint8Array, value: number, offset: number, ext: nu
  * @param mLen mantissa length
  * @param nBytes number of bytes
  */
-function ieee754Read(
+const ieee754Read = (
   buffer: Uint8Array,
   offset: number,
   isLE: boolean,
   mLen: number,
   nBytes: number,
-): number {
+): number => {
   let e: number
   let m: number
   const eLen: number = nBytes * 8 - mLen - 1
@@ -87,14 +87,14 @@ function ieee754Read(
  * @param mLen mantissa length
  * @param nBytes number of bytes
  */
-function ieee754Write(
+const ieee754Write = (
   buffer: Uint8Array,
   value: number,
   offset: number,
   isLE: boolean,
   mLen: number,
   nBytes: number,
-): void {
+): void => {
   let e: number
   let m: number
   let c: number
@@ -158,7 +158,7 @@ function ieee754Write(
   buffer[offset + i - d] |= s * 128
 }
 
-function writeBigInt64LEImpl(buffer: Uint8Array, value: bigint, offset: number, min: bigint, max: bigint): number {
+const writeBigInt64LEImpl = (buffer: Uint8Array, value: bigint, offset: number, min: bigint, max: bigint): number => {
   checkBigInt(buffer, value, offset, 7, max, min)
 
   let lo = Number(value & 0xFFFFFFFFn)
@@ -181,7 +181,7 @@ function writeBigInt64LEImpl(buffer: Uint8Array, value: bigint, offset: number, 
   return offset
 }
 
-function writeBigInt64BEImpl(buffer: Uint8Array, value: bigint, offset: number, min: bigint, max: bigint): number {
+const writeBigInt64BEImpl = (buffer: Uint8Array, value: bigint, offset: number, min: bigint, max: bigint): number => {
   checkBigInt(buffer, value, offset, 7, max, min)
 
   let lo = Number(value & 0xFFFFFFFFn)
@@ -204,7 +204,7 @@ function writeBigInt64BEImpl(buffer: Uint8Array, value: bigint, offset: number, 
   return offset + 8
 }
 
-function writeFloatImpl(buffer: Uint8Array, value: number, offset: number, isLE: boolean): number {
+const writeFloatImpl = (buffer: Uint8Array, value: number, offset: number, isLE: boolean): number => {
   value = +value
   offset = offset >>> 0
   checkIEEE754(buffer, value, offset, 4, 3.4028234663852886e+38, -3.4028234663852886e+38)
@@ -212,7 +212,7 @@ function writeFloatImpl(buffer: Uint8Array, value: number, offset: number, isLE:
   return offset + 4
 }
 
-function writeDoubleImpl(buffer: Uint8Array, value: number, offset: number, isLE: boolean): number {
+const writeDoubleImpl = (buffer: Uint8Array, value: number, offset: number, isLE: boolean): number => {
   value = +value
   offset = offset >>> 0
   checkIEEE754(buffer, value, offset, 8, 1.7976931348623157E+308, -1.7976931348623157E+308)
@@ -220,7 +220,7 @@ function writeDoubleImpl(buffer: Uint8Array, value: number, offset: number, isLE
   return offset + 4
 }
 
-export function bufferReadIntLE(buffer: Uint8Array, offset: number, byteLength: number): number {
+export const bufferReadIntLE = (buffer: Uint8Array, offset: number, byteLength: number): number => {
   offset = offset >>> 0
   byteLength = byteLength >>> 0
   checkOffset(buffer, offset, byteLength)
@@ -238,7 +238,7 @@ export function bufferReadIntLE(buffer: Uint8Array, offset: number, byteLength: 
   return val
 }
 
-export function bufferReadIntBE(buffer: Uint8Array, offset: number, byteLength: number): number {
+export const bufferReadIntBE = (buffer: Uint8Array, offset: number, byteLength: number): number => {
   offset = offset >>> 0
   byteLength = byteLength >>> 0
   checkOffset(buffer, offset, byteLength)
@@ -256,7 +256,7 @@ export function bufferReadIntBE(buffer: Uint8Array, offset: number, byteLength: 
   return val
 }
 
-export function bufferReadInt8(buffer: Uint8Array, offset: number): number {
+export const bufferReadInt8 = (buffer: Uint8Array, offset: number): number => {
   offset = offset >>> 0
   checkOffset(buffer, offset, 1)
   const val = buffer[offset]
@@ -264,21 +264,21 @@ export function bufferReadInt8(buffer: Uint8Array, offset: number): number {
   return ((0xFF - val + 1) * -1)
 }
 
-export function bufferReadInt16LE(buffer: Uint8Array, offset: number): number {
+export const bufferReadInt16LE = (buffer: Uint8Array, offset: number): number => {
   offset = offset >>> 0
   checkOffset(buffer, offset, 2)
   const val = buffer[offset] | (buffer[offset + 1] << 8)
   return (val & 0x8000) ? val | 0xFFFF0000 : val
 }
 
-export function bufferReadInt16BE(buffer: Uint8Array, offset: number): number {
+export const bufferReadInt16BE = (buffer: Uint8Array, offset: number): number => {
   offset = offset >>> 0
   checkOffset(buffer, offset, 2)
   const val = buffer[offset + 1] | (buffer[offset] << 8)
   return (val & 0x8000) ? val | 0xFFFF0000 : val
 }
 
-export function bufferReadInt32LE(buffer: Uint8Array, offset: number): number {
+export const bufferReadInt32LE = (buffer: Uint8Array, offset: number): number => {
   offset = offset >>> 0
   checkOffset(buffer, offset, 4)
 
@@ -288,7 +288,7 @@ export function bufferReadInt32LE(buffer: Uint8Array, offset: number): number {
     (buffer[offset + 3] << 24)
 }
 
-export function bufferReadInt32BE(buffer: Uint8Array, offset: number): number {
+export const bufferReadInt32BE = (buffer: Uint8Array, offset: number): number => {
   offset = offset >>> 0
   checkOffset(buffer, offset, 4)
 
@@ -298,7 +298,7 @@ export function bufferReadInt32BE(buffer: Uint8Array, offset: number): number {
     (buffer[offset + 3])
 }
 
-export function bufferReadBigInt64LE(buffer: Uint8Array, offset: number): bigint {
+export const bufferReadBigInt64LE = (buffer: Uint8Array, offset: number): bigint => {
   offset = offset >>> 0
   checkOffset(buffer, offset, 8)
 
@@ -314,7 +314,7 @@ export function bufferReadBigInt64LE(buffer: Uint8Array, offset: number): bigint
   return (BigInt(hi) << 32n) + BigInt(lo)
 }
 
-export function bufferReadBigInt64BE(buffer: Uint8Array, offset: number): bigint {
+export const bufferReadBigInt64BE = (buffer: Uint8Array, offset: number): bigint => {
   offset = offset >>> 0
   checkOffset(buffer, offset, 8)
 
@@ -330,7 +330,7 @@ export function bufferReadBigInt64BE(buffer: Uint8Array, offset: number): bigint
   return (BigInt(hi) << 32n) + BigInt(lo)
 }
 
-export function bufferReadBigUInt64LE(buffer: Uint8Array, offset: number): bigint {
+export const bufferReadBigUInt64LE = (buffer: Uint8Array, offset: number): bigint => {
   offset = offset >>> 0
   checkOffset(buffer, offset, 8)
 
@@ -346,7 +346,7 @@ export function bufferReadBigUInt64LE(buffer: Uint8Array, offset: number): bigin
   return (BigInt(hi) << 32n) + BigInt(lo)
 }
 
-export function bufferReadUIntLE(buffer: Uint8Array, offset: number, byteLength: number): number {
+export const bufferReadUIntLE = (buffer: Uint8Array, offset: number, byteLength: number): number => {
   offset = offset >>> 0
   byteLength = byteLength >>> 0
   checkOffset(buffer, offset, byteLength)
@@ -361,7 +361,7 @@ export function bufferReadUIntLE(buffer: Uint8Array, offset: number, byteLength:
   return val
 }
 
-export function bufferReadUIntBE(buffer: Uint8Array, offset: number, byteLength: number): number {
+export const bufferReadUIntBE = (buffer: Uint8Array, offset: number, byteLength: number): number => {
   offset = offset >>> 0
   byteLength = byteLength >>> 0
   checkOffset(buffer, offset, byteLength)
@@ -375,25 +375,25 @@ export function bufferReadUIntBE(buffer: Uint8Array, offset: number, byteLength:
   return val
 }
 
-export function bufferReadUInt8(buffer: Uint8Array, offset: number): number {
+export const bufferReadUInt8 = (buffer: Uint8Array, offset: number): number => {
   offset = offset >>> 0
   checkOffset(buffer, offset, 1)
   return buffer[offset]
 }
 
-export function bufferReadUInt16LE(buffer: Uint8Array, offset: number): number {
+export const bufferReadUInt16LE = (buffer: Uint8Array, offset: number): number => {
   offset = offset >>> 0
   checkOffset(buffer, offset, 2)
   return buffer[offset] | (buffer[offset + 1] << 8)
 }
 
-export function bufferReadUInt16BE(buffer: Uint8Array, offset: number): number {
+export const bufferReadUInt16BE = (buffer: Uint8Array, offset: number): number => {
   offset = offset >>> 0
   checkOffset(buffer, offset, 2)
   return (buffer[offset] << 8) | buffer[offset + 1]
 }
 
-export function bufferReadUInt32LE(buffer: Uint8Array, offset: number): number {
+export const bufferReadUInt32LE = (buffer: Uint8Array, offset: number): number => {
   offset = offset >>> 0
   checkOffset(buffer, offset, 4)
 
@@ -403,7 +403,7 @@ export function bufferReadUInt32LE(buffer: Uint8Array, offset: number): number {
     (buffer[offset + 3] * 0x1000000)
 }
 
-export function bufferReadUInt32BE(buffer: Uint8Array, offset: number): number {
+export const bufferReadUInt32BE = (buffer: Uint8Array, offset: number): number => {
   offset = offset >>> 0
   checkOffset(buffer, offset, 4)
 
@@ -413,7 +413,7 @@ export function bufferReadUInt32BE(buffer: Uint8Array, offset: number): number {
       buffer[offset + 3])
 }
 
-export function bufferReadBigUInt64BE(buffer: Uint8Array, offset: number): bigint {
+export const bufferReadBigUInt64BE = (buffer: Uint8Array, offset: number): bigint => {
   offset = offset >>> 0
   checkOffset(buffer, offset, 8)
 
@@ -429,31 +429,31 @@ export function bufferReadBigUInt64BE(buffer: Uint8Array, offset: number): bigin
   return (BigInt(hi) << 32n) + BigInt(lo)
 }
 
-export function bufferReadFloatLE(buffer: Uint8Array, offset: number): number {
+export const bufferReadFloatLE = (buffer: Uint8Array, offset: number): number => {
   offset >>>= 0
   checkOffset(buffer, offset, 4)
   return ieee754Read(buffer, offset, true, 23, 4)
 }
 
-export function bufferReadFloatBE(buffer: Uint8Array, offset: number): number {
+export const bufferReadFloatBE = (buffer: Uint8Array, offset: number): number => {
   offset >>>= 0
   checkOffset(buffer, offset, 4)
   return ieee754Read(buffer, offset, false, 23, 4)
 }
 
-export function bufferReadDoubleLE(buffer: Uint8Array, offset: number): number {
+export const bufferReadDoubleLE = (buffer: Uint8Array, offset: number): number => {
   offset >>>= 0
   checkOffset(buffer, offset, 8)
   return ieee754Read(buffer, offset, true, 52, 8)
 }
 
-export function bufferReadDoubleBE(buffer: Uint8Array, offset: number): number {
+export const bufferReadDoubleBE = (buffer: Uint8Array, offset: number): number => {
   offset >>>= 0
   checkOffset(buffer, offset, 8)
   return ieee754Read(buffer, offset, false, 52, 8)
 }
 
-export function bufferWriteUIntLE(buffer: Uint8Array, value: number, offset: number, byteLength: number): number {
+export const bufferWriteUIntLE = (buffer: Uint8Array, value: number, offset: number, byteLength: number): number => {
   value = +value
   offset = offset >>> 0
   byteLength = byteLength >>> 0
@@ -471,7 +471,7 @@ export function bufferWriteUIntLE(buffer: Uint8Array, value: number, offset: num
   return offset + byteLength
 }
 
-export function bufferWriteUIntBE(buffer: Uint8Array, value: number, offset: number, byteLength: number): number {
+export const bufferWriteUIntBE = (buffer: Uint8Array, value: number, offset: number, byteLength: number): number => {
   value = +value
   offset = offset >>> 0
   byteLength = byteLength >>> 0
@@ -489,7 +489,7 @@ export function bufferWriteUIntBE(buffer: Uint8Array, value: number, offset: num
   return offset + byteLength
 }
 
-export function bufferWriteUInt8(buffer: Uint8Array, value: number, offset: number): number {
+export const bufferWriteUInt8 = (buffer: Uint8Array, value: number, offset: number): number => {
   value = +value
   offset = offset >>> 0
   checkInt(buffer, value, offset, 1, 0xff, 0)
@@ -497,7 +497,7 @@ export function bufferWriteUInt8(buffer: Uint8Array, value: number, offset: numb
   return offset + 1
 }
 
-export function bufferWriteUInt16LE(buffer: Uint8Array, value: number, offset: number): number {
+export const bufferWriteUInt16LE = (buffer: Uint8Array, value: number, offset: number): number => {
   value = +value
   offset = offset >>> 0
   checkInt(buffer, value, offset, 2, 0xffff, 0)
@@ -506,7 +506,7 @@ export function bufferWriteUInt16LE(buffer: Uint8Array, value: number, offset: n
   return offset + 2
 }
 
-export function bufferWriteUInt16BE(buffer: Uint8Array, value: number, offset: number): number {
+export const bufferWriteUInt16BE = (buffer: Uint8Array, value: number, offset: number): number => {
   value = +value
   offset = offset >>> 0
   checkInt(buffer, value, offset, 2, 0xffff, 0)
@@ -515,7 +515,7 @@ export function bufferWriteUInt16BE(buffer: Uint8Array, value: number, offset: n
   return offset + 2
 }
 
-export function bufferWriteUInt32LE(buffer: Uint8Array, value: number, offset: number): number {
+export const bufferWriteUInt32LE = (buffer: Uint8Array, value: number, offset: number): number => {
   value = +value
   offset = offset >>> 0
   checkInt(buffer, value, offset, 4, 0xffffffff, 0)
@@ -526,7 +526,7 @@ export function bufferWriteUInt32LE(buffer: Uint8Array, value: number, offset: n
   return offset + 4
 }
 
-export function bufferWriteUInt32BE(buffer: Uint8Array, value: number, offset: number): number {
+export const bufferWriteUInt32BE = (buffer: Uint8Array, value: number, offset: number): number => {
   value = +value
   offset = offset >>> 0
   checkInt(buffer, value, offset, 4, 0xffffffff, 0)
@@ -537,15 +537,15 @@ export function bufferWriteUInt32BE(buffer: Uint8Array, value: number, offset: n
   return offset + 4
 }
 
-export function bufferWriteBigUInt64LE(buffer: Uint8Array, value: bigint, offset: number = 0): number {
+export const bufferWriteBigUInt64LE = (buffer: Uint8Array, value: bigint, offset: number = 0): number => {
   return writeBigInt64LEImpl(buffer, value, offset, 0n, 0xFFFFFFFFFFFFFFFFn)
 }
 
-export function bufferWriteBigUInt64BE(buffer: Uint8Array, value: bigint, offset: number = 0): number {
+export const bufferWriteBigUInt64BE = (buffer: Uint8Array, value: bigint, offset: number = 0): number => {
   return writeBigInt64BEImpl(buffer, value, offset, 0n, 0xFFFFFFFFFFFFFFFFn)
 }
 
-export function bufferWriteIntLE(buffer: Uint8Array, value: number, offset: number, byteLength: number): number {
+export const bufferWriteIntLE = (buffer: Uint8Array, value: number, offset: number, byteLength: number): number => {
   value = +value
   offset = offset >>> 0
 
@@ -566,7 +566,7 @@ export function bufferWriteIntLE(buffer: Uint8Array, value: number, offset: numb
   return offset + byteLength
 }
 
-export function bufferWriteIntBE(buffer: Uint8Array, value: number, offset: number, byteLength: number): number {
+export const bufferWriteIntBE = (buffer: Uint8Array, value: number, offset: number, byteLength: number): number => {
   value = +value
   offset = offset >>> 0
 
@@ -587,7 +587,7 @@ export function bufferWriteIntBE(buffer: Uint8Array, value: number, offset: numb
   return offset + byteLength
 }
 
-export function bufferWriteInt8(buffer: Uint8Array, value: number, offset: number): number {
+export const bufferWriteInt8 = (buffer: Uint8Array, value: number, offset: number): number => {
   value = +value
   offset = offset >>> 0
   checkInt(buffer, value, offset, 1, 0x7f, -0x80)
@@ -596,7 +596,7 @@ export function bufferWriteInt8(buffer: Uint8Array, value: number, offset: numbe
   return offset + 1
 }
 
-export function bufferWriteInt16LE(buffer: Uint8Array, value: number, offset: number): number {
+export const bufferWriteInt16LE = (buffer: Uint8Array, value: number, offset: number): number => {
   value = +value
   offset = offset >>> 0
   checkInt(buffer, value, offset, 2, 0x7fff, -0x8000)
@@ -605,7 +605,7 @@ export function bufferWriteInt16LE(buffer: Uint8Array, value: number, offset: nu
   return offset + 2
 }
 
-export function bufferWriteInt16BE(buffer: Uint8Array, value: number, offset: number): number {
+export const bufferWriteInt16BE = (buffer: Uint8Array, value: number, offset: number): number => {
   value = +value
   offset = offset >>> 0
   checkInt(buffer, value, offset, 2, 0x7fff, -0x8000)
@@ -614,7 +614,7 @@ export function bufferWriteInt16BE(buffer: Uint8Array, value: number, offset: nu
   return offset + 2
 }
 
-export function bufferWriteInt32LE(buffer: Uint8Array, value: number, offset: number): number {
+export const bufferWriteInt32LE = (buffer: Uint8Array, value: number, offset: number): number => {
   value = +value
   offset = offset >>> 0
   checkInt(buffer, value, offset, 4, 0x7fffffff, -0x80000000)
@@ -625,7 +625,7 @@ export function bufferWriteInt32LE(buffer: Uint8Array, value: number, offset: nu
   return offset + 4
 }
 
-export function bufferWriteInt32BE(buffer: Uint8Array, value: number, offset: number): number {
+export const bufferWriteInt32BE = (buffer: Uint8Array, value: number, offset: number): number => {
   value = +value
   offset = offset >>> 0
   checkInt(buffer, value, offset, 4, 0x7fffffff, -0x80000000)
@@ -637,31 +637,31 @@ export function bufferWriteInt32BE(buffer: Uint8Array, value: number, offset: nu
   return offset + 4
 }
 
-export function bufferWriteBigInt64LE(buffer: Uint8Array, value: bigint, offset: number = 0): number {
+export const bufferWriteBigInt64LE = (buffer: Uint8Array, value: bigint, offset: number = 0): number => {
   return writeBigInt64LEImpl(buffer, value, offset, -0x8000000000000000n, 0x7FFFFFFFFFFFFFFFn)
 }
 
-export function bufferWriteBigInt64BE(buffer: Uint8Array, value: bigint, offset: number = 0): number {
+export const bufferWriteBigInt64BE = (buffer: Uint8Array, value: bigint, offset: number = 0): number => {
   return writeBigInt64BEImpl(buffer, value, offset, -0x8000000000000000n, 0x7FFFFFFFFFFFFFFFn)
 }
 
-export function bufferWriteFloatLE(buffer: Uint8Array, value: number, offset: number): number {
+export const bufferWriteFloatLE = (buffer: Uint8Array, value: number, offset: number): number => {
   return writeFloatImpl(buffer, value, offset, true)
 }
 
-export function bufferWriteFloatBE(buffer: Uint8Array, value: number, offset: number): number {
+export const bufferWriteFloatBE = (buffer: Uint8Array, value: number, offset: number): number => {
   return writeFloatImpl(buffer, value, offset, false)
 }
 
-export function bufferWriteDoubleLE(buffer: Uint8Array, value: number, offset: number): number {
+export const bufferWriteDoubleLE = (buffer: Uint8Array, value: number, offset: number): number => {
   return writeDoubleImpl(buffer, value, offset, true)
 }
 
-export function bufferWriteDoubleBE(buffer: Uint8Array, value: number, offset: number): number {
+export const bufferWriteDoubleBE = (buffer: Uint8Array, value: number, offset: number): number => {
   return writeDoubleImpl(buffer, value, offset, false)
 }
 
-export function bufferFromString(input: string, encoding: Encoding = 'utf8'): Uint8Array {
+export const bufferFromString = (input: string, encoding: Encoding = 'utf8'): Uint8Array => {
   switch (encoding) {
     case 'ascii':
     case 'latin1':
@@ -672,7 +672,7 @@ export function bufferFromString(input: string, encoding: Encoding = 'utf8'): Ui
   }
 }
 
-export function bufferToString(input: BufferSource, encoding: Encoding = 'utf8'): string {
+export const bufferToString = (input: BufferSource, encoding: Encoding = 'utf8'): string => {
   switch (encoding) {
     case 'latin1': {
       const buffer = ArrayBuffer.isView(input)
@@ -685,7 +685,7 @@ export function bufferToString(input: BufferSource, encoding: Encoding = 'utf8')
   }
 }
 
-export function bufferConcat(parts: Uint8Array[]): Uint8Array {
+export const bufferConcat = (parts: Uint8Array[]): Uint8Array => {
   const concatParts = new Uint8Array(parts.reduce((total, part) => total + part.length, 0))
 
   let offset = 0

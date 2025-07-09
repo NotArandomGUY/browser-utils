@@ -16,7 +16,7 @@ export interface TabProps extends ClassNameProps {
   onTabChange?(index: number): void
 }
 
-function Tab({ parentClassName, tabs, initIndex = 0, onTabChange }: TabProps): ChildDom {
+const Tab = ({ parentClassName, tabs, initIndex = 0, onTabChange }: TabProps): ChildDom => {
   const className = buildClass(parentClassName, 'tab')
   const currentIndex = van.state(initIndex)
   const previousIndex = van.state(initIndex)

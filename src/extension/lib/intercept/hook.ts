@@ -1,4 +1,4 @@
-import { defineProperty } from '@ext/global/object'
+import { assign, defineProperty } from '@ext/global/object'
 
 export const enum HookType {
   PRE,
@@ -18,7 +18,7 @@ export const enum HookResult {
 export type OriginFn<T = unknown, A extends unknown[] = unknown[], R = unknown> = (this: T, ...args: A) => R
 export type HookFn<T = unknown, A extends unknown[] = unknown[], R = unknown, U = unknown> = (ctx: CallContext<T, A, R, U>) => HookResult
 
-type HookFnSet<T = unknown, A extends unknown[] = unknown[], R = unknown, U = unknown> = Set<HookFn<T, A, R, U>>
+type HookFnSet<T, A extends unknown[], R, U> = Set<HookFn<T, A, R, U>>
 
 export interface CallContext<T, A extends unknown[], R, U = unknown> {
   origin: OriginFn<T, A, R>
@@ -30,9 +30,9 @@ export interface CallContext<T, A extends unknown[], R, U = unknown> {
 
 export const BoundTargetSymbol = Symbol()
 
-const activeHookMap = new Map<OriginFn, { [K in HookType]: HookFnSet }>()
+const activeHookMap = new Map<OriginFn, { [K in HookType]: HookFnSet<any, any[], any, any> }>()
 
-function invokeHooks<T, A extends unknown[], R, U = unknown>(ctx: CallContext<T, A, R, U>, hooks: HookFnSet<T, A, R, U>, result: HookResult): HookResult {
+const invokeHooks = <T, A extends unknown[], R, U = unknown>(ctx: CallContext<T, A, R, U>, hooks: HookFnSet<T, A, R, U>, result: HookResult): HookResult => {
   if (hooks.size === 0 || (result & 0x0F) === HookResult.EXECUTION_THROW) return result
 
   for (const hook of hooks) {
@@ -63,39 +63,40 @@ function invokeHooks<T, A extends unknown[], R, U = unknown>(ctx: CallContext<T,
 export default class Hook<T, A extends unknown[], R, U = unknown> {
   /// Public ///
 
-  public readonly origin: OriginFn<T, A, R>
-  public readonly hooks: { [K in HookType]: HookFnSet<T, A, R, U> }
+  public readonly origin!: OriginFn<T, A, R>
+  public readonly hooks!: { [K in HookType]: HookFnSet<T, A, R, U> }
 
   public constructor(origin: OriginFn<T, A, R>) {
-    let hooks = activeHookMap.get(origin as OriginFn) as unknown as typeof this.hooks
+    let hooks = activeHookMap.get(origin as OriginFn)
     if (hooks == null) {
       hooks = { [HookType.PRE]: new Set(), [HookType.MAIN]: new Set(), [HookType.POST]: new Set() }
-    } else {
-      activeHookMap.set(origin as OriginFn, hooks as unknown as { [K in HookType]: HookFnSet })
+      activeHookMap.set(origin as OriginFn, hooks)
     }
 
-    this.origin = origin
-    this.hooks = hooks
+    const { install, uninstall } = this
 
-    this.install = this.install.bind(this)
-    this.uninstall = this.uninstall.bind(this)
+    assign(this, {
+      origin,
+      hooks,
+      install: install.bind(this),
+      uninstall: uninstall.bind(this),
+      call: new Proxy(origin, {
+        apply(origin, self: T, args: A) {
+          const ctx: CallContext<T, A, R, U> = {
+            origin,
+            self,
+            args,
+            returnValue: undefined as R,
+            userData: undefined
+          }
 
-    this.call = new Proxy(origin, {
-      apply(origin, self: T, args: A) {
-        const ctx: CallContext<T, A, R, U> = {
-          origin,
-          self,
-          args,
-          returnValue: undefined as R,
-          userData: undefined
+          let result = invokeHooks(ctx, hooks[HookType.PRE], HookResult.EXECUTION_IGNORE)
+          result = invokeHooks(ctx, hooks[HookType.MAIN], result)
+          result = invokeHooks(ctx, hooks[HookType.POST], result)
+
+          return result === HookResult.EXECUTION_IGNORE ? origin.apply(self, args) : ctx.returnValue
         }
-
-        let result = invokeHooks(ctx, hooks[HookType.PRE], HookResult.EXECUTION_IGNORE)
-        result = invokeHooks(ctx, hooks[HookType.MAIN], result)
-        result = invokeHooks(ctx, hooks[HookType.POST], result)
-
-        return result === HookResult.EXECUTION_IGNORE ? origin.apply(self, args) : ctx.returnValue
-      }
+      })
     })
   }
 

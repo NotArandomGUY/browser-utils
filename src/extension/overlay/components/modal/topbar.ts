@@ -8,7 +8,7 @@ export interface ModalTopbarProps extends ClassNameProps {
   onCloseClick(): void
 }
 
-function ModalTopbar({ parentClassName, title, onCloseClick }: ModalTopbarProps): ChildDom {
+const ModalTopbar = ({ parentClassName, title, onCloseClick }: ModalTopbarProps): ChildDom => {
   const className = buildClass(parentClassName, 'topbar')
 
   return div(

@@ -5,17 +5,17 @@ const TIME_PADDING = [2, 2, 2]
 
 export type DateLike = Date | string | number
 
-function normalizeDate(date: DateLike): Date {
+const normalizeDate = (date: DateLike): Date => {
   return new Date(date)
 }
 
-function resetDate(date: DateLike): Date {
+const resetDate = (date: DateLike): Date => {
   date = normalizeDate(date)
   date.setFullYear(2000, 1, 1)
   return date
 }
 
-function resetTime(date: DateLike): Date {
+const resetTime = (date: DateLike): Date => {
   date = normalizeDate(date)
   date.setHours(0, 0, 0, 0)
   return date
@@ -57,47 +57,47 @@ export class DateTimeRange {
   }
 }
 
-export function secMs(sec: number): number {
+export const secMs = (sec: number): number => {
   return sec * 1000
 }
 
-export function minMs(min: number): number {
+export const minMs = (min: number): number => {
   return secMs(min * 60)
 }
 
-export function hourMs(hour: number): number {
+export const hourMs = (hour: number): number => {
   return minMs(hour * 60)
 }
 
-export function dayMs(day: number): number {
+export const dayMs = (day: number): number => {
   return hourMs(day * 24)
 }
 
-export function monthMs(month: number): number {
+export const monthMs = (month: number): number => {
   return dayMs(month * 31)
 }
 
-export function yearMs(year: number): number {
+export const yearMs = (year: number): number => {
   return monthMs(year * 12)
 }
 
-export function compareDateTimeLT(left: DateLike, right: DateLike): boolean {
+export const compareDateTimeLT = (left: DateLike, right: DateLike): boolean => {
   return normalizeDate(left).getTime() < normalizeDate(right).getTime()
 }
 
-export function compareDateTimeGT(left: DateLike, right: DateLike): boolean {
+export const compareDateTimeGT = (left: DateLike, right: DateLike): boolean => {
   return normalizeDate(left).getTime() > normalizeDate(right).getTime()
 }
 
-export function compareDateTimeLE(left: DateLike, right: DateLike): boolean {
+export const compareDateTimeLE = (left: DateLike, right: DateLike): boolean => {
   return normalizeDate(left).getTime() <= normalizeDate(right).getTime()
 }
 
-export function compareDateTimeGE(left: DateLike, right: DateLike): boolean {
+export const compareDateTimeGE = (left: DateLike, right: DateLike): boolean => {
   return normalizeDate(left).getTime() >= normalizeDate(right).getTime()
 }
 
-export function isDateInRange(date: DateLike, dateRange: DateTimeRange): boolean {
+export const isDateInRange = (date: DateLike, dateRange: DateTimeRange): boolean => {
   const current = resetTime(date)
   const begin = resetTime(dateRange.begin)
   const end = resetTime(dateRange.end)
@@ -105,7 +105,7 @@ export function isDateInRange(date: DateLike, dateRange: DateTimeRange): boolean
   return begin.getTime() <= current.getTime() && current.getTime() < end.getTime()
 }
 
-export function isTimeInRange(time: DateLike, timeRange: DateTimeRange): boolean {
+export const isTimeInRange = (time: DateLike, timeRange: DateTimeRange): boolean => {
   const current = resetDate(time)
   const begin = resetDate(timeRange.begin)
   const end = resetDate(timeRange.end)
@@ -113,25 +113,25 @@ export function isTimeInRange(time: DateLike, timeRange: DateTimeRange): boolean
   return begin.getTime() <= current.getTime() && current.getTime() < end.getTime()
 }
 
-export function ceilAlignDateTime(date: DateLike, intervalMs: number, offsetMs: number = 0): Date {
+export const ceilAlignDateTime = (date: DateLike, intervalMs: number, offsetMs: number = 0): Date => {
   if (intervalMs <= 0) intervalMs = 1
   date = normalizeDate(date)
   date.setTime((ceil(date.getTime() / intervalMs) * intervalMs) + offsetMs)
   return date
 }
 
-export function floorAlignDateTime(date: DateLike, intervalMs: number, offsetMs: number = 0): Date {
+export const floorAlignDateTime = (date: DateLike, intervalMs: number, offsetMs: number = 0): Date => {
   if (intervalMs <= 0) intervalMs = 1
   date = normalizeDate(date)
   date.setTime((floor(date.getTime() / intervalMs) * intervalMs) + offsetMs)
   return date
 }
 
-export function dateTimeOffset(date: DateLike, offset: number): Date {
+export const dateTimeOffset = (date: DateLike, offset: number): Date => {
   return new Date(normalizeDate(date).getTime() + offset)
 }
 
-export function toDateString(date: DateLike, padding = true): string {
+export const toDateString = (date: DateLike, padding = true): string => {
   date = normalizeDate(date)
   return [
     date.getFullYear(),
@@ -140,7 +140,7 @@ export function toDateString(date: DateLike, padding = true): string {
   ].map((v, i) => v.toString().padStart((padding ? DATE_PADDING[i] : 0) ?? 0, '0')).join('-')
 }
 
-export function toTimeString(date: DateLike, padding = true): string {
+export const toTimeString = (date: DateLike, padding = true): string => {
   date = normalizeDate(date)
   return [
     date.getHours(),
@@ -149,18 +149,18 @@ export function toTimeString(date: DateLike, padding = true): string {
   ].map((v, i) => v.toString().padStart((padding ? TIME_PADDING[i] : 0) ?? 0, '0')).join(':')
 }
 
-export function toDateTimeString(date: DateLike, padding = true): string {
+export const toDateTimeString = (date: DateLike, padding = true): string => {
   return [toDateString(date, padding), toTimeString(date, padding)].join(' ')
 }
 
-export function toDateNumbers(date: DateLike, padding = true): string {
+export const toDateNumbers = (date: DateLike, padding = true): string => {
   return toDateString(date, padding).replace(/-/g, '')
 }
 
-export function toTimeNumbers(date: DateLike, padding = true): string {
+export const toTimeNumbers = (date: DateLike, padding = true): string => {
   return toTimeString(date, padding).replace(/:/g, '')
 }
 
-export function toDateTimeNumbers(date: DateLike, padding = true): string {
+export const toDateTimeNumbers = (date: DateLike, padding = true): string => {
   return toDateTimeString(date, padding).replace(/[-:\s]/g, '')
 }
