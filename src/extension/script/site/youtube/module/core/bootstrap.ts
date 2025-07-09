@@ -163,6 +163,7 @@ const APP_ELEMENT_PAGE_MAP: Record<string, YTInitDataResponse['page'] | false> =
 }
 
 const createPlayerCallbacks: ((container: HTMLElement) => void)[] = []
+const createPolymerCallbacks: ((instance: object) => void)[] = []
 
 let ytcfg: YTConfig
 let appElement: HTMLElement | null = null
@@ -215,10 +216,20 @@ async function createPlayer(create: (...args: unknown[]) => void, container: HTM
   try {
     createPlayerCallbacks.forEach(callback => callback(container))
   } catch (error) {
-    logger.warn('before create player callback error:', error)
+    logger.warn('create player callback error:', error)
   }
 
   create(container, config, webPlayerContextConfig)
+}
+
+function createPolymer(instance: object): void {
+  if (instance == null) return
+
+  try {
+    createPolymerCallbacks.forEach(callback => callback(instance))
+  } catch (error) {
+    logger.warn('create polymer callback error:', error)
+  }
 }
 
 export function getYTAppElement(): HTMLElement | null {
@@ -229,8 +240,12 @@ export function isYTLoggedIn(): boolean {
   return ytcfg?.get('LOGGED_IN', false) ?? false
 }
 
-export function registerCreateYTPlayerCallback(callback: (container: HTMLElement) => void): void {
+export function registerYTPlayerCreateCallback(callback: (container: HTMLElement) => void): void {
   createPlayerCallbacks.push(callback)
+}
+
+export function registerYTPolymerCreateCallback(callback: (instance: object) => void): void {
+  createPolymerCallbacks.push(callback)
 }
 
 export default class YTCoreBootstrapModule extends Feature {
@@ -305,6 +320,8 @@ export default class YTCoreBootstrapModule extends Feature {
 
     // Override player application create
     defineProperty(window, 'yt', {
+      configurable: true,
+      writable: true,
       value: {
         player: {
           Application: new Proxy({}, {
@@ -316,15 +333,50 @@ export default class YTCoreBootstrapModule extends Feature {
             }
           })
         }
-      },
-      configurable: true,
-      writable: true
+      }
     })
 
+    // Override polymer class create
+    let PolymerFakeBaseClass: ((this: object) => void) | null = null
+    let PolymerFakeBaseClassWithoutHtml: ((this: object) => void) | null = null
+
+    defineProperties(window, {
+      PolymerFakeBaseClass: {
+        configurable: true,
+        get() {
+          return PolymerFakeBaseClass
+        },
+        set(fn: typeof PolymerFakeBaseClass) {
+          if (typeof fn !== 'function') return
+
+          PolymerFakeBaseClass = function () {
+            fn.apply<object, void>(this)
+            createPolymer(this)
+          }
+          PolymerFakeBaseClass.prototype = fn.prototype
+        }
+      },
+      PolymerFakeBaseClassWithoutHtml: {
+        configurable: true,
+        get() {
+          return PolymerFakeBaseClassWithoutHtml
+        },
+        set(fn: typeof PolymerFakeBaseClassWithoutHtml) {
+          if (typeof fn !== 'function') return
+
+          PolymerFakeBaseClassWithoutHtml = function () {
+            fn.apply<object, void>(this)
+            createPolymer(this)
+          }
+          PolymerFakeBaseClassWithoutHtml.prototype = fn.prototype
+        }
+      }
+    })
+
+    // Process initial data for get initial global
     let bootstrapLoadInitialCommand: ((data: object) => void) | null = null
     let bootstrapLoadInitialData: ((data: object) => void) | null = null
 
-    // Process initial data for get initial global
     defineProperties(window, {
       loadInitialCommand: {
         configurable: true,

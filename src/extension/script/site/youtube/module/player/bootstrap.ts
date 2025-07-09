@@ -3,7 +3,7 @@ import { Feature } from '@ext/lib/feature'
 import InterceptDOM from '@ext/lib/intercept/dom'
 import Hook, { HookResult } from '@ext/lib/intercept/hook'
 import Logger from '@ext/lib/logger'
-import { registerCreateYTPlayerCallback } from '@ext/site/youtube/module/core/bootstrap'
+import { registerYTPlayerCreateCallback } from '@ext/site/youtube/module/core/bootstrap'
 
 const LOGGER_OVERRIDE_ID = `logovr-${Date.now()}`
 
@@ -168,7 +168,7 @@ export default class YTPlayerBootstrapModule extends Feature {
   }
 
   protected activate(): boolean {
-    registerCreateYTPlayerCallback(onCreateYTPlayer)
+    registerYTPlayerCreateCallback(onCreateYTPlayer)
 
     InterceptDOM.setAppendChildCallback(ctx => {
       const node = ctx.args[0]

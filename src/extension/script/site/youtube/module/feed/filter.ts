@@ -69,7 +69,7 @@ export default class YTFeedFilterModule extends Feature {
       enabledIcon: YTIconType.YOUTUBE_SHORTS_BRAND_24,
       enabledText: 'Hide Shorts',
       defaultValue: true,
-      signals: [YTSignalActionType.RELOAD_PAGE]
+      signals: [YTSignalActionType.SOFT_RELOAD_PAGE]
     })
     registerYTConfigMenuItem({
       type: YTConfigMenuItemType.TOGGLE,

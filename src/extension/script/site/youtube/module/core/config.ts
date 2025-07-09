@@ -16,19 +16,22 @@ interface YTConfigMenuItemBase<T extends YTConfigMenuItemType> {
   key: string
 }
 
-interface YTConfigMenuButtonItem extends YTConfigMenuItemBase<YTConfigMenuItemType.BUTTON> {
-  icon: YTIconType
-  text: string
-  signals: YTSignalActionType[]
+interface YTConfigMenuActionItemBase<T extends YTConfigMenuItemType> extends YTConfigMenuItemBase<T> {
+  commands?: YTValueData<{ type: YTValueType.ENDPOINT }>[]
+  signals?: YTSignalActionType[]
 }
 
-interface YTConfigMenuToggleItem extends YTConfigMenuItemBase<YTConfigMenuItemType.TOGGLE> {
+interface YTConfigMenuButtonItem extends YTConfigMenuActionItemBase<YTConfigMenuItemType.BUTTON> {
+  icon: YTIconType
+  text: string
+}
+
+interface YTConfigMenuToggleItem extends YTConfigMenuActionItemBase<YTConfigMenuItemType.TOGGLE> {
   disabledIcon: YTIconType
   disabledText: string
   enabledIcon: YTIconType
   enabledText: string
   defaultValue: boolean
-  signals: YTSignalActionType[]
 }
 
 export type YTConfigMenuItem<T extends YTConfigMenuItemType | void = void> = T extends YTConfigMenuItemType ? Extract<YTConfigMenuItem, { type: T }> : (
@@ -38,11 +41,35 @@ export type YTConfigMenuItem<T extends YTConfigMenuItemType | void = void> = T e
 
 const configCacheMap = new Map<string, unknown>()
 const configMenuItems: YTConfigMenuItem[] = [
-  { type: YTConfigMenuItemType.BUTTON, key: 'soft-reload', icon: YTIconType.REFRESH, text: 'Soft reload', signals: [YTSignalActionType.SOFT_RELOAD_PAGE] }
+  {
+    type: YTConfigMenuItemType.BUTTON,
+    key: 'soft-reload',
+    icon: YTIconType.REFRESH,
+    text: 'Soft reload',
+    commands: [{ signalAction: { signal: YTSignalActionType.SOFT_RELOAD_PAGE } }]
+  }
 ]
 
 function getSetterSignalActionType(key: string, value: unknown): YTSignalActionType {
   return [YTSignalActionType.CONFIG_VALUE_SET, key, String(value)].join(':') as YTSignalActionType
+}
+
+function buildActionItemCommand(item: Pick<YTConfigMenuActionItemBase<YTConfigMenuItemType>, 'commands' | 'signals'>): YTValueData<{ type: YTValueType.ENDPOINT }> {
+  const commands: YTValueData<{ type: YTValueType.ENDPOINT }>[] = [
+    ...item.signals?.map(signal => ({ signalAction: { signal } })) ?? [],
+    ...item.commands ?? []
+  ]
+
+  return {
+    commandExecutorCommand: {
+      commands: commands.map(command => command.signalAction ? {
+        signalServiceEndpoint: {
+          signal: 'CLIENT_SIGNAL',
+          actions: [command]
+        }
+      } : command)
+    }
+  }
 }
 
 function renderConfigMenuItem(item: YTConfigMenuItem): YTValueData<{ type: YTValueType.RENDERER }> {
@@ -52,12 +79,7 @@ function renderConfigMenuItem(item: YTConfigMenuItem): YTValueData<{ type: YTVal
         menuServiceItemRenderer: {
           icon: { iconType: item.icon },
           text: { simpleText: item.text },
-          serviceEndpoint: {
-            signalServiceEndpoint: {
-              signal: 'CLIENT_SIGNAL',
-              actions: item.signals.map(signal => ({ signalAction: { signal } }))
-            }
-          }
+          serviceEndpoint: buildActionItemCommand(item)
         }
       }
     case YTConfigMenuItemType.TOGGLE:
@@ -65,26 +87,16 @@ function renderConfigMenuItem(item: YTConfigMenuItem): YTValueData<{ type: YTVal
         toggleMenuServiceItemRenderer: {
           defaultIcon: { iconType: item.disabledIcon },
           defaultText: { simpleText: item.disabledText },
-          defaultServiceEndpoint: {
-            signalServiceEndpoint: {
-              signal: 'CLIENT_SIGNAL',
-              actions: [
-                { signalAction: { signal: getSetterSignalActionType(item.key, 1) } },
-                ...item.signals.map(signal => ({ signalAction: { signal } }))
-              ]
-            }
-          },
+          defaultServiceEndpoint: buildActionItemCommand({
+            commands: item.commands,
+            signals: [getSetterSignalActionType(item.key, 1), ...item.signals ?? []]
+          }),
           toggledIcon: { iconType: item.enabledIcon },
           toggledText: { simpleText: item.enabledText },
-          toggledServiceEndpoint: {
-            signalServiceEndpoint: {
-              signal: 'CLIENT_SIGNAL',
-              actions: [
-                { signalAction: { signal: getSetterSignalActionType(item.key, 0) } },
-                ...item.signals.map(signal => ({ signalAction: { signal } }))
-              ]
-            }
-          },
+          toggledServiceEndpoint: buildActionItemCommand({
+            commands: item.commands,
+            signals: [getSetterSignalActionType(item.key, 0), ...item.signals ?? []]
+          }),
           isToggled: getYTConfigBool(item.key, item.defaultValue)
         }
       }

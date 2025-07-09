@@ -48,6 +48,38 @@ export enum YTMediaFormatQualityOrdinal {
   QUALITY_ORDINAL_2160P = 'QUALITY_ORDINAL_2160P'
 }
 
+export const YTResponseContextSchema = {
+  consistencyTokenJar: ytv_sch({
+    encryptedTokenJarContents: ytv_str(),
+    expirationSeconds: ytv_str()
+  }),
+  mainAppWebResponseContext: ytv_sch({
+    datasyncId: ytv_str(),
+    loggedOut: ytv_bol(),
+    trackingParam: ytv_str()
+  }),
+  maxAgeSeconds: ytv_num(),
+  serviceTrackingParams: ytv_arr(ytv_sch({
+    params: ytv_arr(ytv_sch({
+      key: ytv_str(),
+      value: ytv_str()
+    })),
+    service: ytv_str()
+  })),
+  visitorData: ytv_str(),
+  webResponseContextExtensionData: ytv_sch({
+    hasDecorated: ytv_bol(),
+    webPrefetchData: ytv_sch({
+      navigationEndpoints: ytv_arr(ytv_enp())
+    }),
+    ytConfigData: ytv_sch({
+      rootVisualElementType: ytv_num(),
+      sessionIndex: ytv_num(),
+      visitorData: ytv_str()
+    })
+  })
+} satisfies YTRendererSchema
+
 export const YTResponseCommonSchema = {
   actions: ytv_arr(ytv_enp()),
   command: ytv_enp(),
@@ -57,7 +89,8 @@ export const YTResponseCommonSchema = {
   onResponseReceivedEndpoint: ytv_enp(),
   onResponseReceivedActions: ytv_arr(ytv_enp()),
   onResponseReceivedCommands: ytv_arr(ytv_enp()),
-  onResponseReceivedEndpoints: ytv_arr(ytv_enp())
+  onResponseReceivedEndpoints: ytv_arr(ytv_enp()),
+  responseContext: ytv_ren(YTResponseContextSchema)
 } satisfies YTRendererSchema
 
 export const YTAdInteractionSchema = {
@@ -151,38 +184,6 @@ export const YTRendererContinuationSchema = {
   liveChatReplayContinuationData: ytv_ren(YTRendererContinuationDataSchema),
   playerSeekContinuationData: ytv_ren(YTRendererContinuationDataSchema),
   timedContinuationData: ytv_ren(YTRendererContinuationDataSchema)
-} satisfies YTRendererSchema
-
-export const YTResponseContextSchema = {
-  consistencyTokenJar: ytv_sch({
-    encryptedTokenJarContents: ytv_str(),
-    expirationSeconds: ytv_str()
-  }),
-  mainAppWebResponseContext: ytv_sch({
-    datasyncId: ytv_str(),
-    loggedOut: ytv_bol(),
-    trackingParam: ytv_str()
-  }),
-  maxAgeSeconds: ytv_num(),
-  serviceTrackingParams: ytv_arr(ytv_sch({
-    params: ytv_arr(ytv_sch({
-      key: ytv_str(),
-      value: ytv_str()
-    })),
-    service: ytv_str()
-  })),
-  visitorData: ytv_str(),
-  webResponseContextExtensionData: ytv_sch({
-    hasDecorated: ytv_bol(),
-    webPrefetchData: ytv_sch({
-      navigationEndpoints: ytv_arr(ytv_enp())
-    }),
-    ytConfigData: ytv_sch({
-      rootVisualElementType: ytv_num(),
-      sessionIndex: ytv_num(),
-      visitorData: ytv_str()
-    })
-  })
 } satisfies YTRendererSchema
 
 export const YTPaygatedQualityDetailSchema = {
@@ -589,7 +590,6 @@ export const YTPlayerResponseSchema = {
   playbackTracking: ytv_ren(YTPlayerPlaybackTrackingSchema),
   playerAds: ytv_arr(ytv_ren()),
   playerConfig: ytv_ren(YTPlayerConfigSchema),
-  responseContext: ytv_ren(YTResponseContextSchema),
   storyboards: ytv_ren(),
   streamingData: ytv_ren(YTPlayerStreamingDataSchema),
   videoDetails: ytv_ren(YTPlayerVideoDetailsSchema)
@@ -603,7 +603,6 @@ export const YTRendererSchemaMap = {
     header: ytv_ren(),
     metadata: ytv_ren(),
     microformat: ytv_ren(),
-    responseContext: ytv_ren(YTResponseContextSchema),
     topbar: ytv_ren()
   },
   browseEditPlaylistResponse: {
@@ -614,13 +613,11 @@ export const YTRendererSchemaMap = {
         videoId: ytv_str()
       })
     })),
-    responseContext: ytv_ren(YTResponseContextSchema),
     status: ytv_str(['STATUS_SUCCEEDED'])
   },
   guideResponse: {
     ...YTResponseCommonSchema,
-    items: ytv_arr(ytv_ren()),
-    responseContext: ytv_ren(YTResponseContextSchema)
+    items: ytv_arr(ytv_ren())
   },
   liveChatGetLiveChatResponse: {
     ...YTResponseCommonSchema,
@@ -629,8 +626,7 @@ export const YTRendererSchemaMap = {
     }),
     liveChatStreamingResponseExtension: ytv_sch({
       lastPublishAtUsec: ytv_str()
-    }),
-    responseContext: ytv_ren(YTResponseContextSchema)
+    })
   },
   nextResponse: {
     ...YTResponseCommonSchema,
@@ -641,7 +637,6 @@ export const YTRendererSchemaMap = {
     engagementPanels: ytv_arr(ytv_ren()),
     pageVisualEffects: ytv_arr(ytv_ren()),
     playerOverlays: ytv_ren(),
-    responseContext: ytv_ren(YTResponseContextSchema),
     survey: ytv_ren(),
     topbar: ytv_ren()
   },
@@ -651,8 +646,7 @@ export const YTRendererSchemaMap = {
     adBreakHeartbeatParams: ytv_str(),
     heartbeatServerData: ytv_str(),
     playabilityStatus: ytv_ren(YTPlayerPlayabilityStatusSchema),
-    pollDelayMs: ytv_str(),
-    responseContext: ytv_ren(YTResponseContextSchema)
+    pollDelayMs: ytv_str()
   },
   reelReelItemWatchResponse: {
     ...YTResponseCommonSchema,
@@ -660,7 +654,6 @@ export const YTRendererSchemaMap = {
     engagementPanels: ytv_arr(ytv_ren()),
     overlay: ytv_ren(),
     replacementEndpoint: ytv_enp(),
-    responseContext: ytv_ren(YTResponseContextSchema),
     sequenceContinuation: ytv_str(),
     status: ytv_str(['REEL_ITEM_WATCH_STATUS_SUCCEEDED']),
     tooltip: ytv_ren(), // NOTE: actually an unknown type
@@ -669,8 +662,7 @@ export const YTRendererSchemaMap = {
   reelReelWatchSequenceResponse: {
     ...YTResponseCommonSchema,
     continuationEndpoint: ytv_enp(),
-    entries: ytv_arr(ytv_ren()),
-    responseContext: ytv_ren(YTResponseContextSchema)
+    entries: ytv_arr(ytv_ren())
   },
   searchResponse: {
     ...YTResponseCommonSchema,
@@ -678,14 +670,12 @@ export const YTRendererSchemaMap = {
     estimatedResults: ytv_str(),
     header: ytv_ren(),
     refinements: ytv_arr(ytv_str()),
-    responseContext: ytv_ren(YTResponseContextSchema),
     targetId: ytv_str(),
     topbar: ytv_ren()
   },
   updatedMetadataResponse: {
     ...YTResponseCommonSchema,
-    continuation: ytv_ren(YTRendererContinuationSchema),
-    responseContext: ytv_ren(YTResponseContextSchema)
+    continuation: ytv_ren(YTRendererContinuationSchema)
   },
 
   // Renderer

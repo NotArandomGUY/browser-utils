@@ -553,7 +553,7 @@ export const YTEndpointSchemaMap = {
   openSuperStickerBuyFlowCommand: {
     params: ytv_str()
   },
-  parallelCommand: {
+  parallelCommand: { // Same as commandExecutorCommand
     commands: ytv_arr(ytv_enp())
   },
   performOnceCommand: {
@@ -583,8 +583,8 @@ export const YTEndpointSchemaMap = {
     offsetFromVideoStartMilliseconds: ytv_str(),
     videoId: ytv_str()
   },
-  serialCommand: {
-    commands: ytv_arr(ytv_enp()) // NOTE: probably not?
+  serialCommand: { // Same as commandExecutorCommand
+    commands: ytv_arr(ytv_enp())
   },
   scrollToEngagementPanelCommand: {
     panelIdentifier: ytv_sch(YTEngagementPanelIdentifier),
