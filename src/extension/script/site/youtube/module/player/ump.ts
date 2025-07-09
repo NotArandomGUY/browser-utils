@@ -1,4 +1,4 @@
-import { min } from '@ext/global/math'
+import { ceil, min } from '@ext/global/math'
 import { assign, fromEntries } from '@ext/global/object'
 import { bufferConcat } from '@ext/lib/buffer'
 import { Feature } from '@ext/lib/feature'
@@ -176,7 +176,7 @@ function processUMPPart(part: UMPPart): boolean {
           durationHintMs: backoffTimeMs,
           popup: {
             notificationActionRenderer: {
-              responseText: { runs: [{ text: `Waiting for server ad delay (${Math.ceil(backoffTimeMs / 1e3)}s)...` }] }
+              responseText: { runs: [{ text: `Waiting for server ad delay (${ceil(backoffTimeMs / 1e3)}s)...` }] }
             }
           },
           popupType: 'TOAST'
