@@ -86,7 +86,7 @@ async function processInnertubeRequest(request: Request, endpoint: string): Prom
   return new Request(request.url, {
     method: request.method,
     headers: request.headers,
-    body: JSON.stringify(data)
+    body: ['GET', 'HEAD'].includes(request.method.toUpperCase()) ? null : JSON.stringify(data)
   })
 }
 
