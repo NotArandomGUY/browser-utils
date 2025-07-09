@@ -640,6 +640,9 @@ export const YTRendererSchemaMap = {
     survey: ytv_ren(),
     topbar: ytv_ren()
   },
+  notificationGetUnseenCountResponse: {
+    ...YTResponseCommonSchema
+  },
   playerResponse: YTPlayerResponseSchema,
   playerHeartbeatResponse: {
     ...YTResponseCommonSchema,
