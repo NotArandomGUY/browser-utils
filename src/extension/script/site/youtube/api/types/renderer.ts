@@ -441,6 +441,7 @@ export const YTPlayerConfigSchema = {
   }),
   livePlayerConfig: ytv_sch({
     hasSubfragmentedFmp4: ytv_bol(),
+    hasSubfragmentedWebm: ytv_bol(),
     isLiveHeadPlayable: ytv_bol(),
     liveExperimentalContentId: ytv_str(),
     liveReadaheadSeconds: ytv_num()
@@ -844,6 +845,13 @@ export const YTRendererSchemaMap = {
     })),
     teaser: ytv_ren()
   },
+  carouselItemRenderer: {
+    backgroundColor: ytv_num(),
+    carouselItems: ytv_arr(ytv_ren()),
+    layoutStyle: ytv_str(['CAROUSEL_ITEM_RENDERER_LAYOUT_STYLE_DESTINATION']),
+    paginationThumbnails: ytv_arr(ytv_sch(YTThumbnailSchema)),
+    paginatorAlignment: ytv_str(['CAROUSEL_ITEM_RENDERER_PAGINATOR_ALIGNMENT_START'])
+  },
   channelMetadataRenderer: {
     androidAppindexingLink: ytv_str(),
     androidDeepLink: ytv_str(),
@@ -1106,6 +1114,27 @@ export const YTRendererSchemaMap = {
   },
   decoratedPlayerBarRenderer: {
     playerBar: ytv_ren(),
+  },
+  defaultPromoPanelBylineRenderer: {
+    badgeRenderers: ytv_arr(ytv_ren()),
+    bylineText: ytv_sch(YTTextSchema),
+    thumbnailDetails: ytv_sch(YTThumbnailSchema)
+  },
+  defaultPromoPanelRenderer: {
+    actionButton: ytv_ren(),
+    byline: ytv_ren(),
+    description: ytv_sch(YTTextSchema),
+    inlinePlaybackRenderer: ytv_ren(),
+    largeFormFactorBackgroundThumbnail: ytv_ren(),
+    metadataOrder: ytv_str(['DEFAULT_PROMO_PANEL_RENDERER_METADATA_ORDER_TITLE_DESCRIPTION']),
+    minPanelDisplayDurationMs: ytv_num(),
+    minVideoPlayDurationMs: ytv_num(),
+    navigationEndpoint: ytv_enp(),
+    panelLayout: ytv_str(['DEFAULT_PROMO_PANEL_RENDERER_LAYOUT_C']),
+    scrimColorValues: ytv_arr(ytv_num()),
+    scrimRotation: ytv_num(),
+    smallFormFactorBackgroundThumbnail: ytv_ren(),
+    title: ytv_sch(YTTextSchema)
   },
   desktopTopbarRenderer: {
     a11ySkipNavigationButton: ytv_ren(),
@@ -1493,6 +1522,12 @@ export const YTRendererSchemaMap = {
     renderingContent: ytv_ren()
   },
   infoCardIconRenderer: {},
+  inlinePlaybackRenderer: {
+    inlinePlaybackEndpoint: ytv_enp(),
+    navigationEndpoint: ytv_enp(),
+    thumbnail: ytv_sch(YTThumbnailSchema),
+    videoId: ytv_str()
+  },
   instreamVideoAdRenderer: {
     adLayoutLoggingData: ytv_ren(YTAdLayoutLoggingDataSchema),
     clickthroughEndpoint: ytv_enp(),
@@ -2403,6 +2438,7 @@ export const YTRendererSchemaMap = {
   },
   richShelfRenderer: {
     contents: ytv_arr(ytv_ren()),
+    endpoint: ytv_enp(),
     icon: ytv_sch(YTIconSchema),
     isBottomDividerHidden: ytv_bol(),
     isExpanded: ytv_bol(),
@@ -2621,6 +2657,10 @@ export const YTRendererSchemaMap = {
     tabIdentifier: ytv_str(),
     title: ytv_str()
   },
+  thumbnailLandscapePortraitRenderer: {
+    landscape: ytv_sch(YTThumbnailSchema),
+    portrait: ytv_sch(YTThumbnailSchema)
+  },
   thumbnailOverlayBottomPanelRenderer: {
     icon: ytv_sch(YTIconSchema),
     text: ytv_sch(YTTextSchema)
@@ -2824,6 +2864,11 @@ export const YTRendererSchemaMap = {
     thumbnail: ytv_sch(YTThumbnailSchema),
     thumbnailOverlays: ytv_arr(ytv_ren()),
     title: ytv_sch(YTTextSchema),
+    upcomingEventData: ytv_sch({
+      isReminderSet: ytv_bol(),
+      startTime: ytv_str(),
+      upcomingEventText: ytv_sch(YTTextSchema)
+    }),
     videoId: ytv_str(),
     viewCountText: ytv_sch(YTTextSchema)
   },

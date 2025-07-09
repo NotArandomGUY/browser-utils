@@ -41,7 +41,12 @@ function filterShelf(data: YTRendererData<YTRenderer<'reelShelfRenderer' | 'rich
 function filterVideo(data: YTRendererData<YTRenderer<'compactVideoRenderer' | 'videoRenderer'>>): boolean {
   if (!isShowShorts() && data.navigationEndpoint?.reelWatchEndpoint != null) return false
 
-  const isLive = data.badges?.map(b => b.metadataBadgeRenderer?.icon?.iconType).find(b => b?.includes('LIVE')) != null
+  const icons = [
+    data.thumbnailOverlays?.find(r => r.thumbnailOverlayTimeStatusRenderer != null)?.thumbnailOverlayTimeStatusRenderer?.icon?.iconType,
+    ...data.badges?.map(b => b.metadataBadgeRenderer?.icon?.iconType) ?? []
+  ]
+  const isLive = icons.find(icon => icon?.includes('LIVE')) != null
+
   if (!isShowLive() && isLive) return false
   if (!isShowVideo() && !isLive) return false
 
