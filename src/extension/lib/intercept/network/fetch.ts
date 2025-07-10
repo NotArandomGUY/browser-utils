@@ -2,6 +2,8 @@ import Hook, { HookResult } from '@ext/lib/intercept/hook'
 import { NetworkContext, NetworkRequestCallback, NetworkResponseCallback, NetworkResponseContext, NetworkState } from '@ext/lib/intercept/network'
 import Logger from '@ext/lib/logger'
 
+const { clone } = Request.prototype
+
 const logger = new Logger('INTERCEPT-FETCH')
 
 let hook: Hook<unknown, [input: RequestInfo | URL, init?: RequestInit], Promise<Response>> | null = null
@@ -31,7 +33,7 @@ export const registerInterceptNetworkFetchModule = (onRequest: NetworkRequestCal
     const { origin, args } = ctx
     const [input, init] = args
 
-    ctx.returnValue = onRequest(input, init)
+    ctx.returnValue = onRequest(input instanceof Request ? clone.apply(input) : input, init)
       .then(ctx => doFetch(origin, ctx))
       .then(onResponse)
       .then(ctx => {

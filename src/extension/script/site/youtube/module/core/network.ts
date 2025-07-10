@@ -1,5 +1,5 @@
 import { floor, random } from '@ext/global/math'
-import { assign, defineProperty, entries, fromEntries, getOwnPropertyDescriptor } from '@ext/global/object'
+import { assign, defineProperty, entries, fromEntries } from '@ext/global/object'
 import { bufferFromString, bufferToString } from '@ext/lib/buffer'
 import { Feature } from '@ext/lib/feature'
 import { preventDispatchEvent } from '@ext/lib/intercept/event'
@@ -117,12 +117,6 @@ async function processRequest(ctx: NetworkRequestContext): Promise<void> {
   }
 
   const path = url.pathname + url.search
-
-  // Ignore request with fake url
-  if (request != null && getOwnPropertyDescriptor(request, 'url')?.get?.toString().includes(url.pathname)) {
-    ctx.passthrough = true
-    return
-  }
 
   // Ignore whitelisted request
   if (isYTLoggedIn() && LOGIN_WHITELIST_PATH.test(path)) return
