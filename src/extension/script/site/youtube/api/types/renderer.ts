@@ -394,7 +394,7 @@ export const YTAutoplaySetSchema = {
 export const YTButtonViewModelSchema = {
   accessibilityId: ytv_str(),
   accessibilityText: ytv_str(),
-  buttonSize: ytv_str(['BUTTON_VIEW_MODEL_SIZE_DEFAULT', 'BUTTON_VIEW_MODEL_SIZE_XSMALL']),
+  buttonSize: ytv_str(['BUTTON_VIEW_MODEL_SIZE_COMPACT', 'BUTTON_VIEW_MODEL_SIZE_DEFAULT', 'BUTTON_VIEW_MODEL_SIZE_XSMALL']),
   customBackgroundColor: ytv_num(),
   customFontColor: ytv_num(),
   iconImage: ytv_sch(YTImageSourceSchema),
@@ -407,7 +407,7 @@ export const YTButtonViewModelSchema = {
   onVisible: ytv_enp(),
   shouldLogGestures: ytv_bol(),
   state: ytv_str(['BUTTON_VIEW_MODEL_STATE_ACTIVE']),
-  style: ytv_str(['BUTTON_VIEW_MODEL_STYLE_CUSTOM', 'BUTTON_VIEW_MODEL_STYLE_MONO', 'BUTTON_VIEW_MODEL_STYLE_OVERLAY', 'BUTTON_VIEW_MODEL_STYLE_UNKNOWN']),
+  style: ytv_str(['BUTTON_VIEW_MODEL_STYLE_CUSTOM', 'BUTTON_VIEW_MODEL_STYLE_MONO', 'BUTTON_VIEW_MODEL_STYLE_OVERLAY', 'BUTTON_VIEW_MODEL_STYLE_OVERLAY_DARK', 'BUTTON_VIEW_MODEL_STYLE_UNKNOWN']),
   title: ytv_str(),
   titleFormatted: ytv_ren(YTTextViewModelSchema),
   tooltip: ytv_str(),
@@ -3170,6 +3170,9 @@ export const YTRendererSchemaMap = {
     dislikeEntityKey: ytv_str(),
     toggleButtonViewModel: ytv_ren()
   },
+  downloadListItemViewModel: {
+    rendererContext: ytv_ren(YTRendererContextSchema)
+  },
   dynamicTextViewModel: {
     maxLines: ytv_num(),
     rendererContext: ytv_ren(YTRendererContextSchema),
@@ -3230,6 +3233,7 @@ export const YTRendererSchemaMap = {
     pointsEntityKey: ytv_str()
   },
   lockupMetadataViewModel: {
+    image: ytv_ren(),
     menuButton: ytv_ren(),
     metadata: ytv_ren(),
     title: ytv_ren(YTTextViewModelSchema)
@@ -3237,7 +3241,7 @@ export const YTRendererSchemaMap = {
   lockupViewModel: {
     contentId: ytv_str(),
     contentImage: ytv_ren(),
-    contentType: ytv_str(['LOCKUP_CONTENT_TYPE_ALBUM', 'LOCKUP_CONTENT_TYPE_PLAYLIST']),
+    contentType: ytv_str(['LOCKUP_CONTENT_TYPE_ALBUM', 'LOCKUP_CONTENT_TYPE_PLAYLIST', 'LOCKUP_CONTENT_TYPE_VIDEO']),
     metadata: ytv_ren(),
     rendererContext: ytv_ren(YTRendererContextSchema)
   },
@@ -3432,10 +3436,25 @@ export const YTRendererSchemaMap = {
     imageLight: ytv_sch(YTImageSchema)
   },
   thumbnailBadgeViewModel: {
+    animatedText: ytv_str(),
+    animationActivationEntityKey: ytv_str(),
+    animationActivationEntitySelectorType: ytv_str(['THUMBNAIL_BADGE_ANIMATION_ENTITY_SELECTOR_TYPE_PLAYER_STATE']),
+    animationActivationTargetId: ytv_str(),
     backgroundColor: ytv_ren(YTThemedColorSchema),
     badgeStyle: ytv_str(['THUMBNAIL_OVERLAY_BADGE_STYLE_DEFAULT']),
     icon: ytv_sch(YTImageSchema),
+    lottieData: ytv_sch({
+      settings: ytv_sch({
+        autoplay: ytv_bol(),
+        loop: ytv_bol()
+      }),
+      url: ytv_str()
+    }),
+    rendererContext: ytv_ren(YTRendererContextSchema),
     text: ytv_str()
+  },
+  thumbnailHoverOverlayToggleActionsViewModel: {
+    buttons: ytv_arr(ytv_ren())
   },
   thumbnailHoverOverlayViewModel: {
     icon: ytv_sch(YTImageSchema),
@@ -3485,6 +3504,7 @@ export const YTRendererSchemaMap = {
   toggleButtonViewModel: {
     defaultButtonViewModel: ytv_ren(),
     identifier: ytv_str(),
+    isToggled: ytv_bol(),
     isTogglingDisabled: ytv_bol(),
     toggledButtonViewModel: ytv_ren()
   },
