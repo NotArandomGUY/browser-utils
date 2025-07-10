@@ -2,6 +2,7 @@ import { registerFeature, registerFeatureGroup } from '@ext/lib/feature'
 import { hideOwnWebpackRuntimeFromGlobal } from '@ext/lib/wprt'
 import YTChatBootstrapModule from '@ext/site/youtube/module/chat/bootstrap'
 import YTChatEmojiPickerModule from '@ext/site/youtube/module/chat/emoji-picker'
+import YTChatPopoutModule from '@ext/site/youtube/module/chat/popout'
 import YTCoreActionModule from '@ext/site/youtube/module/core/action'
 import YTCoreBootstrapModule from '@ext/site/youtube/module/core/bootstrap'
 import YTCoreConfigModule from '@ext/site/youtube/module/core/config'
@@ -45,6 +46,7 @@ registerFeatureGroup('youtube', group => {
   // Register chat features
   registerFeature(group, YTChatBootstrapModule)
   registerFeature(group, YTChatEmojiPickerModule)
+  registerFeature(group, YTChatPopoutModule)
 
   // Register miscs features
   registerFeature(group, YTMiscsAdsModule)
