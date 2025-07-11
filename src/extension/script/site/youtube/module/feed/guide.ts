@@ -7,6 +7,7 @@ import { isYTLoggedIn, registerYTPolymerCreateCallback } from '@ext/site/youtube
 import { isShowShorts } from '@ext/site/youtube/module/feed/filter'
 
 const REFRESH_INTERVAL_SEC = 15 * 60
+const REFRESH_OFFSET_SEC = 60
 const MIN_REFRESH_SEC = 30
 
 interface YTGuidePolymer {
@@ -39,7 +40,7 @@ function updateGuideResponse(data: YTRendererData<YTRenderer<'guideResponse'>>):
 
   if (isYTLoggedIn()) {
     const maxAgeSec = responseContext?.maxAgeSeconds ?? 0
-    const nextIntervalSec = (REFRESH_INTERVAL_SEC - (floor(Date.now() / 1e3) % REFRESH_INTERVAL_SEC))
+    const nextIntervalSec = (REFRESH_INTERVAL_SEC - ((floor(Date.now() / 1e3) - REFRESH_OFFSET_SEC) % REFRESH_INTERVAL_SEC))
     const nextRefreshSec = max(MIN_REFRESH_SEC, min(maxAgeSec, nextIntervalSec))
 
     if (refreshTimer != null) clearTimeout(refreshTimer)
