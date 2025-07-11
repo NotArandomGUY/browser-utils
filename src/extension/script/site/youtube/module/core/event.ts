@@ -1,6 +1,6 @@
 import { Feature } from '@ext/lib/feature'
 import { YTEndpoint, YTSignalActionType } from '@ext/site/youtube/api/endpoint'
-import { YTEndpointData } from '@ext/site/youtube/api/types/common'
+import { YTEndpointData, YTValueData, YTValueType } from '@ext/site/youtube/api/types/common'
 import { getYTAppElement } from '@ext/site/youtube/module/core/bootstrap'
 
 export type YTActionHandler = (event: YTActionEvent) => void
@@ -14,6 +14,7 @@ export interface YTActionEvent {
 
 const actionHandlerMap: Record<string, YTActionHandler> = {}
 const actionEventQueue: YTActionEvent[] = []
+const navigateEventQueue: YTValueData<{ type: YTValueType.ENDPOINT }>[] = []
 
 function getSignalActionName(signal: YTSignalActionType): string {
   return `yt-signal-action-${signal.toLowerCase().replace(/_/g, '-')}`
@@ -26,7 +27,17 @@ export function dispatchYTAction(action: YTActionEvent): void {
     return
   }
 
-  appElement.dispatchEvent(new CustomEvent<YTActionEvent>('yt-action', { detail: action }))
+  appElement.dispatchEvent(new CustomEvent('yt-action', { detail: action }))
+}
+
+export function dispatchYTNavigate(endpoint: YTValueData<{ type: YTValueType.ENDPOINT }>): void {
+  const appElement = getYTAppElement()
+  if (appElement == null) {
+    navigateEventQueue.push(endpoint)
+    return
+  }
+
+  appElement.dispatchEvent(new CustomEvent('yt-navigate', { detail: { endpoint } }))
 }
 
 export function dispatchYTOpenPopupAction(data: YTEndpointData<YTEndpoint<'openPopupAction'>>): void {
@@ -49,9 +60,9 @@ export function registerYTSignalActionHandler(signal: YTSignalActionType, handle
   registerYTActionHandler(getSignalActionName(signal), handler)
 }
 
-export default class YTCoreActionModule extends Feature {
+export default class YTCoreEventModule extends Feature {
   public constructor() {
-    super('core-action')
+    super('core-event')
   }
 
   protected activate(): boolean {
@@ -70,6 +81,13 @@ export default class YTCoreActionModule extends Feature {
         if (action == null) break
 
         dispatchYTAction(action)
+      }
+
+      while (true) {
+        const endpoint = navigateEventQueue.shift()
+        if (endpoint == null) break
+
+        dispatchYTNavigate(endpoint)
       }
     })
 

@@ -4,7 +4,7 @@ import { registerYTRendererPreProcessor, YTRenderer, YTRendererData, YTRendererS
 import { YTValueData, YTValueType } from '@ext/site/youtube/api/types/common'
 import { YTIconType } from '@ext/site/youtube/api/types/icon'
 import { YTSizeType } from '@ext/site/youtube/api/types/size'
-import { registerYTSignalActionHandler } from '@ext/site/youtube/module/core/action'
+import { registerYTSignalActionHandler } from '@ext/site/youtube/module/core/event'
 
 export const enum YTConfigMenuItemType {
   BUTTON,

@@ -2,8 +2,8 @@ import { floor, max, min } from '@ext/global/math'
 import { Feature } from '@ext/lib/feature'
 import { YTSignalActionType } from '@ext/site/youtube/api/endpoint'
 import { registerYTRendererPreProcessor, removeYTRendererPre, YTRenderer, YTRendererData, YTRendererSchemaMap } from '@ext/site/youtube/api/renderer'
-import { registerYTSignalActionHandler } from '@ext/site/youtube/module/core/action'
 import { isYTLoggedIn, registerYTPolymerCreateCallback } from '@ext/site/youtube/module/core/bootstrap'
+import { registerYTSignalActionHandler } from '@ext/site/youtube/module/core/event'
 import { isShowShorts } from '@ext/site/youtube/module/feed/filter'
 
 const REFRESH_INTERVAL_SEC = 15 * 60

@@ -1,7 +1,7 @@
 import { Feature } from '@ext/lib/feature'
 import { YTSignalActionType } from '@ext/site/youtube/api/endpoint'
 import { registerYTRendererPreProcessor, YTRenderer, YTRendererData, YTRendererSchemaMap } from '@ext/site/youtube/api/renderer'
-import { dispatchYTSignalAction, registerYTSignalActionHandler } from '@ext/site/youtube/module/core/action'
+import { dispatchYTSignalAction, registerYTSignalActionHandler } from '@ext/site/youtube/module/core/event'
 
 const playerActionsQueue: NonNullable<YTRendererData<YTRenderer<'playerResponse'>>['actions']>[] = []
 

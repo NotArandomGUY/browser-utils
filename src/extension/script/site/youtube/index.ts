@@ -3,9 +3,9 @@ import { hideOwnWebpackRuntimeFromGlobal } from '@ext/lib/wprt'
 import YTChatBootstrapModule from '@ext/site/youtube/module/chat/bootstrap'
 import YTChatEmojiPickerModule from '@ext/site/youtube/module/chat/emoji-picker'
 import YTChatPopoutModule from '@ext/site/youtube/module/chat/popout'
-import YTCoreActionModule from '@ext/site/youtube/module/core/action'
 import YTCoreBootstrapModule from '@ext/site/youtube/module/core/bootstrap'
 import YTCoreConfigModule from '@ext/site/youtube/module/core/config'
+import YTCoreEventModule from '@ext/site/youtube/module/core/event'
 import YTCoreLoggingModule from '@ext/site/youtube/module/core/logging'
 import YTCoreNetworkModule from '@ext/site/youtube/module/core/network'
 import YTCoreSandboxModule from '@ext/site/youtube/module/core/sandbox'
@@ -29,7 +29,7 @@ registerFeatureGroup('youtube', group => {
   registerFeature(group, YTCoreBootstrapModule)
   registerFeature(group, YTCoreLoggingModule)
   registerFeature(group, YTCoreNetworkModule)
-  registerFeature(group, YTCoreActionModule)
+  registerFeature(group, YTCoreEventModule)
   registerFeature(group, YTCoreConfigModule)
 
   // Register feed features

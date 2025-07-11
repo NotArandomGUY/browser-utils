@@ -1,7 +1,7 @@
 import { defineProperty } from '@ext/global/object'
 import { Feature } from '@ext/lib/feature'
 import Logger from '@ext/lib/logger'
-import { dispatchYTOpenPopupAction } from '@ext/site/youtube/module/core/action'
+import { dispatchYTOpenPopupAction } from '@ext/site/youtube/module/core/event'
 
 const logger = new Logger('YTCORE-LOGGING')
 

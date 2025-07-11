@@ -12,7 +12,7 @@ import UMPSabrContextUpdate, { UMPSabrContextScope, UMPSabrContextValue } from '
 import UMPContentAdsSabrContext from '@ext/site/youtube/api/proto/ump/sabr-context/content-ads'
 import UMPSabrError from '@ext/site/youtube/api/proto/ump/sabr-error'
 import UMPSnackbarMessage from '@ext/site/youtube/api/proto/ump/snackbar-message'
-import { dispatchYTOpenPopupAction } from '@ext/site/youtube/module/core/action'
+import { dispatchYTOpenPopupAction } from '@ext/site/youtube/module/core/event'
 
 const logger = new Logger('YTPLAYER-UMP')
 
