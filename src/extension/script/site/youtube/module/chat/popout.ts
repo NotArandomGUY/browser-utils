@@ -4,6 +4,7 @@ import Logger from '@ext/lib/logger'
 import MessageChannel from '@ext/lib/message/channel'
 import { MessageDataUnion } from '@ext/lib/message/type'
 import { registerYTRendererPreProcessor, YTRendererSchemaMap } from '@ext/site/youtube/api/renderer'
+import { dispatchYTOpenPopupAction } from '@ext/site/youtube/module/core/event'
 
 const CHANNEL_NAME = 'bmc-ytchat-popout'
 const CHANNEL_SOURCE = `cs-${(((floor(random() * 0x10000) << 16) | floor(random() * 0x10000)) ^ Date.now()) >>> 0}`
@@ -15,14 +16,16 @@ const enum ChatPopoutMessageType {
   GET_LIVE_CHAT_REQ,
   GET_LIVE_CHAT_RSP,
   LOAD_LIVE_CHAT,
-  UNLOAD_LIVE_CHAT
+  UNLOAD_LIVE_CHAT,
+  TOAST_MESSAGE
 }
 
 type ChatPopoutMessageDataMap = {
   [ChatPopoutMessageType.GET_LIVE_CHAT_REQ]: { source: string },
   [ChatPopoutMessageType.GET_LIVE_CHAT_RSP]: { source: string, videoId: string },
   [ChatPopoutMessageType.LOAD_LIVE_CHAT]: { videoId: string },
-  [ChatPopoutMessageType.UNLOAD_LIVE_CHAT]: { videoId: string }
+  [ChatPopoutMessageType.UNLOAD_LIVE_CHAT]: { videoId: string },
+  [ChatPopoutMessageType.TOAST_MESSAGE]: { text: string }
 }
 
 class MainAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, ChatPopoutMessageType> {
@@ -35,18 +38,21 @@ class MainAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, Cha
     this.videoId = null
     this.liveChatVideoId = null
 
-    registerYTRendererPreProcessor(YTRendererSchemaMap['playerResponse'], data => {
+    const onPlayerUnload = (): void => {
       const { liveChatVideoId } = this
 
+      if (liveChatVideoId == null) return
+
+      logger.debug('unload live chat video:', liveChatVideoId)
+
+      this.liveChatVideoId = null
+
+      this.send(ChatPopoutMessageType.UNLOAD_LIVE_CHAT, { videoId: liveChatVideoId })
+    }
+
+    registerYTRendererPreProcessor(YTRendererSchemaMap['playerResponse'], data => {
       const videoId = data.videoDetails?.videoId ?? null
-
-      if (liveChatVideoId != null && videoId !== liveChatVideoId) {
-        logger.debug('unload live chat video:', liveChatVideoId)
-
-        this.liveChatVideoId = null
-
-        this.send(ChatPopoutMessageType.UNLOAD_LIVE_CHAT, { videoId: liveChatVideoId })
-      }
+      if (videoId !== this.liveChatVideoId) onPlayerUnload()
 
       this.videoId = videoId
 
@@ -65,20 +71,38 @@ class MainAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, Cha
 
       return true
     })
+
+    window.addEventListener('beforeunload', onPlayerUnload)
   }
 
   protected onMessage(message: MessageDataUnion<ChatPopoutMessageDataMap, ChatPopoutMessageType>): void {
-    if (message.type !== ChatPopoutMessageType.GET_LIVE_CHAT_REQ) {
-      logger.warn('invalid message:', message)
-      return
+    if (document.hidden) return
+
+    switch (message.type) {
+      case ChatPopoutMessageType.GET_LIVE_CHAT_REQ: {
+        const { liveChatVideoId } = this
+        const { source } = message.data
+
+        if (liveChatVideoId == null) return
+
+        this.send(ChatPopoutMessageType.GET_LIVE_CHAT_RSP, { source, videoId: liveChatVideoId })
+        break
+      }
+      case ChatPopoutMessageType.TOAST_MESSAGE:
+        dispatchYTOpenPopupAction({
+          durationHintMs: 5e3,
+          popup: {
+            notificationActionRenderer: {
+              responseText: { runs: [{ text: message.data.text }] }
+            }
+          },
+          popupType: 'TOAST'
+        })
+        break
+      default:
+        logger.warn('invalid message:', message)
+        break
     }
-
-    const { liveChatVideoId } = this
-    const { source } = message.data
-
-    if (document.hidden || liveChatVideoId == null) return
-
-    this.send(ChatPopoutMessageType.GET_LIVE_CHAT_RSP, { source, videoId: liveChatVideoId })
   }
 }
 
@@ -93,12 +117,21 @@ class ChatAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, Cha
     this.isLoaded = false
 
     registerYTRendererPreProcessor(YTRendererSchemaMap['liveChatGetLiveChatResponse'], data => {
-      const continuation = data.continuationContents?.liveChatContinuation?.continuations?.find(c => c.invalidationContinuationData != null)
-      const liveChatVideoId = continuation?.invalidationContinuationData?.invalidationId?.topic?.match(TOPIC_VIDEO_ID_REGEXP)?.[0] ?? null
+      const { videoId } = this
 
-      if (liveChatVideoId !== this.videoId) {
-        this.videoId = liveChatVideoId
-        this.isLoaded = liveChatVideoId != null
+      const continuation = data.continuationContents?.liveChatContinuation?.continuations?.find(c => c.invalidationContinuationData != null)
+      const topicId = continuation?.invalidationContinuationData?.invalidationId?.topic?.match(TOPIC_VIDEO_ID_REGEXP)?.[0] ?? null
+
+      if (topicId !== videoId) {
+        const isLoaded = topicId != null
+        if (isLoaded) {
+          this.send(ChatPopoutMessageType.TOAST_MESSAGE, { text: `Loaded popout live chat '${topicId}'` })
+        } else {
+          this.send(ChatPopoutMessageType.TOAST_MESSAGE, { text: `Popout live chat '${videoId}' ended` })
+        }
+
+        this.videoId = topicId
+        this.isLoaded = isLoaded
       }
 
       return true
@@ -145,9 +178,12 @@ class ChatAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, Cha
     const { videoId } = this
     const { searchParams } = url
 
-    if (videoId == null || searchParams.get('v') === videoId) return
+    const prevVideoId = searchParams.get('v')
+    if (videoId == null || prevVideoId === videoId) return
 
     searchParams.set('v', videoId)
+
+    this.send(ChatPopoutMessageType.TOAST_MESSAGE, { text: `Switching popout live chat '${prevVideoId}' to '${videoId}'` })
 
     location.href = url.toString()
   }
