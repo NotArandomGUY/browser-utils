@@ -6,7 +6,7 @@ import { YTRenderer, YTResponseContextSchema } from '@ext/site/youtube/api/types
 export { YTLoggingDirectivesSchema, YTRendererData, YTRendererSchema } from '@ext/site/youtube/api/types/common'
 export * from '@ext/site/youtube/api/types/renderer'
 
-export type YTRendererProcessor<S extends YTRendererSchema = YTRendererSchema> = (data: YTRendererData, schema: S) => Promise<boolean> | boolean
+export type YTRendererProcessor<S extends YTRendererSchema = YTRendererSchema> = (data: YTRendererData<S>, schema: S) => Promise<boolean> | boolean
 
 export const OVERRIDE_TRACKING_PARAMS = 'CAAQACIMCAAVAAAAAB0AAAAA'
 

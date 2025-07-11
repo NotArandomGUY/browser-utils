@@ -6,7 +6,7 @@ import { OVERRIDE_TRACKING_PARAMS } from './renderer'
 export { YTEndpointData, YTEndpointSchema } from '@ext/site/youtube/api/types/common'
 export * from '@ext/site/youtube/api/types/endpoint'
 
-export type YTEndpointProcessor<S extends YTEndpointSchema = YTEndpointSchema> = (data: YTEndpointData, schema: S, parent: YTEndpointOuterData | null) => Promise<boolean> | boolean
+export type YTEndpointProcessor<S extends YTEndpointSchema = YTEndpointSchema> = (data: YTEndpointData<S>, schema: S, parent: YTEndpointOuterData | null) => Promise<boolean> | boolean
 
 const logger = new Logger('YTAPI-ENDPOINT')
 
