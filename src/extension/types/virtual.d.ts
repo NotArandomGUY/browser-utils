@@ -1,3 +1,7 @@
+declare module '@virtual/bmc-key' {
+  export const BMC_KEY: Uint8Array
+}
+
 declare module '@virtual/emc-key' {
   export const EMC_KEY: Uint8Array
 }

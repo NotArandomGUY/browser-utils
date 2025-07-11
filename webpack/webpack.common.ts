@@ -13,7 +13,8 @@ const CHUNK_GLOBAL_SEED = `bu-build-${Math.floor(Date.now() / (24 * 60e3))}`
 const CHUNK_GLOBAL_HASH = createHash('md5').update(CHUNK_GLOBAL_SEED).update(JSON.stringify(DEFAULT_SCRIPT_CONFIG)).update(JSON.stringify(SITE_SCRIPT_CONFIG)).digest('hex')
 const CHUNK_GLOBAL_ID = `__wprt_${CHUNK_GLOBAL_HASH}__`
 
-const EMC_KEY = createHash('md5').update(CHUNK_GLOBAL_SEED).update(CHUNK_GLOBAL_ID).digest()
+const BMC_KEY = createHash('sha256').update(CHUNK_GLOBAL_SEED).update(CHUNK_GLOBAL_HASH).digest()
+const EMC_KEY = createHash('sha256').update(CHUNK_GLOBAL_HASH).update(CHUNK_GLOBAL_SEED).digest()
 
 type ValidScriptConfig = ScriptConfig & { _filename: string }
 
@@ -151,6 +152,7 @@ export default [
     },
     plugins: [
       new VirtualModulesPlugin({
+        'node_modules/@virtual/bmc-key': `module.exports={BMC_KEY:new Uint8Array([${BMC_KEY.join(',')}])}`,
         'node_modules/@virtual/emc-key': `module.exports={EMC_KEY:new Uint8Array([${EMC_KEY.join(',')}])}`,
         'node_modules/@virtual/wprt': `module.exports=${JSON.stringify({ CHUNK_GLOBAL_ID })}`
       })

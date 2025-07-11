@@ -1,15 +1,17 @@
-import { ExtensionMessage, ExtensionMessageSource, ExtensionMessageType, getExtensionMessageSender, verifyExtensionMessage } from '@ext/lib/extension-message'
 import { Feature } from '@ext/lib/feature'
 import Logger from '@ext/lib/logger'
+import { SignedMessage, verifyMessage } from '@ext/lib/message/crypto'
+import { ExtensionMessage, ExtensionMessageSource, ExtensionMessageType, getExtensionMessageSender } from '@ext/lib/message/extension'
+import { EMC_KEY } from '@virtual/emc-key'
 
 const logger = new Logger('WORKER-MESSAGE')
 
 const { sendMessageToMain } = getExtensionMessageSender(ExtensionMessageSource.WORKER)
 
-function onMessage(message: ExtensionMessage, sender: chrome.runtime.MessageSender): void {
+function onMessage(message: SignedMessage<ExtensionMessage>, sender: chrome.runtime.MessageSender): void {
   if (message == null) return
 
-  if (!verifyExtensionMessage(message)) {
+  if (!verifyMessage(EMC_KEY, message)) {
     logger.debug('ignore message:', message)
     return
   }

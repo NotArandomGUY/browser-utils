@@ -1,6 +1,8 @@
-import { ExtensionMessage, ExtensionMessageSource, ExtensionMessageType, getExtensionMessageSender, verifyExtensionMessage } from '@ext/lib/extension-message'
 import Logger from '@ext/lib/logger'
+import { SignedMessage, verifyMessage } from '@ext/lib/message/crypto'
+import { ExtensionMessage, ExtensionMessageSource, ExtensionMessageType, getExtensionMessageSender } from '@ext/lib/message/extension'
 import Overlay from '@ext/overlay'
+import { EMC_KEY } from '@virtual/emc-key'
 import van from 'vanjs-core'
 
 const DMASK_SYNC_STORAGE_KEY = 'bufeature-dmask-sync'
@@ -12,10 +14,10 @@ const { sendMessageToWorker } = getExtensionMessageSender(ExtensionMessageSource
 let overlay: HTMLElement | null = null
 let overlayIndex = 0
 
-function onMessage(message?: ExtensionMessage): void {
+function onMessage(message?: SignedMessage<ExtensionMessage>): void {
   if (message == null) return
 
-  if (!verifyExtensionMessage(message)) {
+  if (!verifyMessage(EMC_KEY, message)) {
     logger.debug('ignore message:', message)
     return
   }
@@ -64,7 +66,7 @@ function onError(error?: Error): void {
   })
 }
 
-window.addEventListener('message', ({ data }: MessageEvent<ExtensionMessage>) => onMessage(data))
+window.addEventListener('message', ({ data }: MessageEvent<SignedMessage<ExtensionMessage>>) => onMessage(data))
 window.addEventListener('error', event => onError(event.error))
 
 sendMessageToWorker(ExtensionMessageType.EVENT_RUN, undefined)

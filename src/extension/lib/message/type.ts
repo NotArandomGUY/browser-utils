@@ -1,0 +1,2 @@
+export type MessageData<M extends object, T> = T extends keyof M ? M[T] : void
+export type MessageDataUnion<M extends object, U extends string | number | symbol> = { [T in U]: { type: T, data: MessageData<M, T> } }[U]
