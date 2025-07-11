@@ -1,104 +1,171 @@
 import { floor, random } from '@ext/global/math'
 import { Feature } from '@ext/lib/feature'
 import Logger from '@ext/lib/logger'
-import { registerYTRendererPreProcessor, YTRenderer, YTRendererData, YTRendererSchemaMap } from '@ext/site/youtube/api/renderer'
+import MessageChannel from '@ext/lib/message/channel'
+import { MessageDataUnion } from '@ext/lib/message/type'
+import { registerYTRendererPreProcessor, YTRendererSchemaMap } from '@ext/site/youtube/api/renderer'
+
+const CHANNEL_NAME = 'bmc-ytchat-popout'
+const CHANNEL_SOURCE = `cs-${(((floor(random() * 0x10000) << 16) | floor(random() * 0x10000)) ^ Date.now()) >>> 0}`
+const TOPIC_VIDEO_ID_REGEXP = /(?<=^chat~).*?(?=$)/
 
 const logger = new Logger('YTCHAT-POPOUT')
 
-const STORAGE_MESSAGE_CHANNEL_KEY = 'smck-ytchat-popout'
-const STORAGE_MESSAGE_CHANNEL_SOURCE = `smcs-${(((floor(random() * 0x10000) << 16) | floor(random() * 0x10000)) ^ Date.now()) >>> 0}`
-const LIVE_CHAT_VIDEO_ID_REGEXP = /(?<=^chat~).*?(?=$)/
-
-const enum StorageMessageType {
+const enum ChatPopoutMessageType {
   GET_LIVE_CHAT_REQ,
-  GET_LIVE_CHAT_RSP
+  GET_LIVE_CHAT_RSP,
+  LOAD_LIVE_CHAT,
+  UNLOAD_LIVE_CHAT
 }
 
-let lastLoadedVideoId: string | null = null
-let liveChatVideoId: string | null = null
+type ChatPopoutMessageDataMap = {
+  [ChatPopoutMessageType.GET_LIVE_CHAT_REQ]: { source: string },
+  [ChatPopoutMessageType.GET_LIVE_CHAT_RSP]: { source: string, videoId: string },
+  [ChatPopoutMessageType.LOAD_LIVE_CHAT]: { videoId: string },
+  [ChatPopoutMessageType.UNLOAD_LIVE_CHAT]: { videoId: string }
+}
 
-function processLiveChatGetLiveChatResponse(data: YTRendererData<YTRenderer<'liveChatGetLiveChatResponse'>>): boolean {
-  const continuation = data.continuationContents?.liveChatContinuation?.continuations?.find(c => c.invalidationContinuationData != null)?.invalidationContinuationData
+class MainAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, ChatPopoutMessageType> {
+  private videoId: string | null
+  private liveChatVideoId: string | null
 
-  if (liveChatVideoId == null) {
-    liveChatVideoId = continuation?.invalidationId?.topic?.match(LIVE_CHAT_VIDEO_ID_REGEXP)?.[0] ?? null
-  } else if (continuation == null) {
-    liveChatVideoId = null
+  public constructor() {
+    super(CHANNEL_NAME)
+
+    this.videoId = null
+    this.liveChatVideoId = null
+
+    registerYTRendererPreProcessor(YTRendererSchemaMap['playerResponse'], data => {
+      const { liveChatVideoId } = this
+
+      const videoId = data.videoDetails?.videoId ?? null
+
+      if (liveChatVideoId != null && videoId !== liveChatVideoId) {
+        logger.debug('unload live chat video:', liveChatVideoId)
+
+        this.liveChatVideoId = null
+
+        this.send(ChatPopoutMessageType.UNLOAD_LIVE_CHAT, { videoId: liveChatVideoId })
+      }
+
+      this.videoId = videoId
+
+      return true
+    })
+    registerYTRendererPreProcessor(YTRendererSchemaMap['liveChatRenderer'], data => {
+      const { videoId, liveChatVideoId } = this
+
+      if (!data.isReplay && videoId != null && videoId !== liveChatVideoId) {
+        logger.debug('load live chat video:', videoId)
+
+        this.liveChatVideoId = videoId
+
+        this.send(ChatPopoutMessageType.LOAD_LIVE_CHAT, { videoId })
+      }
+
+      return true
+    })
   }
 
-  return true
-}
-
-function processPlayerResponse(data: YTRendererData<YTRenderer<'playerResponse'>>): boolean {
-  lastLoadedVideoId = data.videoDetails?.videoId ?? null
-
-  if (liveChatVideoId != null && liveChatVideoId !== lastLoadedVideoId) {
-    logger.debug('unload live chat video:', liveChatVideoId)
-
-    liveChatVideoId = null
-  }
-
-  return true
-}
-
-function processLiveChatRenderer(data: YTRendererData<YTRenderer<'liveChatRenderer'>>): boolean {
-  if (!data.isReplay && lastLoadedVideoId != null) {
-    liveChatVideoId = lastLoadedVideoId
-
-    logger.debug('load live chat video:', liveChatVideoId)
-  }
-
-  return true
-}
-
-function onStorageMessage(event: StorageEvent): void {
-  const { key, newValue, storageArea } = event
-
-  if (storageArea == null || key !== STORAGE_MESSAGE_CHANNEL_KEY || newValue == null) return
-
-  const [, source, type, ...data] = newValue.split(':')
-
-  switch (Number(type)) {
-    case StorageMessageType.GET_LIVE_CHAT_REQ:
-      if (document.hidden || liveChatVideoId == null) break
-
-      sendStorageMessage(StorageMessageType.GET_LIVE_CHAT_RSP, [liveChatVideoId], source)
-      break
-    case StorageMessageType.GET_LIVE_CHAT_RSP: {
-      if (source !== STORAGE_MESSAGE_CHANNEL_SOURCE) break
-
-      storageArea.removeItem(key)
-
-      const videoId = data.join(':')
-      const url = new URL(location.href)
-
-      const { searchParams } = url
-      if (searchParams.get('v') === videoId) break
-
-      searchParams.set('v', videoId)
-
-      location.href = url.toString()
-      break
+  protected onMessage(message: MessageDataUnion<ChatPopoutMessageDataMap, ChatPopoutMessageType>): void {
+    if (message.type !== ChatPopoutMessageType.GET_LIVE_CHAT_REQ) {
+      logger.warn('invalid message:', message)
+      return
     }
-    default:
-      storageArea.removeItem(key)
-      break
+
+    const { liveChatVideoId } = this
+    const { source } = message.data
+
+    if (document.hidden || liveChatVideoId == null) return
+
+    this.send(ChatPopoutMessageType.GET_LIVE_CHAT_RSP, { source, videoId: liveChatVideoId })
   }
 }
 
-function sendStorageMessage(type: StorageMessageType, data: string[], source = STORAGE_MESSAGE_CHANNEL_SOURCE): void {
-  localStorage.setItem(STORAGE_MESSAGE_CHANNEL_KEY, [Date.now(), source, type, ...data].join(':'))
-}
+class ChatAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, ChatPopoutMessageType> {
+  private videoId: string | null
+  private isLoaded: boolean
 
-function updateLiveChat(): void {
-  if (liveChatVideoId != null) return
+  public constructor() {
+    super(CHANNEL_NAME)
 
-  sendStorageMessage(StorageMessageType.GET_LIVE_CHAT_REQ, [])
+    this.videoId = null
+    this.isLoaded = false
+
+    registerYTRendererPreProcessor(YTRendererSchemaMap['liveChatGetLiveChatResponse'], data => {
+      const continuation = data.continuationContents?.liveChatContinuation?.continuations?.find(c => c.invalidationContinuationData != null)
+      const liveChatVideoId = continuation?.invalidationContinuationData?.invalidationId?.topic?.match(TOPIC_VIDEO_ID_REGEXP)?.[0] ?? null
+
+      if (liveChatVideoId !== this.videoId) {
+        this.videoId = liveChatVideoId
+        this.isLoaded = liveChatVideoId != null
+      }
+
+      return true
+    })
+
+    setInterval(this.update.bind(this), 5e3)
+  }
+
+  protected onMessage(message: MessageDataUnion<ChatPopoutMessageDataMap, ChatPopoutMessageType>): void {
+    switch (message.type) {
+      case ChatPopoutMessageType.GET_LIVE_CHAT_RSP: {
+        const { source, videoId } = message.data
+
+        if (source !== CHANNEL_SOURCE) return
+
+        this.videoId = videoId
+        this.isLoaded = true
+        break
+      }
+      case ChatPopoutMessageType.LOAD_LIVE_CHAT: {
+        const { videoId } = message.data
+
+        if (this.isLoaded) return
+
+        this.videoId = videoId
+        this.isLoaded = true
+        break
+      }
+      case ChatPopoutMessageType.UNLOAD_LIVE_CHAT: {
+        const { videoId } = message.data
+
+        if (videoId !== this.videoId) return
+
+        this.isLoaded = false
+        break
+      }
+      default:
+        logger.warn('invalid message:', message)
+        return
+    }
+
+    const url = new URL(location.href)
+
+    const { videoId } = this
+    const { searchParams } = url
+
+    if (videoId == null || searchParams.get('v') === videoId) return
+
+    searchParams.set('v', videoId)
+
+    location.href = url.toString()
+  }
+
+  private update(): void {
+    if (this.videoId != null) return
+
+    this.send(ChatPopoutMessageType.GET_LIVE_CHAT_REQ, { source: CHANNEL_SOURCE })
+  }
 }
 
 export default class YTChatPopoutModule extends Feature {
+  public channel: MessageChannel<ChatPopoutMessageDataMap, ChatPopoutMessageType> | null
+
   public constructor() {
     super('chat-popout')
+
+    this.channel = null
   }
 
   protected activate(): boolean {
@@ -106,20 +173,17 @@ export default class YTChatPopoutModule extends Feature {
       const params = new URLSearchParams(location.search)
       if (!params.has('v')) return false
 
-      registerYTRendererPreProcessor(YTRendererSchemaMap['liveChatGetLiveChatResponse'], processLiveChatGetLiveChatResponse)
-
-      setInterval(updateLiveChat, 5e3)
+      this.channel = new ChatAppMessageChannel()
     } else {
-      registerYTRendererPreProcessor(YTRendererSchemaMap['playerResponse'], processPlayerResponse)
-      registerYTRendererPreProcessor(YTRendererSchemaMap['liveChatRenderer'], processLiveChatRenderer)
+      this.channel = new MainAppMessageChannel()
     }
-
-    globalThis.addEventListener('storage', onStorageMessage)
 
     return true
   }
 
   protected deactivate(): boolean {
+    this.channel = null
+
     return false
   }
 }
