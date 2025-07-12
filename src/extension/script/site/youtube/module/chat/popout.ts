@@ -145,7 +145,7 @@ class ChatAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, Cha
       case ChatPopoutMessageType.GET_LIVE_CHAT_RSP: {
         const { source, videoId } = message.data
 
-        if (source !== CHANNEL_SOURCE) return
+        if (source !== CHANNEL_SOURCE || this.isLoaded) return
 
         this.videoId = videoId
         this.isLoaded = true
