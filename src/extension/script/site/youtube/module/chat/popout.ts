@@ -117,21 +117,23 @@ class ChatAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, Cha
     this.isLoaded = false
 
     registerYTRendererPreProcessor(YTRendererSchemaMap['liveChatGetLiveChatResponse'], data => {
-      const { videoId } = this
+      const { videoId, isLoaded } = this
 
-      const continuation = data.continuationContents?.liveChatContinuation?.continuations?.find(c => c.invalidationContinuationData != null)
-      const topicId = continuation?.invalidationContinuationData?.invalidationId?.topic?.match(TOPIC_VIDEO_ID_REGEXP)?.[0] ?? null
+      const continuations = data.continuationContents?.liveChatContinuation?.continuations ?? []
+      if (continuations.length > 0) {
+        const invalidationContinuation = continuations.map(c => c.invalidationContinuationData).find(c => c != null)
+        const topicId = invalidationContinuation?.invalidationId?.topic?.match(TOPIC_VIDEO_ID_REGEXP)?.[0] ?? null
 
-      if (topicId !== videoId) {
-        const isLoaded = topicId != null
-        if (isLoaded) {
+        if (topicId != null && topicId !== videoId) {
           this.send(ChatPopoutMessageType.TOAST_MESSAGE, { text: `Loaded popout live chat '${topicId}'` })
-        } else {
-          this.send(ChatPopoutMessageType.TOAST_MESSAGE, { text: `Popout live chat '${videoId}' ended` })
-        }
 
-        this.videoId = topicId
-        this.isLoaded = isLoaded
+          this.videoId = topicId
+          this.isLoaded = true
+        }
+      } else if (isLoaded) {
+        this.isLoaded = false
+
+        this.send(ChatPopoutMessageType.TOAST_MESSAGE, { text: `Popout live chat '${videoId}' ended` })
       }
 
       return true
