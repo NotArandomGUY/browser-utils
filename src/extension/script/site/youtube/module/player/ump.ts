@@ -16,7 +16,7 @@ import { dispatchYTOpenPopupAction } from '@ext/site/youtube/module/core/event'
 
 const logger = new Logger('YTPLAYER-UMP')
 
-const enum UMPPartType {
+const enum UMPType {
   ONESIE_HEADER = 10,
   ONESIE_DATA = 11,
   MEDIA_HEADER = 20,
@@ -57,17 +57,17 @@ const enum UMPPartType {
   SNACKBAR_MESSAGE = 67
 }
 
-const partialPartMap: Map<UMPPartType, UMPPart> = new Map()
+const sliceMap: Map<UMPType, UMPSlice> = new Map()
 
 let isFirstInterrupt = true
 
-class UMPPart {
+class UMPSlice {
   private readonly chunks: Uint8Array[]
   private readonly fulfillSize: number
-  private type: UMPPartType
+  private type: UMPType
   private currentSize: number
 
-  public constructor(type: UMPPartType, size: number) {
+  public constructor(type: UMPType, size: number) {
     this.chunks = []
     this.fulfillSize = size
     this.type = type
@@ -78,7 +78,7 @@ class UMPPart {
     return this.currentSize >= this.fulfillSize
   }
 
-  public getType(): UMPPartType {
+  public getType(): UMPType {
     return this.type
   }
 
@@ -90,7 +90,7 @@ class UMPPart {
     return this.currentSize
   }
 
-  public setType(type: UMPPartType): void {
+  public setType(type: UMPType): void {
     this.type = type
   }
 
@@ -109,7 +109,7 @@ class UMPPart {
   }
 }
 
-function replaceChunk(stream: CodedStream, position: number, size: number, data: Uint8Array): void {
+function replaceSlice(stream: CodedStream, position: number, size: number, data: Uint8Array): void {
   const sizeDelta = data.length - size
   const oldBuffer = stream.getBuffer()
   const newBuffer = new Uint8Array(oldBuffer.length + sizeDelta)
@@ -122,7 +122,7 @@ function replaceChunk(stream: CodedStream, position: number, size: number, data:
   stream.setPosition(position + data.length)
 }
 
-function removeChunk(stream: CodedStream, position: number, size: number): void {
+function removeSlice(stream: CodedStream, position: number, size: number): void {
   const oldBuffer = stream.getBuffer()
   const newBuffer = new Uint8Array(oldBuffer.length - size)
 
@@ -133,28 +133,28 @@ function removeChunk(stream: CodedStream, position: number, size: number): void 
   stream.setPosition(position)
 }
 
-function processUMPPart(part: UMPPart): boolean {
-  switch (part.getType()) {
-    case UMPPartType.MEDIA_HEADER: {
-      const message = new UMPMediaHeader().deserialize(part.getBuffer())
+function processUMPSlice(slice: UMPSlice): boolean {
+  switch (slice.getType()) {
+    case UMPType.MEDIA_HEADER: {
+      const message = new UMPMediaHeader().deserialize(slice.getBuffer())
 
       logger.debug('media header:', message)
       return true
     }
-    case UMPPartType.NEXT_REQUEST_POLICY: {
-      const message = new UMPNextRequestPolicy().deserialize(part.getBuffer())
+    case UMPType.NEXT_REQUEST_POLICY: {
+      const message = new UMPNextRequestPolicy().deserialize(slice.getBuffer())
 
       logger.debug('next request policy:', message)
       return true
     }
-    case UMPPartType.SABR_ERROR: {
-      const message = new UMPSabrError().deserialize(part.getBuffer())
+    case UMPType.SABR_ERROR: {
+      const message = new UMPSabrError().deserialize(slice.getBuffer())
 
       logger.warn('sabr error:', message)
       return true
     }
-    case UMPPartType.SABR_CONTEXT_UPDATE: {
-      const message = new UMPSabrContextUpdate().deserialize(part.getBuffer())
+    case UMPType.SABR_CONTEXT_UPDATE: {
+      const message = new UMPSabrContextUpdate().deserialize(slice.getBuffer())
 
       logger.debug('sabr context update:', message)
 
@@ -184,14 +184,14 @@ function processUMPPart(part: UMPPart): boolean {
       }
       return true
     }
-    case UMPPartType.SNACKBAR_MESSAGE: {
-      const message = new UMPSnackbarMessage().deserialize(part.getBuffer())
+    case UMPType.SNACKBAR_MESSAGE: {
+      const message = new UMPSnackbarMessage().deserialize(slice.getBuffer())
 
       logger.debug('snackbar message:', message)
       return false
     }
     default:
-      logger.debug('part type:', part.getType(), 'size:', part.getSize())
+      logger.debug('slice type:', slice.getType(), 'size:', slice.getSize())
       return true
   }
 }
@@ -222,29 +222,29 @@ async function processUMPResponse(ctx: NetworkContext<unknown, NetworkState.SUCC
 
   try {
     while (!stream.isEnd) {
-      const chunkPosition = stream.getPosition()
-      const partType = stream.readVUInt32()
-      const partSize = stream.readVUInt32()
-      const chunkHeadSize = stream.getPosition() - chunkPosition
+      const slicePosition = stream.getPosition()
+      const sliceType = stream.readVUInt32()
+      const sliceDataSize = stream.readVUInt32()
+      const sliceHeadSize = stream.getPosition() - slicePosition
 
-      const chunkData = stream.readRawBytes(min(stream.getRemainSize(), partSize))
-      const chunkSize = chunkHeadSize + chunkData.length
+      const sliceData = stream.readRawBytes(min(stream.getRemainSize(), sliceDataSize))
+      const sliceSize = sliceHeadSize + sliceData.length
 
-      logger.trace('chunk type:', partType, 'pos:', chunkPosition, 'size:', chunkData.length)
+      const slice = sliceMap.get(sliceType) ?? new UMPSlice(sliceType, sliceDataSize)
+      if (!slice.addChunk(sliceData)) {
+        logger.trace('partial slice type:', sliceType, 'pos:', slicePosition, 'size:', sliceData.length)
 
-      const part = partialPartMap.get(partType) ?? new UMPPart(partType, partSize)
-      if (!part.addChunk(chunkData)) {
-        partialPartMap.set(partType, part)
-        removeChunk(stream, chunkPosition, chunkSize)
+        sliceMap.set(sliceType, slice)
+        removeSlice(stream, slicePosition, sliceSize)
         continue
       }
 
-      partialPartMap.delete(partType)
+      sliceMap.delete(sliceType)
 
-      if (processUMPPart(part)) {
-        replaceChunk(stream, chunkPosition, chunkSize, bufferConcat([varint32Encode(part.getType())[0], varint32Encode(part.getSize())[0], part.getBuffer()]))
+      if (processUMPSlice(slice)) {
+        replaceSlice(stream, slicePosition, sliceSize, bufferConcat([varint32Encode(slice.getType())[0], varint32Encode(slice.getSize())[0], slice.getBuffer()]))
       } else {
-        removeChunk(stream, chunkPosition, chunkSize)
+        removeSlice(stream, slicePosition, sliceSize)
       }
     }
   } catch (error) {
