@@ -8,6 +8,7 @@ export interface ScriptConfig {
   description: string
   matches?: string[]
   preventDefault?: boolean
+  networkRules?: Omit<chrome.declarativeNetRequest.Rule, 'id'>[]
 }
 
 export const DEFAULT_SCRIPT_CONFIG: ScriptConfig[] = [
