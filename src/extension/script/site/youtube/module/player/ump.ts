@@ -27,6 +27,7 @@ import { dispatchYTOpenPopupAction } from '@ext/site/youtube/module/core/event'
 const logger = new Logger('YTPLAYER-UMP')
 
 const UMP_PATHNAME_REGEXP = /^\/(init|video)playback$/
+const JSON_PREFIX_REGEXP = /^\)]}'\n/
 
 const sliceMap: Map<UMPType, UMPSlice> = new Map()
 
@@ -106,18 +107,27 @@ const removeSlice = (stream: CodedStream, position: number, size: number): void 
   stream.setPosition(position)
 }
 
-const loadOnesieClientKey = (webPlayerContextConfig: Record<string, YTPlayerWebPlayerContextConfig>): void => {
+const loadPlayerContextConfig = (webPlayerContextConfig: Record<string, YTPlayerWebPlayerContextConfig>): void => {
   if (webPlayerContextConfig == null) return
 
   for (const id in webPlayerContextConfig) {
-    const clientKey = webPlayerContextConfig[id]?.onesieHotConfig?.clientKey
+    const config = webPlayerContextConfig[id]
+    if (config == null) continue
+
+    const { serializedExperimentFlags, onesieHotConfig } = config
+
+    const flags = new URLSearchParams(serializedExperimentFlags)
+
+    flags.set('html5_tv_ignore_capable_constraint', 'true')
+
+    config.serializedExperimentFlags = flags.toString()
+
+    const clientKey = onesieHotConfig?.clientKey
     if (clientKey == null) continue
 
     onesieClientKey = bufferFromString(atob(clientKey), 'latin1')
-    break
+    logger.debug('load onesie client key:', onesieClientKey, 'config:', webPlayerContextConfig)
   }
-
-  logger.debug('load onesie client key:', onesieClientKey, 'config:', webPlayerContextConfig)
 }
 
 const processOnesieData = async (slice: UMPSlice): Promise<boolean> => {
@@ -330,13 +340,17 @@ const processTVConfig = async (ctx: NetworkContext<unknown, NetworkState.SUCCESS
   const { searchParams } = url
 
   try {
-    const data = JSON.parse((await response.clone().text()).replace(/^\)]}'\n/, ''))
+    const data = await response.clone().text()
+    const isPrefixed = JSON_PREFIX_REGEXP.test(data)
+    const config = JSON.parse(data.replace(JSON_PREFIX_REGEXP, ''))
 
     if (searchParams.has('action_get_config')) {
-      const { webPlayerContextConfig } = data
+      const { webPlayerContextConfig } = config
 
-      loadOnesieClientKey(webPlayerContextConfig)
+      loadPlayerContextConfig(webPlayerContextConfig)
     }
+
+    ctx.response = new Response(`${isPrefixed ? ')]}\'\n' : ''}${JSON.stringify(data)}`, { status: response.status, headers: fromEntries(response.headers.entries()) })
   } catch (error) {
     logger.warn('process tv config error:', error)
   }
@@ -352,7 +366,7 @@ export default class YTPlayerUMPModule extends Feature {
       const { url } = ctx
 
       if (url.hostname.startsWith('redirector.') || !UMP_PATHNAME_REGEXP.test(url.pathname)) {
-        if (ctx.state === NetworkState.SUCCESS && url.pathname === '/tv_config') processTVConfig(ctx)
+        if (ctx.state === NetworkState.SUCCESS && url.pathname === '/tv_config') await processTVConfig(ctx)
         return
       }
 
@@ -372,7 +386,7 @@ export default class YTPlayerUMPModule extends Feature {
       const ytcfg = window.ytcfg
       if (ytcfg == null) return
 
-      loadOnesieClientKey(ytcfg.get('WEB_PLAYER_CONTEXT_CONFIGS'))
+      loadPlayerContextConfig(ytcfg.get('WEB_PLAYER_CONTEXT_CONFIGS'))
     })
 
     return true
