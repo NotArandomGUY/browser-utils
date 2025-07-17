@@ -152,7 +152,12 @@ export default class InterceptImage extends Image {
     eventTarget.addEventListener('srcchange', onSrcChange.bind(this))
   }
 
+  public get src(): string {
+    return this.overrideSrc ?? super.src
+  }
+
   public set src(src: string) {
+    this.overrideSrc = src
     this.eventTarget.dispatchEvent('srcchange', new CustomEvent('srcchange', { cancelable: true, detail: src }))
   }
 
@@ -162,6 +167,7 @@ export default class InterceptImage extends Image {
   private static callback: ((this: InterceptImage, type: keyof HTMLMediaElementEventMap, evt: Event) => void) | null = null
 
   private readonly eventTarget: InterceptEventTargetAdapter<GlobalEventHandlers, HTMLMediaElementEventMap>
+  private overrideSrc: string | null = null
 
   private onEvent(type: keyof HTMLMediaElementEventMap, evt: Event): void {
     InterceptImage.callback?.call(this, type, evt)
@@ -169,5 +175,6 @@ export default class InterceptImage extends Image {
 
   private onSrcChange(evt: CustomEvent<string>): void {
     super.src = evt.detail
+    this.overrideSrc = null
   }
 }
