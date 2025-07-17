@@ -21,7 +21,7 @@ import UMPSabrContextUpdate, { UMPSabrContextScope, UMPSabrContextValue } from '
 import UMPSabrContextContentAds from '@ext/site/youtube/api/proto/ump/sabr-context/content-ads'
 import UMPSabrError from '@ext/site/youtube/api/proto/ump/sabr-error'
 import UMPSnackbarMessage from '@ext/site/youtube/api/proto/ump/snackbar-message'
-import type { YTConfig, YTPlayerWebPlayerContextConfig } from '@ext/site/youtube/module/core/bootstrap'
+import type { YTPlayerWebPlayerContextConfig } from '@ext/site/youtube/module/core/bootstrap'
 import { dispatchYTOpenPopupAction } from '@ext/site/youtube/module/core/event'
 
 const logger = new Logger('YTPLAYER-UMP')
@@ -369,7 +369,7 @@ export default class YTPlayerUMPModule extends Feature {
     window.addEventListener('load', () => {
       if (onesieClientKey != null) return
 
-      const ytcfg = window.ytcfg as YTConfig
+      const ytcfg = window.ytcfg
       if (ytcfg == null) return
 
       loadOnesieClientKey(ytcfg.get('WEB_PLAYER_CONTEXT_CONFIGS'))

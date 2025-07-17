@@ -2,14 +2,10 @@ import { random } from '@ext/global/math'
 import { Feature } from '@ext/lib/feature'
 import { registerYTRendererPreProcessor, removeYTRendererPre, YTRenderer, YTRendererData, YTRendererSchemaMap } from '@ext/site/youtube/api/renderer'
 
-interface YTGlobal {
-  ytUtilActivityCallback_: () => void
-}
-
 function generateActivity(): void {
   if (random() > 0.15) return
 
-  const ytglobal = window.ytglobal as YTGlobal
+  const ytglobal = window.ytglobal
   if (ytglobal == null) return
 
   const now = Date.now()

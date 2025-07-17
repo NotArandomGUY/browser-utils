@@ -32,18 +32,6 @@ type YTInitData = YTInitDataResponse & Partial<{
   previousCsn: string
 }>
 
-export interface YTConfig {
-  init_: boolean
-  data_: { [key: string]: unknown }
-  obfuscatedData_: unknown[]
-  msgs: { [key: string]: string }
-
-  d(): { [key: string]: unknown }
-  get<T>(key: string, defaultValue?: T): T
-  set(key: string, value: unknown): void
-  set(data: { [key: string]: unknown }): void
-}
-
 export interface YTInnertubeContext {
   client: {
     hl: string

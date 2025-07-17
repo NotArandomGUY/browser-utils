@@ -1,0 +1,1 @@
+declare var mcd: { bridge: unknown, [key: string]: unknown }
