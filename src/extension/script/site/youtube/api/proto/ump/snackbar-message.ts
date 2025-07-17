@@ -1,7 +1,8 @@
-import { createMessage, ValueType } from '@ext/lib/protobuf/message'
+import { pbf_i32 } from '@ext/lib/protobuf/field'
+import { createMessage } from '@ext/lib/protobuf/message'
 
 const UMPSnackbarMessage = createMessage({
-  messageType: [1, ValueType.INT32]
+  messageType: pbf_i32(1)
 })
 
 export default UMPSnackbarMessage

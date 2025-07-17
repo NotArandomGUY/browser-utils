@@ -1,11 +1,12 @@
-import { createMessage, ValueType } from '@ext/lib/protobuf/message'
+import { pbf_bin, pbf_i32, pbf_str } from '@ext/lib/protobuf/field'
+import { createMessage } from '@ext/lib/protobuf/message'
 
 const UMPNextRequestPolicy = createMessage({
-  targetAudioReadaheadMs: [1, ValueType.INT32],
-  targetVideoReadaheadMs: [2, ValueType.INT32],
-  backoffTimeMs: [4, ValueType.INT32],
-  playbackCookie: [7, ValueType.BYTES],
-  videoId: [8, ValueType.STRING]
+  targetAudioReadaheadMs: pbf_i32(1),
+  targetVideoReadaheadMs: pbf_i32(2),
+  backoffTimeMs: pbf_i32(4),
+  playbackCookie: pbf_bin(7),
+  videoId: pbf_str(8)
 })
 
 export default UMPNextRequestPolicy

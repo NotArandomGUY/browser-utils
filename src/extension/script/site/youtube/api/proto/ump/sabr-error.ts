@@ -1,9 +1,10 @@
-import { createMessage, ValueType } from '@ext/lib/protobuf/message'
+import { pbf_bin, pbf_i32, pbf_str } from '@ext/lib/protobuf/field'
+import { createMessage } from '@ext/lib/protobuf/message'
 
 const UMPSabrError = createMessage({
-  type: [1, ValueType.STRING],
-  code: [2, ValueType.INT32],
-  data: [3, ValueType.BYTES]
+  type: pbf_str(1),
+  code: pbf_i32(2),
+  data: pbf_bin(3)
 })
 
 export default UMPSabrError

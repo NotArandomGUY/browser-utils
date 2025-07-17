@@ -1,9 +1,10 @@
-import { createMessage, ValueType } from '@ext/lib/protobuf/message'
+import { pbf_bin, pbf_u32, pbf_u64 } from '@ext/lib/protobuf/field'
+import { createMessage } from '@ext/lib/protobuf/message'
 
 const UMPContentAdsSabrContext = createMessage({
-  timestampMs: [1, ValueType.UINT64],
-  backoffTimeMs: [2, ValueType.UINT32],
-  info: [3, ValueType.BYTES]
+  timestampMs: pbf_u64(1),
+  backoffTimeMs: pbf_u32(2),
+  info: pbf_bin(3)
 })
 
 export default UMPContentAdsSabrContext

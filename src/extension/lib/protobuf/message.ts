@@ -1,92 +1,31 @@
 import { assign, defineProperties, fromEntries } from '@ext/global/object'
 import CodedStream from '@ext/lib/protobuf/coded-stream'
-import { makeTag, WireType } from '@ext/lib/protobuf/wiretag'
+import type { FieldData, FieldDefinition, NonRepeatedFieldData } from '@ext/lib/protobuf/field'
+import { ValueType, valueTypeToWireType } from '@ext/lib/protobuf/value'
+import { makeTag } from '@ext/lib/protobuf/wiretag'
 
-export const enum ValueType {
-  DOUBLE,
-  FLOAT,
-  INT32,
-  INT64,
-  UINT32,
-  UINT64,
-  SINT32,
-  SINT64,
-  FIXED32,
-  FIXED64,
-  SFIXED32,
-  SFIXED64,
-  BOOL,
-  STRING,
-  BYTES
-}
-
-export type FieldDefinition<T extends ValueType = ValueType, R extends boolean = boolean> = [
-  fieldNumber: number,
-  type: T,
-  defaultValue?: () => R extends true ? ValueData<T>[] : ValueData<T>,
-  repeated?: R
-]
 export type MessageDefinition = { [name: string]: FieldDefinition }
 export type Message<D extends MessageDefinition> = MessageBase<D> & MessageData<D>
 
 type MessageKey<D extends MessageDefinition> = Extract<keyof D, string>
 
 type NamedFieldDefinition<
-  D extends MessageDefinition,
-  N extends MessageKey<D> = MessageKey<D>,
-  R extends boolean = boolean
-> = [fieldName: N, ...FieldDefinition<D[N][1], R>]
+  M extends MessageDefinition,
+  K extends MessageKey<M> = MessageKey<M>
+> = M[K] extends FieldDefinition<infer T, infer R, infer D> ? (
+  FieldDefinition<T, R, D> & { fn: K }
+) : never
 
-type ValueData<T extends ValueType> = {
-  [ValueType.DOUBLE]: number
-  [ValueType.FLOAT]: number
-  [ValueType.INT32]: number
-  [ValueType.INT64]: bigint
-  [ValueType.UINT32]: number
-  [ValueType.UINT64]: bigint
-  [ValueType.SINT32]: number
-  [ValueType.SINT64]: bigint
-  [ValueType.FIXED32]: number
-  [ValueType.FIXED64]: bigint
-  [ValueType.SFIXED32]: number
-  [ValueType.SFIXED64]: bigint
-  [ValueType.BOOL]: boolean
-  [ValueType.STRING]: string
-  [ValueType.BYTES]: Uint8Array
-}[T]
-type FieldData<D extends FieldDefinition> = D[3] extends true ? ValueData<D[1]>[] : ValueData<D[1]>
 type MessageData<D extends MessageDefinition> = {
-  [F in keyof D]: FieldData<D[F]> | null
+  -readonly [F in keyof D]: FieldData<D[F]> | null
 }
 
-function toWireType(valueType: ValueType): WireType {
-  switch (valueType) {
-    case ValueType.INT32:
-    case ValueType.INT64:
-    case ValueType.UINT32:
-    case ValueType.UINT64:
-    case ValueType.SINT32:
-    case ValueType.SINT64:
-    case ValueType.BOOL:
-      return WireType.VARINT
-    case ValueType.FIXED64:
-    case ValueType.SFIXED64:
-    case ValueType.DOUBLE:
-      return WireType.FIXED64
-    case ValueType.STRING:
-    case ValueType.BYTES:
-      return WireType.LENGTH_DELIMITED
-    case ValueType.FIXED32:
-    case ValueType.SFIXED32:
-    case ValueType.FLOAT:
-      return WireType.FIXED32
-    default:
-      throw new Error('Invalid value type')
-  }
-}
+const checkFieldType = <F extends FieldDefinition>(fieldDefinition: F, value: unknown): value is FieldData<F> => {
+  const { ft, fr } = fieldDefinition
 
-function checkValueType<T extends ValueType = ValueType>(type: T, value: unknown): value is ValueData<T> {
-  switch (type) {
+  if (fr) return Array.isArray(value)
+
+  switch (ft) {
     case ValueType.DOUBLE:
     case ValueType.FLOAT:
     case ValueType.INT32:
@@ -112,6 +51,9 @@ function checkValueType<T extends ValueType = ValueType>(type: T, value: unknown
     case ValueType.BYTES:
       if (value instanceof Uint8Array) break
       return false
+    case ValueType.MESSAGE:
+      if (value instanceof MessageBase) break
+      return false
     default:
       return false
   }
@@ -119,19 +61,14 @@ function checkValueType<T extends ValueType = ValueType>(type: T, value: unknown
   return true
 }
 
-function getFieldDefault<
-  M extends MessageDefinition,
-  K extends MessageKey<M>,
-  R extends boolean = boolean,
-  F extends NamedFieldDefinition<M, K, R> = NamedFieldDefinition<M, K, R>
->(fieldDefinition: F): ReturnType<NonNullable<F[3]>> {
-  const [, , type, defaultValue, repeated] = fieldDefinition
+const getFieldDefault = <D extends MessageDefinition, K extends MessageKey<D>>(fieldDefinition: D[K]): FieldData<D[K]> => {
+  const { ft, fr, fd } = fieldDefinition
 
-  if (defaultValue != null) return defaultValue() as ReturnType<NonNullable<F[3]>>
-  if (repeated) return [] as ReturnType<NonNullable<F[3]>>
+  if (fd != null) return fd() as FieldData<D[K]>
+  if (fr) return [] as FieldData<D[K] & { fr: true }>
 
   let value: unknown
-  switch (type) {
+  switch (ft) {
     case ValueType.DOUBLE:
     case ValueType.FLOAT:
     case ValueType.INT32:
@@ -157,35 +94,103 @@ function getFieldDefault<
     case ValueType.BYTES:
       value = new Uint8Array()
       break
+    case ValueType.MESSAGE:
+      value = new (fieldDefinition as FieldDefinition<ValueType.MESSAGE>).fm()
+      break
     default:
       throw new Error('Invalid value type')
   }
 
-  return value as ReturnType<NonNullable<F[3]>>
+  return value as FieldData<D[K]>
 }
 
-function getField<D extends MessageDefinition, K extends MessageKey<D>>(
-  message: MessageData<D>,
-  fieldDefinition: NamedFieldDefinition<D, K>
-): FieldData<D[K]> | null {
-  const [fieldName, , type] = fieldDefinition
-
-  const value = message[fieldName]
-  if (value != null && !checkValueType(type, value)) throw new Error('Invalid value')
+const getField = <D extends MessageDefinition, K extends MessageKey<D>>(message: MessageData<D>, fieldDefinition: NamedFieldDefinition<D, K>): FieldData<D[K]> | null => {
+  const value = message[fieldDefinition.fn]
+  if (value != null && !checkFieldType(fieldDefinition, value)) throw new Error('Invalid value')
 
   return value
 }
 
-function setField<D extends MessageDefinition, K extends MessageKey<D>>(
-  message: MessageData<D>,
-  fieldDefinition: NamedFieldDefinition<D, K>,
-  value: FieldData<D[K]> | null
-): void {
-  const [fieldName, , type] = fieldDefinition
+const setField = <D extends MessageDefinition, K extends MessageKey<D>>(message: MessageData<D>, fieldDefinition: NamedFieldDefinition<D, K>, value: FieldData<D[K]> | null): void => {
+  const { fn, fr } = fieldDefinition
 
-  if (value != null && !checkValueType(type, value)) throw new Error('Invalid value')
+  if (value != null && !checkFieldType({ ...fieldDefinition, fr: fr && Array.isArray(value) }, value)) throw new Error('Invalid value')
 
-  message[fieldName] = value
+  if (fr && !Array.isArray(value)) {
+    if (value == null) return
+
+    let array = message[fn] as FieldData<D[K] & { fr: true }>
+    if (!Array.isArray(array)) {
+      array = []
+      message[fn] = array
+    }
+    array.push(value as NonRepeatedFieldData<D[K] & { fr: true }>)
+  } else {
+    message[fn] = value
+  }
+}
+
+const serializeField = <D extends FieldDefinition>(stream: CodedStream, tag: number, type: D['ft'], value: FieldData<D>): void => {
+  if (Array.isArray(value)) {
+    for (const entry of value) {
+      serializeField(stream, tag, type, entry)
+    }
+    return
+  }
+
+  stream.writeUInt32(tag)
+  switch (type) {
+    case ValueType.DOUBLE:
+      stream.writeDouble(value as number)
+      break
+    case ValueType.FLOAT:
+      stream.writeFloat(value as number)
+      break
+    case ValueType.INT32:
+      stream.writeInt32(value as number)
+      break
+    case ValueType.INT64:
+      stream.writeInt64(value as bigint)
+      break
+    case ValueType.UINT32:
+      stream.writeUInt32(value as number)
+      break
+    case ValueType.UINT64:
+      stream.writeUInt64(value as bigint)
+      break
+    case ValueType.SINT32:
+      stream.writeSInt32(value as number)
+      break
+    case ValueType.SINT64:
+      stream.writeSInt64(value as bigint)
+      break
+    case ValueType.FIXED32:
+      stream.writeFixed32(value as number)
+      break
+    case ValueType.FIXED64:
+      stream.writeFixed64(value as bigint)
+      break
+    case ValueType.SFIXED32:
+      stream.writeSFixed32(value as number)
+      break
+    case ValueType.SFIXED64:
+      stream.writeSFixed64(value as bigint)
+      break
+    case ValueType.BOOL:
+      stream.writeBool(value as boolean)
+      break
+    case ValueType.STRING:
+      stream.writeString(value as string)
+      break
+    case ValueType.BYTES:
+      stream.writeBytes(value as Uint8Array)
+      break
+    case ValueType.MESSAGE:
+      stream.writeBytes((value as MessageBase<MessageDefinition>).serialize())
+      break
+    default:
+      throw new Error('Invalid value type')
+  }
 }
 
 class MessageBase<D extends MessageDefinition> {
@@ -199,19 +204,19 @@ class MessageBase<D extends MessageDefinition> {
     const { fieldMap, skippedTags, reset, serialize, deserialize } = this
 
     for (const fieldName in messageDefinition) {
-      const fieldDefinition = [fieldName, ...messageDefinition[fieldName] as FieldDefinition] as NamedFieldDefinition<D>
-      const [, fieldNumber, type] = fieldDefinition
+      const fieldDefinition = {
+        fn: fieldName,
+        ...messageDefinition[fieldName]
+      } as unknown as NamedFieldDefinition<D, typeof fieldName>
 
-      fieldMap.set(makeTag(fieldNumber, toWireType(type)), fieldDefinition)
+      fieldMap.set(makeTag(fieldDefinition.fi, valueTypeToWireType(fieldDefinition.ft)), fieldDefinition)
     }
 
     if (initData == null) {
       this.reset()
     } else {
       for (const [, fieldDefinition] of fieldMap) {
-        const [fieldName] = fieldDefinition
-
-        setField(this as Message<D>, fieldDefinition, initData[fieldName])
+        setField(this as Message<D>, fieldDefinition, initData[fieldDefinition.fn])
       }
     }
 
@@ -227,7 +232,7 @@ class MessageBase<D extends MessageDefinition> {
   public reset(): void {
     const { fieldMap, skippedTags } = this
 
-    assign(this, fromEntries(Array.from(fieldMap.values()).map(f => [f[0], getFieldDefault(f)])))
+    assign(this, fromEntries(Array.from(fieldMap.values()).map(f => [f.fn, getFieldDefault(f)])))
     skippedTags.splice(0)
   }
 
@@ -241,56 +246,7 @@ class MessageBase<D extends MessageDefinition> {
       const value = getField(message, fieldDefinition)
       if (value == null || value === getFieldDefault(fieldDefinition)) continue
 
-      stream.writeUInt32(fieldTag)
-      switch (fieldDefinition[2]) {
-        case ValueType.DOUBLE:
-          stream.writeDouble(value as number)
-          break
-        case ValueType.FLOAT:
-          stream.writeFloat(value as number)
-          break
-        case ValueType.INT32:
-          stream.writeInt32(value as number)
-          break
-        case ValueType.INT64:
-          stream.writeInt64(value as bigint)
-          break
-        case ValueType.UINT32:
-          stream.writeUInt32(value as number)
-          break
-        case ValueType.UINT64:
-          stream.writeUInt64(value as bigint)
-          break
-        case ValueType.SINT32:
-          stream.writeSInt32(value as number)
-          break
-        case ValueType.SINT64:
-          stream.writeSInt64(value as bigint)
-          break
-        case ValueType.FIXED32:
-          stream.writeFixed32(value as number)
-          break
-        case ValueType.FIXED64:
-          stream.writeFixed64(value as bigint)
-          break
-        case ValueType.SFIXED32:
-          stream.writeSFixed32(value as number)
-          break
-        case ValueType.SFIXED64:
-          stream.writeSFixed64(value as bigint)
-          break
-        case ValueType.BOOL:
-          stream.writeBool(value as boolean)
-          break
-        case ValueType.STRING:
-          stream.writeString(value as string)
-          break
-        case ValueType.BYTES:
-          stream.writeBytes(value as Uint8Array)
-          break
-        default:
-          throw new Error('Invalid value type')
-      }
+      serializeField(stream, fieldTag, fieldDefinition.ft, value)
     }
 
     for (const [tag, value] of skippedTags) {
@@ -320,9 +276,7 @@ class MessageBase<D extends MessageDefinition> {
         continue
       }
 
-      const [, , type] = fieldDefinition
-
-      switch (type) {
+      switch (fieldDefinition.ft) {
         case ValueType.DOUBLE:
           setField(message, fieldDefinition, stream.readDouble() as FieldData<D[MessageKey<D>]>)
           break
@@ -368,6 +322,9 @@ class MessageBase<D extends MessageDefinition> {
         case ValueType.BYTES:
           setField(message, fieldDefinition, stream.readBytes() as FieldData<D[MessageKey<D>]>)
           break
+        case ValueType.MESSAGE:
+          setField(message, fieldDefinition, new (fieldDefinition as FieldDefinition<ValueType.MESSAGE>).fm().deserialize(stream.readBytes()) as FieldData<D[MessageKey<D>]>)
+          break
         default:
           throw new Error('Invalid value type')
       }
@@ -377,6 +334,6 @@ class MessageBase<D extends MessageDefinition> {
   }
 }
 
-export function createMessage<D extends MessageDefinition>(definition: D): new (initData?: MessageData<D>) => Message<D> {
+export const createMessage = <const D extends MessageDefinition>(definition: D): (new (initData?: MessageData<D>) => Message<D>) => {
   return Function.bind.call<typeof MessageBase, [null, D], ReturnType<typeof createMessage<D>>>(MessageBase, null, definition)
 }

@@ -1,21 +1,22 @@
-import { createMessage, ValueType } from '@ext/lib/protobuf/message'
+import { pbf_bin, pbf_bol, pbf_i32, pbf_i64, pbf_str, pbf_u32, pbf_u64 } from '@ext/lib/protobuf/field'
+import { createMessage } from '@ext/lib/protobuf/message'
 
 const UMPMediaHeader = createMessage({
-  headerId: [1, ValueType.UINT32],
-  videoId: [2, ValueType.STRING],
-  itag: [3, ValueType.INT32],
-  lmt: [4, ValueType.UINT64],
-  xtags: [5, ValueType.STRING],
-  startRange: [6, ValueType.INT64],
-  compressionAlgorithm: [7, ValueType.INT32],
-  isInitSeg: [8, ValueType.BOOL],
-  sequenceNumber: [9, ValueType.INT64],
-  unknown10: [10, ValueType.INT64],
-  startMs: [11, ValueType.INT64],
-  durationMs: [12, ValueType.INT64],
-  formatId: [13, ValueType.INT32],
-  contentLength: [14, ValueType.INT64],
-  timeRange: [15, ValueType.BYTES]
+  headerId: pbf_u32(1),
+  videoId: pbf_str(2),
+  itag: pbf_i32(3),
+  lmt: pbf_u64(4),
+  xtags: pbf_str(5),
+  startRange: pbf_i64(6),
+  compressionAlgorithm: pbf_i32(7),
+  isInitSeg: pbf_bol(8),
+  sequenceNumber: pbf_i64(9),
+  unknown10: pbf_i64(10),
+  startMs: pbf_i64(11),
+  durationMs: pbf_i64(12),
+  formatId: pbf_i32(13),
+  contentLength: pbf_i64(14),
+  timeRange: pbf_bin(15)
 })
 
 export default UMPMediaHeader

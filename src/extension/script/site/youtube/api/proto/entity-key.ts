@@ -1,7 +1,8 @@
-import { createMessage, ValueType } from '@ext/lib/protobuf/message'
+import { pbf_str } from '@ext/lib/protobuf/field'
+import { createMessage } from '@ext/lib/protobuf/message'
 
 const EntityKey = createMessage({
-  key: [2, ValueType.STRING]
+  key: pbf_str(2)
 })
 
 export default EntityKey
