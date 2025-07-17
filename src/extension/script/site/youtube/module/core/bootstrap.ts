@@ -160,6 +160,7 @@ const APP_ELEMENT_PAGE_MAP: Record<string, YTInitDataResponse['page'] | false> =
 const createPlayerCallbacks: ((container: HTMLElement) => void)[] = []
 const createPolymerCallbacks: ((instance: object) => void)[] = []
 
+let environment: YTEnvironment
 let ytcfg: YTConfig
 let appElement: HTMLElement | null = null
 
@@ -249,6 +250,24 @@ export default class YTCoreBootstrapModule extends Feature {
   }
 
   protected activate(): boolean {
+    // Override environment
+    defineProperty(window, 'environment', {
+      configurable: true,
+      get() {
+        return environment
+      },
+      set(v) {
+        environment = v
+
+        const { flags } = environment
+        if (flags == null) return
+
+        assign(flags, {
+          disable_sign_in_on_castbuki_devices: false
+        })
+      }
+    })
+
     // Override config
     ytcfg = assign(window.ytcfg ?? {}, {
       init_: false,
