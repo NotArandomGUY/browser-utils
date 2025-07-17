@@ -1,65 +1,38 @@
 import { ceil, min } from '@ext/global/math'
 import { assign, fromEntries } from '@ext/global/object'
-import { bufferConcat } from '@ext/lib/buffer'
+import { bufferConcat, bufferFromString, bufferToString } from '@ext/lib/buffer'
 import { Feature } from '@ext/lib/feature'
 import { addInterceptNetworkCallback, NetworkContext, NetworkContextState, NetworkRequestContext, NetworkState } from '@ext/lib/intercept/network'
 import Logger from '@ext/lib/logger'
 import CodedStream from '@ext/lib/protobuf/coded-stream'
 import { varint32Encode } from '@ext/lib/protobuf/varint'
+import { decryptOnesie, encryptOnesie } from '@ext/site/youtube/api/crypto'
+import { processYTRenderer } from '@ext/site/youtube/api/processor'
+import { UMPType } from '@ext/site/youtube/api/proto/ump'
+import UMPFormatInitializationMetadata from '@ext/site/youtube/api/proto/ump/format-initialization-metadata'
+import UMPFormatSelectionConfig from '@ext/site/youtube/api/proto/ump/format-selection-config'
 import UMPMediaHeader from '@ext/site/youtube/api/proto/ump/media-header'
 import UMPNextRequestPolicy from '@ext/site/youtube/api/proto/ump/next-request-policy'
+import UMPOnesieHeader, { OnesieHeaderType } from '@ext/site/youtube/api/proto/ump/onesie-header'
+import UMPOnesieEncryptedInnertubeResponse from '@ext/site/youtube/api/proto/ump/onesie/encrypted-innertube-response'
+import UMPOnesiePlayerResponse, { OnesieProxyStatus } from '@ext/site/youtube/api/proto/ump/onesie/encrypted-player-response'
+import UMPPlaybackStartPolicy from '@ext/site/youtube/api/proto/ump/playback-start-policy'
 import UMPSabrContextUpdate, { UMPSabrContextScope, UMPSabrContextValue } from '@ext/site/youtube/api/proto/ump/sabr-context-update'
-import UMPContentAdsSabrContext from '@ext/site/youtube/api/proto/ump/sabr-context/content-ads'
+import UMPSabrContextContentAds from '@ext/site/youtube/api/proto/ump/sabr-context/content-ads'
 import UMPSabrError from '@ext/site/youtube/api/proto/ump/sabr-error'
 import UMPSnackbarMessage from '@ext/site/youtube/api/proto/ump/snackbar-message'
+import type { YTConfig, YTPlayerWebPlayerContextConfig } from '@ext/site/youtube/module/core/bootstrap'
 import { dispatchYTOpenPopupAction } from '@ext/site/youtube/module/core/event'
 
 const logger = new Logger('YTPLAYER-UMP')
 
-const enum UMPType {
-  ONESIE_HEADER = 10,
-  ONESIE_DATA = 11,
-  MEDIA_HEADER = 20,
-  MEDIA = 21,
-  MEDIA_END = 22,
-  LIVE_METADATA = 31,
-  HOSTNAME_CHANGE_HINT = 32,
-  LIVE_METADATA_PROMISE = 33,
-  LIVE_METADATA_PROMISE_CANCELLATION = 34,
-  NEXT_REQUEST_POLICY = 35,
-  USTREAMER_VIDEO_AND_FORMAT_DATA = 36,
-  FORMAT_SELECTION_CONFIG = 37,
-  USTREAMER_SELECTED_MEDIA_STREAM = 38,
-  FORMAT_INITIALIZATION_METADATA = 42,
-  SABR_REDIRECT = 43,
-  SABR_ERROR = 44,
-  SABR_SEEK = 45,
-  RELOAD_PLAYER_RESPONSE = 46,
-  PLAYBACK_START_POLICY = 47,
-  ALLOWED_CACHED_FORMATS = 48,
-  START_BW_SAMPLING_HINT = 49,
-  PAUSE_BW_SAMPLING_HINT = 50,
-  SELECTABLE_FORMATS = 51,
-  REQUEST_IDENTIFIER = 52,
-  REQUEST_CANCELLATION_POLICY = 53,
-  ONESIE_PREFETCH_REJECTION = 54,
-  TIMELINE_CONTEXT = 55,
-  REQUEST_PIPELINING = 56,
-  SABR_CONTEXT_UPDATE = 57,
-  STREAM_PROTECTION_STATUS = 58,
-  SABR_CONTEXT_SENDING_POLICY = 59,
-  LAWNMOWER_POLICY = 60,
-  SABR_ACK = 61,
-  END_OF_TRACK = 62,
-  CACHE_LOAD_POLICY = 63,
-  LAWNMOWER_MESSAGING_POLICY = 64,
-  PREWARM_CONNECTION = 65,
-  SNACKBAR_MESSAGE = 67
-}
+const UMP_PATHNAME_REGEXP = /^\/(init|video)playback$/
 
 const sliceMap: Map<UMPType, UMPSlice> = new Map()
 
 let isFirstInterrupt = true
+let onesieClientKey: Uint8Array | null = null
+let onesieHeader: InstanceType<typeof UMPOnesieHeader> | null = null
 
 class UMPSlice {
   private readonly chunks: Uint8Array[]
@@ -109,7 +82,7 @@ class UMPSlice {
   }
 }
 
-function replaceSlice(stream: CodedStream, position: number, size: number, data: Uint8Array): void {
+const replaceSlice = (stream: CodedStream, position: number, size: number, data: Uint8Array): void => {
   const sizeDelta = data.length - size
   const oldBuffer = stream.getBuffer()
   const newBuffer = new Uint8Array(oldBuffer.length + sizeDelta)
@@ -122,7 +95,7 @@ function replaceSlice(stream: CodedStream, position: number, size: number, data:
   stream.setPosition(position + data.length)
 }
 
-function removeSlice(stream: CodedStream, position: number, size: number): void {
+const removeSlice = (stream: CodedStream, position: number, size: number): void => {
   const oldBuffer = stream.getBuffer()
   const newBuffer = new Uint8Array(oldBuffer.length - size)
 
@@ -133,24 +106,114 @@ function removeSlice(stream: CodedStream, position: number, size: number): void 
   stream.setPosition(position)
 }
 
-function processUMPSlice(slice: UMPSlice): boolean {
+const loadOnesieClientKey = (webPlayerContextConfig: Record<string, YTPlayerWebPlayerContextConfig>): void => {
+  if (webPlayerContextConfig == null) return
+
+  for (const id in webPlayerContextConfig) {
+    const clientKey = webPlayerContextConfig[id]?.onesieHotConfig?.clientKey
+    if (clientKey == null) continue
+
+    onesieClientKey = bufferFromString(atob(clientKey), 'latin1')
+    break
+  }
+
+  logger.debug('load onesie client key:', onesieClientKey, 'config:', webPlayerContextConfig)
+}
+
+const processOnesieData = async (slice: UMPSlice): Promise<boolean> => {
+  if (onesieHeader == null) {
+    logger.warn('onesie data without header')
+    return false
+  }
+
+  const { type, cryptoParams } = onesieHeader
+
+  switch (type) {
+    case OnesieHeaderType.ENCRYPTED_PLAYER_RESPONSE: {
+      const key = onesieClientKey
+      const data = key && cryptoParams && await decryptOnesie(slice.getBuffer(), key, cryptoParams)
+      if (!data) {
+        logger.debug('onesie player response:', btoa(bufferToString(slice.getBuffer(), 'latin1')))
+        break
+      }
+
+      const message = new UMPOnesiePlayerResponse().deserialize(data)
+
+      logger.debug('onesie player response:', message)
+
+      if (message.onesiePorxyStatus !== OnesieProxyStatus.OK || message.body == null) break
+
+      const body = JSON.parse(bufferToString(message.body))
+      await processYTRenderer('playerResponse', body)
+      message.body = bufferFromString(JSON.stringify(body))
+
+      slice.setBuffer(await encryptOnesie(message.serialize(), key, cryptoParams))
+      break
+    }
+    case OnesieHeaderType.ENCRYPTED_INNERTUBE_RESPONSE_PART: {
+      const message = new UMPOnesieEncryptedInnertubeResponse().deserialize(slice.getBuffer())
+
+      logger.debug('onesie encrypted innertube response:', message)
+      break
+    }
+    default:
+      logger.debug('onesie data type:', type, 'size:', slice.getSize())
+      break
+  }
+
+  return true
+}
+
+const processUMPSlice = async (slice: UMPSlice): Promise<boolean> => {
   switch (slice.getType()) {
+    case UMPType.ONESIE_HEADER: {
+      onesieHeader = new UMPOnesieHeader().deserialize(slice.getBuffer())
+
+      logger.debug('onesie header:', onesieHeader)
+      return true
+    }
+    case UMPType.ONESIE_DATA:
+      return processOnesieData(slice)
     case UMPType.MEDIA_HEADER: {
       const message = new UMPMediaHeader().deserialize(slice.getBuffer())
 
       logger.debug('media header:', message)
       return true
     }
+    case UMPType.MEDIA:
+      logger.debug('media size:', slice.getSize())
+      return true
+    case UMPType.MEDIA_END:
+      logger.debug('media end:', slice.getBuffer())
+      return true
     case UMPType.NEXT_REQUEST_POLICY: {
       const message = new UMPNextRequestPolicy().deserialize(slice.getBuffer())
 
       logger.debug('next request policy:', message)
       return true
     }
+    case UMPType.FORMAT_SELECTION_CONFIG: {
+      const message = new UMPFormatSelectionConfig().deserialize(slice.getBuffer())
+
+      logger.debug('format selection config:', message)
+      return true
+    }
+    case UMPType.FORMAT_INITIALIZATION_METADATA: {
+      const message = new UMPFormatInitializationMetadata().deserialize(slice.getBuffer())
+
+      logger.debug('format initialization metadata:', message)
+      return true
+    }
     case UMPType.SABR_ERROR: {
       const message = new UMPSabrError().deserialize(slice.getBuffer())
 
       logger.warn('sabr error:', message)
+      return true
+    }
+    case UMPType.PLAYBACK_START_POLICY: {
+      const message = new UMPPlaybackStartPolicy().deserialize(slice.getBuffer())
+
+      logger.debug('playback start policy:', message)
       return true
     }
     case UMPType.SABR_CONTEXT_UPDATE: {
@@ -162,7 +225,7 @@ function processUMPSlice(slice: UMPSlice): boolean {
         const value = new UMPSabrContextValue().deserialize(message.value)
         if (value.content == null) return true
 
-        const context = new UMPContentAdsSabrContext().deserialize(value.content)
+        const context = new UMPSabrContextContentAds().deserialize(value.content)
 
         const backoffTimeMs = context.backoffTimeMs ?? 0
         if (backoffTimeMs <= 0) return true
@@ -196,24 +259,27 @@ function processUMPSlice(slice: UMPSlice): boolean {
   }
 }
 
-async function processUMPRequest(ctx: NetworkRequestContext): Promise<void> {
+const processUMPRequest = async (ctx: NetworkRequestContext): Promise<void> => {
   const { url, request } = ctx
 
-  const ttl = Number(url.searchParams.get('expire')) - (Date.now() / 1e3)
-  if (isNaN(ttl) || ttl < 0 || ttl > 604800) {
-    logger.debug('blocked invalid ump request from sending')
-    assign<NetworkContext, NetworkContextState>(ctx, { state: NetworkState.SUCCESS, response: new Response(undefined, { status: 403 }) })
-    return
+  if (url.searchParams.has('expire')) {
+    const ttl = Number(url.searchParams.get('expire')) - (Date.now() / 1e3)
+    if (isNaN(ttl) || ttl < 0 || ttl > 604800) {
+      logger.debug('blocked invalid ump request from sending')
+      assign<NetworkContext, NetworkContextState>(ctx, { state: NetworkState.SUCCESS, response: new Response(undefined, { status: 403 }) })
+      return
+    }
   }
 
   const stream = new CodedStream(new Uint8Array(await request.arrayBuffer()))
+  const size = stream.getRemainSize()
 
-  logger.debug('request size:', stream.getRemainSize())
+  logger.debug('request size:', size)
 
-  ctx.request = new Request(request, { body: stream.getBuffer() })
+  ctx.request = new Request(request, { body: size > 0 ? stream.getBuffer() : undefined })
 }
 
-async function processUMPResponse(ctx: NetworkContext<unknown, NetworkState.SUCCESS>): Promise<void> {
+const processUMPResponse = async (ctx: NetworkContext<unknown, NetworkState.SUCCESS>): Promise<void> => {
   const { response } = ctx
 
   const stream = new CodedStream(new Uint8Array(await response.arrayBuffer()))
@@ -241,7 +307,7 @@ async function processUMPResponse(ctx: NetworkContext<unknown, NetworkState.SUCC
 
       sliceMap.delete(sliceType)
 
-      if (processUMPSlice(slice)) {
+      if (await processUMPSlice(slice)) {
         replaceSlice(stream, slicePosition, sliceSize, bufferConcat([varint32Encode(slice.getType())[0], varint32Encode(slice.getSize())[0], slice.getBuffer()]))
       } else {
         removeSlice(stream, slicePosition, sliceSize)
@@ -259,6 +325,23 @@ async function processUMPResponse(ctx: NetworkContext<unknown, NetworkState.SUCC
   ctx.response = new Response(stream.getBuffer(), { status: response.status, headers: fromEntries(response.headers.entries()) })
 }
 
+const processTVConfig = async (ctx: NetworkContext<unknown, NetworkState.SUCCESS>): Promise<void> => {
+  const { url, response } = ctx
+  const { searchParams } = url
+
+  try {
+    const data = JSON.parse((await response.clone().text()).replace(/^\)]}'\n/, ''))
+
+    if (searchParams.has('action_get_config')) {
+      const { webPlayerContextConfig } = data
+
+      loadOnesieClientKey(webPlayerContextConfig)
+    }
+  } catch (error) {
+    logger.warn('process tv config error:', error)
+  }
+}
+
 export default class YTPlayerUMPModule extends Feature {
   public constructor() {
     super('player-ump')
@@ -266,7 +349,12 @@ export default class YTPlayerUMPModule extends Feature {
 
   protected activate(): boolean {
     addInterceptNetworkCallback(async ctx => {
-      if (ctx.url.pathname !== '/videoplayback') return
+      const { url } = ctx
+
+      if (url.hostname.startsWith('redirector.') || !UMP_PATHNAME_REGEXP.test(url.pathname)) {
+        if (ctx.state === NetworkState.SUCCESS && url.pathname === '/tv_config') processTVConfig(ctx)
+        return
+      }
 
       switch (ctx.state) {
         case NetworkState.UNSENT:
@@ -276,6 +364,15 @@ export default class YTPlayerUMPModule extends Feature {
           await processUMPResponse(ctx)
           break
       }
+    })
+
+    window.addEventListener('load', () => {
+      if (onesieClientKey != null) return
+
+      const ytcfg = window.ytcfg as YTConfig
+      if (ytcfg == null) return
+
+      loadOnesieClientKey(ytcfg.get('WEB_PLAYER_CONTEXT_CONFIGS'))
     })
 
     return true

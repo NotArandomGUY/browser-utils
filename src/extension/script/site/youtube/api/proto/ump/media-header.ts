@@ -1,5 +1,6 @@
-import { pbf_bin, pbf_bol, pbf_i32, pbf_i64, pbf_str, pbf_u32, pbf_u64 } from '@ext/lib/protobuf/field'
+import { pbf_bol, pbf_i32, pbf_i64, pbf_msg, pbf_str, pbf_u32, pbf_u64 } from '@ext/lib/protobuf/field'
 import { createMessage } from '@ext/lib/protobuf/message'
+import TimeRange from '@ext/site/youtube/api/proto/time-range'
 
 const UMPMediaHeader = createMessage({
   headerId: pbf_u32(1),
@@ -16,7 +17,7 @@ const UMPMediaHeader = createMessage({
   durationMs: pbf_i64(12),
   formatId: pbf_i32(13),
   contentLength: pbf_i64(14),
-  timeRange: pbf_bin(15)
+  timeRange: pbf_msg(15, TimeRange)
 })
 
 export default UMPMediaHeader

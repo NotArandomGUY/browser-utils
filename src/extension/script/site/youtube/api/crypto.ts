@@ -1,14 +1,36 @@
 import { floor, random } from '@ext/global/math'
+import { bufferConcat } from '@ext/lib/buffer'
+import { OnesieCompressionType, OnesieCryptoParams } from '@ext/site/youtube/api/proto/ump/onesie/common'
+
+const { crypto, CompressionStream, DecompressionStream } = globalThis
+const { getRandomValues, subtle } = crypto ?? {}
 
 const CHARS_A = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'
 const CHARS_N = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-_'
+const AES_PARAMS = { name: 'AES-CTR' } satisfies AlgorithmIdentifier
+const HMAC_PARAMS = { name: 'HMAC', hash: 'SHA-256' } satisfies HmacKeyGenParams
+const CRYPTO_API_ERROR = new Error('crypto api not available')
+const COMPRESSION_API_ERROR = new Error('compression api not available')
 
-function getRandomValues(size: number, key?: string): number[] {
+async function readStream(stream: ReadableStream): Promise<Uint8Array> {
+  const reader = stream.getReader()
+  const chunks: Uint8Array[] = []
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (value != null) chunks.push(value)
+    if (done) break
+  }
+
+  return new Uint8Array(await new Blob(chunks).arrayBuffer())
+}
+
+function getRandomValuesArray(size: number, key?: string): number[] {
   const rand = new Uint8Array(size)
 
-  if ('crypto' in window && 'getRandomValues' in window.crypto) {
+  if (getRandomValues != null) {
     try {
-      window.crypto.getRandomValues(rand)
+      getRandomValues(rand)
       return Array.from(rand)
     } catch { }
   }
@@ -66,7 +88,7 @@ function encode(key: string, chars: string, data: string[]): void {
 }
 
 export function getNonce(size: number): string {
-  return getRandomValues(size).map(v => CHARS_A[v % CHARS_A.length]).join('')
+  return getRandomValuesArray(size).map(v => CHARS_A[v % CHARS_A.length]).join('')
 }
 
 export function decodeTrackingParam(trackingParam: string): string {
@@ -87,4 +109,62 @@ export function encodeTrackingParam(trackingParam: string): string {
   swap(data, 0, 15)
   data.reverse()
   return data.join('')
+}
+
+export async function decryptOnesie(content: Uint8Array, key: Uint8Array, params: InstanceType<typeof OnesieCryptoParams> | null): Promise<Uint8Array | null> {
+  const { hmac, iv, compressionType, isUnencrypted } = params ?? {}
+
+  if (!isUnencrypted) {
+    if (subtle == null) throw CRYPTO_API_ERROR
+
+    const aesKey = await subtle.importKey('raw', key.slice(0, 16), AES_PARAMS, false, ['decrypt'])
+    const hmacKey = await subtle.importKey('raw', key.slice(16), HMAC_PARAMS, false, ['verify'])
+
+    if (iv != null) {
+      if (hmac != null && !await subtle.verify(HMAC_PARAMS, hmacKey, hmac, bufferConcat([content, iv]))) return null
+
+      content = new Uint8Array(await subtle.decrypt({ ...AES_PARAMS, counter: iv, length: 128 }, aesKey, content))
+    }
+  }
+
+  if (DecompressionStream == null) throw COMPRESSION_API_ERROR
+
+  switch (compressionType) {
+    case OnesieCompressionType.GZIP:
+      content = await readStream(new Blob([content]).stream().pipeThrough(new DecompressionStream('gzip')))
+      break
+    case OnesieCompressionType.BROTLI:
+      throw COMPRESSION_API_ERROR
+  }
+
+  return content
+}
+
+export async function encryptOnesie(content: Uint8Array, key: Uint8Array, params: InstanceType<typeof OnesieCryptoParams> | null): Promise<Uint8Array> {
+  const { iv, compressionType, isUnencrypted } = params ?? {}
+
+  if (CompressionStream == null) throw COMPRESSION_API_ERROR
+
+  switch (compressionType) {
+    case OnesieCompressionType.GZIP:
+      content = await readStream(new Blob([content]).stream().pipeThrough(new CompressionStream('gzip')))
+      break
+    case OnesieCompressionType.BROTLI:
+      throw COMPRESSION_API_ERROR
+  }
+
+  if (!isUnencrypted) {
+    if (subtle == null) throw CRYPTO_API_ERROR
+
+    const aesKey = await subtle.importKey('raw', key.slice(0, 16), AES_PARAMS, false, ['encrypt'])
+    const hmacKey = await subtle.importKey('raw', key.slice(16), HMAC_PARAMS, false, ['sign'])
+
+    if (iv != null) {
+      content = new Uint8Array(await subtle.encrypt({ ...AES_PARAMS, counter: iv, length: 128 }, aesKey, content))
+
+      if (params != null) params.hmac = new Uint8Array(await subtle.sign(HMAC_PARAMS, hmacKey, bufferConcat([content, iv])))
+    }
+  }
+
+  return content
 }

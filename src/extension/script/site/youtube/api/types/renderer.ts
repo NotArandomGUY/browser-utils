@@ -639,7 +639,9 @@ export const YTRendererSchemaMap = {
     pageVisualEffects: ytv_arr(ytv_ren()),
     playerOverlays: ytv_ren(),
     survey: ytv_ren(),
-    topbar: ytv_ren()
+    topbar: ytv_ren(),
+    transportControls: ytv_ren(),
+    videoReporting: ytv_ren()
   },
   notificationGetUnseenCountResponse: {
     ...YTResponseCommonSchema
@@ -1347,10 +1349,13 @@ export const YTRendererSchemaMap = {
   },
   feedNudgeRenderer: {
     applyModernizedStyle: ytv_bol(),
-    backgroundStyle: ytv_str(['FEED_NUDGE_BACKGROUND_STYLE_UNKNOWN']),
-    contentsLocation: ytv_str(['FEED_NUDGE_CONTENTS_LOCATION_UNKNOWN']),
+    backgroundStyle: ytv_str(['FEED_NUDGE_BACKGROUND_STYLE_ACCENT_GRADIENT', 'FEED_NUDGE_BACKGROUND_STYLE_UNKNOWN']),
+    contentsLocation: ytv_str(['FEED_NUDGE_CONTENTS_LOCATION_LEFT', 'FEED_NUDGE_CONTENTS_LOCATION_UNKNOWN']),
     disableDropShadow: ytv_bol(),
+    enableHorizontalButtons: ytv_bol(),
     impressionEndpoint: ytv_enp(),
+    primaryButton: ytv_ren(),
+    style: ytv_str(['FEED_NUDGE_STYLE_BUTTONS']),
     subtitle: ytv_sch(YTTextSchema),
     title: ytv_sch(YTTextSchema),
     trimStyle: ytv_str(['FEED_NUDGE_TRIM_STYLE_NO_TRIM'])
@@ -2455,6 +2460,9 @@ export const YTRendererSchemaMap = {
     }),
     title: ytv_sch(YTTextSchema)
   },
+  searchBarRenderer: {
+    hack: ytv_bol()
+  },
   searchBoxRenderer: {
     clearButton: ytv_ren(),
     endpoint: ytv_enp(),
@@ -2750,6 +2758,38 @@ export const YTRendererSchemaMap = {
     menuRequest: ytv_enp(),
     style: ytv_str(YTButtonStyle),
     tooltip: ytv_str()
+  },
+  transportControlsRenderer: {
+    buttons: ytv_arr(ytv_sch({
+      button: ytv_ren(),
+      type: ytv_str([
+        'TRANSPORT_CONTROLS_BUTTON_TYPE_ADD_TO_PLAYLIST',
+        'TRANSPORT_CONTROLS_BUTTON_TYPE_AUDIO_TRACKS',
+        'TRANSPORT_CONTROLS_BUTTON_TYPE_CAPTIONS',
+        'TRANSPORT_CONTROLS_BUTTON_TYPE_CHANNEL_BUTTON',
+        'TRANSPORT_CONTROLS_BUTTON_TYPE_DISLIKE_BUTTON',
+        'TRANSPORT_CONTROLS_BUTTON_TYPE_DRC',
+        'TRANSPORT_CONTROLS_BUTTON_TYPE_FEEDBACK',
+        'TRANSPORT_CONTROLS_BUTTON_TYPE_LIKE_BUTTON',
+        'TRANSPORT_CONTROLS_BUTTON_TYPE_LOOP_BUTTON',
+        'TRANSPORT_CONTROLS_BUTTON_TYPE_PLAYBACK_SETTINGS',
+        'TRANSPORT_CONTROLS_BUTTON_TYPE_QUALITY',
+        'TRANSPORT_CONTROLS_BUTTON_TYPE_REPORT_VIDEO',
+        'TRANSPORT_CONTROLS_BUTTON_TYPE_SKIP_NEXT',
+        'TRANSPORT_CONTROLS_BUTTON_TYPE_SKIP_PREVIOUS',
+        'TRANSPORT_CONTROLS_BUTTON_TYPE_SPEED_BUTTON',
+        'TRANSPORT_CONTROLS_BUTTON_TYPE_STATS_FOR_NERDS',
+        'TRANSPORT_CONTROLS_BUTTON_TYPE_SUBSCRIBE',
+        'TRANSPORT_CONTROLS_BUTTON_TYPE_SURROUND_SOUND'
+      ])
+    })),
+    featuredActionViewModels: ytv_arr(ytv_ren())
+  },
+  tvBrowseRenderer: {
+    content: ytv_ren()
+  },
+  tvSurfaceContentRenderer: {
+    content: ytv_ren()
   },
   twoColumnBrowseResultsRenderer: {
     secondaryContents: ytv_ren(),

@@ -16,6 +16,24 @@ export const SITE_VIDEOPLATFORM_SCRIPT_CONFIG = [
     matches: [
       '*://*.youtube.com/*',
       '*://*.youtube-nocookie.com/*'
+    ],
+    networkRules: [
+      {
+        action: {
+          type: 'modifyHeaders',
+          requestHeaders: [
+            {
+              header: 'user-agent',
+              operation: 'set',
+              value: 'Mozilla/5.0 (Fuchsia) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36 CrKey/1.56.500000'
+            }
+          ]
+        },
+        condition: {
+          urlFilter: '||youtube.com/tv',
+          resourceTypes: ['main_frame', 'sub_frame']
+        }
+      }
     ]
   },
   {

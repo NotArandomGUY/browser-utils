@@ -32,7 +32,7 @@ type YTInitData = YTInitDataResponse & Partial<{
   previousCsn: string
 }>
 
-interface YTConfig {
+export interface YTConfig {
   init_: boolean
   data_: { [key: string]: unknown }
   obfuscatedData_: unknown[]
@@ -44,7 +44,7 @@ interface YTConfig {
   set(data: { [key: string]: unknown }): void
 }
 
-interface YTInnertubeContext {
+export interface YTInnertubeContext {
   client: {
     hl: string
     gl: string
@@ -80,7 +80,7 @@ interface YTInnertubeContext {
   }
 }
 
-interface YTPlayerConfig {
+export interface YTPlayerConfig {
   args?: Partial<{
     author: string
     length_seconds: string
@@ -91,7 +91,7 @@ interface YTPlayerConfig {
   }>
 }
 
-interface YTPlayerWebPlayerContextConfig {
+export interface YTPlayerWebPlayerContextConfig {
   transparentBackground: boolean
   showMiniplayerButton: boolean
   externalFullscreen: boolean
@@ -129,16 +129,23 @@ interface YTPlayerWebPlayerContextConfig {
   allowWoffleManagement: boolean
   cinematicSettingsAvailable: boolean
   canaryStage: string
+  onesieHotConfig: {
+    baseUrl: string
+    clientKey: string
+    encryptedClientKey: string
+    keyExpiresInSeconds: number
+    onesieUstreamerConfig: string
+  }
 }
 
-interface YTPlayerGlobal {
+export interface YTPlayerGlobal {
   bootstrapPlayerContainer: HTMLElement
   bootstrapWebPlayerContextConfig: YTPlayerWebPlayerContextConfig
   bootstrapPlayerResponse: YTRendererData<YTRenderer<'playerResponse'>>
   config: YTPlayerConfig
 }
 
-interface YTSearchboxSettings {
+export interface YTSearchboxSettings {
   HAS_ON_SCREEN_KEYBOARD: boolean
   IS_FUSION: boolean
   IS_POLYMER: boolean
