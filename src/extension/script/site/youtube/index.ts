@@ -12,6 +12,7 @@ import YTCoreSandboxModule from '@ext/site/youtube/module/core/sandbox'
 import YTFeedFilterModule from '@ext/site/youtube/module/feed/filter'
 import YTFeedGuideModule from '@ext/site/youtube/module/feed/guide'
 import YTMiscsAdsModule from '@ext/site/youtube/module/miscs/ads'
+import YTMiscsBackgroundModule from '@ext/site/youtube/module/miscs/background'
 import YTMiscsFixupModule from '@ext/site/youtube/module/miscs/fixup'
 import YTMiscsGuestModule from '@ext/site/youtube/module/miscs/guest'
 import YTMiscsMerchModule from '@ext/site/youtube/module/miscs/merch'
@@ -53,6 +54,7 @@ registerFeatureGroup('youtube', group => {
   registerFeature(group, YTMiscsTrackingModule)
   registerFeature(group, YTMiscsGuestModule)
   registerFeature(group, YTMiscsMerchModule)
+  registerFeature(group, YTMiscsBackgroundModule)
   registerFeature(group, YTMiscsPopupModule)
   registerFeature(group, YTMiscsFixupModule)
 
