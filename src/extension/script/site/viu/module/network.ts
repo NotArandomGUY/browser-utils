@@ -302,7 +302,10 @@ async function processResponse(ctx: NetworkContext<unknown, NetworkState.SUCCESS
     case '/api/playback/distribute': {
       VIU_STATE.streamSourceMap.clear()
 
-      const { url, url2 } = data.data.stream
+      const stream = data.data?.stream
+      if (stream == null) break
+
+      const { url, url2 } = stream
       const urlList = <[string, string][]>[
         ...entries(url ?? {}).map(e => [`1${e[0]}`, e[1]]),
         ...entries(url2 ?? {}).map(e => [`2${e[0]}`, e[1]])
