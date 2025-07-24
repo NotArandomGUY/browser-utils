@@ -119,6 +119,10 @@ async function handleXHRError(this: InterceptXMLHttpRequest): Promise<void> {
   await this.complete()
 }
 
+function progrsssEvent<TTarget, TMap>(eventTarget: InterceptEventTargetAdapter<TTarget, TMap>, type: Extract<keyof TMap, string>): void {
+  eventTarget.dispatchEvent(type, new ProgressEvent(type))
+}
+
 class InterceptXMLHttpRequest extends XMLHttpRequest {
   /// Public ///
 
@@ -281,24 +285,29 @@ class InterceptXMLHttpRequest extends XMLHttpRequest {
   public changeReadyState(targetReadyState: number): void {
     const { ctx, readyState: currentReadyState, eventTarget } = this
 
-    if (targetReadyState <= currentReadyState) return
+    if (targetReadyState < currentReadyState) return
+
+    if (targetReadyState === currentReadyState) {
+      progrsssEvent(eventTarget, 'readystatechange')
+      return
+    }
 
     for (let readyState = currentReadyState + 1; readyState <= targetReadyState; readyState++) {
       this.overrideReadyState = readyState
-      eventTarget.dispatchEvent('readystatechange', new ProgressEvent('readystatechange'))
+      progrsssEvent(eventTarget, 'readystatechange')
 
       // Specific event for ready state
       switch (readyState) {
         case 2:
-          eventTarget.dispatchEvent('loadstart', new ProgressEvent('loadstart'))
+          progrsssEvent(eventTarget, 'loadstart')
           break
         case 4:
           if (ctx?.state === NetworkState.SUCCESS) {
-            eventTarget.dispatchEvent('load', new ProgressEvent('load'))
+            progrsssEvent(eventTarget, 'load')
           } else {
-            eventTarget.dispatchEvent('error', new ProgressEvent('error'))
+            progrsssEvent(eventTarget, 'error')
           }
-          eventTarget.dispatchEvent('loadend', new ProgressEvent('loadend'))
+          progrsssEvent(eventTarget, 'loadend')
           break
       }
     }
