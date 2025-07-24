@@ -15,18 +15,22 @@ export default class WorkerNetworkModule extends Feature {
     }))).filter(rule => rule != null)
 
     logger.info('updating dynamic rules...')
-    chrome.declarativeNetRequest.getDynamicRules(rules => {
+    chrome.declarativeNetRequest.getDynamicRules().then(rules => {
       chrome.declarativeNetRequest.updateDynamicRules({
         addRules: scriptRules,
         removeRuleIds: rules.map(rule => rule.id)
-      }, () => chrome.declarativeNetRequest.getDynamicRules(rules => logger.info('updated dynamic rules:', rules)))
+      }).then(() => {
+        chrome.declarativeNetRequest.getDynamicRules().then(rules => logger.info('updated dynamic rules:', rules))
+      })
     })
 
     logger.info('updating session rules...')
-    chrome.declarativeNetRequest.getSessionRules(rules => {
+    chrome.declarativeNetRequest.getSessionRules().then(rules => {
       chrome.declarativeNetRequest.updateSessionRules({
         removeRuleIds: rules.map(rule => rule.id)
-      }, () => chrome.declarativeNetRequest.getSessionRules(rules => logger.info('updated session rules:', rules)))
+      }).then(() => {
+        chrome.declarativeNetRequest.getSessionRules().then(rules => logger.info('updated session rules:', rules))
+      })
     })
 
     return true

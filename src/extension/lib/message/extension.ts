@@ -35,7 +35,7 @@ export type ExtensionMessageSender = <T extends ExtensionMessageType>(type: T, d
 function workerSender<T extends ExtensionMessageType>(source: ExtensionMessageSource, target: ExtensionMessageSource, type: T, data: ExtensionMessageData<T>, targetId?: number): void {
   if (source === target) return
 
-  chrome.tabs.query({ active: true, lastFocusedWindow: true }, tabs => {
+  chrome.tabs.query({ active: true, lastFocusedWindow: true }).then(tabs => {
     for (const tab of tabs) {
       if (tab.id == null || (targetId != null && tab.id !== targetId)) continue
 

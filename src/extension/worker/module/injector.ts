@@ -62,7 +62,7 @@ export default class WorkerInjectorModule extends Feature {
       })
     ] satisfies chrome.scripting.RegisteredContentScript[]
 
-    chrome.scripting.getRegisteredContentScripts(registeredScripts => {
+    chrome.scripting.getRegisteredContentScripts().then(registeredScripts => {
       const registerScripts: chrome.scripting.RegisteredContentScript[] = []
       const updateScripts: chrome.scripting.RegisteredContentScript[] = []
       const unregisterScripts = registeredScripts.filter(s => scripts.find(({ id }) => id === s.id) == null)
@@ -92,7 +92,7 @@ export default class WorkerInjectorModule extends Feature {
   }
 
   protected deactivate(): boolean {
-    chrome.scripting.getRegisteredContentScripts(registeredScripts => {
+    chrome.scripting.getRegisteredContentScripts().then(registeredScripts => {
       chrome.scripting.unregisterContentScripts({ ids: registeredScripts.map(s => s.id) })
     })
 
