@@ -1,6 +1,6 @@
 {
   "name": "browser-utils",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "Browser Utils",
   "main": "src/inject.ts",
   "scripts": {
