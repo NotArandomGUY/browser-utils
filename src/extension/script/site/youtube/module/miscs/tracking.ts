@@ -1,4 +1,5 @@
 import { Feature } from '@ext/lib/feature'
+import { addInterceptNetworkCallback, NetworkState } from '@ext/lib/intercept/network'
 import { registerYTRendererPreProcessor, setYTServiceTrackingOverride, YTLoggingDirectivesSchema, YTRenderer, YTRendererData, YTRendererSchemaMap } from '@ext/site/youtube/api/renderer'
 import { registerYTInnertubeRequestProcessor } from '@ext/site/youtube/module/core/network'
 
@@ -19,6 +20,12 @@ function updatePlayerResponse(data: YTRendererData<YTRenderer<'playerResponse'>>
   return true
 }
 
+function updateSearchResponse(data: YTRendererData<YTRenderer<'searchResponse'>>): boolean {
+  delete data.responseContext?.visitorData
+
+  return true
+}
+
 export default class YTMiscsTrackingModule extends Feature {
   public constructor() {
     super('miscs-tracking')
@@ -30,9 +37,22 @@ export default class YTMiscsTrackingModule extends Feature {
 
     registerYTRendererPreProcessor(YTLoggingDirectivesSchema, updateLoggingDirectives)
     registerYTRendererPreProcessor(YTRendererSchemaMap['playerResponse'], updatePlayerResponse)
+    registerYTRendererPreProcessor(YTRendererSchemaMap['searchResponse'], updateSearchResponse)
 
-    registerYTInnertubeRequestProcessor('player', params => {
+    registerYTInnertubeRequestProcessor('player', ({ params }) => {
       params.searchQuery = null
+    })
+    registerYTInnertubeRequestProcessor('search', request => {
+      request.context.client.visitorData = ''
+
+      delete request.suggestionSearchParams
+      delete request.webSearchboxStatsUrl
+    })
+
+    addInterceptNetworkCallback(ctx => {
+      if (ctx.state !== NetworkState.UNSENT) return
+
+      ctx.request.headers.delete('x-goog-visitor-id')
     })
 
     return true
