@@ -118,6 +118,7 @@ const loadPlayerContextConfig = (webPlayerContextConfig: Record<string, YTPlayer
 
     const flags = new URLSearchParams(serializedExperimentFlags)
 
+    flags.set('html5_force_hfr_support', 'true')
     flags.set('html5_tv_ignore_capable_constraint', 'true')
 
     config.serializedExperimentFlags = flags.toString()
