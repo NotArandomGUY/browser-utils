@@ -3,7 +3,10 @@
   "version": "0.0.9",
   "description": "Browser utils extension pack",
   "background": {
-    "service_worker": "js/worker.js"
+    "service_worker": "js/worker.js",
+    "scripts": [
+      "js/worker.js"
+    ]
   },
   "host_permissions": [
     "<all_urls>"
