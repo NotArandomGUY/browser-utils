@@ -2,6 +2,11 @@
   "name": "Browser Utils",
   "version": "0.0.9",
   "description": "Browser utils extension pack",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "{a8f47c9d-a848-4153-a4c4-49c85033ca9a}"
+    }
+  },
   "background": {
     "service_worker": "js/worker.js",
     "scripts": [
