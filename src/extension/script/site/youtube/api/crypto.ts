@@ -1,5 +1,6 @@
 import { floor, random } from '@ext/global/math'
 import { bufferConcat } from '@ext/lib/buffer'
+import Logger from '@ext/lib/logger'
 import { OnesieCompressionType, OnesieCryptoParams } from '@ext/site/youtube/api/proto/ump/onesie/common'
 
 const { crypto, CompressionStream, DecompressionStream } = globalThis
@@ -11,6 +12,8 @@ const AES_PARAMS = { name: 'AES-CTR' } satisfies AlgorithmIdentifier
 const HMAC_PARAMS = { name: 'HMAC', hash: 'SHA-256' } satisfies HmacKeyGenParams
 const CRYPTO_API_ERROR = new Error('crypto api not available')
 const COMPRESSION_API_ERROR = new Error('compression api not available')
+
+const logger = new Logger('YT-CRYPTO')
 
 async function readStream(stream: ReadableStream): Promise<Uint8Array> {
   const reader = stream.getReader()
@@ -117,11 +120,13 @@ export async function decryptOnesie(content: Uint8Array, key: Uint8Array, params
   if (!isUnencrypted) {
     if (subtle == null) throw CRYPTO_API_ERROR
 
-    const aesKey = await subtle.importKey('raw', key.slice(0, 16), AES_PARAMS, false, ['decrypt'])
-    const hmacKey = await subtle.importKey('raw', key.slice(16), HMAC_PARAMS, false, ['verify'])
+    const aesKey = await subtle.importKey('raw', key.slice(0, 16).buffer, AES_PARAMS, false, ['decrypt'])
+    const hmacKey = await subtle.importKey('raw', key.slice(16).buffer, HMAC_PARAMS, false, ['verify'])
 
     if (iv != null) {
-      if (hmac != null && !await subtle.verify(HMAC_PARAMS, hmacKey, hmac, bufferConcat([content, iv]))) return null
+      if (hmac != null && !await subtle.verify(HMAC_PARAMS, hmacKey, hmac, bufferConcat([content, iv]))) {
+        logger.warn('onesie hmac verify failed')
+      }
 
       content = new Uint8Array(await subtle.decrypt({ ...AES_PARAMS, counter: iv, length: 128 }, aesKey, content))
     }
@@ -156,8 +161,8 @@ export async function encryptOnesie(content: Uint8Array, key: Uint8Array, params
   if (!isUnencrypted) {
     if (subtle == null) throw CRYPTO_API_ERROR
 
-    const aesKey = await subtle.importKey('raw', key.slice(0, 16), AES_PARAMS, false, ['encrypt'])
-    const hmacKey = await subtle.importKey('raw', key.slice(16), HMAC_PARAMS, false, ['sign'])
+    const aesKey = await subtle.importKey('raw', key.slice(0, 16).buffer, AES_PARAMS, false, ['encrypt'])
+    const hmacKey = await subtle.importKey('raw', key.slice(16).buffer, HMAC_PARAMS, false, ['sign'])
 
     if (iv != null) {
       content = new Uint8Array(await subtle.encrypt({ ...AES_PARAMS, counter: iv, length: 128 }, aesKey, content))
