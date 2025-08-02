@@ -120,8 +120,8 @@ export async function decryptOnesie(content: Uint8Array, key: Uint8Array, params
   if (!isUnencrypted) {
     if (subtle == null) throw CRYPTO_API_ERROR
 
-    const aesKey = await subtle.importKey('raw', key.slice(0, 16).buffer, AES_PARAMS, false, ['decrypt'])
-    const hmacKey = await subtle.importKey('raw', key.slice(16).buffer, HMAC_PARAMS, false, ['verify'])
+    const aesKey = await subtle.importKey('raw', key.slice(0, 16), AES_PARAMS, false, ['decrypt'])
+    const hmacKey = await subtle.importKey('raw', key.slice(16), HMAC_PARAMS, false, ['verify'])
 
     if (iv != null) {
       if (hmac != null && !await subtle.verify(HMAC_PARAMS, hmacKey, hmac, bufferConcat([content, iv]))) {
@@ -161,8 +161,8 @@ export async function encryptOnesie(content: Uint8Array, key: Uint8Array, params
   if (!isUnencrypted) {
     if (subtle == null) throw CRYPTO_API_ERROR
 
-    const aesKey = await subtle.importKey('raw', key.slice(0, 16).buffer, AES_PARAMS, false, ['encrypt'])
-    const hmacKey = await subtle.importKey('raw', key.slice(16).buffer, HMAC_PARAMS, false, ['sign'])
+    const aesKey = await subtle.importKey('raw', key.slice(0, 16), AES_PARAMS, false, ['encrypt'])
+    const hmacKey = await subtle.importKey('raw', key.slice(16), HMAC_PARAMS, false, ['sign'])
 
     if (iv != null) {
       content = new Uint8Array(await subtle.encrypt({ ...AES_PARAMS, counter: iv, length: 128 }, aesKey, content))
