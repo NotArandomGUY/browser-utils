@@ -25,6 +25,28 @@ let nativeXHR: (typeof XMLHttpRequest) | null = null
 let onRequestCallback: NetworkRequestCallback | null = null
 let onResponseCallback: NetworkResponseCallback | null = null
 
+const responseBlob = (xhr: InterceptXMLHttpRequest): Blob | null => {
+  const { status, responseType, response } = xhr
+
+  if (NULL_BODY_STATUS.includes(status)) return null
+
+  switch (responseType) {
+    case 'arraybuffer':
+      return new Blob([response as ArrayBuffer])
+    case 'blob':
+      return response as Blob
+    case 'document':
+      return new Blob([new XMLSerializer().serializeToString(response as Document)])
+    case 'json':
+      return new Blob([JSON.stringify(response)])
+    case 'text':
+    case '':
+      return new Blob([String(response)])
+    default:
+      return null
+  }
+}
+
 async function handleXHRSend(this: InterceptXMLHttpRequest): Promise<boolean> {
   if (onRequestCallback == null) return false
 
@@ -81,7 +103,7 @@ async function handleXHRLoad(this: InterceptXMLHttpRequest): Promise<void> {
   if (ctx.state === NetworkState.UNSENT) {
     assign<NetworkContext, NetworkContextState>(ctx, {
       state: NetworkState.SUCCESS,
-      response: new Response(NULL_BODY_STATUS.includes(this.status) ? null : this.response, {
+      response: new Response(responseBlob(this), {
         status: this.status,
         headers: this.getAllResponseHeaders()
           .split('\n')
