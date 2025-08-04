@@ -28,6 +28,7 @@ export enum YTSignalActionType {
   OPEN_POST_COMMENT_DIALOG = 'OPEN_POST_COMMENT_DIALOG',
   PAUSE_PLAYER = 'PAUSE_PLAYER',
   PLAY_PLAYER = 'PLAY_PLAYER',
+  POPUP_BACK = 'POPUP_BACK',
   RECORD_MENTIONS_EDU_IMPRESSION = 'RECORD_MENTIONS_EDU_IMPRESSION',
   REFRESH_DOWNLOADS = 'REFRESH_DOWNLOADS',
   RELOAD_PAGE = 'RELOAD_PAGE',
@@ -594,6 +595,13 @@ export const YTEndpointSchemaMap = {
     panelLoadingStrategy: ytv_sch({
       inlineContent: ytv_ren()
     })
+  },
+  showMenuCommand: {
+    contentId: ytv_str(),
+    menu: ytv_ren(),
+    subtitle: ytv_sch(YTTextSchema),
+    thumbnail: ytv_sch(YTThumbnailSchema),
+    title: ytv_sch(YTTextSchema)
   },
   showMiniplayerCommand: {
     miniplayerCommand: ytv_enp(),

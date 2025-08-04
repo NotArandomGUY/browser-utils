@@ -1,10 +1,12 @@
 import { Feature } from '@ext/lib/feature'
 import { YTSignalActionType } from '@ext/site/youtube/api/endpoint'
-import { registerYTRendererPreProcessor, YTRenderer, YTRendererData, YTRendererSchemaMap } from '@ext/site/youtube/api/renderer'
+import { registerYTRendererPostProcessor, YTRenderer, YTRendererData, YTRendererSchemaMap } from '@ext/site/youtube/api/renderer'
 import { YTValueData, YTValueType } from '@ext/site/youtube/api/types/common'
 import { YTIconType } from '@ext/site/youtube/api/types/icon'
 import { YTSizeType } from '@ext/site/youtube/api/types/size'
 import { registerYTSignalActionHandler } from '@ext/site/youtube/module/core/event'
+
+const CONFIG_MENU_TITLE = 'BU Menu'
 
 export const enum YTConfigMenuItemType {
   BUTTON,
@@ -50,11 +52,11 @@ const configMenuItems: YTConfigMenuItem[] = [
   }
 ]
 
-function getSetterSignalActionType(key: string, value: unknown): YTSignalActionType {
+const getSetterSignalActionType = (key: string, value: unknown): YTSignalActionType => {
   return [YTSignalActionType.CONFIG_VALUE_SET, key, String(value)].join(':') as YTSignalActionType
 }
 
-function buildActionItemCommand(item: Pick<YTConfigMenuActionItemBase<YTConfigMenuItemType>, 'commands' | 'signals'>): YTValueData<{ type: YTValueType.ENDPOINT }> {
+const buildActionItemCommand = (item: Pick<YTConfigMenuActionItemBase<YTConfigMenuItemType>, 'commands' | 'signals'>): YTValueData<{ type: YTValueType.ENDPOINT }> => {
   const commands: YTValueData<{ type: YTValueType.ENDPOINT }>[] = [
     ...item.signals?.map(signal => ({ signalAction: { signal } })) ?? [],
     ...item.commands ?? []
@@ -72,11 +74,11 @@ function buildActionItemCommand(item: Pick<YTConfigMenuActionItemBase<YTConfigMe
   }
 }
 
-function renderConfigMenuItem(item: YTConfigMenuItem): YTValueData<{ type: YTValueType.RENDERER }> {
+const renderConfigMenuItem = (isTV: boolean, item: YTConfigMenuItem): YTValueData<{ type: YTValueType.RENDERER }> => {
   switch (item.type) {
     case YTConfigMenuItemType.BUTTON:
       return {
-        menuServiceItemRenderer: {
+        [isTV ? 'buttonRenderer' : 'menuServiceItemRenderer']: {
           icon: { iconType: item.icon },
           text: { simpleText: item.text },
           serviceEndpoint: buildActionItemCommand(item)
@@ -84,7 +86,7 @@ function renderConfigMenuItem(item: YTConfigMenuItem): YTValueData<{ type: YTVal
       }
     case YTConfigMenuItemType.TOGGLE:
       return {
-        toggleMenuServiceItemRenderer: {
+        [isTV ? 'toggleButtonRenderer' : 'toggleMenuServiceItemRenderer']: {
           defaultIcon: { iconType: item.disabledIcon },
           defaultText: { simpleText: item.disabledText },
           defaultServiceEndpoint: buildActionItemCommand({
@@ -105,38 +107,69 @@ function renderConfigMenuItem(item: YTConfigMenuItem): YTValueData<{ type: YTVal
   }
 }
 
-function updateDesktopTopbarRenderer(data: YTRendererData<YTRenderer<'desktopTopbarRenderer'>>): boolean {
-  data.topbarButtons ??= []
-  data.topbarButtons.unshift({
+const renderConfigPopupButton = (isTV: boolean): YTValueData<{ type: YTValueType.RENDERER }> => {
+  const items = configMenuItems.map(renderConfigMenuItem.bind(null, isTV))
+
+  return {
     buttonRenderer: {
       style: 'STYLE_DEFAULT',
       size: YTSizeType.SIZE_DEFAULT,
-      icon: { iconType: YTIconType.TROPHY_STAR },
-      accessibility: { label: 'BU Menu' },
-      accessibilityData: { accessibilityData: { label: 'BU Menu' } },
-      tooltip: 'BU Menu',
+      icon: { iconType: isTV ? YTIconType.YOUTUBE_TV : YTIconType.TROPHY_STAR },
+      text: isTV ? { simpleText: CONFIG_MENU_TITLE } : undefined,
+      accessibility: { label: CONFIG_MENU_TITLE },
+      accessibilityData: { accessibilityData: { label: CONFIG_MENU_TITLE } },
+      tooltip: CONFIG_MENU_TITLE,
       isDisabled: false,
       command: {
         openPopupAction: {
-          popup: {
+          popup: isTV ? {
+            overlaySectionRenderer: {
+              dismissalCommand: {
+                signalAction: { signal: YTSignalActionType.POPUP_BACK }
+              },
+              overlay: {
+                overlayTwoPanelRenderer: {
+                  actionPanel: {
+                    overlayPanelRenderer: {
+                      content: { overlayPanelItemListRenderer: { items } },
+                      header: { overlayPanelHeaderRenderer: { title: { simpleText: CONFIG_MENU_TITLE } } }
+                    }
+                  }
+                }
+              }
+            }
+          } : {
             menuPopupRenderer: {
-              items: configMenuItems.map(renderConfigMenuItem)
+              items
             }
           },
           popupType: 'RESPONSIVE_DROPDOWN'
         }
       }
     }
+  }
+}
+
+const updateDesktopTopbarRenderer = (data: YTRendererData<YTRenderer<'desktopTopbarRenderer'>>): boolean => {
+  data.topbarButtons ??= []
+  data.topbarButtons.unshift(renderConfigPopupButton(false))
+
+  return true
+}
+
+const updateTvSurfaceContentRenderer = (data: YTRendererData<YTRenderer<'tvSurfaceContentRenderer'>>): boolean => {
+  data.content?.sectionListRenderer?.contents?.unshift({
+    itemSectionRenderer: { contents: [renderConfigPopupButton(true)] }
   })
 
   return true
 }
 
-export function getYTConfigBool(key: string, defaultValue: boolean): boolean {
+export const getYTConfigBool = (key: string, defaultValue: boolean): boolean => {
   return getYTConfigInt(key, defaultValue ? 1 : 0) !== 0
 }
 
-export function getYTConfigInt(key: string, defaultValue: number): number {
+export const getYTConfigInt = (key: string, defaultValue: number): number => {
   let value = Number(configCacheMap.has(key) ? configCacheMap.get(key) : localStorage.getItem(`bu-${key}`) ?? defaultValue)
   if (isNaN(value)) value = defaultValue
 
@@ -145,18 +178,18 @@ export function getYTConfigInt(key: string, defaultValue: number): number {
   return value
 }
 
-export function setYTConfigBool(key: string, value: boolean): void {
+export const setYTConfigBool = (key: string, value: boolean): void => {
   setYTConfigInt(key, value ? 1 : 0)
 }
 
-export function setYTConfigInt(key: string, value: number): void {
+export const setYTConfigInt = (key: string, value: number): void => {
   if (isNaN(value)) return
 
   localStorage.setItem(`bu-${key}`, String(value))
   configCacheMap.set(key, value)
 }
 
-export function registerYTConfigMenuItem(item: YTConfigMenuItem): void {
+export const registerYTConfigMenuItem = (item: YTConfigMenuItem): void => {
   if (configMenuItems.find(i => i.key === item.key) != null) return
 
   if (item.type === YTConfigMenuItemType.TOGGLE) {
@@ -173,7 +206,8 @@ export default class YTCoreConfigModule extends Feature {
   }
 
   protected activate(): boolean {
-    registerYTRendererPreProcessor(YTRendererSchemaMap['desktopTopbarRenderer'], updateDesktopTopbarRenderer)
+    registerYTRendererPostProcessor(YTRendererSchemaMap['tvSurfaceContentRenderer'], updateTvSurfaceContentRenderer)
+    registerYTRendererPostProcessor(YTRendererSchemaMap['desktopTopbarRenderer'], updateDesktopTopbarRenderer)
 
     return true
   }

@@ -25,11 +25,11 @@ let healthDev = 0
 let latencyAvg = 0
 let latencyDeltaAvg = 0
 
-export function isSyncLiveHeadEnabled(): boolean {
+export const isSyncLiveHeadEnabled = (): boolean => {
   return getYTConfigInt(LIVE_BEHAVIOUR_KEY, 0) === 1
 }
 
-function syncLiveHeadUpdate(): void {
+const syncLiveHeadUpdate = (): void => {
   const now = Date.now()
   const delta = max(1, now - lastSyncLiveHeadTime)
 
@@ -85,8 +85,7 @@ function syncLiveHeadUpdate(): void {
   })
 }
 
-
-function updatePlayerResponse(data: YTRendererData<YTRenderer<'playerResponse'>>): boolean {
+const updatePlayerResponse = (data: YTRendererData<YTRenderer<'playerResponse'>>): boolean => {
   const startMinReadaheadPolicy = data.playerConfig?.mediaCommonConfig?.serverPlaybackStartConfig?.playbackStartPolicy?.startMinReadaheadPolicy
   if (startMinReadaheadPolicy != null && startMinReadaheadPolicy.length > 0) {
     startMinReadaheadPolicy.forEach(policy => policy.minReadaheadMs ??= 50)
@@ -111,7 +110,7 @@ export default class YTPlayerLiveHeadModule extends Feature {
       enabledIcon: YTIconType.CLOCK,
       enabledText: 'Live Behaviour: Low Latency',
       defaultValue: false,
-      signals: [YTSignalActionType.SOFT_RELOAD_PAGE]
+      signals: [YTSignalActionType.POPUP_BACK, YTSignalActionType.SOFT_RELOAD_PAGE]
     })
 
     lastSyncLiveHeadTime = Date.now()

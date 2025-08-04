@@ -164,7 +164,7 @@ let environment: YTEnvironment
 let ytcfg: YTConfig
 let appElement: HTMLElement | null = null
 
-async function getProcessedInitialCommand(initCommand: YTValueData<{ type: YTValueType.ENDPOINT }>): Promise<YTValueData<{ type: YTValueType.ENDPOINT }>> {
+const getProcessedInitialCommand = async (initCommand: YTValueData<{ type: YTValueType.ENDPOINT }>): Promise<YTValueData<{ type: YTValueType.ENDPOINT }>> => {
   await processYTValueSchema(ytv_enp(), initCommand, null)
 
   logger.debug('initial command:', initCommand)
@@ -172,7 +172,7 @@ async function getProcessedInitialCommand(initCommand: YTValueData<{ type: YTVal
   return initCommand
 }
 
-async function getProcessedInitialData(initData: YTInitData): Promise<YTInitData> {
+const getProcessedInitialData = async (initData: YTInitData): Promise<YTInitData> => {
   switch (initData.page) {
     case 'browse':
     case 'channel':
@@ -200,7 +200,7 @@ async function getProcessedInitialData(initData: YTInitData): Promise<YTInitData
   return initData
 }
 
-async function createPlayer(create: (...args: unknown[]) => void, container: HTMLElement, config?: YTPlayerConfig, webPlayerContextConfig?: YTPlayerWebPlayerContextConfig): Promise<void> {
+const createPlayer = async (create: (...args: unknown[]) => void, container: HTMLElement, config?: YTPlayerConfig, webPlayerContextConfig?: YTPlayerWebPlayerContextConfig): Promise<void> => {
   if (webPlayerContextConfig != null) {
     webPlayerContextConfig.enableCsiLogging = false
   }
@@ -218,7 +218,7 @@ async function createPlayer(create: (...args: unknown[]) => void, container: HTM
   create(container, config, webPlayerContextConfig)
 }
 
-function createPolymer(instance: object): void {
+const createPolymer = (instance: object): void => {
   if (instance == null) return
 
   try {
@@ -228,19 +228,19 @@ function createPolymer(instance: object): void {
   }
 }
 
-export function getYTAppElement(): HTMLElement | null {
+export const getYTAppElement = (): HTMLElement | null => {
   return appElement
 }
 
-export function isYTLoggedIn(): boolean {
+export const isYTLoggedIn = (): boolean => {
   return ytcfg?.get('LOGGED_IN', false) ?? false
 }
 
-export function registerYTPlayerCreateCallback(callback: (container: HTMLElement) => void): void {
+export const registerYTPlayerCreateCallback = (callback: (container: HTMLElement) => void): void => {
   createPlayerCallbacks.push(callback)
 }
 
-export function registerYTPolymerCreateCallback(callback: (instance: object) => void): void {
+export const registerYTPolymerCreateCallback = (callback: (instance: object) => void): void => {
   createPolymerCallbacks.push(callback)
 }
 
@@ -299,32 +299,33 @@ export default class YTCoreBootstrapModule extends Feature {
 
         let [key, value] = args as [string, unknown]
 
-        if (!isYTLoggedIn()) {
-          switch (key) {
-            case 'INNERTUBE_CONTEXT':
-              assign((value as YTInnertubeContext).client, {
-                browserName: 'Unknown',
-                browserVersion: '0.0.0.0',
-                osName: 'Linux',
-                osVersion: '0.0',
-                deviceExperimentId: 'ChxNREF3TURBd01EQXdNREF3TURBd01EQXdNQT09EAAYAA==',
-                deviceName: '',
-                deviceModel: '',
-                platform: 'DESKTOP',
-                remoteHost: '0.0.0.0',
-                userAgent: ''
-              })
-              break
-            case 'IS_SUBSCRIBER':
-              value = true
-              break
-            case 'SBOX_SETTINGS':
-              assign(value as YTSearchboxSettings, {
-                SEND_VISITOR_DATA: false,
-                VISITOR_DATA: ''
-              })
-              break
-          }
+        switch (key) {
+          case 'INNERTUBE_CONTEXT':
+            assign((value as YTInnertubeContext).client, {
+              browserName: undefined,
+              browserVersion: undefined,
+              osName: undefined,
+              osVersion: undefined,
+              deviceExperimentId: 'ChxNREF3TURBd01EQXdNREF3TURBd01EQXdNQT09EAAYAA==',
+              deviceMake: undefined,
+              deviceModel: undefined,
+              deviceName: undefined,
+              platform: undefined,
+              remoteHost: undefined,
+              userAgent: undefined
+            })
+            break
+          case 'IS_SUBSCRIBER':
+            value = true
+            break
+          case 'SBOX_SETTINGS':
+            if (isYTLoggedIn()) break
+
+            assign(value as YTSearchboxSettings, {
+              SEND_VISITOR_DATA: false,
+              VISITOR_DATA: ''
+            })
+            break
         }
 
         ytcfg.d()[key] = value

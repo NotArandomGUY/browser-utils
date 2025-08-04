@@ -9,19 +9,19 @@ const SHOW_SHORTS_KEY = 'show-shorts'
 const SHOW_LIVE_KEY = 'show-live'
 const SHOW_VIDEO_KEY = 'show-video'
 
-export function isShowShorts(): boolean {
+export const isShowShorts = (): boolean => {
   return getYTConfigBool(SHOW_SHORTS_KEY, true)
 }
 
-export function isShowLive(): boolean {
+export const isShowLive = (): boolean => {
   return getYTConfigBool(SHOW_LIVE_KEY, true)
 }
 
-export function isShowVideo(): boolean {
+export const isShowVideo = (): boolean => {
   return getYTConfigBool(SHOW_VIDEO_KEY, true)
 }
 
-function filterGuideEntry(data: YTRendererData<YTRenderer<'guideEntryRenderer'>>): boolean {
+const filterGuideEntry = (data: YTRendererData<YTRenderer<'guideEntryRenderer'>>): boolean => {
   const browseId = data.navigationEndpoint?.browseEndpoint?.browseId ?? ''
 
   // Remove promotion
@@ -34,11 +34,11 @@ function filterGuideEntry(data: YTRendererData<YTRenderer<'guideEntryRenderer'>>
   return isYTLoggedIn() || !['FEhistory', 'FElibrary', 'FEsubscriptions', 'SPaccount_overview', 'SPreport_history'].includes(browseId)
 }
 
-function filterShelf(data: YTRendererData<YTRenderer<'reelShelfRenderer' | 'richShelfRenderer'>>): boolean {
+const filterShelf = (data: YTRendererData<YTRenderer<'reelShelfRenderer' | 'richShelfRenderer'>>): boolean => {
   return isShowShorts() || !data.icon?.iconType?.includes('SHORTS')
 }
 
-function filterVideo(data: YTRendererData<YTRenderer<'compactVideoRenderer' | 'videoRenderer'>>): boolean {
+const filterVideo = (data: YTRendererData<YTRenderer<'compactVideoRenderer' | 'videoRenderer'>>): boolean => {
   if (!isShowShorts() && data.navigationEndpoint?.reelWatchEndpoint != null) return false
 
   const icons = [
@@ -46,6 +46,18 @@ function filterVideo(data: YTRendererData<YTRenderer<'compactVideoRenderer' | 'v
     ...data.badges?.map(b => b.metadataBadgeRenderer?.icon?.iconType) ?? []
   ]
   const isLive = icons.find(icon => icon?.includes('LIVE')) != null
+
+  if (!isShowLive() && isLive) return false
+  if (!isShowVideo() && !isLive) return false
+
+  return true
+}
+
+const filterTile = (data: YTRendererData<YTRenderer<'tileRenderer'>>): boolean => {
+  const header = data.header?.tileHeaderRenderer
+
+  const icon = header?.thumbnailOverlays?.find(r => r.thumbnailOverlayTimeStatusRenderer != null)?.thumbnailOverlayTimeStatusRenderer?.icon?.iconType
+  const isLive = icon?.includes('LIVE')
 
   if (!isShowLive() && isLive) return false
   if (!isShowVideo() && !isLive) return false
@@ -64,6 +76,7 @@ export default class YTFeedFilterModule extends Feature {
     removeYTRendererPre(YTRendererSchemaMap['reelShelfRenderer'], filterShelf)
     removeYTRendererPre(YTRendererSchemaMap['richShelfRenderer'], filterShelf)
     removeYTRendererPre(YTRendererSchemaMap['shortsLockupViewModel'], isShowShorts)
+    removeYTRendererPre(YTRendererSchemaMap['tileRenderer'], filterTile)
     removeYTRendererPre(YTRendererSchemaMap['videoRenderer'], filterVideo)
 
     registerYTConfigMenuItem({
@@ -74,7 +87,7 @@ export default class YTFeedFilterModule extends Feature {
       enabledIcon: YTIconType.YOUTUBE_SHORTS_BRAND_24,
       enabledText: 'Hide Shorts',
       defaultValue: true,
-      signals: [YTSignalActionType.SOFT_RELOAD_PAGE]
+      signals: [YTSignalActionType.POPUP_BACK, YTSignalActionType.SOFT_RELOAD_PAGE]
     })
     registerYTConfigMenuItem({
       type: YTConfigMenuItemType.TOGGLE,
@@ -84,7 +97,7 @@ export default class YTFeedFilterModule extends Feature {
       enabledIcon: YTIconType.LIVE,
       enabledText: 'Hide Live',
       defaultValue: true,
-      signals: [YTSignalActionType.SOFT_RELOAD_PAGE]
+      signals: [YTSignalActionType.POPUP_BACK, YTSignalActionType.SOFT_RELOAD_PAGE]
     })
     registerYTConfigMenuItem({
       type: YTConfigMenuItemType.TOGGLE,
@@ -94,7 +107,7 @@ export default class YTFeedFilterModule extends Feature {
       enabledIcon: YTIconType.VIDEOS,
       enabledText: 'Hide Video !!Dangerous!!',
       defaultValue: true,
-      signals: [YTSignalActionType.SOFT_RELOAD_PAGE]
+      signals: [YTSignalActionType.POPUP_BACK, YTSignalActionType.SOFT_RELOAD_PAGE]
     })
 
     return true

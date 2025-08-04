@@ -179,10 +179,11 @@ export const YTRendererContinuationDataSchema = {
 } satisfies YTRendererSchema
 
 export const YTRendererContinuationSchema = {
-  reloadContinuationData: ytv_ren(YTRendererContinuationDataSchema),
   invalidationContinuationData: ytv_ren(YTRendererContinuationDataSchema),
   liveChatReplayContinuationData: ytv_ren(YTRendererContinuationDataSchema),
+  nextContinuationData: ytv_ren(YTRendererContinuationDataSchema),
   playerSeekContinuationData: ytv_ren(YTRendererContinuationDataSchema),
+  reloadContinuationData: ytv_ren(YTRendererContinuationDataSchema),
   timedContinuationData: ytv_ren(YTRendererContinuationDataSchema)
 } satisfies YTRendererSchema
 
@@ -265,6 +266,19 @@ export const YTLiveChatRendererSchema = {
   viewerName: ytv_str()
 } satisfies YTRendererSchema
 
+export const YTSectionListRendererSchema = {
+  contents: ytv_arr(ytv_ren()),
+  continuations: ytv_arr(ytv_ren(YTRendererContinuationSchema)),
+  disablePullToRefresh: ytv_bol(),
+  hack: ytv_bol(),
+  hideBottomSeparator: ytv_bol(),
+  scrollPaneStyle: ytv_sch({
+    scrollable: ytv_bol()
+  }),
+  subMenu: ytv_ren(),
+  targetId: ytv_str()
+} satisfies YTRendererSchema
+
 export const YTSortFilterSubMenuItemRendererSchema = {
   accessibility: ytv_sch(YTAccessibilitySchema),
   continuation: ytv_ren(YTRendererContinuationSchema),
@@ -272,6 +286,11 @@ export const YTSortFilterSubMenuItemRendererSchema = {
   serviceEndpoint: ytv_enp(),
   subtitle: ytv_str(),
   title: ytv_str()
+} satisfies YTRendererSchema
+
+export const YTTvBrowseRendererSchema = {
+  content: ytv_ren(),
+  header: ytv_ren()
 } satisfies YTRendererSchema
 
 export const YTSubscribeButtonViewModelContentSchema = {
@@ -601,6 +620,10 @@ export const YTRendererSchemaMap = {
   browseResponse: {
     ...YTResponseCommonSchema,
     contents: ytv_ren(),
+    continuationContents: ytv_sch({
+      sectionListContinuation: ytv_ren(YTSectionListRendererSchema),
+      tvSurfaceContentContinuation: ytv_ren(YTTvBrowseRendererSchema)
+    }),
     header: ytv_ren(),
     metadata: ytv_ren(),
     microformat: ytv_ren(),
@@ -618,6 +641,7 @@ export const YTRendererSchemaMap = {
   },
   guideResponse: {
     ...YTResponseCommonSchema,
+    footer: ytv_ren(),
     items: ytv_arr(ytv_ren())
   },
   liveChatGetLiveChatResponse: {
@@ -793,6 +817,10 @@ export const YTRendererSchemaMap = {
     enabledAccessibilityData: ytv_sch(YTAccessibilitySchema),
     onDisabledCommand: ytv_enp(),
     onEnabledCommand: ytv_enp()
+  },
+  avatarLockupRenderer: {
+    size: ytv_str(['AVATAR_LOCKUP_SIZE_SMALL']),
+    title: ytv_sch(YTTextSchema)
   },
   backstageImageRenderer: {
     icon: ytv_sch(YTIconSchema),
@@ -1491,6 +1519,7 @@ export const YTRendererSchemaMap = {
   },
   horizontalListRenderer: {
     collapsedItemCount: ytv_num(),
+    continuations: ytv_arr(ytv_ren(YTRendererContinuationSchema)),
     itemSizeConstraint: ytv_str(['LIST_ITEM_SIZE_CONSTRAINT_EQUAL_HEIGHT']),
     items: ytv_arr(ytv_ren()),
     nextButton: ytv_ren(),
@@ -1582,6 +1611,12 @@ export const YTRendererSchemaMap = {
     target: ytv_sch({
       videoId: ytv_str()
     })
+  },
+  lineItemRenderer: {
+    text: ytv_sch(YTTextSchema)
+  },
+  lineRenderer: {
+    items: ytv_arr(ytv_ren())
   },
   liveChatAuthorBadgeRenderer: {
     accessibility: ytv_sch(YTAccessibilitySchema),
@@ -2071,6 +2106,24 @@ export const YTRendererSchemaMap = {
     updateUnseenCountEndpoint: ytv_enp()
   },
   offlineabilityRenderer: YTOfflineabilityRendererSchema,
+  overlayPanelHeaderRenderer: {
+    title: ytv_sch(YTTextSchema)
+  },
+  overlayPanelItemListRenderer: {
+    items: ytv_arr(ytv_ren()),
+    selectedIndex: ytv_num()
+  },
+  overlayPanelRenderer: {
+    content: ytv_ren(),
+    header: ytv_ren()
+  },
+  overlaySectionRenderer: {
+    dismissalCommand: ytv_enp(),
+    overlay: ytv_ren()
+  },
+  overlayTwoPanelRenderer: {
+    actionPanel: ytv_ren()
+  },
   pageHeaderRenderer: {
     content: ytv_ren(),
     pageTitle: ytv_str()
@@ -2496,27 +2549,26 @@ export const YTRendererSchemaMap = {
     thumbnail: ytv_sch(YTThumbnailSchema)
   },
   searchSubMenuRenderer: {},
-  sectionListRenderer: {
-    contents: ytv_arr(ytv_ren()),
-    disablePullToRefresh: ytv_bol(),
-    hack: ytv_bol(),
-    hideBottomSeparator: ytv_bol(),
-    scrollPaneStyle: ytv_sch({
-      scrollable: ytv_bol()
-    }),
-    subMenu: ytv_ren(),
-    targetId: ytv_str()
-  },
+  sectionListRenderer: YTSectionListRendererSchema,
   secondarySearchContainerRenderer: {
     contents: ytv_arr(ytv_ren())
+  },
+  shelfHeaderRenderer: {
+    avatarLockup: ytv_ren()
   },
   shelfRenderer: {
     content: ytv_ren(),
     endpoint: ytv_enp(),
+    headerRenderer: ytv_ren(),
     playAllButton: ytv_ren(),
     subtitle: ytv_sch(YTTextSchema),
+    thumbnail: ytv_sch(YTThumbnailSchema),
     title: ytv_sch(YTTextSchema),
-    thumbnail: ytv_sch(YTThumbnailSchema)
+    tvhtml5Style: ytv_sch({
+      effects: ytv_sch({
+        enlarge: ytv_bol()
+      })
+    })
   },
   shoppingOverlayRenderer: {
     badgeInteractionLogging: ytv_ren({}),
@@ -2702,6 +2754,23 @@ export const YTRendererSchemaMap = {
     untoggledServiceEndpoint: ytv_enp(),
     untoggledTooltip: ytv_str()
   },
+  tileHeaderRenderer: {
+    thumbnail: ytv_sch(YTThumbnailSchema),
+    thumbnailOverlays: ytv_arr(ytv_ren())
+  },
+  tileMetadataRenderer: {
+    lines: ytv_arr(ytv_ren()),
+    title: ytv_sch(YTTextSchema)
+  },
+  tileRenderer: {
+    contentId: ytv_str(),
+    contentType: ytv_str(['TILE_CONTENT_TYPE_VIDEO']),
+    header: ytv_ren(),
+    metadata: ytv_ren(),
+    onLongPressCommand: ytv_enp(),
+    onSelectCommand: ytv_enp(),
+    style: ytv_str(['TILE_STYLE_YTLR_DEFAULT'])
+  },
   timedAnimationButtonRenderer: {
     buttonRenderer: ytv_ren()
   },
@@ -2785,11 +2854,13 @@ export const YTRendererSchemaMap = {
     })),
     featuredActionViewModels: ytv_arr(ytv_ren())
   },
-  tvBrowseRenderer: {
-    content: ytv_ren()
-  },
+  tvBrowseRenderer: YTTvBrowseRendererSchema,
   tvSurfaceContentRenderer: {
-    content: ytv_ren()
+    content: ytv_ren(),
+    targetId: ytv_str()
+  },
+  tvSurfaceHeaderRenderer: {
+    title: ytv_sch(YTTextSchema)
   },
   twoColumnBrowseResultsRenderer: {
     secondaryContents: ytv_ren(),

@@ -7,15 +7,15 @@ import { removeYTRendererPost, YTRenderer, YTRendererData, YTRendererSchemaMap }
 
 const logger = new Logger('YTMISCS-FIXUP')
 
-function filterContentContainer(data: YTRendererData<YTRenderer<'richItemRenderer'>>): boolean {
+const filterContentContainer = (data: YTRendererData<YTRenderer<'richItemRenderer' | 'shelfRenderer'>>): boolean => {
   return data.content != null && keys(data.content).length > 0
 }
 
-function filterItemsContainer(data: YTRendererData<YTRenderer<'guideSectionRenderer' | 'reelShelfRenderer'>>): boolean {
+const filterItemsContainer = (data: YTRendererData<YTRenderer<'guideSectionRenderer' | 'horizontalListRenderer' | 'reelShelfRenderer'>>): boolean => {
   return data.items != null && data.items.length > 0
 }
 
-function filterShoppingOverlay(data: YTRendererData<YTRenderer<'shoppingOverlayRenderer'>>): boolean {
+const filterShoppingOverlay = (data: YTRendererData<YTRenderer<'shoppingOverlayRenderer'>>): boolean => {
   return data.productsData != null && data.productsData.length > 0
 }
 
@@ -26,8 +26,10 @@ export default class YTMiscsFixupModule extends Feature {
 
   protected activate(): boolean {
     removeYTRendererPost(YTRendererSchemaMap['guideSectionRenderer'], filterItemsContainer)
+    removeYTRendererPost(YTRendererSchemaMap['horizontalListRenderer'], filterItemsContainer)
     removeYTRendererPost(YTRendererSchemaMap['reelShelfRenderer'], filterItemsContainer)
     removeYTRendererPost(YTRendererSchemaMap['richItemRenderer'], filterContentContainer)
+    removeYTRendererPost(YTRendererSchemaMap['shelfRenderer'], filterContentContainer)
     removeYTRendererPost(YTRendererSchemaMap['shoppingOverlayRenderer'], filterShoppingOverlay)
 
     InterceptDOM.setAppendChildCallback(ctx => {
