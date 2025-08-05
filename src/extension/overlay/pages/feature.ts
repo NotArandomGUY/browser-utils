@@ -37,6 +37,7 @@ const FeatureGroupTableItem = ({ parentClassName, groupId, group }: FeatureGroup
 
   return [
     tr(
+      { class: buildClass(parentClassName, 'group') },
       td({ class: buildClass(parentClassName, 'shrink'), rowSpan: () => 1 + (expanded.val ? group.featureMap.size : 0) }, groupId),
       td(button({ onclick() { expanded.val = !expanded.val } }, () => expanded.val ? 'Collapse' : 'Expand')),
       td({ class: buildClass(parentClassName, 'shrink') }, button({ onclick: handleToggleClick }, () => enabled.val ? 'Disable All' : 'Enable All'))

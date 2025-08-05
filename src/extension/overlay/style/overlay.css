@@ -105,7 +105,7 @@
   background: initial !important;
 }
 
-.bu-overlay table tr:nth-child(2n) {
+.bu-overlay table tr:not(.bu-overlay--section--feature--group):nth-child(2n) {
   background: #101010 !important;
 }
 
