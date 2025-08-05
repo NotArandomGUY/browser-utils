@@ -359,7 +359,7 @@ const processTVConfig = async (ctx: NetworkContext<unknown, NetworkState.SUCCESS
 
 export default class YTPlayerUMPModule extends Feature {
   public constructor() {
-    super('player-ump')
+    super('ump')
   }
 
   protected activate(): boolean {

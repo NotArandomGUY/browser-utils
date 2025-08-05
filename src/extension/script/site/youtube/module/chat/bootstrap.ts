@@ -17,7 +17,7 @@ function postToLiveChatWindow(message: YTIFrameMessage): void {
 
 export default class YTChatBootstrapModule extends Feature {
   public constructor() {
-    super('chat-bootstrap')
+    super('bootstrap')
   }
 
   protected activate(): boolean {

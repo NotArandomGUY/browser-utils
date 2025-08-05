@@ -201,7 +201,7 @@ export default class YTChatPopoutModule extends Feature {
   public channel: MessageChannel<ChatPopoutMessageDataMap, ChatPopoutMessageType> | null
 
   public constructor() {
-    super('chat-popout')
+    super('popout')
 
     this.channel = null
   }

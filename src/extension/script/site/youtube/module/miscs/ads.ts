@@ -21,7 +21,7 @@ function filterReel(data: YTEndpointData<YTEndpoint<'reelWatchEndpoint'>>): bool
 
 export default class YTMiscsAdsModule extends Feature {
   public constructor() {
-    super('miscs-ads')
+    super('ads')
   }
 
   protected activate(): boolean {

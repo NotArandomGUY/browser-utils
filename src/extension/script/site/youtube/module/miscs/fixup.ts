@@ -21,7 +21,7 @@ const filterShoppingOverlay = (data: YTRendererData<YTRenderer<'shoppingOverlayR
 
 export default class YTMiscsFixupModule extends Feature {
   public constructor() {
-    super('miscs-fixup')
+    super('fixup')
   }
 
   protected activate(): boolean {

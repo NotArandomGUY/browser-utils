@@ -9,7 +9,7 @@ function updateNextResponse(data: YTRendererData<YTRenderer<'nextResponse'>>): b
 
 export default class YTMiscsPopupModule extends Feature {
   public constructor() {
-    super('miscs-popup')
+    super('popup')
   }
 
   protected activate(): boolean {

@@ -28,7 +28,7 @@ function updateSearchResponse(data: YTRendererData<YTRenderer<'searchResponse'>>
 
 export default class YTMiscsTrackingModule extends Feature {
   public constructor() {
-    super('miscs-tracking')
+    super('tracking')
   }
 
   protected activate(): boolean {

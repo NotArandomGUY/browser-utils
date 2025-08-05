@@ -96,7 +96,7 @@ const updatePlayerResponse = (data: YTRendererData<YTRenderer<'playerResponse'>>
 
 export default class YTPlayerLiveHeadModule extends Feature {
   public constructor() {
-    super('player-live-head')
+    super('live-head')
   }
 
   protected activate(): boolean {

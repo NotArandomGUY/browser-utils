@@ -78,7 +78,7 @@ export const registerYTSignalActionHandler = (signal: YTSignalActionType, handle
 
 export default class YTCoreEventModule extends Feature {
   public constructor() {
-    super('core-event')
+    super('event')
   }
 
   protected activate(): boolean {

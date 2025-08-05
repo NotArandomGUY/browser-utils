@@ -21,7 +21,7 @@ function updateEmojiPickerRenderer(data: YTRendererData<YTRenderer<'emojiPickerR
 
 export default class YTChatEmojiPickerModule extends Feature {
   public constructor() {
-    super('chat-emoji-picker')
+    super('emoji-picker')
   }
 
   protected activate(): boolean {

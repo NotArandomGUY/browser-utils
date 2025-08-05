@@ -202,7 +202,7 @@ export const registerYTConfigMenuItem = (item: YTConfigMenuItem): void => {
 
 export default class YTCoreConfigModule extends Feature {
   public constructor() {
-    super('core-config')
+    super('config')
   }
 
   protected activate(): boolean {

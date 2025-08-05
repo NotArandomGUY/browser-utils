@@ -18,7 +18,7 @@ function generateActivity(): void {
 
 export default class YTMiscsBackgroundModule extends Feature {
   public constructor() {
-    super('miscs-background')
+    super('background')
   }
 
   protected activate(): boolean {

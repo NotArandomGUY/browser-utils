@@ -63,7 +63,7 @@ function updatePlayerResponse(data: YTRendererData<YTRenderer<'playerResponse'>>
 
 export default class YTPlayerAgeCheckModule extends Feature {
   public constructor() {
-    super('player-age-check')
+    super('age-check')
   }
 
   protected activate(): boolean {

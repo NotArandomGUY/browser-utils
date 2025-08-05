@@ -24,8 +24,14 @@ import YTPlayerLiveHeadModule from '@ext/site/youtube/module/player/live-head'
 import YTPlayerSmartSkipModule from '@ext/site/youtube/module/player/smart-skip'
 import YTPlayerUMPModule from '@ext/site/youtube/module/player/ump'
 
-registerFeatureGroup('youtube', group => {
-  // Register core features
+const GROUP_ID_PREFIX = 'youtube'
+const CORE_GROUP_ID = `${GROUP_ID_PREFIX}-core`
+const FEED_GROUP_ID = `${GROUP_ID_PREFIX}-feed`
+const PLAYER_GROUP_ID = `${GROUP_ID_PREFIX}-player`
+const CHAT_GROUP_ID = `${GROUP_ID_PREFIX}-chat`
+const MISCS_GROUP_ID = `${GROUP_ID_PREFIX}-miscs`
+
+registerFeatureGroup(CORE_GROUP_ID, group => {
   registerFeature(group, YTCoreSandboxModule)
   registerFeature(group, YTCoreBootstrapModule)
   registerFeature(group, YTCoreLoggingModule)
@@ -33,23 +39,29 @@ registerFeatureGroup('youtube', group => {
   registerFeature(group, YTCoreEventModule)
   registerFeature(group, YTCoreConfigModule)
 
-  // Register feed features
+  hideOwnWebpackRuntimeFromGlobal()
+}, ['adblock', 'privacy'])
+
+registerFeatureGroup(FEED_GROUP_ID, group => {
   registerFeature(group, YTFeedGuideModule)
   registerFeature(group, YTFeedFilterModule)
+}, [CORE_GROUP_ID])
 
-  // Register player features
+registerFeatureGroup(PLAYER_GROUP_ID, group => {
   registerFeature(group, YTPlayerBootstrapModule)
   registerFeature(group, YTPlayerUMPModule)
   registerFeature(group, YTPlayerLiveHeadModule)
   registerFeature(group, YTPlayerAgeCheckModule)
   registerFeature(group, YTPlayerSmartSkipModule)
+}, [CORE_GROUP_ID])
 
-  // Register chat features
+registerFeatureGroup(CHAT_GROUP_ID, group => {
   registerFeature(group, YTChatBootstrapModule)
   registerFeature(group, YTChatEmojiPickerModule)
   registerFeature(group, YTChatPopoutModule)
+}, [CORE_GROUP_ID])
 
-  // Register miscs features
+registerFeatureGroup(MISCS_GROUP_ID, group => {
   registerFeature(group, YTMiscsAdsModule)
   registerFeature(group, YTMiscsTrackingModule)
   registerFeature(group, YTMiscsGuestModule)
@@ -57,6 +69,4 @@ registerFeatureGroup('youtube', group => {
   registerFeature(group, YTMiscsBackgroundModule)
   registerFeature(group, YTMiscsPopupModule)
   registerFeature(group, YTMiscsFixupModule)
-
-  hideOwnWebpackRuntimeFromGlobal()
-}, ['adblock', 'privacy'])
+}, [CORE_GROUP_ID])

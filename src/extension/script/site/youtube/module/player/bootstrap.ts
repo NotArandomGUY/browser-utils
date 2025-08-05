@@ -227,7 +227,7 @@ export const getYTPInstance = <T extends YTPInstanceType>(type: T): YTPInstanceO
 
 export default class YTPlayerBootstrapModule extends Feature {
   public constructor() {
-    super('player-bootstrap')
+    super('bootstrap')
   }
 
   protected activate(): boolean {

@@ -35,7 +35,7 @@ function filterMenuFlexibleItem(data: YTRendererData<YTRenderer<'menuFlexibleIte
 
 export default class YTMiscsGuestModule extends Feature {
   public constructor() {
-    super('miscs-guest')
+    super('guest')
   }
 
   protected activate(): boolean {

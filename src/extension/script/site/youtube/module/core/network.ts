@@ -219,7 +219,7 @@ export const registerYTInnertubeRequestProcessor = <E extends YTInnertubeRequest
 
 export default class YTCoreNetworkModule extends Feature {
   public constructor() {
-    super('core-network')
+    super('network')
   }
 
   protected activate(): boolean {

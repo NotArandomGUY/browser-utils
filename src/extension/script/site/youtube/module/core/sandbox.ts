@@ -8,7 +8,7 @@ const logger = new Logger('YTCORE-SANDBOX')
 
 export default class YTCoreSandboxModule extends Feature {
   public constructor() {
-    super('core-sandbox')
+    super('sandbox')
   }
 
   protected activate(): boolean {

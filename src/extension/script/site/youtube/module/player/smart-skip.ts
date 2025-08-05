@@ -312,7 +312,7 @@ async function updateTimelyActionsOverlayViewModel(data: YTRendererData<YTRender
 
 export default class YTPlayerSmartSkipModule extends Feature {
   public constructor() {
-    super('player-smart-skip')
+    super('smart-skip')
   }
 
   protected activate(): boolean {

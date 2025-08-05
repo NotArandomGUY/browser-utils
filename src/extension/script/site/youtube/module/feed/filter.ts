@@ -67,7 +67,7 @@ const filterTile = (data: YTRendererData<YTRenderer<'tileRenderer'>>): boolean =
 
 export default class YTFeedFilterModule extends Feature {
   public constructor() {
-    super('feed-filter')
+    super('filter')
   }
 
   protected activate(): boolean {

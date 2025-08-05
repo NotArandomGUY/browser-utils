@@ -71,7 +71,7 @@ export async function reloadYTGuide(): Promise<void> {
 
 export default class YTFeedGuideModule extends Feature {
   public constructor() {
-    super('feed-guide')
+    super('guide')
   }
 
   protected activate(): boolean {

@@ -3,7 +3,7 @@ import { removeYTRendererPre, YTRendererSchemaMap } from '@ext/site/youtube/api/
 
 export default class YTMiscsMerchModule extends Feature {
   public constructor() {
-    super('miscs-merch')
+    super('merch')
   }
 
   protected activate(): boolean {

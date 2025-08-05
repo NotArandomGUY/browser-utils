@@ -246,7 +246,7 @@ export const registerYTPolymerCreateCallback = (callback: (instance: object) => 
 
 export default class YTCoreBootstrapModule extends Feature {
   public constructor() {
-    super('core-bootstrap')
+    super('bootstrap')
   }
 
   protected activate(): boolean {
