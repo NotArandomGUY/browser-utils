@@ -38,7 +38,7 @@ const syncLiveHeadUpdate = (): void => {
 
   if (!isSyncLiveHeadEnabled()) return
 
-  const player = getYTPInstance(YTPInstanceType.VIDEO_PLAYER)
+  const player = getYTPInstance(YTPInstanceType.APP)?.playerRef?.deref()
   if (player == null || !player.isAtLiveHead?.() || !player.isPlaying?.()) return
 
   const currentHealth = Number(player.getBufferHealth?.()) * 1e3

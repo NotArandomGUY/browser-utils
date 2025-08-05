@@ -66,11 +66,11 @@ export default class Hook<T, A extends unknown[], R, U = unknown> {
   public readonly origin!: OriginFn<T, A, R>
   public readonly hooks!: { [K in HookType]: HookFnSet<T, A, R, U> }
 
-  public constructor(origin: OriginFn<T, A, R>) {
-    let hooks = activeHookMap.get(origin as OriginFn)
+  public constructor(origin: OriginFn<T, A, R>, isShared = true) {
+    let hooks = isShared ? activeHookMap.get(origin as OriginFn) : null
     if (hooks == null) {
       hooks = { [HookType.PRE]: new Set(), [HookType.MAIN]: new Set(), [HookType.POST]: new Set() }
-      activeHookMap.set(origin as OriginFn, hooks)
+      if (isShared) activeHookMap.set(origin as OriginFn, hooks)
     }
 
     const { install, uninstall } = this
