@@ -587,6 +587,11 @@ export const YTEndpointSchemaMap = {
   serialCommand: { // Same as commandExecutorCommand
     commands: ytv_arr(ytv_enp())
   },
+  setAppBackgroundCommand: {
+    image: ytv_sch(YTThumbnailSchema),
+    scrimStyle: ytv_str(['SCRIM_STYLE_CAROUSEL']),
+    target: ytv_str(['APP_BACKGROUND_TARGET_ACCOUNTS', 'APP_BACKGROUND_TARGET_BROWSE', 'APP_BACKGROUND_TARGET_OVERLAY', 'APP_BACKGROUND_TARGET_SEARCH', 'APP_BACKGROUND_TARGET_WATCH_SQUEEZEBACK', 'APP_BACKGROUND_TARGET_WELCOME'])
+  },
   scrollToEngagementPanelCommand: {
     panelIdentifier: ytv_sch(YTEngagementPanelIdentifier),
     targetId: ytv_str()
@@ -627,6 +632,9 @@ export const YTEndpointSchemaMap = {
   toggleLiveReactionsMuteCommand: {
     hack: ytv_bol()
   },
+  updateCarouselHeaderCommand: {
+    spotlight: ytv_ren()
+  },
   updateEngagementPanelContentCommand: {
     contentSourcePanelIdentifier: ytv_sch(YTEngagementPanelIdentifier),
     targetPanelIdentifier: ytv_sch(YTEngagementPanelIdentifier)
@@ -650,6 +658,11 @@ export const YTEndpointSchemaMap = {
     params: ytv_str()
   },
   browseEndpoint: {
+    browseEndpointContextSupportedConfigs: ytv_sch({
+      browseEndpointContextMusicConfig: ytv_sch({
+        pageType: ytv_str(['MUSIC_PAGE_TYPE_ALBUM', 'MUSIC_PAGE_TYPE_PLAYLIST'])
+      })
+    }),
     browseId: ytv_str(),
     canonicalBaseUrl: ytv_str(),
     params: ytv_str()

@@ -17,6 +17,7 @@ import YTMiscsFixupModule from '@ext/site/youtube/module/miscs/fixup'
 import YTMiscsGuestModule from '@ext/site/youtube/module/miscs/guest'
 import YTMiscsMerchModule from '@ext/site/youtube/module/miscs/merch'
 import YTMiscsPopupModule from '@ext/site/youtube/module/miscs/popup'
+import YTMiscsThumbnailModule from '@ext/site/youtube/module/miscs/thumbnail'
 import YTMiscsTrackingModule from '@ext/site/youtube/module/miscs/tracking'
 import YTPlayerAgeCheckModule from '@ext/site/youtube/module/player/age-check'
 import YTPlayerBootstrapModule from '@ext/site/youtube/module/player/bootstrap'
@@ -65,6 +66,7 @@ registerFeatureGroup(MISCS_GROUP_ID, group => {
   registerFeature(group, YTMiscsAdsModule)
   registerFeature(group, YTMiscsTrackingModule)
   registerFeature(group, YTMiscsGuestModule)
+  registerFeature(group, YTMiscsThumbnailModule)
   registerFeature(group, YTMiscsMerchModule)
   registerFeature(group, YTMiscsBackgroundModule)
   registerFeature(group, YTMiscsPopupModule)

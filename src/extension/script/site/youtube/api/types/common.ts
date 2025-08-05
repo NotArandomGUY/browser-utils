@@ -173,7 +173,9 @@ export const YTThumbnailSchema = {
   lightColorPalette: ytv_obj(ytv_str(), ytv_num()),
   logAsMovingThumbnail: ytv_bol(),
   placeholderColor: ytv_num(),
+  sampledThumbnailColor: ytv_obj(ytv_str(), ytv_num()),
   thumbnails: ytv_arr(ytv_sch(YTImageSourceSchema)),
+  vibrantColorPalette: ytv_obj(ytv_str(), ytv_num()),
   webThumbnailDetailsExtensionData: ytv_sch(YTThumbnailWebExtensionSchema)
 } satisfies YTObjectSchema
 

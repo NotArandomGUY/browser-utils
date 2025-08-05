@@ -166,6 +166,8 @@ export const YTMediaFormatSchema = {
 } satisfies YTRendererSchema
 
 export const YTRendererContinuationDataSchema = {
+  autoloadEnabled: ytv_bol(),
+  autoloadThresholdItemsFromEnd: ytv_num(),
   invalidationId: ytv_sch({
     objectId: ytv_str(),
     objectSource: ytv_num(),
@@ -185,6 +187,68 @@ export const YTRendererContinuationSchema = {
   playerSeekContinuationData: ytv_ren(YTRendererContinuationDataSchema),
   reloadContinuationData: ytv_ren(YTRendererContinuationDataSchema),
   timedContinuationData: ytv_ren(YTRendererContinuationDataSchema)
+} satisfies YTRendererSchema
+
+export const YTTvBrowseRendererSchema = {
+  content: ytv_ren(),
+  header: ytv_ren()
+} satisfies YTRendererSchema
+
+export const YTHorizontalListRendererSchema = {
+  collapsedItemCount: ytv_num(),
+  continuations: ytv_arr(ytv_ren(YTRendererContinuationSchema)),
+  itemSizeConstraint: ytv_str(['LIST_ITEM_SIZE_CONSTRAINT_EQUAL_HEIGHT']),
+  items: ytv_arr(ytv_ren()),
+  nextButton: ytv_ren(),
+  previousButton: ytv_ren(),
+  visibleItemCount: ytv_num()
+} satisfies YTRendererSchema
+
+export const YTLiveChatRendererSchema = {
+  actionPanel: ytv_ren(),
+  actions: ytv_arr(ytv_enp()),
+  clientMessages: ytv_sch({
+    fatalError: ytv_sch(YTTextSchema),
+    genericError: ytv_sch(YTTextSchema),
+    reconnectMessage: ytv_sch(YTTextSchema),
+    reconnectedMessage: ytv_sch(YTTextSchema),
+    unableToReconnectMessage: ytv_sch(YTTextSchema)
+  }),
+  continuations: ytv_arr(ytv_ren(YTRendererContinuationSchema)),
+  creatorGoalEntityKey: ytv_str(),
+  emojis: ytv_arr(ytv_sch(YTEmojiSchema)),
+  engagementPanel: ytv_arr(ytv_ren()),
+  header: ytv_ren(),
+  initialDisplayState: ytv_str(['LIVE_CHAT_DISPLAY_STATE_COLLAPSED', 'LIVE_CHAT_DISPLAY_STATE_EXPANDED']),
+  isReplay: ytv_bol(),
+  itemList: ytv_ren(),
+  liveChatAdminSheetEntryPointEntityKey: ytv_str(),
+  liveChatCurrentFilter: ytv_str(['LIVE_CHAT_FILTER_MODE_DEFAULT']),
+  participantsList: ytv_ren(),
+  popoutMessage: ytv_ren(),
+  showButton: ytv_ren(),
+  ticker: ytv_ren(),
+  viewerName: ytv_str()
+} satisfies YTRendererSchema
+
+export const YTSectionListRendererSchema = {
+  contents: ytv_arr(ytv_ren()),
+  continuations: ytv_arr(ytv_ren(YTRendererContinuationSchema)),
+  disablePullToRefresh: ytv_bol(),
+  hack: ytv_bol(),
+  hideBottomSeparator: ytv_bol(),
+  scrollPaneStyle: ytv_sch({
+    scrollable: ytv_bol()
+  }),
+  subMenu: ytv_ren(),
+  targetId: ytv_str()
+} satisfies YTRendererSchema
+
+export const YTRendererContinuationContentSchema = {
+  horizontalListContinuation: ytv_ren(YTHorizontalListRendererSchema),
+  liveChatContinuation: ytv_ren(YTLiveChatRendererSchema),
+  sectionListContinuation: ytv_ren(YTSectionListRendererSchema),
+  tvSurfaceContentContinuation: ytv_ren(YTTvBrowseRendererSchema)
 } satisfies YTRendererSchema
 
 export const YTPaygatedQualityDetailSchema = {
@@ -239,46 +303,6 @@ export const YTVideoAdPingsSchema = {
   unmutePings: ytv_arr(ytv_sch(YTUrlSchema))
 } satisfies YTRendererSchema
 
-export const YTLiveChatRendererSchema = {
-  actionPanel: ytv_ren(),
-  actions: ytv_arr(ytv_enp()),
-  clientMessages: ytv_sch({
-    fatalError: ytv_sch(YTTextSchema),
-    genericError: ytv_sch(YTTextSchema),
-    reconnectMessage: ytv_sch(YTTextSchema),
-    reconnectedMessage: ytv_sch(YTTextSchema),
-    unableToReconnectMessage: ytv_sch(YTTextSchema)
-  }),
-  continuations: ytv_arr(ytv_ren(YTRendererContinuationSchema)),
-  creatorGoalEntityKey: ytv_str(),
-  emojis: ytv_arr(ytv_sch(YTEmojiSchema)),
-  engagementPanel: ytv_arr(ytv_ren()),
-  header: ytv_ren(),
-  initialDisplayState: ytv_str(['LIVE_CHAT_DISPLAY_STATE_COLLAPSED', 'LIVE_CHAT_DISPLAY_STATE_EXPANDED']),
-  isReplay: ytv_bol(),
-  itemList: ytv_ren(),
-  liveChatAdminSheetEntryPointEntityKey: ytv_str(),
-  liveChatCurrentFilter: ytv_str(['LIVE_CHAT_FILTER_MODE_DEFAULT']),
-  participantsList: ytv_ren(),
-  popoutMessage: ytv_ren(),
-  showButton: ytv_ren(),
-  ticker: ytv_ren(),
-  viewerName: ytv_str()
-} satisfies YTRendererSchema
-
-export const YTSectionListRendererSchema = {
-  contents: ytv_arr(ytv_ren()),
-  continuations: ytv_arr(ytv_ren(YTRendererContinuationSchema)),
-  disablePullToRefresh: ytv_bol(),
-  hack: ytv_bol(),
-  hideBottomSeparator: ytv_bol(),
-  scrollPaneStyle: ytv_sch({
-    scrollable: ytv_bol()
-  }),
-  subMenu: ytv_ren(),
-  targetId: ytv_str()
-} satisfies YTRendererSchema
-
 export const YTSortFilterSubMenuItemRendererSchema = {
   accessibility: ytv_sch(YTAccessibilitySchema),
   continuation: ytv_ren(YTRendererContinuationSchema),
@@ -286,11 +310,6 @@ export const YTSortFilterSubMenuItemRendererSchema = {
   serviceEndpoint: ytv_enp(),
   subtitle: ytv_str(),
   title: ytv_str()
-} satisfies YTRendererSchema
-
-export const YTTvBrowseRendererSchema = {
-  content: ytv_ren(),
-  header: ytv_ren()
 } satisfies YTRendererSchema
 
 export const YTSubscribeButtonViewModelContentSchema = {
@@ -620,10 +639,7 @@ export const YTRendererSchemaMap = {
   browseResponse: {
     ...YTResponseCommonSchema,
     contents: ytv_ren(),
-    continuationContents: ytv_sch({
-      sectionListContinuation: ytv_ren(YTSectionListRendererSchema),
-      tvSurfaceContentContinuation: ytv_ren(YTTvBrowseRendererSchema)
-    }),
+    continuationContents: ytv_ren(YTRendererContinuationContentSchema),
     header: ytv_ren(),
     metadata: ytv_ren(),
     microformat: ytv_ren(),
@@ -646,9 +662,7 @@ export const YTRendererSchemaMap = {
   },
   liveChatGetLiveChatResponse: {
     ...YTResponseCommonSchema,
-    continuationContents: ytv_sch({
-      liveChatContinuation: ytv_ren(YTLiveChatRendererSchema)
-    }),
+    continuationContents: ytv_ren(YTRendererContinuationContentSchema),
     liveChatStreamingResponseExtension: ytv_sch({
       lastPublishAtUsec: ytv_str()
     })
@@ -1295,6 +1309,11 @@ export const YTRendererSchemaMap = {
     title: ytv_sch(YTTextSchema),
     visibilityButton: ytv_ren(),
   },
+  entityMetadataRenderer: {
+    bylines: ytv_arr(ytv_ren()),
+    layout: ytv_str(['ENTITY_METADATA_LAYOUT_IMMERSIVE_CAROUSEL']),
+    title: ytv_sch(YTTextSchema)
+  },
   expandableMetadataRenderer: {
     collapseButton: ytv_ren(),
     colorData: ytv_sch({
@@ -1517,15 +1536,7 @@ export const YTRendererSchemaMap = {
       type: ytv_str(['HORIZONTAL_CARD_LIST_STYLE_TYPE_ENGAGEMENT_PANEL_SECTION'])
     })
   },
-  horizontalListRenderer: {
-    collapsedItemCount: ytv_num(),
-    continuations: ytv_arr(ytv_ren(YTRendererContinuationSchema)),
-    itemSizeConstraint: ytv_str(['LIST_ITEM_SIZE_CONSTRAINT_EQUAL_HEIGHT']),
-    items: ytv_arr(ytv_ren()),
-    nextButton: ytv_ren(),
-    previousButton: ytv_ren(),
-    visibleItemCount: ytv_num()
-  },
+  horizontalListRenderer: YTHorizontalListRendererSchema,
   hotkeyDialogRenderer: {
     dismissButton: ytv_ren(),
     sections: ytv_arr(ytv_ren()),
@@ -2604,6 +2615,12 @@ export const YTRendererSchemaMap = {
     onTapCommand: ytv_enp(),
     prominent: ytv_bol()
   },
+  singleColumnWatchNextResults: {
+    autoplay: ytv_ren(),
+    conversationBar: ytv_ren(),
+    pivot: ytv_ren(),
+    results: ytv_ren()
+  },
   singleOptionSurveyOptionRenderer: {
     enumName: ytv_str(),
     option: ytv_sch(YTTextSchema),
@@ -2764,12 +2781,13 @@ export const YTRendererSchemaMap = {
   },
   tileRenderer: {
     contentId: ytv_str(),
-    contentType: ytv_str(['TILE_CONTENT_TYPE_VIDEO']),
+    contentType: ytv_str(['TILE_CONTENT_TYPE_PLAYLIST', 'TILE_CONTENT_TYPE_VIDEO']),
     header: ytv_ren(),
     metadata: ytv_ren(),
+    onFocusCommand: ytv_enp(),
     onLongPressCommand: ytv_enp(),
     onSelectCommand: ytv_enp(),
-    style: ytv_str(['TILE_STYLE_YTLR_DEFAULT'])
+    style: ytv_str(['TILE_STYLE_YTLR_CAROUSEL', 'TILE_STYLE_YTLR_DEFAULT', 'TILE_STYLE_YTLR_SQUARE'])
   },
   timedAnimationButtonRenderer: {
     buttonRenderer: ytv_ren()
