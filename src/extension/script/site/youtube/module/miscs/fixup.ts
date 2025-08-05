@@ -54,6 +54,14 @@ export default class YTMiscsFixupModule extends Feature {
       return HookResult.EXECUTION_IGNORE
     })
 
+    window.addEventListener('scroll', event => {
+      const { target } = event
+
+      if (target instanceof Element && document.querySelector('.bu-overlay')?.contains(target)) {
+        event.stopImmediatePropagation()
+      }
+    }, true)
+
     document.addEventListener('DOMContentLoaded', () => {
       const foreignScripts = document.querySelectorAll('script:not([nonce])')
       if (foreignScripts.length === 0) return
