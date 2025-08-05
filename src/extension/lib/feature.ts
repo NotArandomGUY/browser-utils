@@ -98,7 +98,7 @@ const activateFeatureGroup = (groupId: string): void => {
     steps.push(performance.now())
   }
 
-  logger.info(`feature group '${groupId}' activation performance:`, steps.map((step, i) => [step - (steps[i - 1] ?? begin), step - begin]))
+  logger.debug(`feature group '${groupId}' activation performance:`, steps.map((step, i) => [step - (steps[i - 1] ?? begin), step - begin]))
 
   if (isReload) location.reload()
 }
@@ -193,7 +193,7 @@ export const registerFeatureGroup = (groupId: string, registerFn: (group: Featur
   }
 
   // Resolve loaded dependencies
-  dependencies = dependencies.filter(dep => !featureGroupMap.has(dep)).map(dep => `'${dep}'`)
+  dependencies = dependencies.filter(dep => !featureGroupMap.has(dep))
 
   // Create feature group
   const group: FeatureGroup = {
@@ -211,7 +211,7 @@ export const registerFeatureGroup = (groupId: string, registerFn: (group: Featur
 
   // Skip activation if there's missing dependencies
   if (dependencies.length > 0) {
-    logger.trace(`feature group '${groupId}' waiting for dependencies [${dependencies.join(',')}]`)
+    logger.trace(`feature group '${groupId}' waiting for dependencies [${dependencies.map(dep => `'${dep}'`).join(',')}]`)
     return
   }
 
