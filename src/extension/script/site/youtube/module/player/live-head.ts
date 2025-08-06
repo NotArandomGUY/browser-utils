@@ -39,7 +39,16 @@ const syncLiveHeadUpdate = (): void => {
   if (!isSyncLiveHeadEnabled()) return
 
   const player = getYTPInstance(YTPInstanceType.APP)?.playerRef?.deref()
-  if (player == null || !player.isAtLiveHead?.() || !player.isPlaying?.()) return
+  if (player == null || !player.isPlaying?.()) return
+
+  if (!player.isAtLiveHead?.()) {
+    // Reset playback rate if not at live head
+    const playbackRate = Number(player.getPlaybackRate?.())
+    if (isNaN(playbackRate) || playbackRate === 1 || playbackRate < MIN_SYNC_RATE || playbackRate > MAX_SYNC_RATE) return
+
+    player.setPlaybackRate?.(1)
+    return
+  }
 
   const currentHealth = Number(player.getBufferHealth?.()) * 1e3
   const currentLatency = Number(player.getLiveLatency?.()) * 1e3

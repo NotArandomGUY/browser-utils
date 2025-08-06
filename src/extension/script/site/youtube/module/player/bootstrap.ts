@@ -48,7 +48,10 @@ export interface YTPVideoPlayerInstance extends YTPDisposableInstance {
 
   getBufferHealth?(): number
   getLiveLatency?(): number
+  getPlaybackQuality?(): string
+  getPlaybackRate?(): number
   getPreferredQuality?(): string
+  getVolume?(): number
   isAtLiveHead?(): boolean
   isBackground?(): boolean
   isFullscreen?(): boolean
