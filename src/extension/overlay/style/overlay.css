@@ -123,6 +123,11 @@
   vertical-align: middle !important;
 }
 
+.bu-overlay input {
+  background: #FFFFFF10;
+  color: inherit !important;
+}
+
 .bu-overlay .bu-overlay--backdrop {
   position: absolute;
   top: 0;

@@ -19,6 +19,14 @@ const filterShoppingOverlay = (data: YTRendererData<YTRenderer<'shoppingOverlayR
   return data.productsData != null && data.productsData.length > 0
 }
 
+const stopControlEvent = (event: Event): void => {
+  const { target } = event
+
+  if (target instanceof Element && document.querySelector('.bu-overlay')?.contains(target)) {
+    event.stopImmediatePropagation()
+  }
+}
+
 export default class YTMiscsFixupModule extends Feature {
   public constructor() {
     super('fixup')
@@ -54,13 +62,9 @@ export default class YTMiscsFixupModule extends Feature {
       return HookResult.EXECUTION_IGNORE
     })
 
-    window.addEventListener('scroll', event => {
-      const { target } = event
-
-      if (target instanceof Element && document.querySelector('.bu-overlay')?.contains(target)) {
-        event.stopImmediatePropagation()
-      }
-    }, true)
+    window.addEventListener('mousedown', stopControlEvent, true)
+    window.addEventListener('keydown', stopControlEvent, true)
+    window.addEventListener('scroll', stopControlEvent, true)
 
     document.addEventListener('DOMContentLoaded', () => {
       const foreignScripts = document.querySelectorAll('script:not([nonce])')

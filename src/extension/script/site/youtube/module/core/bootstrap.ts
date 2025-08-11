@@ -2,10 +2,12 @@ import { assign, defineProperties, defineProperty } from '@ext/global/object'
 import { Feature } from '@ext/lib/feature'
 import Hook, { HookResult } from '@ext/lib/intercept/hook'
 import Logger from '@ext/lib/logger'
+import { registerOverlayPage } from '@ext/overlay'
 import { YTEndpoint } from '@ext/site/youtube/api/endpoint'
 import { processYTRenderer, processYTValueSchema } from '@ext/site/youtube/api/processor'
 import { YTRenderer, YTRendererData } from '@ext/site/youtube/api/renderer'
 import { ytv_enp, YTValueData, YTValueType } from '@ext/site/youtube/api/types/common'
+import YTDevicePage from '@ext/site/youtube/pages/device'
 
 type YTInitDataResponse = {
   page: 'browse' | 'channel'
@@ -164,6 +166,40 @@ let environment: YTEnvironment
 let ytcfg: YTConfig
 let appElement: HTMLElement | null = null
 
+const getDeviceLabel = (): string => {
+  const customDeviceLabel = localStorage.getItem('bu-device-label')
+  if (customDeviceLabel != null) return customDeviceLabel
+
+  const userAgent = String(globalThis.navigator?.userAgent)
+
+  let browserName: string
+  switch (true) {
+    case /Firefox/i.test(userAgent):
+      browserName = 'Firefox'
+      break
+    case /Opera|OPR/i.test(userAgent):
+      browserName = 'Opera'
+      break
+    case /Edg/i.test(userAgent):
+      browserName = 'Microsoft Edge'
+      break
+    case /Chrome/i.test(userAgent):
+      browserName = 'Chrome'
+      break
+    case /Safari/i.test(userAgent):
+      browserName = 'Safari'
+      break
+    case /MSIE|Trident/i.test(userAgent):
+      browserName = 'Internet Explorer'
+      break
+    default:
+      browserName = 'TV'
+      break
+  }
+
+  return `YouTube on ${browserName}`
+}
+
 const getProcessedInitialCommand = async (initCommand: YTValueData<{ type: YTValueType.ENDPOINT }>): Promise<YTValueData<{ type: YTValueType.ENDPOINT }>> => {
   await processYTValueSchema(ytv_enp(), initCommand, null)
 
@@ -259,10 +295,16 @@ export default class YTCoreBootstrapModule extends Feature {
       set(v) {
         environment = v
 
-        const { flags } = environment
-        if (flags == null) return
+        const { feature_switches, flags } = environment
 
-        assign(flags, {
+        const deviceLabel = getDeviceLabel()
+
+        document.title = deviceLabel
+
+        assign(feature_switches ?? {}, {
+          mdx_device_label: deviceLabel
+        })
+        assign(flags ?? {}, {
           disable_sign_in_on_castbuki_devices: false
         })
       }
@@ -495,6 +537,8 @@ export default class YTCoreBootstrapModule extends Feature {
 
       return HookResult.EXECUTION_IGNORE | HookResult.ACTION_UNINSTALL
     }).call
+
+    registerOverlayPage('Device', YTDevicePage)
 
     return true
   }

@@ -8,7 +8,7 @@ export interface YTSkipSegmentPageProps {
   segments: State<SkipSegmentEntry[]>
 }
 
-function getTimestamp(time: number): string {
+const getTimestamp = (time: number): string => {
   const sec = floor(time / 1e3)
 
   return [
@@ -18,11 +18,11 @@ function getTimestamp(time: number): string {
   ].map(n => n.toString().padStart(2, '0')).join(':')
 }
 
-function YTSkipSegmentTableItem({ startTimeMs, endTimeMs, category }: SkipSegmentEntry): ChildDom {
+const YTSkipSegmentTableItem = ({ startTimeMs, endTimeMs, category }: SkipSegmentEntry): ChildDom => {
   return tr(td(category ?? 'unknown'), td(getTimestamp(startTimeMs)), td(getTimestamp(endTimeMs)))
 }
 
-function YTSkipSegmentPage({ segments }: YTSkipSegmentPageProps): Element {
+const YTSkipSegmentPage = ({ segments }: YTSkipSegmentPageProps): Element => {
   return table(
     thead(tr(th('Category'), th('Begin Time'), th('End Time'))),
     () => tbody(
