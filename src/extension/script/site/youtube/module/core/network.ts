@@ -35,7 +35,8 @@ const INTERRUPT_PATH_REGEXP = buildPathnameRegexp([
   '/error_204',
   '/generate_204',
   '/pagead',
-  '/videoplayback\\?.*?&ctier=L&.*?%2Cctier%2C.*',
+  // NOTE: will cause ads to play as video instead, so blocking this is kinda useless
+  //'/videoplayback\\?.*?&ctier=L&.*?%2Cctier%2C.*',
   '/ccm/collect'
 ])
 const LOGIN_WHITELIST_PATH = buildPathnameRegexp([

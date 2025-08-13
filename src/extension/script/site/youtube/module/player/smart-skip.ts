@@ -207,7 +207,7 @@ async function fetchSegmentEntries(videoId: string | null): Promise<SkipSegmentE
     logger.debug('fetching skip segments for video:', videoId, hash)
 
     const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), 5000)
+    const timer = setTimeout(() => controller.abort(), 2500)
     const rsp = await fetch(`${DB_API_HOST}/api/skipSegments/${hash.slice(0, 4)}?actionType=skip&trimUUIDs=1`, { signal: controller.signal })
     clearTimeout(timer)
 
