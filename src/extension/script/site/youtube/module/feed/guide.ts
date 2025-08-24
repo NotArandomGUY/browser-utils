@@ -22,7 +22,7 @@ interface YTGuidePolymer {
 let guidePolymer: YTGuidePolymer | null = null
 let refreshTimer: ReturnType<typeof setTimeout> | null = null
 
-function filterGuideEntry(data: YTRendererData<YTRenderer<'guideEntryRenderer'>>): boolean {
+const filterGuideEntry = (data: YTRendererData<YTRenderer<'guideEntryRenderer'>>): boolean => {
   const browseId = data.navigationEndpoint?.browseEndpoint?.browseId ?? ''
 
   // Remove premium promotion
@@ -35,7 +35,7 @@ function filterGuideEntry(data: YTRendererData<YTRenderer<'guideEntryRenderer'>>
   return isYTLoggedIn() || !['FEhistory', 'FElibrary', 'FEsubscriptions', 'SPaccount_overview', 'SPreport_history'].includes(browseId)
 }
 
-function updateGuideResponse(data: YTRendererData<YTRenderer<'guideResponse'>>): boolean {
+const updateGuideResponse = (data: YTRendererData<YTRenderer<'guideResponse'>>): boolean => {
   const { responseContext } = data
 
   if (isYTLoggedIn()) {
@@ -52,7 +52,7 @@ function updateGuideResponse(data: YTRendererData<YTRenderer<'guideResponse'>>):
   return true
 }
 
-export async function reloadYTGuide(): Promise<void> {
+export const reloadYTGuide = async (): Promise<void> => {
   if (guidePolymer == null) return
 
   if (refreshTimer != null) {

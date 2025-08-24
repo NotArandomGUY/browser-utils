@@ -80,7 +80,7 @@ const segmentFetchMutex = new Mutex()
 let lastLoadedVideoId: string | null = null
 let state: State<SkipSegmentEntry[]> | null = null
 
-function getSkipSegmentEntityKey(id: number): string {
+const getSkipSegmentEntityKey = (id: number): string => {
   const buffer = new EntityKey({
     key: `SMART_SKIP_${id}`
   }).serialize()
@@ -88,7 +88,7 @@ function getSkipSegmentEntityKey(id: number): string {
   return encodeURIComponent(btoa(new Array(buffer.length).fill(0).map((_, i) => String.fromCharCode(buffer[i])).join('')))
 }
 
-function buildChangeMarkersVisibilityCommand(entityKey: string, isVisible: boolean): YTValueData<{ type: YTValueType.ENDPOINT }> {
+const buildChangeMarkersVisibilityCommand = (entityKey: string, isVisible: boolean): YTValueData<{ type: YTValueType.ENDPOINT }> => {
   return {
     innertubeCommand: {
       changeMarkersVisibilityCommand: {
@@ -100,7 +100,7 @@ function buildChangeMarkersVisibilityCommand(entityKey: string, isVisible: boole
   }
 }
 
-function buildChangeTimelyActionVisibilityCommand(id: number, isVisible: boolean): YTValueData<{ type: YTValueType.ENDPOINT }> {
+const buildChangeTimelyActionVisibilityCommand = (id: number, isVisible: boolean): YTValueData<{ type: YTValueType.ENDPOINT }> => {
   return {
     innertubeCommand: {
       changeTimelyActionVisibilityCommand: {
@@ -111,7 +111,7 @@ function buildChangeTimelyActionVisibilityCommand(id: number, isVisible: boolean
   }
 }
 
-function buildTimelyActionFromSegmentEntry(entry: SkipSegmentEntry, startTimeMs?: number, endTimeMs?: number): YTValueData<{ type: YTValueType.RENDERER }> {
+const buildTimelyActionFromSegmentEntry = (entry: SkipSegmentEntry, startTimeMs?: number, endTimeMs?: number): YTValueData<{ type: YTValueType.RENDERER }> => {
   startTimeMs ??= entry.startTimeMs
   endTimeMs ??= entry.endTimeMs
 
@@ -167,7 +167,7 @@ function buildTimelyActionFromSegmentEntry(entry: SkipSegmentEntry, startTimeMs?
   }
 }
 
-function addTimelyActionFromSegmentEntry(timelyActions: YTValueData<{ type: YTValueType.RENDERER }>[], entry: SkipSegmentEntry): void {
+const addTimelyActionFromSegmentEntry = (timelyActions: YTValueData<{ type: YTValueType.RENDERER }>[], entry: SkipSegmentEntry): void => {
   let { startTimeMs, endTimeMs } = entry
 
   // Merge overlapping actions to the same segment
@@ -194,7 +194,7 @@ function addTimelyActionFromSegmentEntry(timelyActions: YTValueData<{ type: YTVa
   timelyActions.push(buildTimelyActionFromSegmentEntry(entry, startTimeMs, endTimeMs))
 }
 
-async function fetchSegmentEntries(videoId: string | null): Promise<SkipSegmentEntry[]> {
+const fetchSegmentEntries = async (videoId: string | null): Promise<SkipSegmentEntry[]> => {
   await segmentFetchMutex.lock()
   try {
     if (videoId == null) return []
@@ -242,7 +242,7 @@ async function fetchSegmentEntries(videoId: string | null): Promise<SkipSegmentE
   }
 }
 
-async function processPlayerResponse(data: YTRendererData<YTRenderer<'playerResponse'>>): Promise<boolean> {
+const processPlayerResponse = async (data: YTRendererData<YTRenderer<'playerResponse'>>): Promise<boolean> => {
   lastLoadedVideoId = data.videoDetails?.videoId ?? null
 
   await fetchSegmentEntries(lastLoadedVideoId)
@@ -250,7 +250,7 @@ async function processPlayerResponse(data: YTRendererData<YTRenderer<'playerResp
   return true
 }
 
-async function updateNextResponse(data: YTRendererData<YTRenderer<'nextResponse'>>): Promise<boolean> {
+const updateNextResponse = async (data: YTRendererData<YTRenderer<'nextResponse'>>): Promise<boolean> => {
   const entries = await fetchSegmentEntries(lastLoadedVideoId)
 
   data.onResponseReceivedEndpoints ??= []
@@ -286,13 +286,13 @@ async function updateNextResponse(data: YTRendererData<YTRenderer<'nextResponse'
   return true
 }
 
-function updatePlayerOverlayRenderer(data: YTRendererData<YTRenderer<'playerOverlayRenderer'>>): boolean {
+const updatePlayerOverlayRenderer = (data: YTRendererData<YTRenderer<'playerOverlayRenderer'>>): boolean => {
   data.timelyActionsOverlayViewModel ??= { timelyActionsOverlayViewModel: {} }
 
   return true
 }
 
-async function updateTimelyActionsOverlayViewModel(data: YTRendererData<YTRenderer<'timelyActionsOverlayViewModel'>>): Promise<boolean> {
+const updateTimelyActionsOverlayViewModel = async (data: YTRendererData<YTRenderer<'timelyActionsOverlayViewModel'>>): Promise<boolean> => {
   const entries = await fetchSegmentEntries(lastLoadedVideoId)
 
   let timelyActions = data.timelyActions

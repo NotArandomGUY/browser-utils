@@ -5,7 +5,7 @@ import { dispatchYTSignalAction, registerYTSignalActionHandler } from '@ext/site
 
 const playerActionsQueue: NonNullable<YTRendererData<YTRenderer<'playerResponse'>>['actions']>[] = []
 
-function updatePlayerResponse(data: YTRendererData<YTRenderer<'playerResponse'>>): boolean {
+const updatePlayerResponse = (data: YTRendererData<YTRenderer<'playerResponse'>>): boolean => {
   const { errorScreen, status } = data.playabilityStatus ?? {}
 
   switch (status) {
