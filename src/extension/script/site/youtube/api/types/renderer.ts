@@ -3318,6 +3318,16 @@ export const YTRendererSchemaMap = {
     minimumRowHeight: ytv_num(),
     rendererContext: ytv_ren(YTRendererContextSchema)
   },
+  gridShelfViewModel: {
+    contentAspectRatio: ytv_str(['GRID_SHELF_CONTENT_ASPECT_RATIO_TWO_BY_THREE']),
+    contents: ytv_arr(ytv_ren()),
+    enableVerticalExpansion: ytv_bol(),
+    header: ytv_ren(),
+    loggingDirectives: ytv_ren(YTLoggingDirectivesSchema),
+    minCollapsedItemCount: ytv_num(),
+    showLessButton: ytv_ren(),
+    showMoreButton: ytv_ren()
+  },
   imageBannerViewModel: {
     image: ytv_sch(YTImageSchema),
     rendererContext: ytv_ren(YTRendererContextSchema),
@@ -3471,6 +3481,12 @@ export const YTRendererSchemaMap = {
     onTapCommand: ytv_enp(),
     soundMetadata: ytv_ren(YTTextViewModelSchema),
     useDefaultPadding: ytv_bol()
+  },
+  sectionHeaderViewModel: {
+    headline: ytv_ren(YTTextViewModelSchema),
+    leadingAccessory: ytv_sch({
+      image: ytv_sch(YTImageSchema)
+    })
   },
   segmentedLikeDislikeButtonViewModel: {
     dislikeButtonViewModel: ytv_ren(),

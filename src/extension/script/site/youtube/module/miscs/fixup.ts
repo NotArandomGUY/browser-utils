@@ -11,6 +11,10 @@ const filterContentContainer = (data: YTRendererData<YTRenderer<'richItemRendere
   return data.content != null && keys(data.content).length > 0
 }
 
+const filterContentsContainer = (data: YTRendererData<YTRenderer<'gridShelfViewModel'>>): boolean => {
+  return data.contents != null && data.contents.length > 0
+}
+
 const filterItemsContainer = (data: YTRendererData<YTRenderer<'guideSectionRenderer' | 'horizontalListRenderer' | 'reelShelfRenderer'>>): boolean => {
   return data.items != null && data.items.length > 0
 }
@@ -34,6 +38,7 @@ export default class YTMiscsFixupModule extends Feature {
 
   protected activate(): boolean {
     removeYTRendererPost(YTRendererSchemaMap['guideSectionRenderer'], filterItemsContainer)
+    removeYTRendererPost(YTRendererSchemaMap['gridShelfViewModel'], filterContentsContainer)
     removeYTRendererPost(YTRendererSchemaMap['horizontalListRenderer'], filterItemsContainer)
     removeYTRendererPost(YTRendererSchemaMap['reelShelfRenderer'], filterItemsContainer)
     removeYTRendererPost(YTRendererSchemaMap['richItemRenderer'], filterContentContainer)
