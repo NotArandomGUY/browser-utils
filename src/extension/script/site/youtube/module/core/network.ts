@@ -2,6 +2,7 @@ import { floor, random } from '@ext/global/math'
 import { fetch, Request, URL } from '@ext/global/network'
 import { assign, defineProperty, entries, fromEntries } from '@ext/global/object'
 import { bufferFromString, bufferToString } from '@ext/lib/buffer'
+import { compress, decompress } from '@ext/lib/compression'
 import { Feature } from '@ext/lib/feature'
 import { preventDispatchEvent } from '@ext/lib/intercept/event'
 import InterceptImage from '@ext/lib/intercept/image'
@@ -13,6 +14,8 @@ import { processYTRenderer } from '@ext/site/youtube/api/processor'
 import PlayerParams from '@ext/site/youtube/api/proto/player-params'
 import { YTRendererSchemaMap } from '@ext/site/youtube/api/renderer'
 import { isYTLoggedIn, YTInnertubeContext } from '@ext/site/youtube/module/core/bootstrap'
+
+const { parse, stringify } = JSON
 
 const logger = new Logger('YTCORE-NETWORK')
 
@@ -88,9 +91,21 @@ const processInnertubeRequest = async (request: Request, endpoint: string): Prom
   const processors = innertubeRequestProcessorMap[endpoint as YTInnertubeRequestEndpoint]
   if (processors == null) return request
 
+  const encoding = request.headers.get('content-encoding')
+
   let data = null
   try {
-    data = await request.clone().json()
+    const clonedRequest = request.clone()
+
+    switch (encoding) {
+      case 'deflate':
+      case 'gzip':
+        data = parse(bufferToString(await decompress(await clonedRequest.arrayBuffer(), encoding)))
+        break
+      default:
+        data = await clonedRequest.json()
+        break
+    }
   } catch {
     return request
   }
@@ -128,11 +143,33 @@ const processInnertubeRequest = async (request: Request, endpoint: string): Prom
     logger.warn('process innertube request error:', error)
   }
 
-  return new Request(request.url, {
-    method: request.method,
-    headers: request.headers,
-    body: ['GET', 'HEAD'].includes(request.method.toUpperCase()) ? null : JSON.stringify(data)
-  })
+  switch (request.method.toUpperCase()) {
+    case 'GET':
+    case 'HEAD':
+      return new Request(request.url, {
+        method: request.method,
+        headers: request.headers
+      })
+    default: {
+      let body = bufferFromString(stringify(data))
+
+      switch (encoding) {
+        case 'deflate':
+        case 'gzip':
+          body = await compress(body, encoding)
+          break
+        default:
+          request.headers.delete('content-encoding')
+          break
+      }
+
+      return new Request(request.url, {
+        method: request.method,
+        headers: request.headers,
+        body
+      })
+    }
+  }
 }
 
 const processInnertubeResponse = async (response: Response, endpoint: string): Promise<Response> => {
@@ -148,7 +185,7 @@ const processInnertubeResponse = async (response: Response, endpoint: string): P
 
   logger.debug('innertube response:', endpoint, data)
 
-  return new Response(JSON.stringify(data), { status: response.status, headers: fromEntries(response.headers.entries()) })
+  return new Response(stringify(data), { status: response.status, headers: fromEntries(response.headers.entries()) })
 }
 
 const processRequest = async (ctx: NetworkRequestContext): Promise<void> => {

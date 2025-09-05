@@ -1,10 +1,10 @@
 import { floor, random } from '@ext/global/math'
 import { bufferConcat } from '@ext/lib/buffer'
+import { compress, decompress, isCompressionSupported } from '@ext/lib/compression'
 import Logger from '@ext/lib/logger'
 import { OnesieCompressionType, OnesieCryptoParams } from '@ext/site/youtube/api/proto/ump/onesie/common'
 
-const { crypto, CompressionStream, DecompressionStream } = globalThis
-const { getRandomValues, subtle } = crypto ?? {}
+const { getRandomValues, subtle } = globalThis.crypto ?? {}
 
 const CHARS_A = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'
 const CHARS_N = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-_'
@@ -15,20 +15,7 @@ const COMPRESSION_API_ERROR = new Error('compression api not available')
 
 const logger = new Logger('YT-CRYPTO')
 
-async function readStream(stream: ReadableStream): Promise<Uint8Array> {
-  const reader = stream.getReader()
-  const chunks: Uint8Array[] = []
-
-  while (true) {
-    const { done, value } = await reader.read()
-    if (value != null) chunks.push(value)
-    if (done) break
-  }
-
-  return new Uint8Array(await new Blob(chunks).arrayBuffer())
-}
-
-function getRandomValuesArray(size: number, key?: string): number[] {
+const getRandomValuesArray = (size: number, key?: string): number[] => {
   const rand = new Uint8Array(size)
 
   if (getRandomValues != null) {
@@ -53,7 +40,7 @@ function getRandomValuesArray(size: number, key?: string): number[] {
   return Array.from(rand)
 }
 
-function swap<T>(array: Array<T>, indexL: number, indexR: number): void {
+const swap = <T>(array: Array<T>, indexL: number, indexR: number): void => {
   if (array.length === 0) return
 
   indexL %= array.length
@@ -64,15 +51,15 @@ function swap<T>(array: Array<T>, indexL: number, indexR: number): void {
   array[indexR] = v
 }
 
-function rotateLeft<T>(amount: number, array: Array<T>): void {
+const rotateLeft = <T>(amount: number, array: Array<T>): void => {
   array.splice(0, amount % array.length).forEach(v => array.push(v))
 }
 
-function rotateRight<T>(amount: number, array: Array<T>): void {
+const rotateRight = <T>(amount: number, array: Array<T>): void => {
   array.splice(-(amount % array.length)).reverse().forEach(v => array.unshift(v))
 }
 
-function decode(key: string, chars: string, data: string[]): void {
+const decode = (key: string, chars: string, data: string[]): void => {
   const temp = key.split('')
   data.forEach((char, i) => {
     char = chars[(chars.indexOf(char) - chars.indexOf(temp[i]) + chars.length) % chars.length]
@@ -81,7 +68,7 @@ function decode(key: string, chars: string, data: string[]): void {
   })
 }
 
-function encode(key: string, chars: string, data: string[]): void {
+const encode = (key: string, chars: string, data: string[]): void => {
   const temp = key.split('')
   data.forEach((char, i) => {
     temp.push(char)
@@ -90,11 +77,11 @@ function encode(key: string, chars: string, data: string[]): void {
   })
 }
 
-export function getNonce(size: number): string {
+export const getNonce = (size: number): string => {
   return getRandomValuesArray(size).map(v => CHARS_A[v % CHARS_A.length]).join('')
 }
 
-export function decodeTrackingParam(trackingParam: string): string {
+export const decodeTrackingParam = (trackingParam: string): string => {
   const data = trackingParam.split('')
   data.reverse()
   swap(data, 0, 15)
@@ -104,7 +91,7 @@ export function decodeTrackingParam(trackingParam: string): string {
   return data.join('')
 }
 
-export function encodeTrackingParam(trackingParam: string): string {
+export const encodeTrackingParam = (trackingParam: string): string => {
   const data = trackingParam.split('')
   encode('response', CHARS_N, data)
   encode('continuation', CHARS_A, data)
@@ -114,7 +101,7 @@ export function encodeTrackingParam(trackingParam: string): string {
   return data.join('')
 }
 
-export async function decryptOnesie(content: Uint8Array, key: Uint8Array, params: InstanceType<typeof OnesieCryptoParams> | null): Promise<Uint8Array | null> {
+export const decryptOnesie = async (content: Uint8Array, key: Uint8Array, params: InstanceType<typeof OnesieCryptoParams> | null): Promise<Uint8Array | null> => {
   const { hmac, iv, compressionType, isUnencrypted } = params ?? {}
 
   if (!isUnencrypted) {
@@ -132,11 +119,11 @@ export async function decryptOnesie(content: Uint8Array, key: Uint8Array, params
     }
   }
 
-  if (DecompressionStream == null) throw COMPRESSION_API_ERROR
+  if (!isCompressionSupported()) throw COMPRESSION_API_ERROR
 
   switch (compressionType) {
     case OnesieCompressionType.GZIP:
-      content = await readStream(new Blob([content]).stream().pipeThrough(new DecompressionStream('gzip')))
+      content = await decompress(content, 'gzip')
       break
     case OnesieCompressionType.BROTLI:
       throw COMPRESSION_API_ERROR
@@ -145,14 +132,14 @@ export async function decryptOnesie(content: Uint8Array, key: Uint8Array, params
   return content
 }
 
-export async function encryptOnesie(content: Uint8Array, key: Uint8Array, params: InstanceType<typeof OnesieCryptoParams> | null): Promise<Uint8Array> {
+export const encryptOnesie = async (content: Uint8Array, key: Uint8Array, params: InstanceType<typeof OnesieCryptoParams> | null): Promise<Uint8Array> => {
   const { iv, compressionType, isUnencrypted } = params ?? {}
 
-  if (CompressionStream == null) throw COMPRESSION_API_ERROR
+  if (!isCompressionSupported()) throw COMPRESSION_API_ERROR
 
   switch (compressionType) {
     case OnesieCompressionType.GZIP:
-      content = await readStream(new Blob([content]).stream().pipeThrough(new CompressionStream('gzip')))
+      content = await compress(content, 'gzip')
       break
     case OnesieCompressionType.BROTLI:
       throw COMPRESSION_API_ERROR
