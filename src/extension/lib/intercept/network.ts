@@ -1,3 +1,4 @@
+import { Request, URL } from '@ext/global/network'
 import { registerInterceptNetworkFetchModule, unregisterInterceptNetworkFetchModule } from '@ext/lib/intercept/network/fetch'
 import { registerInterceptNetworkXHRModule, unregisterInterceptNetworkXHRModule } from '@ext/lib/intercept/network/xhr'
 import Logger from '@ext/lib/logger'

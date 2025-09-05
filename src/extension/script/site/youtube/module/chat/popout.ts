@@ -1,4 +1,5 @@
 import { floor, random } from '@ext/global/math'
+import { URL } from '@ext/global/network'
 import { Feature } from '@ext/lib/feature'
 import Logger from '@ext/lib/logger'
 import MessageChannel from '@ext/lib/message/channel'

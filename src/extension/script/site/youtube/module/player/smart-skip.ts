@@ -1,5 +1,7 @@
 import { floor, max } from '@ext/global/math'
+import { fetch } from '@ext/global/network'
 import { Mutex } from '@ext/lib/async'
+import { bufferFromString } from '@ext/lib/buffer'
 import { Feature } from '@ext/lib/feature'
 import Logger from '@ext/lib/logger'
 import { registerOverlayPage } from '@ext/overlay'
@@ -202,7 +204,7 @@ const fetchSegmentEntries = async (videoId: string | null): Promise<SkipSegmentE
     let entries = segmentEntriesCacheMap.get(videoId)
     if (entries != null) return entries
 
-    const hash = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(videoId)))).map(b => b.toString(16).padStart(2, '0')).join('')
+    const hash = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', bufferFromString(videoId)))).map(b => b.toString(16).padStart(2, '0')).join('')
 
     logger.debug('fetching skip segments for video:', videoId, hash)
 

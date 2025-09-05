@@ -2,6 +2,9 @@ import { abs, floor, LN2, log, pow } from '@ext/global/math'
 
 type Encoding = 'utf8' | 'ascii' | 'latin1'
 
+const TextEncode = TextEncoder.prototype.encode.bind(new TextEncoder())
+const TextDecode = TextDecoder.prototype.decode.bind(new TextDecoder())
+
 const checkOffset = (buffer: Uint8Array, offset: number, ext: number): void => {
   if ((offset % 1) !== 0 || offset < 0) throw new RangeError('offset is not uint')
   if (offset + ext > buffer.length) throw new RangeError('Trying to access beyond buffer length')
@@ -668,7 +671,7 @@ export const bufferFromString = (input: string, encoding: Encoding = 'utf8'): Ui
       return new Uint8Array(input.split('').map((_, i) => input.charCodeAt(i) & 0xFF))
     case 'utf8':
     default:
-      return new TextEncoder().encode(input)
+      return TextEncode(input)
   }
 }
 
@@ -680,6 +683,8 @@ export const bufferToString = (input: BufferSource, encoding: Encoding = 'utf8')
         : new Uint8Array(input)
       return new Array(buffer.length).fill(0).map((_, i) => String.fromCharCode(buffer[i])).join('')
     }
+    case 'utf8':
+      return TextDecode(input)
     default:
       return new TextDecoder(encoding).decode(input)
   }

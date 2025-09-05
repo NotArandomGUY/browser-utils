@@ -1,4 +1,5 @@
 import { floor, random } from '@ext/global/math'
+import { fetch, Request, URL } from '@ext/global/network'
 import { assign, defineProperty, entries, fromEntries } from '@ext/global/object'
 import { bufferFromString, bufferToString } from '@ext/lib/buffer'
 import { Feature } from '@ext/lib/feature'

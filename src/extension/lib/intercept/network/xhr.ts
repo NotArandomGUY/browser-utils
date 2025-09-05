@@ -1,4 +1,6 @@
+import { URL } from '@ext/global/network'
 import { assign } from '@ext/global/object'
+import { bufferToString } from '@ext/lib/buffer'
 import InterceptEventTargetAdapter from '@ext/lib/intercept/event'
 import { NetworkContext, NetworkContextState, NetworkRequestCallback, NetworkResponseCallback, NetworkResponseContext, NetworkState } from '@ext/lib/intercept/network'
 import Logger from '@ext/lib/logger'
@@ -254,7 +256,7 @@ class InterceptXMLHttpRequest extends XMLHttpRequest {
 
     if (overrideResponse == null) return super.responseText
 
-    return new TextDecoder().decode(overrideResponse)
+    return bufferToString(overrideResponse)
   }
 
   public get responseXML(): Document {

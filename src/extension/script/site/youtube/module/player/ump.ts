@@ -1,4 +1,5 @@
 import { ceil, min } from '@ext/global/math'
+import { Request, URLSearchParams } from '@ext/global/network'
 import { assign, fromEntries } from '@ext/global/object'
 import { bufferConcat, bufferFromString, bufferToString } from '@ext/lib/buffer'
 import { Feature } from '@ext/lib/feature'

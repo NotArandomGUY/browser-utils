@@ -1,4 +1,5 @@
 import { floor, max, random } from '@ext/global/math'
+import { bufferFromString } from '@ext/lib/buffer'
 
 export type SignedMessage<T extends object = object> = T & {
   sign: number[]
@@ -7,7 +8,6 @@ export type SignedMessage<T extends object = object> = T & {
 const { Array, Date, JSON, Uint8Array } = globalThis // NOSONAR
 const { now } = Date
 const { stringify } = JSON
-const encode = TextEncoder.prototype.encode.bind(new TextEncoder())
 
 const enum Const {
   SEED_SIZE = 4, // uint32
@@ -71,7 +71,7 @@ function contentHash(key: Uint8Array, seed: Seed, content: Uint8Array): Uint8Arr
 export function signMessage<T extends object>(key: Uint8Array, message: T): SignedMessage<T> {
   if (key.length === 0) throw new Error('Invalid key')
 
-  const content = encode(stringify({ ...message, sign: undefined }))
+  const content = bufferFromString(stringify({ ...message, sign: undefined }))
 
   for (let i = 0; i < Const.SEED_COUNT; i++) {
     globalSeed[i] ^= ((seed() << i) | (seed() >> i)) & 0xFFFFFFFF
@@ -86,7 +86,7 @@ export function verifyMessage(key: Uint8Array, message: SignedMessage): boolean 
 
   if (key.length === 0 || sign?.length !== Const.HASH_SIZE) return false
 
-  const content = encode(stringify({ ...message, sign: undefined }))
+  const content = bufferFromString(stringify({ ...message, sign: undefined }))
   const hash = new Uint8Array(sign)
 
   const ss = key[0]

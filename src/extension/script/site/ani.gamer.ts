@@ -1,3 +1,4 @@
+import { fetch } from '@ext/global/network'
 import { assign, getPrototypeOf } from '@ext/global/object'
 import Hook, { HookResult } from '@ext/lib/intercept/hook'
 import Logger from '@ext/lib/logger'

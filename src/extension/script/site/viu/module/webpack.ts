@@ -1,3 +1,4 @@
+import { fetch } from '@ext/global/network'
 import { Feature } from '@ext/lib/feature'
 import Logger from '@ext/lib/logger'
 import { WebpackRuntime, __webpack_runtime_list__, createWebpackRuntimeFromScript, interruptWebpackRuntime } from '@ext/lib/wprt'

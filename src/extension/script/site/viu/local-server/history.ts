@@ -1,3 +1,4 @@
+import { fetch, URLSearchParams } from '@ext/global/network'
 import { compress, decompress } from 'lz-string'
 
 const LOCAL_STORAGE_ID = 'bu-watch-history-v1'
