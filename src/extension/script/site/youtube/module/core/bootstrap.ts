@@ -159,6 +159,7 @@ const APP_ELEMENT_PAGE_MAP: Record<string, YTInitDataResponse['page'] | false> =
   'yt-live-chat-app': 'live_chat'
 }
 
+const configInitCallbacks: ((ytcfg: YTConfig) => void)[] = []
 const createPlayerCallbacks: ((container: HTMLElement) => void)[] = []
 const createPolymerCallbacks: ((instance: object) => void)[] = []
 
@@ -272,6 +273,10 @@ export const isYTLoggedIn = (): boolean => {
   return ytcfg?.get('LOGGED_IN', false) ?? false
 }
 
+export const registerYTConfigInitCallback = (callback: (ytcfg: YTConfig) => void): void => {
+  configInitCallbacks.push(callback)
+}
+
 export const registerYTPlayerCreateCallback = (callback: (container: HTMLElement) => void): void => {
   createPlayerCallbacks.push(callback)
 }
@@ -331,6 +336,12 @@ export default class YTCoreBootstrapModule extends Feature {
           if (!ytcfg.init_) {
             data = assign(ytcfg.d(), data)
             ytcfg.init_ = true
+
+            try {
+              configInitCallbacks.forEach(callback => callback(ytcfg))
+            } catch (error) {
+              logger.warn('config init callback error:', error)
+            }
           }
 
           for (const key in data) {
