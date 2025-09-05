@@ -63,13 +63,15 @@ type YTInnertubeRequestBase = {
 }
 
 type YTInnertubeRequestMap = {
+  'get_watch': { playerRequest: object, watchNextRequest: object }
+  'next': {}
   'player': { params: InstanceType<typeof PlayerParams> }
   'search': { isPrefetch?: boolean, isZeroPrefixQuery?: boolean, query?: string, suggestionSearchParams?: { subtypes: unknown[] }, webSearchboxStatsUrl?: string }
 }
 export type YTInnertubeRequestEndpoint = keyof YTInnertubeRequestMap
-export type YTInnertubeRequest<E extends YTInnertubeRequestEndpoint> = YTInnertubeRequestBase & YTInnertubeRequestMap[E]
+export type YTInnertubeRequest<E extends YTInnertubeRequestEndpoint = YTInnertubeRequestEndpoint> = YTInnertubeRequestBase & YTInnertubeRequestMap[E]
 
-export type YTInnertubeRequestProcessor<E extends YTInnertubeRequestEndpoint> = (request: YTInnertubeRequest<E>) => Promise<void> | void
+export type YTInnertubeRequestProcessor<E extends YTInnertubeRequestEndpoint = YTInnertubeRequestEndpoint> = (request: YTInnertubeRequest<E>) => Promise<void> | void
 
 const bypassIdSet = new Set<number>()
 const innertubeRequestProcessorMap: { [E in YTInnertubeRequestEndpoint]?: Set<YTInnertubeRequestProcessor<E>> } = {}
@@ -87,10 +89,40 @@ const protoBase64UrlEncode = <D extends MessageDefinition>(message: Message<D>):
   return encodeURIComponent(btoa(bufferToString(data, 'latin1')).replace(/\+/g, '-').replace(/\//g, '_'))
 }
 
-const processInnertubeRequest = async (request: Request, endpoint: string): Promise<Request> => {
-  const processors = innertubeRequestProcessorMap[endpoint as YTInnertubeRequestEndpoint]
-  if (processors == null) return request
+const processInnertubeRequestData = async (endpoint: YTInnertubeRequestEndpoint, requestData?: YTInnertubeRequest): Promise<void> => {
+  if (requestData == null) return
 
+  const processors = innertubeRequestProcessorMap[endpoint] as Set<YTInnertubeRequestProcessor>
+  if (processors == null) return
+
+  switch (endpoint) {
+    case 'get_watch': {
+      const data = requestData as YTInnertubeRequest<typeof endpoint>
+
+      processors.forEach(processor => processor(data))
+
+      processInnertubeRequestData('player', data.playerRequest as YTInnertubeRequest)
+      processInnertubeRequestData('next', data.watchNextRequest as YTInnertubeRequest)
+      break
+    }
+    case 'player': {
+      const data = requestData as Omit<YTInnertubeRequest<typeof endpoint>, 'params'> & {
+        params?: InstanceType<typeof PlayerParams> | string
+      }
+      data.params = protoBase64UrlDecode(new PlayerParams(), data.params as string)
+
+      processors.forEach(processor => processor(data))
+
+      data.params = protoBase64UrlEncode(data.params as InstanceType<typeof PlayerParams>)
+      break
+    }
+    default:
+      processors.forEach(processor => processor(requestData))
+      break
+  }
+}
+
+const processInnertubeRequest = async (endpoint: string, request: Request): Promise<Request> => {
   const encoding = request.headers.get('content-encoding')
 
   let data = null
@@ -111,34 +143,7 @@ const processInnertubeRequest = async (request: Request, endpoint: string): Prom
   }
 
   try {
-    switch (endpoint) {
-      case 'player': {
-        const innertubeRequest = {
-          ...data as YTInnertubeRequest<typeof endpoint>,
-          params: protoBase64UrlDecode(new PlayerParams(), data?.params)
-        }
-
-        processors.forEach(processor => (processor as YTInnertubeRequestProcessor<typeof endpoint>)(innertubeRequest))
-
-        data = {
-          ...innertubeRequest,
-          params: protoBase64UrlEncode(innertubeRequest.params)
-        }
-        break
-      }
-      default: {
-        const innertubeRequest = {
-          ...data as YTInnertubeRequest<YTInnertubeRequestEndpoint>
-        }
-
-        processors.forEach(processor => (processor as YTInnertubeRequestProcessor<YTInnertubeRequestEndpoint>)(innertubeRequest))
-
-        data = {
-          ...innertubeRequest
-        }
-        break
-      }
-    }
+    await processInnertubeRequestData(endpoint as YTInnertubeRequestEndpoint, data)
   } catch (error) {
     logger.warn('process innertube request error:', error)
   }
@@ -172,7 +177,7 @@ const processInnertubeRequest = async (request: Request, endpoint: string): Prom
   }
 }
 
-const processInnertubeResponse = async (response: Response, endpoint: string): Promise<Response> => {
+const processInnertubeResponse = async (endpoint: string, response: Response): Promise<Response> => {
   let data = null
   try {
     data = await response.clone().json()
@@ -223,7 +228,7 @@ const processRequest = async (ctx: NetworkRequestContext): Promise<void> => {
   const innertubeEndpoint = INNERTUBE_API_REGEXP.exec(url.pathname)?.[0]
   if (innertubeEndpoint == null) return
 
-  ctx.request = await processInnertubeRequest(request, innertubeEndpoint)
+  ctx.request = await processInnertubeRequest(innertubeEndpoint, request)
 }
 
 const processResponse = async (ctx: NetworkContext<unknown, NetworkState.SUCCESS>): Promise<void> => {
@@ -233,7 +238,7 @@ const processResponse = async (ctx: NetworkContext<unknown, NetworkState.SUCCESS
   const innertubeEndpoint = INNERTUBE_API_REGEXP.exec(pathname)?.[0]
   if (innertubeEndpoint == null) return
 
-  ctx.response = await processInnertubeResponse(response, innertubeEndpoint)
+  ctx.response = await processInnertubeResponse(innertubeEndpoint, response)
 }
 
 export const bypassFetch = (input: string, init: RequestInit = {}): Promise<Response> => {

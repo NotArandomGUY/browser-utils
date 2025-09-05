@@ -634,6 +634,21 @@ export const YTPlayerResponseSchema = {
   videoDetails: ytv_ren(YTPlayerVideoDetailsSchema)
 } satisfies YTRendererSchema
 
+export const YTWatchNextResponseSchema = {
+  ...YTResponseCommonSchema,
+  adEngagementPanels: ytv_arr(ytv_ren()),
+  cards: ytv_ren(),
+  contents: ytv_ren(),
+  currentVideoEndpoint: ytv_enp(),
+  engagementPanels: ytv_arr(ytv_ren()),
+  pageVisualEffects: ytv_arr(ytv_ren()),
+  playerOverlays: ytv_ren(),
+  survey: ytv_ren(),
+  topbar: ytv_ren(),
+  transportControls: ytv_ren(),
+  videoReporting: ytv_ren()
+} satisfies YTRendererSchema
+
 export const YTRendererSchemaMap = {
   // Response
   browseResponse: {
@@ -655,6 +670,15 @@ export const YTRendererSchemaMap = {
     })),
     status: ytv_str(['STATUS_SUCCEEDED'])
   },
+  getWatchResponse: {
+    ...YTResponseCommonSchema,
+    responseType: ytv_str(['STREAMING_WATCH_RESPONSE_TYPE_PLAYER_RESPONSE', 'STREAMING_WATCH_RESPONSE_TYPE_WATCH_NEXT_RESPONSE']),
+    subStreamResponseCompleted: ytv_bol(),
+
+    // Streaming response objects
+    playerResponse: ytv_ren(YTPlayerResponseSchema),
+    watchNextResponse: ytv_ren(YTWatchNextResponseSchema)
+  },
   guideResponse: {
     ...YTResponseCommonSchema,
     footer: ytv_ren(),
@@ -667,20 +691,7 @@ export const YTRendererSchemaMap = {
       lastPublishAtUsec: ytv_str()
     })
   },
-  nextResponse: {
-    ...YTResponseCommonSchema,
-    adEngagementPanels: ytv_arr(ytv_ren()),
-    cards: ytv_ren(),
-    contents: ytv_ren(),
-    currentVideoEndpoint: ytv_enp(),
-    engagementPanels: ytv_arr(ytv_ren()),
-    pageVisualEffects: ytv_arr(ytv_ren()),
-    playerOverlays: ytv_ren(),
-    survey: ytv_ren(),
-    topbar: ytv_ren(),
-    transportControls: ytv_ren(),
-    videoReporting: ytv_ren()
-  },
+  nextResponse: YTWatchNextResponseSchema,
   notificationGetUnseenCountResponse: {
     ...YTResponseCommonSchema
   },

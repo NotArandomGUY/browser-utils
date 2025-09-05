@@ -196,7 +196,14 @@ export async function processYTRenderer(renderer: YTRendererKey, value: unknown)
   }
 
   try {
-    await processYTValueSchema(ytv_ren(schema), value, null)
+    if (!Array.isArray(value)) {
+      await processYTValueSchema(ytv_ren(schema), value, null)
+      return
+    }
+
+    for (const entry of value) {
+      await processYTValueSchema(ytv_ren(schema), entry, null)
+    }
   } catch (error) {
     logger.warn('renderer processor error:', errorMessage(error), renderer, value)
   }
