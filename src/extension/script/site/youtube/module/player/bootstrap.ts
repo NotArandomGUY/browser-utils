@@ -7,6 +7,8 @@ import { registerYTPlayerCreateCallback } from '@ext/site/youtube/module/core/bo
 
 const LOGGER_OVERRIDE_ID = `logovr-${Date.now()}`
 
+const STYLE_SHEET = '.app-quality-root .ytLrWatchDefaultControl .ytLrWatchDefaultControlsBackground,.app-quality-root .ytLrWatchDefaultPivot .ytLrWatchDefaultControlsBackground{background:-webkit-linear-gradient(180deg,rgba(0,0,0,0) 0%,rgba(0,0,0,.41) 67.43%,rgba(0,0,0,.7) 100%)!important;background:linear-gradient(180deg,rgba(0,0,0,0) 0%,rgba(0,0,0,.41) 67.43%,rgba(0,0,0,.7) 100%)!important;}'
+
 const STAT_METHOD_MAP = {
   bufferhealth: 'getBufferHealth',
   livelatency: 'getLiveLatency'
@@ -235,6 +237,12 @@ export default class YTPlayerBootstrapModule extends Feature {
 
   protected activate(): boolean {
     registerYTPlayerCreateCallback(onCreateYTPlayer)
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const style = document.createElement('style')
+      style.textContent = STYLE_SHEET
+      document.body.appendChild(style)
+    })
 
     InterceptDOM.setAppendChildCallback(ctx => {
       const node = ctx.args[0]

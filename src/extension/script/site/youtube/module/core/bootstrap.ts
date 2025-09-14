@@ -310,7 +310,8 @@ export default class YTCoreBootstrapModule extends Feature {
           mdx_device_label: deviceLabel
         })
         assign(flags ?? {}, {
-          disable_sign_in_on_castbuki_devices: false
+          disable_sign_in_on_castbuki_devices: false,
+          force_memory_saving_mode: false
         })
       }
     })
