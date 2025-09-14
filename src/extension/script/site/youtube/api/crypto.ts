@@ -11,6 +11,7 @@ const CHARS_N = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-
 const AES_PARAMS = { name: 'AES-CTR' } satisfies AlgorithmIdentifier
 const HMAC_PARAMS = { name: 'HMAC', hash: 'SHA-256' } satisfies HmacKeyGenParams
 const CRYPTO_API_ERROR = new Error('crypto api not available')
+const CRYPTO_KEY_ERROR = new Error('no key available')
 const COMPRESSION_API_ERROR = new Error('compression api not available')
 
 const logger = new Logger('YT-CRYPTO')
@@ -101,21 +102,23 @@ export const encodeTrackingParam = (trackingParam: string): string => {
   return data.join('')
 }
 
-export const decryptOnesie = async (content: Uint8Array, key: Uint8Array, params: InstanceType<typeof OnesieCryptoParams> | null): Promise<Uint8Array | null> => {
+export const decryptOnesie = async (content: Uint8Array, keys: Uint8Array[], params: InstanceType<typeof OnesieCryptoParams> | null): Promise<[Uint8Array, Uint8Array | null]> => {
   const { hmac, iv, compressionType, isUnencrypted } = params ?? {}
 
-  if (!isUnencrypted) {
+  let key: Uint8Array | null = null
+
+  if (!isUnencrypted && iv != null) {
     if (subtle == null) throw CRYPTO_API_ERROR
+    if (keys.length === 0) throw CRYPTO_KEY_ERROR
 
-    const aesKey = await subtle.importKey('raw', key.slice(0, 16), AES_PARAMS, false, ['decrypt'])
-    const hmacKey = await subtle.importKey('raw', key.slice(16), HMAC_PARAMS, false, ['verify'])
+    for (key of keys) {
+      const aesKey = await subtle.importKey('raw', key.slice(0, 16), AES_PARAMS, false, ['decrypt'])
+      const hmacKey = await subtle.importKey('raw', key.slice(16), HMAC_PARAMS, false, ['verify'])
 
-    if (iv != null) {
-      if (hmac != null && !await subtle.verify(HMAC_PARAMS, hmacKey, hmac, bufferConcat([content, iv]))) {
-        logger.warn('onesie hmac verify failed')
-      }
+      if (hmac != null && !await subtle.verify(HMAC_PARAMS, hmacKey, hmac, bufferConcat([content, iv]))) continue
 
       content = new Uint8Array(await subtle.decrypt({ ...AES_PARAMS, counter: iv, length: 128 }, aesKey, content))
+      break
     }
   }
 
@@ -129,10 +132,10 @@ export const decryptOnesie = async (content: Uint8Array, key: Uint8Array, params
       throw COMPRESSION_API_ERROR
   }
 
-  return content
+  return [content, key]
 }
 
-export const encryptOnesie = async (content: Uint8Array, key: Uint8Array, params: InstanceType<typeof OnesieCryptoParams> | null): Promise<Uint8Array> => {
+export const encryptOnesie = async (content: Uint8Array, key: Uint8Array | null, params: InstanceType<typeof OnesieCryptoParams> | null): Promise<Uint8Array> => {
   const { iv, compressionType, isUnencrypted } = params ?? {}
 
   if (!isCompressionSupported()) throw COMPRESSION_API_ERROR
@@ -145,17 +148,16 @@ export const encryptOnesie = async (content: Uint8Array, key: Uint8Array, params
       throw COMPRESSION_API_ERROR
   }
 
-  if (!isUnencrypted) {
+  if (!isUnencrypted && iv != null) {
     if (subtle == null) throw CRYPTO_API_ERROR
+    if (key == null) throw CRYPTO_KEY_ERROR
 
     const aesKey = await subtle.importKey('raw', key.slice(0, 16), AES_PARAMS, false, ['encrypt'])
     const hmacKey = await subtle.importKey('raw', key.slice(16), HMAC_PARAMS, false, ['sign'])
 
-    if (iv != null) {
-      content = new Uint8Array(await subtle.encrypt({ ...AES_PARAMS, counter: iv, length: 128 }, aesKey, content))
+    content = new Uint8Array(await subtle.encrypt({ ...AES_PARAMS, counter: iv, length: 128 }, aesKey, content))
 
-      if (params != null) params.hmac = new Uint8Array(await subtle.sign(HMAC_PARAMS, hmacKey, bufferConcat([content, iv])))
-    }
+    if (params != null) params.hmac = new Uint8Array(await subtle.sign(HMAC_PARAMS, hmacKey, bufferConcat([content, iv])))
   }
 
   return content

@@ -33,7 +33,7 @@ const JSON_PREFIX_REGEXP = /^\)]}'\n/
 const sliceMap: Map<UMPType, UMPSlice> = new Map()
 
 let isFirstInterrupt = true
-let onesieClientKey: Uint8Array | null = null
+let onesieClientKeys: Uint8Array[] = []
 let onesieHeader: InstanceType<typeof UMPOnesieHeader> | null = null
 
 class UMPSlice {
@@ -127,8 +127,8 @@ const loadPlayerContextConfig = (webPlayerContextConfig: Record<string, YTPlayer
     const clientKey = onesieHotConfig?.clientKey
     if (clientKey == null) continue
 
-    onesieClientKey = bufferFromString(atob(clientKey), 'latin1')
-    logger.debug('load onesie client key:', onesieClientKey, 'config:', webPlayerContextConfig)
+    onesieClientKeys.push(bufferFromString(atob(clientKey), 'latin1'))
+    logger.debug('load onesie client key:', onesieClientKeys, 'config:', webPlayerContextConfig)
   }
 }
 
@@ -142,13 +142,7 @@ const processOnesieData = async (slice: UMPSlice): Promise<boolean> => {
 
   switch (type) {
     case OnesieHeaderType.ENCRYPTED_PLAYER_RESPONSE: {
-      const key = onesieClientKey
-      const data = key && cryptoParams && await decryptOnesie(slice.getBuffer(), key, cryptoParams)
-      if (!data) {
-        logger.debug('onesie player response:', btoa(bufferToString(slice.getBuffer(), 'latin1')))
-        break
-      }
-
+      const [data, key] = await decryptOnesie(slice.getBuffer(), onesieClientKeys, cryptoParams)
       const message = new UMPOnesiePlayerResponse().deserialize(data)
 
       logger.debug('onesie player response:', message)
@@ -298,6 +292,7 @@ const processUMPResponse = async (ctx: NetworkContext<unknown, NetworkState.SUCC
 
   logger.debug('response size:', stream.getRemainSize())
 
+  let slice: UMPSlice | null = null
   try {
     while (!stream.isEnd) {
       const slicePosition = stream.getPosition()
@@ -308,7 +303,7 @@ const processUMPResponse = async (ctx: NetworkContext<unknown, NetworkState.SUCC
       const sliceData = stream.readRawBytes(min(stream.getRemainSize(), sliceDataSize))
       const sliceSize = sliceHeadSize + sliceData.length
 
-      const slice = sliceMap.get(sliceType) ?? new UMPSlice(sliceType, sliceDataSize)
+      slice = sliceMap.get(sliceType) ?? new UMPSlice(sliceType, sliceDataSize)
       if (!slice.addChunk(sliceData)) {
         logger.trace('partial slice type:', sliceType, 'pos:', slicePosition, 'size:', sliceData.length)
 
@@ -331,7 +326,7 @@ const processUMPResponse = async (ctx: NetworkContext<unknown, NetworkState.SUCC
       return
     }
 
-    if (!(error instanceof RangeError)) logger.error('process response error:', error)
+    if (!(error instanceof RangeError)) logger.error('process response error:', error, slice)
   }
 
   ctx.response = new Response(stream.getBuffer(), { status: response.status, headers: fromEntries(response.headers.entries()) })
@@ -382,11 +377,7 @@ export default class YTPlayerUMPModule extends Feature {
       }
     })
 
-    registerYTConfigInitCallback(ytcfg => {
-      if (onesieClientKey != null) return
-
-      loadPlayerContextConfig(ytcfg.get('WEB_PLAYER_CONTEXT_CONFIGS'))
-    })
+    registerYTConfigInitCallback(ytcfg => loadPlayerContextConfig(ytcfg.get('WEB_PLAYER_CONTEXT_CONFIGS')))
 
     return true
   }
