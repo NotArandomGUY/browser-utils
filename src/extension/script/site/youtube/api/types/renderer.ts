@@ -468,10 +468,36 @@ export const YTLoggingContextSchema = {
 
 export const YTPlayerConfigSchema = {
   audioConfig: ytv_sch({
+    audioMuted: ytv_bol(),
     enablePerFormatLoudness: ytv_bol(),
     loudnessDb: ytv_num(),
+    loudnessNormalizationConfig: ytv_sch({
+      applyStatefulNormalization: ytv_bol(),
+      maxStatefulTimeThresholdSec: ytv_num(),
+      minimumLoudnessTargetLkfs: ytv_num(),
+      preserveStatefulLoudnessTarget: ytv_bol()
+    }),
+    loudnessTargetLkfs: ytv_num(),
     muteOnStart: ytv_bol(),
-    perceptualLoudnessDb: ytv_num()
+    perceptualLoudnessDb: ytv_num(),
+    playAudioOnly: ytv_bol(),
+    trackAbsoluteLoudnessLkfs: ytv_num()
+  }),
+  daiConfig: ytv_sch({
+    allowUstreamerRequestAdconfig: ytv_bol(),
+    daiType: ytv_str(['DAI_TYPE_CLIENT_STITCHED', 'DAI_TYPE_SERVER_STITCHED', 'DAI_TYPE_SS_DISABLED']),
+    debugInfo: ytv_sch({
+      isDisabledUnpluggedChannel: ytv_bol()
+    }),
+    enableDai: ytv_bol(),
+    enablePreroll: ytv_bol(),
+    enableServerStitchedDai: ytv_bol()
+  }),
+  embeddedPlayerConfig: ytv_sch({
+    embeddedPlayerMode: ytv_str(['EMBEDDED_PLAYER_MODE_DEFAULT', 'EMBEDDED_PLAYER_MODE_PFL', 'EMBEDDED_PLAYER_MODE_PFP', 'EMBEDDED_PLAYER_MODE_UNKNOWN']),
+    permissions: ytv_sch({
+      allowImaMonetization: ytv_bol()
+    })
   }),
   inlinePlaybackConfig: ytv_sch({
     showAudioControls: ytv_bol(),
@@ -483,6 +509,13 @@ export const YTPlayerConfigSchema = {
     isLiveHeadPlayable: ytv_bol(),
     liveExperimentalContentId: ytv_str(),
     liveReadaheadSeconds: ytv_num()
+  }),
+  manifestlessWindowedLiveConfig: ytv_sch({
+    maxDvrSequence: ytv_num(),
+    minDvrSequence: ytv_num(),
+    maxDvrMediaTimeMs: ytv_num(),
+    minDvrMediaTimeMs: ytv_num(),
+    startWalltimeMs: ytv_num()
   }),
   mediaCommonConfig: ytv_sch({
     dynamicReadaheadConfig: ytv_sch({
@@ -503,17 +536,37 @@ export const YTPlayerConfigSchema = {
         }))
       })
     }),
+    splitScreenEligible: ytv_bol(),
     useServerDrivenAbr: ytv_bol()
   }),
+  playbackEndConfig: ytv_sch({
+    endSeconds: ytv_num(),
+    limitedPlaybackDurationInSeconds: ytv_num()
+  }),
   playbackStartConfig: ytv_sch({
+    liveUtcStartSeconds: ytv_num(),
+    progressBarEndPosition: ytv_num(),
+    progressBarStartPosition: ytv_num(),
     startPaused: ytv_bol(),
     startPosition: ytv_sch({
-      streamTimeMillis: ytv_str()
+      streamTimeMillis: ytv_str(),
+      utcTimeMillis: ytv_str()
     }),
     startSeconds: ytv_num()
   }),
+  skippableIntroConfig: ytv_sch({
+    endMs: ytv_str(),
+    startMs: ytv_str()
+  }),
+  skippableSegmentsConfig: ytv_sch({
+    introSkipDurationMs: ytv_str(),
+    outroSkipDurationMs: ytv_str()
+  }),
   streamSelectionConfig: ytv_sch({
     maxBitrate: ytv_str()
+  }),
+  vrConfig: ytv_sch({
+    partialSpherical: ytv_str()
   }),
   webPlayerConfig: ytv_sch({
     useCobaltTvosDash: ytv_bol(),

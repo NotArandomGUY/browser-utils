@@ -25,18 +25,18 @@ let healthDev = 0
 let latencyAvg = 0
 let latencyDeltaAvg = 0
 
-export const isSyncLiveHeadEnabled = (): boolean => {
+const isEnabled = (): boolean => {
   return getYTConfigInt(LIVE_BEHAVIOUR_KEY, 0) === 1
 }
 
-const syncLiveHeadUpdate = (): void => {
+const liveHeadUpdate = (): void => {
   const now = Date.now()
   const delta = max(1, now - lastSyncLiveHeadTime)
 
   syncLiveHeadDeltaTime = (syncLiveHeadDeltaTime + delta) / 2
   lastSyncLiveHeadTime = now
 
-  if (!isSyncLiveHeadEnabled()) return
+  if (!isEnabled()) return
 
   const player = getYTPInstance(YTPInstanceType.APP)?.playerRef?.deref()
   if (player == null || !player.isPlaying?.()) return
@@ -95,17 +95,34 @@ const syncLiveHeadUpdate = (): void => {
 }
 
 const updatePlayerResponse = (data: YTRendererData<YTRenderer<'playerResponse'>>): boolean => {
-  const startMinReadaheadPolicy = data.playerConfig?.mediaCommonConfig?.serverPlaybackStartConfig?.playbackStartPolicy?.startMinReadaheadPolicy
-  if (startMinReadaheadPolicy != null && startMinReadaheadPolicy.length > 0) {
-    startMinReadaheadPolicy.forEach(policy => policy.minReadaheadMs ??= 50)
+  const playerConfig = data.playerConfig
+  const videoDetails = data.videoDetails
+
+  if (isEnabled() && playerConfig != null && videoDetails?.isLive) {
+    const startMinReadaheadPolicy = playerConfig.mediaCommonConfig?.serverPlaybackStartConfig?.playbackStartPolicy?.startMinReadaheadPolicy
+    if (startMinReadaheadPolicy != null && startMinReadaheadPolicy.length > 0) {
+      startMinReadaheadPolicy.forEach(policy => policy.minReadaheadMs ??= 50)
+    }
+    videoDetails.isLowLatencyLiveStream = true
+
+    if (!videoDetails.isLiveDvrEnabled) {
+      videoDetails.isLiveDvrEnabled = true
+
+      if (playerConfig.mediaCommonConfig?.useServerDrivenAbr && playerConfig.daiConfig == null) {
+        playerConfig.daiConfig = {
+          daiType: 'DAI_TYPE_CLIENT_STITCHED',
+          enableDai: true
+        }
+      }
+    }
   }
 
   return true
 }
 
-export default class YTPlayerLiveHeadModule extends Feature {
+export default class YTPlayerLiveModule extends Feature {
   public constructor() {
-    super('live-head')
+    super('live')
   }
 
   protected activate(): boolean {
@@ -115,16 +132,16 @@ export default class YTPlayerLiveHeadModule extends Feature {
       type: YTConfigMenuItemType.TOGGLE,
       key: LIVE_BEHAVIOUR_KEY,
       disabledIcon: YTIconType.CLOCK,
-      disabledText: 'Live Behaviour: Normal',
+      disabledText: 'Live Behaviour: Default',
       enabledIcon: YTIconType.CLOCK,
-      enabledText: 'Live Behaviour: Low Latency',
+      enabledText: 'Live Behaviour: Low Latency + DVR',
       defaultValue: false,
       signals: [YTSignalActionType.POPUP_BACK, YTSignalActionType.SOFT_RELOAD_PAGE]
     })
 
     lastSyncLiveHeadTime = Date.now()
     syncLiveHeadDeltaTime = SYNC_INTERVAL
-    setInterval(syncLiveHeadUpdate, SYNC_INTERVAL)
+    setInterval(liveHeadUpdate, SYNC_INTERVAL)
 
     return true
   }

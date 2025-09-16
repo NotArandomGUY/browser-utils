@@ -21,7 +21,7 @@ import YTMiscsThumbnailModule from '@ext/site/youtube/module/miscs/thumbnail'
 import YTMiscsTrackingModule from '@ext/site/youtube/module/miscs/tracking'
 import YTPlayerAgeCheckModule from '@ext/site/youtube/module/player/age-check'
 import YTPlayerBootstrapModule from '@ext/site/youtube/module/player/bootstrap'
-import YTPlayerLiveHeadModule from '@ext/site/youtube/module/player/live-head'
+import YTPlayerLiveModule from '@ext/site/youtube/module/player/live'
 import YTPlayerSmartSkipModule from '@ext/site/youtube/module/player/smart-skip'
 import YTPlayerUMPModule from '@ext/site/youtube/module/player/ump'
 
@@ -51,7 +51,7 @@ registerFeatureGroup(FEED_GROUP_ID, group => {
 registerFeatureGroup(PLAYER_GROUP_ID, group => {
   registerFeature(group, YTPlayerBootstrapModule)
   registerFeature(group, YTPlayerUMPModule)
-  registerFeature(group, YTPlayerLiveHeadModule)
+  registerFeature(group, YTPlayerLiveModule)
   registerFeature(group, YTPlayerAgeCheckModule)
   registerFeature(group, YTPlayerSmartSkipModule)
 }, [CORE_GROUP_ID])
