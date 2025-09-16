@@ -145,13 +145,13 @@ const processOnesieData = async (slice: UMPSlice): Promise<boolean> => {
       const [data, key] = await decryptOnesie(slice.getBuffer(), onesieClientKeys, cryptoParams)
       const message = new UMPOnesiePlayerResponse().deserialize(data)
 
-      logger.debug('onesie player response:', message)
-
-      if (message.onesiePorxyStatus !== OnesieProxyStatus.OK || message.body == null) break
-
-      const body = JSON.parse(bufferToString(message.body))
-      await processYTRenderer('playerResponse', body)
-      message.body = bufferFromString(JSON.stringify(body))
+      let body: object | null = null
+      if (message.onesiePorxyStatus === OnesieProxyStatus.OK && message.body != null) {
+        body = JSON.parse(bufferToString(message.body))
+        await processYTRenderer('playerResponse', body)
+        message.body = bufferFromString(JSON.stringify(body))
+      }
+      logger.debug('onesie player response:', message, body)
 
       slice.setBuffer(await encryptOnesie(message.serialize(), key, cryptoParams))
       break
@@ -362,7 +362,7 @@ export default class YTPlayerUMPModule extends Feature {
     addInterceptNetworkCallback(async ctx => {
       const { url } = ctx
 
-      if (url.hostname.startsWith('redirector.') || !UMP_PATHNAME_REGEXP.test(url.pathname)) {
+      if (!UMP_PATHNAME_REGEXP.test(url.pathname) || url.hostname.startsWith('redirector.') || url.searchParams.has('mime')) {
         if (ctx.state === NetworkState.SUCCESS && url.pathname === '/tv_config') await processTVConfig(ctx)
         return
       }
