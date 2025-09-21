@@ -24,16 +24,16 @@ export interface ProxyChainOptions<T = object> {
 }
 
 const createTarget = <T>(options: ProxyChainOptions<T>): ToObjectType<T> => {
-  if (options.target == null) {
-    return assign(function () { }, {
-      [FakeSymbol]: true,
-      [Symbol.toPrimitive]() {
-        return options.primitive
-      }
-    }) as unknown as ToObjectType<T>
-  }
+  if (options.target != null) return new PrimitiveProxy(options.target)
 
-  return new PrimitiveProxy(options.target)
+  return assign(function () { }, {
+    apply: undefined,
+    call: undefined,
+    [FakeSymbol]: true,
+    [Symbol.toPrimitive]() {
+      return options.primitive
+    }
+  }) as unknown as ToObjectType<T>
 }
 
 const isRawProperty = <T, P extends keyof ToObjectType<T>>(options: ProxyChainOptions<T>, p: P, v: ToObjectType<T>[P]): boolean => {
