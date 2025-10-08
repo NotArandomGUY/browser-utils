@@ -2,20 +2,10 @@ import { floor } from '@ext/global/math'
 import { assign, entries, fromEntries } from '@ext/global/object'
 import { Feature } from '@ext/lib/feature'
 import { addInterceptNetworkCallback, NetworkContext, NetworkContextState, NetworkRequestContext, NetworkState } from '@ext/lib/intercept/network'
-import Logger from '@ext/lib/logger'
-import { buildHostnameRegexp } from '@ext/lib/regexp'
 import ViuLSHandleHistory from '@ext/site/viu/local-server/history'
 import ViuLSHandleWatchTimeLine from '@ext/site/viu/local-server/timeline'
 import { onNetworkPlaybackDistribute } from '@ext/site/viu/module/player'
 import { VIU_STATE } from '@ext/site/viu/state'
-
-const logger = new Logger('VIU-NETWORK')
-
-const BLOCKED_HOSTNAME_REGEXP = buildHostnameRegexp([
-  'adsrvr.org',
-  'licensing.bitmovin.com',
-  'ingest.sentry.io'
-])
 
 function getTimeSecond(date: Date = new Date()): number {
   return floor(date.getTime() / 1e3)
@@ -56,12 +46,6 @@ function patchRSC(line: string | null): string | null {
 }
 
 async function processRequest(ctx: NetworkRequestContext): Promise<void> {
-  if (BLOCKED_HOSTNAME_REGEXP.test(ctx.url.hostname)) {
-    logger.debug('network request blocked:', ctx.url.href)
-    assign<NetworkContext, NetworkContextState>(ctx, { state: NetworkState.FAILED, error: new Error('Failed') })
-    return
-  }
-
   if (VIU_STATE.loggedIn) return
 
   let data: object

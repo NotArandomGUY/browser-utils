@@ -2,10 +2,12 @@ import PrivacyBugsnagModule from '@ext/default/privacy/module/bugsnag'
 import PrivacyGoogleAnalyticsModule from '@ext/default/privacy/module/google-analytics'
 import PrivacyHotjarModule from '@ext/default/privacy/module/hotjar'
 import PrivacyNavigatorModule from '@ext/default/privacy/module/navigator'
+import PrivacyNetworkModule from '@ext/default/privacy/module/network'
 import PrivacySentryModule from '@ext/default/privacy/module/sentry'
 import { registerFeature, registerFeatureGroup } from '@ext/lib/feature'
 
 registerFeatureGroup('privacy', group => {
+  registerFeature(group, PrivacyNetworkModule)
   registerFeature(group, PrivacyNavigatorModule)
 
   // Analytics

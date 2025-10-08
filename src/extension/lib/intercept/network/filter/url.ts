@@ -1,5 +1,5 @@
 import { assign } from '@ext/global/object'
-import { addInterceptNetworkCallback, NetworkContext, NetworkContextState, NetworkState } from '@ext/lib/intercept/network'
+import { addInterceptNetworkCallback, NetworkContext, NetworkContextState, NetworkState, removeInterceptNetworkCallback } from '@ext/lib/intercept/network'
 import Logger from '@ext/lib/logger'
 
 const logger = new Logger('INTERCEPT-NETWORK')
@@ -27,4 +27,15 @@ const processRequest = (ctx: NetworkContext): void => {
 export const addInterceptNetworkUrlFilter = (hostPattern: RegExp, pathPattern: RegExp, matchState: NetworkContextState): void => {
   patterns.push([hostPattern, pathPattern, matchState])
   addInterceptNetworkCallback(processRequest)
+}
+
+export const removeInterceptNetworkUrlFilter = (hostPattern: RegExp): void => {
+  while (true) {
+    const index = patterns.findIndex(pattern => String(pattern[0]) === String(hostPattern))
+    if (index < 0) break
+
+    patterns.splice(index, 1)
+  }
+
+  if (patterns.length === 0) removeInterceptNetworkCallback(processRequest)
 }
