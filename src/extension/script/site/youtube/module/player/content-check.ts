@@ -6,12 +6,12 @@ import { getYTConfigInt, registerYTConfigMenuItem, YTConfigMenuItemType } from '
 import { dispatchYTSignalAction, registerYTSignalActionHandler } from '@ext/site/youtube/module/core/event'
 import { registerYTInnertubeRequestProcessor } from '@ext/site/youtube/module/core/network'
 
-const AGE_CHECK_KEY = 'age-check'
+const CONTENT_CHECK_KEY = 'content-check'
 
 const playerActionsQueue: NonNullable<YTRendererData<YTRenderer<'playerResponse'>>['actions']>[] = []
 
-const isHideWarning = (): boolean => {
-  return getYTConfigInt(AGE_CHECK_KEY, 0) === 1
+const isHideContentCheck = (): boolean => {
+  return getYTConfigInt(CONTENT_CHECK_KEY, 0) === 1
 }
 
 const updatePlayerResponse = (data: YTRendererData<YTRenderer<'playerResponse'>>): boolean => {
@@ -45,13 +45,13 @@ const updatePlayerResponse = (data: YTRendererData<YTRenderer<'playerResponse'>>
           },
           nextEndpoint
         ],
-        // Trigger age check complete signal
+        // Trigger content check complete signal
         [
           {
             signalServiceEndpoint: {
               signal: 'CLIENT_SIGNAL',
               actions: [
-                { signalAction: { signal: YTSignalActionType.AGE_CHECK_COMPLETE } }
+                { signalAction: { signal: YTSignalActionType.CONTENT_CHECK_COMPLETE } }
               ]
             }
           }
@@ -70,35 +70,35 @@ const updatePlayerResponse = (data: YTRendererData<YTRenderer<'playerResponse'>>
   return true
 }
 
-export default class YTPlayerAgeCheckModule extends Feature {
+export default class YTPlayerContentCheckModule extends Feature {
   public constructor() {
-    super('age-check')
+    super('content-check')
   }
 
   protected activate(): boolean {
     registerYTRendererPreProcessor(YTRendererSchemaMap['playerResponse'], updatePlayerResponse)
 
-    registerYTConfigMenuItem({
-      type: YTConfigMenuItemType.TOGGLE,
-      key: AGE_CHECK_KEY,
-      disabledIcon: YTIconType.WARNING,
-      disabledText: 'Age Check: Default',
-      enabledIcon: YTIconType.WARNING,
-      enabledText: 'Age Check: Hide',
-      defaultValue: false,
-      signals: [YTSignalActionType.POPUP_BACK, YTSignalActionType.SOFT_RELOAD_PAGE]
-    })
-
     registerYTInnertubeRequestProcessor('player', request => {
-      if (!isHideWarning()) return
+      if (!isHideContentCheck()) return
 
       request.contentCheckOk = true
       request.racyCheckOk = true
     })
 
-    registerYTSignalActionHandler(YTSignalActionType.AGE_CHECK_COMPLETE, () => {
+    registerYTSignalActionHandler(YTSignalActionType.CONTENT_CHECK_COMPLETE, () => {
       // TODO: improve reliability by hooking into player internal events
       setTimeout(() => dispatchYTSignalAction(YTSignalActionType.PLAY_PLAYER), 1e3)
+    })
+
+    registerYTConfigMenuItem({
+      type: YTConfigMenuItemType.TOGGLE,
+      key: CONTENT_CHECK_KEY,
+      disabledIcon: YTIconType.WARNING,
+      disabledText: 'Content Check: Default',
+      enabledIcon: YTIconType.WARNING,
+      enabledText: 'Content Check: Hide',
+      defaultValue: false,
+      signals: [YTSignalActionType.POPUP_BACK, YTSignalActionType.SOFT_RELOAD_PAGE]
     })
 
     return true
