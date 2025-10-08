@@ -65,7 +65,7 @@ type YTInnertubeRequestBase = {
 type YTInnertubeRequestMap = {
   'get_watch': { playerRequest: object, watchNextRequest: object }
   'next': {}
-  'player': { params: InstanceType<typeof PlayerParams> }
+  'player': { contentCheckOk: boolean, racyCheckOk: boolean, params: InstanceType<typeof PlayerParams> }
   'search': { isPrefetch?: boolean, isZeroPrefixQuery?: boolean, query?: string, suggestionSearchParams?: { subtypes: unknown[] }, webSearchboxStatsUrl?: string }
 }
 export type YTInnertubeRequestEndpoint = keyof YTInnertubeRequestMap

@@ -1,9 +1,18 @@
 import { Feature } from '@ext/lib/feature'
 import { YTSignalActionType } from '@ext/site/youtube/api/endpoint'
 import { registerYTRendererPreProcessor, YTRenderer, YTRendererData, YTRendererSchemaMap } from '@ext/site/youtube/api/renderer'
+import { YTIconType } from '@ext/site/youtube/api/types/icon'
+import { getYTConfigInt, registerYTConfigMenuItem, YTConfigMenuItemType } from '@ext/site/youtube/module/core/config'
 import { dispatchYTSignalAction, registerYTSignalActionHandler } from '@ext/site/youtube/module/core/event'
+import { registerYTInnertubeRequestProcessor } from '@ext/site/youtube/module/core/network'
+
+const AGE_CHECK_KEY = 'age-check'
 
 const playerActionsQueue: NonNullable<YTRendererData<YTRenderer<'playerResponse'>>['actions']>[] = []
+
+const isHideWarning = (): boolean => {
+  return getYTConfigInt(AGE_CHECK_KEY, 0) === 1
+}
 
 const updatePlayerResponse = (data: YTRendererData<YTRenderer<'playerResponse'>>): boolean => {
   const { errorScreen, status } = data.playabilityStatus ?? {}
@@ -68,6 +77,24 @@ export default class YTPlayerAgeCheckModule extends Feature {
 
   protected activate(): boolean {
     registerYTRendererPreProcessor(YTRendererSchemaMap['playerResponse'], updatePlayerResponse)
+
+    registerYTConfigMenuItem({
+      type: YTConfigMenuItemType.TOGGLE,
+      key: AGE_CHECK_KEY,
+      disabledIcon: YTIconType.WARNING,
+      disabledText: 'Age Check: Default',
+      enabledIcon: YTIconType.WARNING,
+      enabledText: 'Age Check: Hide',
+      defaultValue: false,
+      signals: [YTSignalActionType.POPUP_BACK, YTSignalActionType.SOFT_RELOAD_PAGE]
+    })
+
+    registerYTInnertubeRequestProcessor('player', request => {
+      if (!isHideWarning()) return
+
+      request.contentCheckOk = true
+      request.racyCheckOk = true
+    })
 
     registerYTSignalActionHandler(YTSignalActionType.AGE_CHECK_COMPLETE, () => {
       // TODO: improve reliability by hooking into player internal events
