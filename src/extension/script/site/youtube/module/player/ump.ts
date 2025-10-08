@@ -3,20 +3,25 @@ import { Request, URLSearchParams } from '@ext/global/network'
 import { assign, fromEntries } from '@ext/global/object'
 import { bufferConcat, bufferFromString, bufferToString } from '@ext/lib/buffer'
 import { Feature } from '@ext/lib/feature'
-import { addInterceptNetworkCallback, NetworkContext, NetworkContextState, NetworkRequestContext, NetworkState } from '@ext/lib/intercept/network'
+import { addInterceptNetworkCallback, NetworkContext, NetworkContextState, NetworkRequestContext, NetworkState, onInterceptNetworkRequest } from '@ext/lib/intercept/network'
 import Logger from '@ext/lib/logger'
 import CodedStream from '@ext/lib/protobuf/coded-stream'
 import { varint32Encode } from '@ext/lib/protobuf/varint'
 import { decryptOnesie, encryptOnesie } from '@ext/site/youtube/api/crypto'
 import { processYTRenderer } from '@ext/site/youtube/api/processor'
+import OnesieRequest from '@ext/site/youtube/api/proto/onesie-request'
+import { OnesieHttpHeader } from '@ext/site/youtube/api/proto/onesie/common'
+import OnesieEncryptedInnertubeRequest from '@ext/site/youtube/api/proto/onesie/encrypted-innertube-request'
+import OnesieEncryptedInnertubeResponse from '@ext/site/youtube/api/proto/onesie/encrypted-innertube-response'
+import OnesieInnertubeRequest from '@ext/site/youtube/api/proto/onesie/innertube-request'
+import OnesieInnertubeResponse, { OnesieProxyStatus } from '@ext/site/youtube/api/proto/onesie/innertube-response'
+import SabrRequest from '@ext/site/youtube/api/proto/sabr-request'
 import { UMPType } from '@ext/site/youtube/api/proto/ump'
 import UMPFormatInitializationMetadata from '@ext/site/youtube/api/proto/ump/format-initialization-metadata'
 import UMPFormatSelectionConfig from '@ext/site/youtube/api/proto/ump/format-selection-config'
 import UMPMediaHeader from '@ext/site/youtube/api/proto/ump/media-header'
 import UMPNextRequestPolicy from '@ext/site/youtube/api/proto/ump/next-request-policy'
 import UMPOnesieHeader, { OnesieHeaderType } from '@ext/site/youtube/api/proto/ump/onesie-header'
-import UMPOnesieEncryptedInnertubeResponse from '@ext/site/youtube/api/proto/ump/onesie/encrypted-innertube-response'
-import UMPOnesiePlayerResponse, { OnesieProxyStatus } from '@ext/site/youtube/api/proto/ump/onesie/encrypted-player-response'
 import UMPPlaybackStartPolicy from '@ext/site/youtube/api/proto/ump/playback-start-policy'
 import UMPSabrContextUpdate, { UMPSabrContextScope, UMPSabrContextValue } from '@ext/site/youtube/api/proto/ump/sabr-context-update'
 import UMPSabrContextContentAds from '@ext/site/youtube/api/proto/ump/sabr-context/content-ads'
@@ -132,6 +137,37 @@ const loadPlayerContextConfig = (webPlayerContextConfig: Record<string, YTPlayer
   }
 }
 
+const processOnesieInnertubeRequest = async (innertubeRequest: InstanceType<typeof OnesieEncryptedInnertubeRequest> | null): Promise<void> => {
+  if (innertubeRequest == null) return
+
+  const { encryptedOnesieInnertubeRequest, iv, unencryptedOnesieInnertubeRequest } = innertubeRequest
+
+  let onesieRequest = unencryptedOnesieInnertubeRequest
+  let encryptionKey = null
+
+  if (encryptedOnesieInnertubeRequest != null && iv?.length === 16) {
+    const [data, key] = await decryptOnesie(encryptedOnesieInnertubeRequest, onesieClientKeys, innertubeRequest)
+    onesieRequest = new OnesieInnertubeRequest().deserialize(data)
+    encryptionKey = key
+  }
+
+  if (onesieRequest == null) {
+    logger.warn('empty innertube request')
+    return
+  }
+
+  const { request } = await onInterceptNetworkRequest(onesieRequest.urls?.[0] ?? location.href, {
+    method: 'POST',
+    headers: Object.fromEntries(onesieRequest.headers?.map(e => [e.name, e.value]) ?? []),
+    body: onesieRequest.body
+  })
+
+  onesieRequest.headers = Array.from(request.headers.entries()).map(e => new OnesieHttpHeader({ name: e[0].replace(/(^|-)[a-z]/g, c => c.toUpperCase()), value: e[1] }))
+  onesieRequest.body = new Uint8Array(await request.arrayBuffer())
+
+  if (encryptionKey != null) innertubeRequest.encryptedOnesieInnertubeRequest = await encryptOnesie(onesieRequest.serialize(), encryptionKey, innertubeRequest)
+}
+
 const processOnesieData = async (slice: UMPSlice): Promise<boolean> => {
   if (onesieHeader == null) {
     logger.warn('onesie data without header')
@@ -141,9 +177,9 @@ const processOnesieData = async (slice: UMPSlice): Promise<boolean> => {
   const { type, cryptoParams } = onesieHeader
 
   switch (type) {
-    case OnesieHeaderType.ENCRYPTED_PLAYER_RESPONSE: {
+    case OnesieHeaderType.PLAYER_RESPONSE: {
       const [data, key] = await decryptOnesie(slice.getBuffer(), onesieClientKeys, cryptoParams)
-      const message = new UMPOnesiePlayerResponse().deserialize(data)
+      const message = new OnesieInnertubeResponse().deserialize(data)
 
       let body: object | null = null
       if (message.onesiePorxyStatus === OnesieProxyStatus.OK && message.body != null) {
@@ -157,7 +193,7 @@ const processOnesieData = async (slice: UMPSlice): Promise<boolean> => {
       break
     }
     case OnesieHeaderType.ENCRYPTED_INNERTUBE_RESPONSE_PART: {
-      const message = new UMPOnesieEncryptedInnertubeResponse().deserialize(slice.getBuffer())
+      const message = new OnesieEncryptedInnertubeResponse().deserialize(slice.getBuffer())
 
       logger.debug('onesie encrypted innertube response:', message)
       break
@@ -175,7 +211,7 @@ const processUMPSlice = async (slice: UMPSlice): Promise<boolean> => {
     case UMPType.ONESIE_HEADER: {
       onesieHeader = new UMPOnesieHeader().deserialize(slice.getBuffer())
 
-      logger.debug('onesie header:', onesieHeader)
+      logger.trace('onesie header:', onesieHeader)
       return true
     }
     case UMPType.ONESIE_DATA:
@@ -183,14 +219,14 @@ const processUMPSlice = async (slice: UMPSlice): Promise<boolean> => {
     case UMPType.MEDIA_HEADER: {
       const message = new UMPMediaHeader().deserialize(slice.getBuffer())
 
-      logger.debug('media header:', message)
+      logger.trace('media header:', message)
       return true
     }
     case UMPType.MEDIA:
-      logger.debug('media size:', slice.getSize())
+      logger.trace('media size:', slice.getSize())
       return true
     case UMPType.MEDIA_END:
-      logger.debug('media end:', slice.getBuffer())
+      logger.trace('media end:', slice.getBuffer())
       return true
     case UMPType.NEXT_REQUEST_POLICY: {
       const message = new UMPNextRequestPolicy().deserialize(slice.getBuffer())
@@ -260,7 +296,7 @@ const processUMPSlice = async (slice: UMPSlice): Promise<boolean> => {
       return false
     }
     default:
-      logger.debug('slice type:', slice.getType(), 'size:', slice.getSize())
+      logger.trace('slice type:', slice.getType(), 'size:', slice.getSize())
       return true
   }
 }
@@ -277,12 +313,39 @@ const processUMPRequest = async (ctx: NetworkRequestContext): Promise<void> => {
     }
   }
 
-  const stream = new CodedStream(new Uint8Array(await request.arrayBuffer()))
-  const size = stream.getRemainSize()
+  try {
+    let body: Uint8Array = new Uint8Array(await request.arrayBuffer())
 
-  logger.debug('request size:', size)
+    switch (url.pathname) {
+      case '/initplayback': {
+        const onesieRequest = new OnesieRequest().deserialize(body)
 
-  ctx.request = new Request(request, { body: size > 0 ? stream.getBuffer() : undefined })
+        logger.debug('onesie request:', onesieRequest)
+
+        await processOnesieInnertubeRequest(onesieRequest.innertubeRequest)
+
+        body = onesieRequest.serialize()
+        break
+      }
+      case '/videoplayback': {
+        const sabrRequest = new SabrRequest().deserialize(body)
+
+        logger.debug('sabr request:', sabrRequest)
+
+        body = sabrRequest.serialize()
+        break
+      }
+    }
+
+    ctx.request = new Request(request, { body })
+  } catch (error) {
+    if (error instanceof Response) {
+      assign<NetworkContext, NetworkContextState>(ctx, { state: NetworkState.SUCCESS, response: error })
+      return
+    }
+
+    logger.error('process request error:', error)
+  }
 }
 
 const processUMPResponse = async (ctx: NetworkContext<unknown, NetworkState.SUCCESS>): Promise<void> => {
@@ -305,7 +368,7 @@ const processUMPResponse = async (ctx: NetworkContext<unknown, NetworkState.SUCC
 
       slice = sliceMap.get(sliceType) ?? new UMPSlice(sliceType, sliceDataSize)
       if (!slice.addChunk(sliceData)) {
-        logger.trace('partial slice type:', sliceType, 'pos:', slicePosition, 'size:', sliceData.length)
+        logger.trace('partial response slice type:', sliceType, 'pos:', slicePosition, 'size:', sliceData.length)
 
         sliceMap.set(sliceType, slice)
         removeSlice(stream, slicePosition, sliceSize)

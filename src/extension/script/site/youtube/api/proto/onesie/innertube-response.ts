@@ -1,6 +1,6 @@
 import { pbf_bin, pbf_i32, pbf_msg, pbf_repeat } from '@ext/lib/protobuf/field'
 import { createMessage } from '@ext/lib/protobuf/message'
-import { OnesieHttpHeader } from '@ext/site/youtube/api/proto/ump/onesie/common'
+import { OnesieHttpHeader } from '@ext/site/youtube/api/proto/onesie/common'
 
 export const enum OnesieProxyStatus {
   UNKNOWN = 0,
@@ -19,11 +19,11 @@ export const enum OnesieProxyStatus {
   UNKNOWN_COMPRESSION_TYPE = 13
 }
 
-const UMPOnesiePlayerResponse = createMessage({
+const OnesieInnertubeResponse = createMessage({
   onesiePorxyStatus: pbf_i32(1),
   httpStatus: pbf_i32(2),
   headers: pbf_repeat(pbf_msg(3, OnesieHttpHeader)),
   body: pbf_bin(4)
 })
 
-export default UMPOnesiePlayerResponse
+export default OnesieInnertubeResponse

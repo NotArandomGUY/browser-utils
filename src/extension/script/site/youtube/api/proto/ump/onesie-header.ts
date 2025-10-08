@@ -1,9 +1,9 @@
 import { pbf_i32, pbf_i64, pbf_msg, pbf_str, pbf_u64 } from '@ext/lib/protobuf/field'
 import { createMessage } from '@ext/lib/protobuf/message'
-import { OnesieCryptoParams } from '@ext/site/youtube/api/proto/ump/onesie/common'
+import { OnesieCryptoParams } from '@ext/site/youtube/api/proto/onesie/common'
 
 export const enum OnesieHeaderType {
-  ENCRYPTED_PLAYER_RESPONSE = 0,
+  PLAYER_RESPONSE = 0,
   MEDIA = 1,
   MEDIA_DECRYPTION_KEY = 2,
   CLEAR_MEDIA = 3,

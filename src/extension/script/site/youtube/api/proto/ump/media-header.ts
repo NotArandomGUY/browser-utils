@@ -17,7 +17,8 @@ const UMPMediaHeader = createMessage({
   durationMs: pbf_i64(12),
   formatId: pbf_i32(13),
   contentLength: pbf_i64(14),
-  timeRange: pbf_msg(15, TimeRange)
+  timeRange: pbf_msg(15, TimeRange),
+  clipId: pbf_str(1000)
 })
 
 export default UMPMediaHeader

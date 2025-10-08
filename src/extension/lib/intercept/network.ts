@@ -31,7 +31,7 @@ const logger = new Logger('INTERCEPT-NETWORK')
 
 const callbacks = new Set<NetworkCallback>()
 
-const onRequest = async (input: RequestInput, init?: RequestInit): Promise<NetworkContext> => {
+export const onInterceptNetworkRequest = async (input: RequestInput, init?: RequestInit): Promise<NetworkContext> => {
   const request = new Request(input, init)
   const ctx: NetworkContext = {
     url: new URL(request.url),
@@ -54,7 +54,7 @@ const onRequest = async (input: RequestInput, init?: RequestInit): Promise<Netwo
   return ctx
 }
 
-const onResponse = async <U = unknown>(ctx: NetworkResponseContext<U>): Promise<NetworkResponseContext<U>> => {
+export const onInterceptNetworkResponse = async <U = unknown>(ctx: NetworkResponseContext<U>): Promise<NetworkResponseContext<U>> => {
   logger.trace('pre response:', ctx.url.href, ctx)
 
   for (const callback of callbacks) {
@@ -69,8 +69,8 @@ const onResponse = async <U = unknown>(ctx: NetworkResponseContext<U>): Promise<
 }
 
 const registerInterceptNetworkModules = (): void => {
-  registerInterceptNetworkFetchModule(onRequest, onResponse)
-  registerInterceptNetworkXHRModule(onRequest, onResponse)
+  registerInterceptNetworkFetchModule(onInterceptNetworkRequest, onInterceptNetworkResponse)
+  registerInterceptNetworkXHRModule(onInterceptNetworkRequest, onInterceptNetworkResponse)
 }
 
 const unregisterInterceptNetworkModules = (): void => {

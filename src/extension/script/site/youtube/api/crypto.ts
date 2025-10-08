@@ -1,9 +1,7 @@
 import { floor, random } from '@ext/global/math'
 import { bufferConcat } from '@ext/lib/buffer'
 import { compress, decompress, isCompressionSupported } from '@ext/lib/compression'
-import Logger from '@ext/lib/logger'
-import { OnesieCompressionType, OnesieCryptoParams } from '@ext/site/youtube/api/proto/ump/onesie/common'
-
+import { OnesieCompressionType, OnesieCryptoParams } from '@ext/site/youtube/api/proto/onesie/common'
 const { getRandomValues, subtle } = globalThis.crypto ?? {}
 
 const CHARS_A = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'
@@ -14,7 +12,7 @@ const CRYPTO_API_ERROR = new Error('crypto api not available')
 const CRYPTO_KEY_ERROR = new Error('no key available')
 const COMPRESSION_API_ERROR = new Error('compression api not available')
 
-const logger = new Logger('YT-CRYPTO')
+type CryptoParams = Partial<Omit<InstanceType<typeof OnesieCryptoParams>, 'serialize' | 'deserialize' | 'reset'>>
 
 const getRandomValuesArray = (size: number, key?: string): number[] => {
   const rand = new Uint8Array(size)
@@ -102,7 +100,7 @@ export const encodeTrackingParam = (trackingParam: string): string => {
   return data.join('')
 }
 
-export const decryptOnesie = async (content: Uint8Array, keys: Uint8Array[], params: InstanceType<typeof OnesieCryptoParams> | null): Promise<[Uint8Array, Uint8Array | null]> => {
+export const decryptOnesie = async (content: Uint8Array, keys: Uint8Array[], params: CryptoParams | null): Promise<[Uint8Array, Uint8Array | null]> => {
   const { hmac, iv, compressionType, isUnencrypted } = params ?? {}
 
   let key: Uint8Array | null = null
@@ -135,7 +133,7 @@ export const decryptOnesie = async (content: Uint8Array, keys: Uint8Array[], par
   return [content, key]
 }
 
-export const encryptOnesie = async (content: Uint8Array, key: Uint8Array | null, params: InstanceType<typeof OnesieCryptoParams> | null): Promise<Uint8Array> => {
+export const encryptOnesie = async (content: Uint8Array, key: Uint8Array | null, params: CryptoParams | null): Promise<Uint8Array> => {
   const { iv, compressionType, isUnencrypted } = params ?? {}
 
   if (!isCompressionSupported()) throw COMPRESSION_API_ERROR
