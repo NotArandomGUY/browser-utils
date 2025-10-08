@@ -1,5 +1,7 @@
 import { ScriptConfig } from '.'
 
+const YT_LEANBACK_UA = 'Mozilla/5.0 (Fuchsia) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36 CrKey/1.56.500000'
+
 export const SITE_VIDEOPLATFORM_SCRIPT_CONFIG = [
   {
     script: 'ani.gamer',
@@ -25,13 +27,29 @@ export const SITE_VIDEOPLATFORM_SCRIPT_CONFIG = [
             {
               header: 'user-agent',
               operation: 'set',
-              value: 'Mozilla/5.0 (Fuchsia) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36 CrKey/1.56.500000'
+              value: YT_LEANBACK_UA
             }
           ]
         },
         condition: {
           urlFilter: '||youtube.com/tv',
           resourceTypes: ['main_frame', 'sub_frame', 'xmlhttprequest']
+        }
+      },
+      {
+        action: {
+          type: 'modifyHeaders',
+          requestHeaders: [
+            {
+              header: 'user-agent',
+              operation: 'set',
+              value: YT_LEANBACK_UA
+            }
+          ]
+        },
+        condition: {
+          urlFilter: '||youtube.com/api/stats/*?*el=leanback',
+          resourceTypes: ['xmlhttprequest']
         }
       },
       {
