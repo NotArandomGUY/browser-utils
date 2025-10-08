@@ -108,6 +108,13 @@ export enum YTLikeStatus {
   LIKE = 'LIKE'
 }
 
+export enum YTMusicVideoType {
+  MUSIC_VIDEO_TYPE_ATV = 'MUSIC_VIDEO_TYPE_ATV',
+  MUSIC_VIDEO_TYPE_OFFICIAL_SOURCE_MUSIC = 'MUSIC_VIDEO_TYPE_OFFICIAL_SOURCE_MUSIC',
+  MUSIC_VIDEO_TYPE_OMV = 'MUSIC_VIDEO_TYPE_OMV',
+  MUSIC_VIDEO_TYPE_UGC = 'MUSIC_VIDEO_TYPE_UGC'
+}
+
 export const YTAccessibilityDataSchema = {
   label: ytv_str()
 } satisfies YTObjectSchema

@@ -1,10 +1,13 @@
-import { YTAccessibilitySchema, YTAdSlotLoggingDataSchema, YTEndpointSchema, YTEngagementPanelIdentifier, YTEngagementPanelVisibility, YTLikeStatus, YTLoggingDirectivesSchema, YTObjectData, YTObjectSchema, YTOfflineabilityRendererSchema, YTTextSchema, YTThumbnailSchema, YTUrlSchema, ytv_arr, ytv_bol, ytv_enp, ytv_num, ytv_obj, ytv_ren, ytv_sch, ytv_str, ytv_unk } from './common'
+import { YTAccessibilitySchema, YTAdSlotLoggingDataSchema, YTEndpointSchema, YTEngagementPanelIdentifier, YTEngagementPanelVisibility, YTLikeStatus, YTLoggingDirectivesSchema, YTMusicVideoType, YTObjectData, YTObjectSchema, YTOfflineabilityRendererSchema, YTTextSchema, YTThumbnailSchema, YTUrlSchema, ytv_arr, ytv_bol, ytv_enp, ytv_num, ytv_obj, ytv_ren, ytv_sch, ytv_str, ytv_unk } from './common'
 import { YTIconType } from './icon'
 
 export enum YTSignalActionType {
   ACK_POST_AADC_NOTICE = 'ACK_POST_AADC_NOTICE',
   ACKNOWLEDGE_YOUTHERE = 'ACKNOWLEDGE_YOUTHERE',
+  AUDIO_MODE = 'AUDIO_MODE',
   CANCEL_AUTONAV = 'CANCEL_AUTONAV',
+  CANCEL_HANDOFF_AUTOCONNECT = 'CANCEL_HANDOFF_AUTOCONNECT',
+  CANCEL_HANDOFF_COMMENTS = 'CANCEL_HANDOFF_COMMENTS',
   CLOSE_PDG_BUY_FLOW = 'CLOSE_PDG_BUY_FLOW',
   CLOSE_POPUP = 'CLOSE_POPUP',
   CLOSE_WINDOW = 'CLOSE_WINDOW',
@@ -28,6 +31,10 @@ export enum YTSignalActionType {
   OPEN_POST_COMMENT_DIALOG = 'OPEN_POST_COMMENT_DIALOG',
   PAUSE_PLAYER = 'PAUSE_PLAYER',
   PLAY_PLAYER = 'PLAY_PLAYER',
+  PLAYER_LOOP_OFF = 'PLAYER_LOOP_OFF',
+  PLAYER_LOOP_VIDEO = 'PLAYER_LOOP_VIDEO',
+  PLAYER_PLAY_NEXT = 'PLAYER_PLAY_NEXT',
+  PLAYER_PLAY_PREVIOUS = 'PLAYER_PLAY_PREVIOUS',
   POPUP_BACK = 'POPUP_BACK',
   RECORD_MENTIONS_EDU_IMPRESSION = 'RECORD_MENTIONS_EDU_IMPRESSION',
   REFRESH_DOWNLOADS = 'REFRESH_DOWNLOADS',
@@ -55,9 +62,12 @@ export enum YTSignalActionType {
   TOGGLE_LOOP_SHORTS_ON = 'TOGGLE_LOOP_SHORTS_ON',
   TOGGLE_RESTRICTED_MODE_OFF = 'TOGGLE_RESTRICTED_MODE_OFF',
   TOGGLE_RESTRICTED_MODE_ON = 'TOGGLE_RESTRICTED_MODE_ON',
+  TOGGLE_STABLE_VOLUME = 'TOGGLE_STABLE_VOLUME',
   TOGGLE_TRANSACTION_TIMESTAMPS = 'TOGGLE_TRANSACTION_TIMESTAMPS',
   TOGGLE_TRANSCRIPT_TIMESTAMPS = 'TOGGLE_TRANSCRIPT_TIMESTAMPS',
+  TOGGLE_VIDEO_INFO = 'TOGGLE_VIDEO_INFO',
   UNDO_DELETE_DOWNLOAD = 'UNDO_DELETE_DOWNLOAD',
+  VIDEO_MODE = 'VIDEO_MODE',
 
   CONFIG_VALUE_SET = 'CONFIG_VALUE_SET',
   AGE_CHECK_COMPLETE = 'AGE_CHECK_COMPLETE'
@@ -387,12 +397,17 @@ export const YTEndpointSchemaMap = {
   hideEngagementPanelScrimAction: {
     engagementPanelTargetId: ytv_str()
   },
+  openClientOverlayAction: {
+    context: ytv_str(),
+    type: ytv_str(['CLIENT_OVERLAY_TYPE_ADD_TO_PLAYLIST', 'CLIENT_OVERLAY_TYPE_AUDIO_OPTIONS', 'CLIENT_OVERLAY_TYPE_PLAYBACK_SETTINGS', 'CLIENT_OVERLAY_TYPE_SEND_FEEDBACK_SECONDARY', 'CLIENT_OVERLAY_TYPE_VIDEO_PLAYBACK_SPEED', 'CLIENT_OVERLAY_TYPE_VIDEO_QUALITY', 'CLIENT_OVERLAY_TYPE_VIDEO_REPORTING'])
+  },
   openPopupAction: {
     accessibilityData: ytv_sch(YTAccessibilitySchema),
     beReused: ytv_bol(),
     durationHintMs: ytv_num(),
     popup: ytv_ren(),
-    popupType: ytv_str(['DIALOG', 'DROPDOWN', 'HINT', 'LOCKED_MODAL', 'NOTIFICATION', 'RESPONSIVE_DROPDOWN', 'SURVEY', 'TOP_ALIGNED_DIALOG', 'TOAST'])
+    popupType: ytv_str(['DIALOG', 'DROPDOWN', 'FULLSCREEN_OVERLAY', 'HINT', 'LOCKED_MODAL', 'MODAL', 'NOTIFICATION', 'RESPONSIVE_DROPDOWN', 'SURVEY', 'TOP_ALIGNED_DIALOG', 'TOAST']),
+    replacePopup: ytv_bol()
   },
   removeChatItemAction: {
     targetItemId: ytv_str()
@@ -473,6 +488,16 @@ export const YTEndpointSchemaMap = {
     isInitialLoad: ytv_bol(),
     opportunityType: ytv_str(['OPPORTUNITY_TYPE_ORGANIC_SEARCH_RESPONSE_RECEIVED', 'OPPORTUNITY_TYPE_REEL_WATCH_SEQUENCE_RESPONSE_RECEIVED'])
   },
+  authDeterminedCommand: {
+    authenticatedCommand: ytv_enp(),
+    unauthenticatedCommand: ytv_enp()
+  },
+  authRequiredCommand: {
+    identityActionContext: ytv_sch({
+      eventTrigger: ytv_str(['ACCOUNT_EVENT_TRIGGER_LIKE_DISLIKE', 'ACCOUNT_EVENT_TRIGGER_SAVE_VIDEO', 'ACCOUNT_EVENT_TRIGGER_SUBSCRIBE']),
+      nextEndpoint: ytv_enp()
+    })
+  },
   changeMarkersVisibilityCommand: {
     entityKeys: ytv_arr(ytv_str()),
     isVisible: ytv_bol(),
@@ -536,6 +561,13 @@ export const YTEndpointSchemaMap = {
       })
     })
   },
+  handoffInitiateActionCommand: {
+    lrDeviceState: ytv_sch({
+      canCreateComments: ytv_bol(),
+      isPauseCommentsEnabled: ytv_bol()
+    }),
+    type: ytv_str(['HANDOFF_FEATURE_TYPE_LR_COMMENTS'])
+  },
   hideItemSectionVideosByIdCommand: {
     videoId: ytv_str()
   },
@@ -584,6 +616,9 @@ export const YTEndpointSchemaMap = {
     offsetFromVideoStartMilliseconds: ytv_str(),
     videoId: ytv_str()
   },
+  selectSubtitlesTrackCommand: {
+    useDefaultTrack: ytv_bol()
+  },
   serialCommand: { // Same as commandExecutorCommand
     commands: ytv_arr(ytv_enp())
   },
@@ -600,6 +635,9 @@ export const YTEndpointSchemaMap = {
     panelLoadingStrategy: ytv_sch({
       inlineContent: ytv_ren()
     })
+  },
+  showHintCommand: {
+    shouldShowHint: ytv_bol()
   },
   showMenuCommand: {
     contentId: ytv_str(),
@@ -629,6 +667,7 @@ export const YTEndpointSchemaMap = {
     fadeOutDurationMs: ytv_num(),
     overlayRenderer: ytv_ren()
   },
+  startAccountSelectorCommand: {},
   toggleLiveReactionsMuteCommand: {
     hack: ytv_bol()
   },
@@ -656,6 +695,9 @@ export const YTEndpointSchemaMap = {
   },
   addUpcomingEventReminderEndpoint: {
     params: ytv_str()
+  },
+  applicationSettingsEndpoint: {
+    hack: ytv_bol()
   },
   browseEndpoint: {
     browseEndpointContextSupportedConfigs: ytv_sch({
@@ -697,6 +739,9 @@ export const YTEndpointSchemaMap = {
     uiActions: ytv_sch({
       hideEnclosingContainer: ytv_bol()
     })
+  },
+  flagEndpoint: {
+    flagAction: ytv_str()
   },
   getReportFormEndpoint: {
     params: ytv_str()
@@ -793,6 +838,14 @@ export const YTEndpointSchemaMap = {
   sendLiveChatVoteEndpoint: {
     params: ytv_str()
   },
+  setClientSettingEndpoint: {
+    settingDatas: ytv_arr(ytv_sch({
+      boolValue: ytv_bol(),
+      clientSettingEnum: ytv_sch({
+        item: ytv_str(['USER_AUDIO_51_PREFERENCE'])
+      })
+    }))
+  },
   setSettingEndpoint: {
     boolValue: ytv_bol(),
     settingItemId: ytv_str(),
@@ -842,7 +895,7 @@ export const YTEndpointSchemaMap = {
     nextEndpoint: ytv_enp()
   },
   signalNavigationEndpoint: {
-    signal: ytv_str(['LIVE_CONTROL_ROOM'])
+    signal: ytv_str(['ACCOUNT_SETTINGS', 'LIVE_CONTROL_ROOM'])
   },
   signalServiceEndpoint: {
     actions: ytv_arr(ytv_enp()),
@@ -904,12 +957,23 @@ export const YTEndpointSchemaMap = {
     playerParams: ytv_str(),
     playlistId: ytv_str(),
     playlistSetVideoId: ytv_str(),
+    replayIfSameVideo: ytv_bol(),
     startTimeSeconds: ytv_num(),
+    ustreamerConfig: ytv_str(),
     videoId: ytv_str(),
+    watchEndpointMdxConfig: ytv_sch({
+      mdxPlaybackSourceContext: ytv_sch({})
+    }),
+    watchEndpointMusicSupportedConfigs: ytv_sch({
+      watchEndpointMusicConfig: ytv_sch({
+        musicVideoType: ytv_str(YTMusicVideoType)
+      })
+    }),
     watchEndpointSupportedOnesieConfig: ytv_sch({
       html5PlaybackOnesieConfig: ytv_sch({
         commonConfig: ytv_sch({
-          url: ytv_str()
+          url: ytv_str(),
+          ustreamerConfig: ytv_str()
         })
       })
     }),
