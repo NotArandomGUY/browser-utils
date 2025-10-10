@@ -165,7 +165,10 @@ const processOnesieInnertubeRequest = async (innertubeRequest: InstanceType<type
   onesieRequest.headers = Array.from(request.headers.entries()).map(e => new OnesieHttpHeader({ name: e[0].replace(/(^|-)[a-z]/g, c => c.toUpperCase()), value: e[1] }))
   onesieRequest.body = new Uint8Array(await request.arrayBuffer())
 
-  if (encryptionKey != null) innertubeRequest.encryptedOnesieInnertubeRequest = await encryptOnesie(onesieRequest.serialize(), encryptionKey, innertubeRequest)
+  if (encryptionKey != null) {
+    innertubeRequest.encryptedOnesieInnertubeRequest = await encryptOnesie(onesieRequest.serialize(), encryptionKey, innertubeRequest)
+    innertubeRequest.unencryptedOnesieInnertubeRequest = null
+  }
 }
 
 const processOnesieData = async (slice: UMPSlice): Promise<boolean> => {
@@ -231,7 +234,7 @@ const processUMPSlice = async (slice: UMPSlice): Promise<boolean> => {
     case UMPType.NEXT_REQUEST_POLICY: {
       const message = new UMPNextRequestPolicy().deserialize(slice.getBuffer())
 
-      logger.debug('next request policy:', message)
+      logger.trace('next request policy:', message)
       return true
     }
     case UMPType.FORMAT_SELECTION_CONFIG: {
@@ -255,7 +258,7 @@ const processUMPSlice = async (slice: UMPSlice): Promise<boolean> => {
     case UMPType.PLAYBACK_START_POLICY: {
       const message = new UMPPlaybackStartPolicy().deserialize(slice.getBuffer())
 
-      logger.debug('playback start policy:', message)
+      logger.trace('playback start policy:', message)
       return true
     }
     case UMPType.SABR_CONTEXT_UPDATE: {
@@ -337,7 +340,7 @@ const processUMPRequest = async (ctx: NetworkRequestContext): Promise<void> => {
       }
     }
 
-    ctx.request = new Request(request, { body })
+    if (!['GET', 'HEAD'].includes(request.method.toUpperCase())) ctx.request = new Request(request, { body })
   } catch (error) {
     if (error instanceof Response) {
       assign<NetworkContext, NetworkContextState>(ctx, { state: NetworkState.SUCCESS, response: error })
@@ -353,7 +356,7 @@ const processUMPResponse = async (ctx: NetworkContext<unknown, NetworkState.SUCC
 
   const stream = new CodedStream(new Uint8Array(await response.arrayBuffer()))
 
-  logger.debug('response size:', stream.getRemainSize())
+  logger.trace('response size:', stream.getRemainSize())
 
   let slice: UMPSlice | null = null
   try {

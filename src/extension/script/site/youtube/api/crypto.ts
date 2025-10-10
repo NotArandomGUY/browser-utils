@@ -103,19 +103,20 @@ export const encodeTrackingParam = (trackingParam: string): string => {
 export const decryptOnesie = async (content: Uint8Array, keys: Uint8Array[], params: CryptoParams | null): Promise<[Uint8Array, Uint8Array | null]> => {
   const { hmac, iv, compressionType, isUnencrypted } = params ?? {}
 
-  let key: Uint8Array | null = null
+  let validKey: Uint8Array | null = null
 
   if (!isUnencrypted && iv != null) {
     if (subtle == null) throw CRYPTO_API_ERROR
     if (keys.length === 0) throw CRYPTO_KEY_ERROR
 
-    for (key of keys) {
+    for (const key of keys) {
       const aesKey = await subtle.importKey('raw', key.slice(0, 16), AES_PARAMS, false, ['decrypt'])
       const hmacKey = await subtle.importKey('raw', key.slice(16), HMAC_PARAMS, false, ['verify'])
 
       if (hmac != null && !await subtle.verify(HMAC_PARAMS, hmacKey, hmac, bufferConcat([content, iv]))) continue
 
       content = new Uint8Array(await subtle.decrypt({ ...AES_PARAMS, counter: iv, length: 128 }, aesKey, content))
+      validKey = key
       break
     }
   }
@@ -130,7 +131,7 @@ export const decryptOnesie = async (content: Uint8Array, keys: Uint8Array[], par
       throw COMPRESSION_API_ERROR
   }
 
-  return [content, key]
+  return [content, validKey]
 }
 
 export const encryptOnesie = async (content: Uint8Array, key: Uint8Array | null, params: CryptoParams | null): Promise<Uint8Array> => {

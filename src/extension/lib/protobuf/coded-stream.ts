@@ -300,10 +300,7 @@ export default class CodedStream {
   }
 
   public writeBytes(bytes: Uint8Array): this {
-    this.writeUInt32(bytes.length)
-    this.writeRawBytes(bytes)
-
-    return this
+    return this.writeUInt32(bytes.length).writeRawBytes(bytes)
   }
 
   public writeRawBytes(bytes: Uint8Array): this {
