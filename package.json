@@ -1,8 +1,7 @@
 {
   "name": "browser-utils",
-  "version": "0.0.11",
+  "version": "0.1.0",
   "description": "Browser Utils",
-  "main": "src/inject.ts",
   "scripts": {
     "watch": "webpack --config webpack/webpack.dev.ts --watch",
     "build": "webpack --config webpack/webpack.prod.ts"
@@ -23,6 +22,7 @@
     "terser-webpack-plugin": "^5.3.14",
     "ts-loader": "^8.0.0",
     "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
     "tsconfig-paths-webpack-plugin": "^4.2.0",
     "typescript": "5.8.3",
     "webpack": "^5.76.0",

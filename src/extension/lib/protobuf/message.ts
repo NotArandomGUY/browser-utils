@@ -46,6 +46,7 @@ const checkFieldType = <F extends FieldDefinition>(fieldDefinition: F, value: un
       if (typeof value === 'boolean') break
       return false
     case ValueType.STRING:
+    case ValueType.HEX:
       if (typeof value === 'string') break
       return false
     case ValueType.BYTES:
@@ -89,6 +90,7 @@ const getFieldDefault = <D extends MessageDefinition, K extends MessageKey<D>>(f
       value = false
       break
     case ValueType.STRING:
+    case ValueType.HEX:
       value = ''
       break
     case ValueType.BYTES:
@@ -185,6 +187,9 @@ const serializeField = <D extends FieldDefinition>(stream: CodedStream, tag: num
     case ValueType.BYTES:
       stream.writeBytes(value as Uint8Array)
       break
+    case ValueType.HEX:
+      stream.writeBytes(Uint8Array.from(String(value).match(/.{1,2}/g)?.map(b => parseInt(b, 16)) ?? []))
+      break
     case ValueType.MESSAGE:
       stream.writeBytes((value as MessageBase<MessageDefinition>).serialize())
       break
@@ -197,7 +202,7 @@ class MessageBase<D extends MessageDefinition> {
   private readonly fieldMap: Map<number, NamedFieldDefinition<D>>
   private readonly skippedTags: [number, Uint8Array][]
 
-  public constructor(messageDefinition: D, initData?: MessageData<D>) {
+  public constructor(messageDefinition: D, initData?: Partial<MessageData<D>>) {
     this.fieldMap = new Map()
     this.skippedTags = []
 
@@ -216,7 +221,7 @@ class MessageBase<D extends MessageDefinition> {
       this.reset()
     } else {
       for (const [, fieldDefinition] of fieldMap) {
-        setField(this as Message<D>, fieldDefinition, initData[fieldDefinition.fn])
+        setField(this as Message<D>, fieldDefinition, initData[fieldDefinition.fn] ?? null)
       }
     }
 
@@ -229,10 +234,10 @@ class MessageBase<D extends MessageDefinition> {
     })
   }
 
-  public reset(): void {
+  public reset(isOptional = false): void {
     const { fieldMap, skippedTags } = this
 
-    assign(this, fromEntries(Array.from(fieldMap.values()).map(f => [f.fn, getFieldDefault(f)])))
+    assign(this, fromEntries(Array.from(fieldMap.values()).map(f => [f.fn, isOptional ? null : getFieldDefault(f)])))
     skippedTags.splice(0)
   }
 
@@ -257,8 +262,8 @@ class MessageBase<D extends MessageDefinition> {
     return stream.getWriteBuffer()
   }
 
-  public deserialize(buffer: Uint8Array | CodedStream): this {
-    this.reset()
+  public deserialize(buffer: Uint8Array | CodedStream, isOptional = false): this {
+    this.reset(isOptional)
 
     const { fieldMap, skippedTags } = this
 
@@ -322,8 +327,11 @@ class MessageBase<D extends MessageDefinition> {
         case ValueType.BYTES:
           setField(message, fieldDefinition, stream.readBytes() as FieldData<D[MessageKey<D>]>)
           break
+        case ValueType.HEX:
+          setField(message, fieldDefinition, stream.readBytes().reduce<string>((h, b) => h + b.toString(16).padStart(2, '0'), '') as FieldData<D[MessageKey<D>]>)
+          break
         case ValueType.MESSAGE:
-          setField(message, fieldDefinition, new (fieldDefinition as FieldDefinition<ValueType.MESSAGE>).fm().deserialize(stream.readBytes()) as FieldData<D[MessageKey<D>]>)
+          setField(message, fieldDefinition, new (fieldDefinition as FieldDefinition<ValueType.MESSAGE>).fm().deserialize(stream.readBytes(), isOptional) as FieldData<D[MessageKey<D>]>)
           break
         default:
           throw new Error('Invalid value type')
@@ -334,6 +342,6 @@ class MessageBase<D extends MessageDefinition> {
   }
 }
 
-export const createMessage = <const D extends MessageDefinition>(definition: D): (new (initData?: MessageData<D>) => Message<D>) => {
+export const createMessage = <const D extends MessageDefinition>(definition: D): (new (initData?: Partial<MessageData<D>>) => Message<D>) => {
   return Function.bind.call<typeof MessageBase, [null, D], ReturnType<typeof createMessage<D>>>(MessageBase, null, definition)
 }

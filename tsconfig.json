@@ -14,11 +14,11 @@
       "@sh/*": [
         "./shared/*"
       ],
-      "@ext/default/*": [
-        "./extension/script/default/*"
+      "@ext/common/*": [
+        "./extension/script/common/*"
       ],
-      "@ext/site/*": [
-        "./extension/script/site/*"
+      "@ext/custom/*": [
+        "./extension/script/custom/*"
       ],
       "@ext/*": [
         "./extension/*"
@@ -34,7 +34,14 @@
   "ts-node": {
     "compilerOptions": {
       "module": "commonjs",
-      "moduleResolution": "node"
+      "moduleResolution": "node",
+      "baseUrl": "webpack",
+      "rootDir": ".",
+      "paths": {
+        "@ext/*": [
+          "../src/extension/*"
+        ]
+      }
     }
   }
 }

@@ -1,7 +1,6 @@
 import { LogLevel } from '@ext/lib/logger'
 import { signMessage } from '@ext/lib/message/crypto'
 import { MessageData, MessageDataUnion } from '@ext/lib/message/type'
-import { EMC_KEY } from '@virtual/emc-key'
 
 export const enum ExtensionMessageSource {
   WORKER,
@@ -10,19 +9,23 @@ export const enum ExtensionMessageSource {
 }
 
 export const enum ExtensionMessageType {
-  OVERLAY_OPEN,
-  EVENT_RUN,
+  HANDSHAKE = 0x00,
+  LOG,
+  OVERLAY_OPEN = 0x10,
+  EVENT_RUN = 0x20,
   EVENT_ERROR,
-  FEATURE_ERROR,
+  FEATURE_ERROR = 0x30,
   FEATURE_STATE,
-  LOG
+  PACKAGE_UPDATE = 0x40
 }
 
 type ExtensionMessageDataMap = {
-  [ExtensionMessageType.EVENT_ERROR]: { name: string, message: string, stack: string[] },
-  [ExtensionMessageType.FEATURE_ERROR]: { groupId: string, featureId: number, error: ExtensionMessageDataMap[ExtensionMessageType.EVENT_ERROR] },
-  [ExtensionMessageType.FEATURE_STATE]: { groupId: string, mask: number[] },
+  [ExtensionMessageType.HANDSHAKE]: { key?: string }
   [ExtensionMessageType.LOG]: { timestamp: number, level: LogLevel, prefix: string, message: string }
+  [ExtensionMessageType.EVENT_ERROR]: { name: string, message: string, stack: string[] }
+  [ExtensionMessageType.FEATURE_ERROR]: { groupId: string, featureId: number, error: ExtensionMessageDataMap[ExtensionMessageType.EVENT_ERROR] }
+  [ExtensionMessageType.FEATURE_STATE]: { groupId: string, mask: number[] }
+  [ExtensionMessageType.PACKAGE_UPDATE]: { status?: string }
 }
 export type ExtensionMessageData<T extends ExtensionMessageType> = MessageData<ExtensionMessageDataMap, T>
 export type ExtensionMessage<T extends ExtensionMessageType = ExtensionMessageType> = {
@@ -32,49 +35,52 @@ export type ExtensionMessage<T extends ExtensionMessageType = ExtensionMessageTy
 } & MessageDataUnion<ExtensionMessageDataMap, T>
 export type ExtensionMessageSender = <T extends ExtensionMessageType>(type: T, data: ExtensionMessageData<T>, targetId?: number) => void
 
-function workerSender<T extends ExtensionMessageType>(source: ExtensionMessageSource, target: ExtensionMessageSource, type: T, data: ExtensionMessageData<T>, targetId?: number): void {
+function workerSender<T extends ExtensionMessageType>(key: Uint8Array, source: ExtensionMessageSource, target: ExtensionMessageSource, type: T, data: ExtensionMessageData<T>, targetId?: number): void {
   if (source === target) return
+
+  const message = signMessage(key, { source, target, type, data })
+
+  if (targetId != null) {
+    chrome.tabs.sendMessage(targetId, message)
+    return
+  }
 
   chrome.tabs.query({ active: true, lastFocusedWindow: true }).then(tabs => {
-    for (const tab of tabs) {
-      if (tab.id == null || (targetId != null && tab.id !== targetId)) continue
-
-      chrome.tabs.sendMessage(tab.id, signMessage(EMC_KEY, { source, target, type, data }), { frameId: 0 })
-    }
-  })
+    return Promise.all(tabs.map(tab => tab.id == null || chrome.tabs.sendMessage(tab.id, message, { frameId: 0 })))
+  }).catch(error => console.warn('worker sender error:', error))
 }
 
-function runtimeSender<T extends ExtensionMessageType>(source: ExtensionMessageSource, target: ExtensionMessageSource, type: T, data: ExtensionMessageData<T>): void {
+function runtimeSender<T extends ExtensionMessageType>(key: Uint8Array, source: ExtensionMessageSource, target: ExtensionMessageSource, type: T, data: ExtensionMessageData<T>): void {
   if (source === target) return
 
-  chrome.runtime.sendMessage(signMessage(EMC_KEY, { source, target, type, data })).catch(error => console.warn('runtime sender error:', error))
+  chrome.runtime.sendMessage(signMessage(key, { source, target, type, data })).catch(error => console.warn('runtime sender error:', error))
 }
 
-function windowSender<T extends ExtensionMessageType>(source: ExtensionMessageSource, target: ExtensionMessageSource, type: T, data: ExtensionMessageData<T>): void {
+function windowSender<T extends ExtensionMessageType>(key: Uint8Array, source: ExtensionMessageSource, target: ExtensionMessageSource, type: T, data: ExtensionMessageData<T>): void {
   if (source === target) return
 
-  window.postMessage(signMessage(EMC_KEY, { source, target, type, data }))
+  window.postMessage(signMessage(key, { source, target, type, data }))
 }
 
-export function getExtensionMessageSender(source: ExtensionMessageSource.WORKER): { sendMessageToIsolated: ExtensionMessageSender, sendMessageToMain: ExtensionMessageSender }
-export function getExtensionMessageSender(source: ExtensionMessageSource.ISOLATED): { sendMessageToWorker: ExtensionMessageSender, sendMessageToMain: ExtensionMessageSender }
-export function getExtensionMessageSender(source: ExtensionMessageSource.MAIN): { sendMessageToWorker: ExtensionMessageSender, sendMessageToIsolated: ExtensionMessageSender }
-export function getExtensionMessageSender(source: ExtensionMessageSource): Record<string, ExtensionMessageSender> {
+export function getExtensionMessageSender(key: Uint8Array, source: ExtensionMessageSource.WORKER): { sendMessageToIsolated: ExtensionMessageSender, sendMessageToMain: ExtensionMessageSender }
+export function getExtensionMessageSender(key: Uint8Array, source: ExtensionMessageSource.ISOLATED): { sendMessageToWorker: ExtensionMessageSender, sendMessageToMain: ExtensionMessageSender }
+export function getExtensionMessageSender(key: Uint8Array, source: ExtensionMessageSource.MAIN): { sendMessageToWorker: ExtensionMessageSender, sendMessageToIsolated: ExtensionMessageSender }
+export function getExtensionMessageSender(key: Uint8Array, source: ExtensionMessageSource): Record<string, ExtensionMessageSender> {
   switch (source) {
     case ExtensionMessageSource.WORKER:
       return {
-        sendMessageToIsolated: workerSender.bind(null, source, ExtensionMessageSource.ISOLATED),
-        sendMessageToMain: workerSender.bind(null, source, ExtensionMessageSource.MAIN)
+        sendMessageToIsolated: workerSender.bind(null, key, source, ExtensionMessageSource.ISOLATED),
+        sendMessageToMain: workerSender.bind(null, key, source, ExtensionMessageSource.MAIN)
       }
     case ExtensionMessageSource.ISOLATED:
       return {
-        sendMessageToWorker: runtimeSender.bind(null, source, ExtensionMessageSource.WORKER),
-        sendMessageToMain: windowSender.bind(null, source, ExtensionMessageSource.MAIN)
+        sendMessageToWorker: runtimeSender.bind(null, key, source, ExtensionMessageSource.WORKER),
+        sendMessageToMain: windowSender.bind(null, key, source, ExtensionMessageSource.MAIN)
       }
     case ExtensionMessageSource.MAIN:
       return {
-        sendMessageToWorker: windowSender.bind(null, source, ExtensionMessageSource.WORKER),
-        sendMessageToIsolated: windowSender.bind(null, source, ExtensionMessageSource.ISOLATED)
+        sendMessageToWorker: windowSender.bind(null, key, source, ExtensionMessageSource.WORKER),
+        sendMessageToIsolated: windowSender.bind(null, key, source, ExtensionMessageSource.ISOLATED)
       }
     default:
       throw new Error('Invalid source')

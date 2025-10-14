@@ -1,58 +1,25 @@
 import CopyPlugin from 'copy-webpack-plugin'
 import { createHash } from 'crypto'
-import { existsSync } from 'fs'
 import { join } from 'path'
 import TerserPlugin from 'terser-webpack-plugin'
 import TsconfigPathsPlugin from 'tsconfig-paths-webpack-plugin'
 import { Configuration, EntryObject, ProvidePlugin } from 'webpack'
 import merge from 'webpack-merge'
-import VirtualModulesPlugin from 'webpack-virtual-modules'
-import { DEFAULT_SCRIPT_CONFIG, SITE_SCRIPT_CONFIG, ScriptConfig } from '../src/extension/script/config'
+import ExtensionPackerPlugin from './plugin/extension-packer'
 
-const CHUNK_GLOBAL_SEED = `bu-build-${Math.floor(Date.now() / (24 * 60e3))}`
-const CHUNK_GLOBAL_HASH = createHash('md5').update(CHUNK_GLOBAL_SEED).update(JSON.stringify(DEFAULT_SCRIPT_CONFIG)).update(JSON.stringify(SITE_SCRIPT_CONFIG)).digest('hex')
-const CHUNK_GLOBAL_ID = `__wprt_${CHUNK_GLOBAL_HASH}__`
+const { version } = require('../package.json')
 
-const BMC_KEY = createHash('sha256').update(CHUNK_GLOBAL_SEED).update(CHUNK_GLOBAL_HASH).digest()
-const EMC_KEY = createHash('sha256').update(CHUNK_GLOBAL_HASH).update(CHUNK_GLOBAL_SEED).digest()
-
-type ValidScriptConfig = ScriptConfig & { _filename: string }
-
-const SCRIPT_PATH_SUFFIX = ['.ts', '/index.ts']
-const env = {
-  DEFAULT_SCRIPT_CONFIG: DEFAULT_SCRIPT_CONFIG.filter(mapScriptConfig.bind(null, 'default')) as ValidScriptConfig[],
-  SITE_SCRIPT_CONFIG: SITE_SCRIPT_CONFIG.filter(mapScriptConfig.bind(null, 'site')) as ValidScriptConfig[]
-}
-
-function mapScriptConfig(prefix: string, config: ScriptConfig): boolean {
-  const pathPrefix = join(__dirname, `../src/extension/script/${prefix}/${config.script}`)
-
-  for (const pathSuffix of SCRIPT_PATH_SUFFIX) {
-    const path = `${pathPrefix}${pathSuffix}`
-    if (!existsSync(path)) continue
-
-    Object.defineProperty(config, '_filename', { enumerable: false, value: path })
-    return true
-  }
-
-  return false
-}
-
-function normalizeScriptName(script: string): string {
-  return script.replace(/[./]/g, '_')
-}
+const CHUNK_GLOBAL_SEED = `bu-build-${version}.${Math.floor(Date.now() / (24 * 60e3))}`
+const CHUNK_GLOBAL_HASH = createHash('md5').update(CHUNK_GLOBAL_SEED).digest('hex')
+const CHUNK_GLOBAL_ID = `__wprt_${CHUNK_GLOBAL_HASH.slice(0, 16)}__`
 
 function generateEntries(scripts: string[] | { [output: string]: string }, srcDir: string, dstDir: string): EntryObject {
+  srcDir = join(__dirname, `../src/${srcDir}`)
+
   if (Array.isArray(scripts)) {
-    const absSrcDir = join(__dirname, `../src/${srcDir}`)
-    scripts = Object.fromEntries(scripts.map(script => [script, join(absSrcDir, script)]))
+    return Object.fromEntries(scripts.map(script => [`${dstDir}/${script}`, `${srcDir}/${script}`]))
   }
-
-  return Object.fromEntries(Object.entries(scripts).map(e => [`js/${dstDir}/${normalizeScriptName(e[0])}`.replace(/\/+/g, '/'), e[1]]))
-}
-
-function generateScriptEntries(prefix: string, scripts: ValidScriptConfig[]): EntryObject {
-  return generateEntries(Object.fromEntries(scripts.map(config => [config.script, config._filename])), `extension/script/${prefix}`, prefix)
+  return Object.fromEntries(Object.entries(scripts).map(entry => [`${dstDir}/${entry[0]}`, `${srcDir}/${entry[1]}`]))
 }
 
 function createConfig(prefix: string, config: Configuration): Configuration {
@@ -98,63 +65,33 @@ function createConfig(prefix: string, config: Configuration): Configuration {
     resolve: {
       extensions: ['.ts', '.tsx', '.js'],
       plugins: [new TsconfigPathsPlugin({ configFile: join(__dirname, '../tsconfig.json') })]
-    },
-    plugins: [
-      new CopyPlugin({
-        patterns: [
-          { from: '.', to: '.', context: `public/${prefix}` }
-        ],
-        options: {}
-      })
-    ]
+    }
   }, config)
 }
 
 export default [
   createConfig('extension', {
-    entry: generateEntries(['worker'], 'extension', ''),
+    entry: generateEntries(['worker', 'preload'], 'extension', ''),
     plugins: [
-      new VirtualModulesPlugin({
-        'node_modules/@virtual/emc-key': `module.exports={EMC_KEY:new Uint8Array([${EMC_KEY.join(',')}])}`,
-        'node_modules/@virtual/script-config': `module.exports=${JSON.stringify(env)}`
-      })
-    ]
-  }),
-  createConfig('extension', {
-    entry: generateEntries(['isolated'], 'extension/script/preload', 'preload'),
-    plugins: [
-      new VirtualModulesPlugin({
-        'node_modules/@virtual/emc-key': `module.exports={EMC_KEY:new Uint8Array([${EMC_KEY.join(',')}])}`
-      })
-    ]
-  }),
-  createConfig('extension', {
-    entry: {
-      ...generateEntries(['main'], 'extension/script/preload', 'preload'),
-      ...generateScriptEntries('default', env.DEFAULT_SCRIPT_CONFIG),
-      ...generateScriptEntries('site', env.SITE_SCRIPT_CONFIG)
-    },
-    optimization: {
-      runtimeChunk: {
-        name: 'js/runtime'
-      },
-      splitChunks: {
-        cacheGroups: {
-          default: false,
-          defaultVendors: {
-            name: 'vendor',
-            filename: 'js/vendor.js',
-            chunks: 'all',
-            minChunks: 2
+      new ExtensionPackerPlugin(version),
+      new CopyPlugin({
+        patterns: [
+          {
+            from: '.',
+            to: '.',
+            context: `public/extension`,
+            transform: {
+              transformer(data, path) {
+                if (!path.endsWith('manifest.json')) return data
+
+                return JSON.stringify({
+                  ...JSON.parse(new TextDecoder().decode(data)),
+                  version
+                })
+              }
+            }
           }
-        }
-      }
-    },
-    plugins: [
-      new VirtualModulesPlugin({
-        'node_modules/@virtual/bmc-key': `module.exports={BMC_KEY:new Uint8Array([${BMC_KEY.join(',')}])}`,
-        'node_modules/@virtual/emc-key': `module.exports={EMC_KEY:new Uint8Array([${EMC_KEY.join(',')}])}`,
-        'node_modules/@virtual/wprt': `module.exports=${JSON.stringify({ CHUNK_GLOBAL_ID })}`
+        ]
       })
     ]
   }),
@@ -164,6 +101,7 @@ export default [
       chunkFormat: false
     },
     plugins: [
+      new CopyPlugin({ patterns: [{ from: '.', to: '.', context: `public/webapp` }] }),
       new ProvidePlugin({
         $: require.resolve('jquery'),
         jQuery: require.resolve('jquery'),
@@ -171,4 +109,4 @@ export default [
       })
     ]
   })
-] satisfies Configuration[]
+]

@@ -17,6 +17,7 @@ export const enum ValueType {
   BOOL,
   STRING,
   BYTES,
+  HEX, // extension of bytes
   MESSAGE
 }
 
@@ -36,6 +37,7 @@ export type ValueData<T extends ValueType> = {
   [ValueType.BOOL]: boolean
   [ValueType.STRING]: string
   [ValueType.BYTES]: Uint8Array,
+  [ValueType.HEX]: string,
   [ValueType.MESSAGE]: Message<MessageDefinition>
 }[T]
 
@@ -55,6 +57,7 @@ export const valueTypeToWireType = (valueType: ValueType): WireType => {
       return WireType.FIXED64
     case ValueType.STRING:
     case ValueType.BYTES:
+    case ValueType.HEX:
     case ValueType.MESSAGE:
       return WireType.LENGTH_DELIMITED
     case ValueType.FIXED32:

@@ -216,15 +216,15 @@ export default class CodedStream {
   }
 
   public writeInt32(value: number): this {
-    return this.writeUInt32(unsigned32(value))
+    return this.writeRawBytes(varintEncode(unsigned32(value))[0])
   }
 
   public writeInt64(value: bigint): this {
-    return this.writeUInt64(unsigned64(value))
+    return this.writeRawBytes(varintEncode(unsigned64(value))[0])
   }
 
   public writeVInt32(value: number): this {
-    return this.writeVUInt32(unsigned32(value))
+    return this.writeRawBytes(varint32Encode(unsigned32(value))[0])
   }
 
   public writeUInt32(value: number): this {

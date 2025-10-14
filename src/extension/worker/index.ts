@@ -1,21 +1,14 @@
 import { registerFeature, registerFeatureGroup } from '@ext/lib/feature'
-import WorkerInjectorModule from '@ext/worker/module/injector'
 import WorkerMessageModule from '@ext/worker/module/message'
 import WorkerNetworkModule from '@ext/worker/module/network'
+import WorkerPackageModule from '@ext/worker/module/package'
+import WorkerScriptModule from '@ext/worker/module/script'
 
-let isActive = false
+registerFeatureGroup('worker', group => {
+  registerFeature(group, WorkerScriptModule)
+  registerFeature(group, WorkerNetworkModule)
+  registerFeature(group, WorkerMessageModule)
 
-function activateWorker(): void {
-  if (isActive) return
-
-  registerFeatureGroup('worker', group => {
-    registerFeature(group, WorkerInjectorModule)
-    registerFeature(group, WorkerNetworkModule)
-    registerFeature(group, WorkerMessageModule)
-  })
-
-  isActive = true
-}
-
-chrome.runtime.onStartup.addListener(activateWorker)
-activateWorker()
+  // Register last so the other modules can register callbacks first before package load
+  registerFeature(group, WorkerPackageModule)
+})

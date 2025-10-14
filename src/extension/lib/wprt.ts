@@ -3,7 +3,7 @@ import { assign, defineProperties, defineProperty, fromEntries, getOwnPropertyNa
 import Hook, { HookResult } from '@ext/lib/intercept/hook'
 import Logger from '@ext/lib/logger'
 import { proxyBind } from '@ext/lib/proxy/bind'
-import { CHUNK_GLOBAL_ID } from '@virtual/wprt'
+import { CHUNK_GLOBAL_ID } from '@virtual/package'
 
 
 type ChunkID = string | number

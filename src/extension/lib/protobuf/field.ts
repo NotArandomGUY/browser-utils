@@ -65,6 +65,9 @@ export const pbf_str = (fi: number, fd?: unknown): FieldDefinition<ValueType.STR
 export const pbf_bin = (fi: number, fd?: unknown): FieldDefinition<ValueType.BYTES, false> => {
   return pbf_default({ fi, ft: ValueType.BYTES, fr: false }, fd)
 }
+export const pbf_hex = (fi: number, fd?: unknown): FieldDefinition<ValueType.HEX, false> => {
+  return pbf_default({ fi, ft: ValueType.HEX, fr: false }, fd)
+}
 export const pbf_msg = <D extends MessageDefinition>(fi: number, fm: new () => Message<D>, fd?: unknown): FieldDefinition<ValueType.MESSAGE, false, D> => {
   return pbf_default({ fi, ft: ValueType.MESSAGE, fm, fr: false }, fd)
 }
