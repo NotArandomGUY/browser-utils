@@ -352,7 +352,9 @@ const processUMPRequest = async (ctx: NetworkRequestContext): Promise<void> => {
 }
 
 const processUMPResponse = async (ctx: NetworkContext<unknown, NetworkState.SUCCESS>): Promise<void> => {
-  const { response } = ctx
+  const { url, response } = ctx
+
+  if (url.searchParams.has('mime')) return
 
   const stream = new CodedStream(new Uint8Array(await response.arrayBuffer()))
 
@@ -428,7 +430,7 @@ export default class YTPlayerUMPModule extends Feature {
     addInterceptNetworkCallback(async ctx => {
       const { url } = ctx
 
-      if (!UMP_PATHNAME_REGEXP.test(url.pathname) || url.hostname.startsWith('redirector.') || url.searchParams.has('mime')) {
+      if (url.hostname.startsWith('redirector.') || !UMP_PATHNAME_REGEXP.test(url.pathname)) {
         if (ctx.state === NetworkState.SUCCESS && url.pathname === '/tv_config') await processTVConfig(ctx)
         return
       }
