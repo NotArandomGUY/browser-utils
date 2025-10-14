@@ -155,10 +155,17 @@ const updateUserScripts = async (): Promise<void> => {
 }
 
 const onActionIconClick = async (): Promise<void> => {
-  if (chrome.userScripts != null || !await chrome.permissions.request({ permissions: ['userScripts'] })) return
+  if (chrome.userScripts != null || !await chrome.permissions.request({ permissions: ['userScripts'] })) {
+    chrome.userScripts?.getScripts().then(scripts => {
+      if (scripts.length > 0) return
+
+      logger.info('no user scripts loaded, reloading package...')
+      reloadScriptPackage()
+    })
+    return
+  }
 
   logger.info('request for user scripts api success, reloading package...')
-
   await reloadScriptPackage()
 }
 

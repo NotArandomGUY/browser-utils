@@ -16,7 +16,8 @@ export const enum ExtensionMessageType {
   EVENT_ERROR,
   FEATURE_ERROR = 0x30,
   FEATURE_STATE,
-  PACKAGE_UPDATE = 0x40
+  PACKAGE_UPDATE = 0x40,
+  PACKAGE_SCRIPT_NET_RULE
 }
 
 type ExtensionMessageDataMap = {
@@ -26,6 +27,7 @@ type ExtensionMessageDataMap = {
   [ExtensionMessageType.FEATURE_ERROR]: { groupId: string, featureId: number, error: ExtensionMessageDataMap[ExtensionMessageType.EVENT_ERROR] }
   [ExtensionMessageType.FEATURE_STATE]: { groupId: string, mask: number[] }
   [ExtensionMessageType.PACKAGE_UPDATE]: { status?: string }
+  [ExtensionMessageType.PACKAGE_SCRIPT_NET_RULE]: { scriptId: string, includeDomain: string[], excludeDomain: string[] }
 }
 export type ExtensionMessageData<T extends ExtensionMessageType> = MessageData<ExtensionMessageDataMap, T>
 export type ExtensionMessage<T extends ExtensionMessageType = ExtensionMessageType> = {

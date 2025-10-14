@@ -1,4 +1,5 @@
 import { Feature } from '@ext/lib/feature'
+import IndexedKV from '@ext/lib/ikv'
 import Logger from '@ext/lib/logger'
 import ScriptNetHeaderInfo from '@ext/proto/script/net/header-info'
 import ScriptNetModifyHeaderInfo, { ScriptNetHeaderOperation } from '@ext/proto/script/net/modify-header-info'
@@ -12,8 +13,6 @@ import ScriptNetURLTransform from '@ext/proto/script/net/url-transform'
 import { getPackageScriptEntry, getPackageScriptIDs, parseOptionalConfig, registerPackageLoadCallback, unregisterPackageLoadCallback } from '@ext/worker/module/package'
 
 import DNR = chrome.declarativeNetRequest
-
-const logger = new Logger('WORKER-NETWORK')
 
 const DomainType = {
   [ScriptNetDomainType.FIRST_PARTY]: 'firstParty',
@@ -60,6 +59,12 @@ const RuleActionType = {
   [ScriptNetRuleActionType.MODIFY_HEADERS]: 'modifyHeaders',
   [ScriptNetRuleActionType.ALLOW_ALL_REQUESTS]: 'allowAllRequests'
 } satisfies Record<ScriptNetRuleActionType, `${DNR.RuleActionType}`>
+
+const RULE_EXCLUDE_DOMAIN_KV = 'rule-exclude-domain'
+
+const logger = new Logger('WORKER-NETWORK')
+
+const kv = new IndexedKV('network')
 
 const parseScriptNetHeaderInfo = (config?: InstanceType<typeof ScriptNetHeaderInfo> | null): DNR.HeaderInfo | null => {
   if (config == null) return null
@@ -186,12 +191,21 @@ const updateRules = async (): Promise<void> => {
   const addRules: DNR.Rule[] = []
 
   const packageEntries = await Promise.all((await getPackageScriptIDs()).map(getPackageScriptEntry))
+  const ruleExcludeDomain = await kv.get<Record<string, string[]>>(RULE_EXCLUDE_DOMAIN_KV)
 
   packageEntries.forEach((entry, scriptIdx) => {
-    if (entry?.config?.networkRules == null) return
+    const config = entry?.config
+    if (config?.name == null || config?.networkRules == null) return
 
-    entry.config.networkRules.map(parseScriptNetRule).forEach((rule, ruleIdx) => {
+    const excludeDomain = ruleExcludeDomain?.[config.name] ?? []
+
+    config.networkRules.map(parseScriptNetRule).forEach((rule, ruleIdx) => {
       if (rule == null) return
+
+      rule.condition.excludedInitiatorDomains ??= [
+        ...rule.condition.excludedInitiatorDomains ?? [],
+        ...excludeDomain
+      ]
 
       addRules.push({
         id: (scriptIdx << 20) | (ruleIdx & 0xFFFFF),
@@ -200,24 +214,39 @@ const updateRules = async (): Promise<void> => {
     })
   })
 
-  logger.info('updating dynamic rules...')
   DNR.getDynamicRules().then(rules => {
+    logger.info('add/remove dynamic rules:', addRules, rules)
+
     DNR.updateDynamicRules({
       addRules,
       removeRuleIds: rules.map(rule => rule.id)
-    }).then(() => {
-      DNR.getDynamicRules().then(rules => logger.info('updated dynamic rules:', rules))
+    }).catch(error => {
+      logger.error('update dynamic rules error:', error)
     })
   })
+}
 
-  logger.info('updating session rules...')
-  DNR.getSessionRules().then(rules => {
-    DNR.updateSessionRules({
-      removeRuleIds: rules.map(rule => rule.id)
-    }).then(() => {
-      DNR.getSessionRules().then(rules => logger.info('updated session rules:', rules))
-    })
-  })
+export const updateNetworkRuleFilter = async (scriptId: string, includeDomain: string[], excludeDomain: string[]): Promise<void> => {
+  const ruleExcludeDomain = await kv.get<Record<string, string[]>>(RULE_EXCLUDE_DOMAIN_KV) ?? {}
+
+  // Merge existing exclude domain
+  excludeDomain.push(...ruleExcludeDomain[scriptId] ?? [])
+
+  // Remove duplicate/include domains
+  excludeDomain = excludeDomain.filter((domain, i) => excludeDomain.indexOf(domain) === i).filter(domain => !includeDomain.includes(domain))
+  excludeDomain.sort()
+
+  // Ignore if nothing changed
+  if (JSON.stringify(ruleExcludeDomain[scriptId] ?? []) === JSON.stringify(excludeDomain)) return
+
+  if (excludeDomain.length === 0) {
+    delete ruleExcludeDomain[scriptId]
+  } else {
+    ruleExcludeDomain[scriptId] = excludeDomain
+  }
+
+  await kv.put(RULE_EXCLUDE_DOMAIN_KV, ruleExcludeDomain)
+  await updateRules()
 }
 
 export default class WorkerNetworkModule extends Feature {
@@ -231,7 +260,6 @@ export default class WorkerNetworkModule extends Feature {
     unregisterPackageLoadCallback(updateRules)
 
     DNR.getDynamicRules().then(rules => DNR.updateDynamicRules({ removeRuleIds: rules.map(rule => rule.id) }))
-    DNR.getSessionRules().then(rules => DNR.updateSessionRules({ removeRuleIds: rules.map(rule => rule.id) }))
 
     return true
   }

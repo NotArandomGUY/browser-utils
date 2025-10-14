@@ -3,6 +3,7 @@ import { Feature } from '@ext/lib/feature'
 import Logger from '@ext/lib/logger'
 import { SignedMessage, verifyMessage } from '@ext/lib/message/crypto'
 import { ExtensionMessage, ExtensionMessageSource, ExtensionMessageType, getExtensionMessageSender } from '@ext/lib/message/extension'
+import { updateNetworkRuleFilter } from '@ext/worker/module/network'
 import { getPackageMessageKey, updateScriptPackage } from '@ext/worker/module/package'
 import { HANDSHAKE_KEY } from '@virtual/extension'
 
@@ -54,6 +55,13 @@ const onMessage = async (message: SignedMessage<ExtensionMessage>, sender: chrom
     case ExtensionMessageType.PACKAGE_UPDATE:
       updateScriptPackage()
       break
+    case ExtensionMessageType.PACKAGE_SCRIPT_NET_RULE: {
+      const { scriptId, includeDomain, excludeDomain } = message.data
+
+      logger.debug('script network rule update', scriptId, includeDomain, excludeDomain)
+      updateNetworkRuleFilter(scriptId, includeDomain, excludeDomain)
+      break
+    }
     default:
       logger.warn('invalid message type:', message.type)
       break
