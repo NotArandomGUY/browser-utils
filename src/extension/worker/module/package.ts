@@ -2,7 +2,7 @@ import { defineProperty } from '@ext/global/object'
 import { Mutex } from '@ext/lib/async'
 import { compress, decompress } from '@ext/lib/compression'
 import { Feature } from '@ext/lib/feature'
-import IndexedDB from '@ext/lib/idb'
+import IndexedKV from '@ext/lib/ikv'
 import Logger from '@ext/lib/logger'
 import { ExtensionMessageSource, ExtensionMessageType, getExtensionMessageSender } from '@ext/lib/message/extension'
 import RemoteBranch from '@ext/proto/remote/branch'
@@ -21,10 +21,6 @@ const ENCRYPT_ALGO = { name: 'AES-CBC', length: 256 }
 
 const logger = new Logger('WORKER-PACKAGE')
 
-interface IDBKeyValueEntry<T> {
-  key: string
-  value: T
-}
 interface IDBPackageEntry {
   version: string
   data: Uint8Array
@@ -34,7 +30,7 @@ const fetchMutex = new Mutex()
 const loadMutex = new Mutex()
 const loadCallbacks = new Array<() => void>()
 
-const db = new IndexedDB('package', [{ name: 'kv', params: { keyPath: 'key' } }, { name: 'spk', params: { keyPath: 'version' } }])
+const db = new IndexedKV('package', [{ name: 'spk', params: { keyPath: 'version' } }])
 const cache = new ScriptPackage({})
 
 const parseVersion = (version: string): number[] => {
@@ -45,21 +41,6 @@ const compareVersion = (left: string, right: string): number => {
   const l = parseVersion(left)
   const r = parseVersion(right)
   return (l.length >= r.length ? l : r).map((_, i) => Math.sign((l[i] ?? 0) - (r[i] ?? 0))).find(v => v !== 0) ?? 0
-}
-
-const getKV = async <T>(key: string): Promise<T | null> => {
-  const entry = await db.transaction('kv', async trans => {
-    const store = trans.objectStore('kv')
-    if (!await store.has(key)) return null
-
-    return store.get<IDBKeyValueEntry<T>>(key)
-  })
-
-  return entry?.value ?? null
-}
-
-const putKV = async <T>(key: string, value: T): Promise<void> => {
-  await db.transaction('kv', trans => trans.objectStore('kv').put<IDBKeyValueEntry<T>>({ key, value }))
 }
 
 const getCachedPackageVersions = async (branch: string): Promise<string[]> => {
@@ -75,13 +56,13 @@ const getRemoteBranch = async (): Promise<InstanceType<typeof RemoteBranch> & { 
   const rsp = await fetch(chrome.runtime.getURL('extension.rpk'))
   if (rsp.ok) rpk.deserialize(await decompress(await rsp.arrayBuffer(), 'deflate'), true)
 
-  const branchId = await getKV<string>(BRANCH_KV) ?? DEFAULT_BRANCH_ID
+  const branchId = await db.get<string>(BRANCH_KV) ?? DEFAULT_BRANCH_ID
 
   const branch = rpk.branches?.find(b => b.id === branchId) ?? rpk.branches?.find(b => b.id === DEFAULT_BRANCH_ID)
   if (branch == null) throw new Error('missing branch config')
 
   branch.id ??= branchId
-  putKV(BRANCH_KV, branch.id).catch(error => logger.warn('store branch kv error:', error))
+  db.put(BRANCH_KV, branch.id).catch(error => logger.warn('store branch kv error:', error))
 
   return branch as Awaited<ReturnType<typeof getRemoteBranch>>
 }
@@ -291,7 +272,7 @@ export default class WorkerPackageModule extends Feature {
       async value(branch: unknown) {
         if (typeof branch !== 'string') throw new Error('invalid branch provided')
 
-        await putKV(BRANCH_KV, branch)
+        await db.put(BRANCH_KV, branch)
         if (await updateScriptPackage()) return
 
         await reloadScriptPackage()
