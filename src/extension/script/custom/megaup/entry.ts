@@ -61,8 +61,8 @@ function doMethod1(): boolean {
 function doMethod2(): boolean {
   const url = Array.from(document.querySelectorAll('script'))
     .map(s => s.innerText)
-    .find(s => (/https:\/\/megaup\.net\//).test(s))
-    ?.match(/(?<=')https:\/\/megaup\.net\/.*?(?=')/)?.[0]
+    .find(s => (/https:\/\/mega.*?\..+?\//).test(s))
+    ?.match(/(?<=')https:\/\/mega.*?\..+?\/.*?(?=')/)?.[0]
 
   if (url == null) {
     logger.error('error: redirect url not found')

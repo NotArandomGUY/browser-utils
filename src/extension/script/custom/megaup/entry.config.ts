@@ -5,6 +5,6 @@ export default {
   categories: ['download'],
   description: 'Auto downloader',
   matches: [
-    '*://megaup.net/*'
+    '*://*.megaup.net/*'
   ]
 } satisfies IScriptConfig
