@@ -19,6 +19,7 @@ interface IBranchConfigEntry {
   id: string
   url: string | null
   encrypt: boolean
+  enabled: boolean
 }
 
 interface IBranchConfig {
@@ -32,7 +33,8 @@ const SCRIPT_PREFIXES = ['common', 'custom']
 const DEFAULT_BRANCH_CONFIG = {
   id: 'main',
   url: null,
-  encrypt: false
+  encrypt: false,
+  enabled: true
 } satisfies IBranchConfigEntry
 
 function toHex(buffer: Uint8Array): string {
@@ -55,7 +57,8 @@ function getBranchConfig(): IBranchConfig {
     config.branches = config.branches.map(entry => ({
       id: String(entry.id),
       url: String(entry.url ?? '') || null,
-      encrypt: !!entry.encrypt
+      encrypt: !!entry.encrypt,
+      enabled: !!entry.enabled
     }))
 
     const entry = config.branches.find(entry => entry.id === config.selected) ?? config.branches[0]
@@ -132,7 +135,7 @@ export default class ExtensionPackerPlugin {
     rpk.branches ??= []
 
     // Update remote package branches by config
-    for (const { id, url, encrypt } of branchConfig.branches) {
+    for (const { id, url, encrypt, enabled } of branchConfig.branches) {
       let branch = rpk.branches.find(branch => branch.id === id)
       if (branch == null) {
         branch = new RemoteBranch({ id })
@@ -149,6 +152,12 @@ export default class ExtensionPackerPlugin {
         privateKey = generateKeyPairSync('ed25519').privateKey
         branch.privateKey = privateKey.export({ type: 'pkcs8', format: 'der' })
       }
+
+      if (!enabled) {
+        branch.publicKey = null
+        continue
+      }
+
       if (branch.publicKey == null) {
         console.log(`[${PLUGIN_NAME}]`, `extracting public key for branch '${id}'...`)
 
@@ -162,6 +171,7 @@ export default class ExtensionPackerPlugin {
     const branch = rpk.branches.find(branch => branch.id === branchConfig.selected) ?? null
     if (branch == null) throw new Error(`branch '${branchConfig.selected}' not found`)
     if (branch.privateKey == null) throw new Error(`branch '${branch.id}' missing private key`)
+    if (branch.publicKey == null) throw new Error(`branch '${branch.id}' not enabled`)
 
     const key = createPrivateKey({ key: Buffer.from(branch.privateKey), type: 'pkcs8', format: 'der' })
 
@@ -292,7 +302,6 @@ export default class ExtensionPackerPlugin {
         spk.sign = sign(null, spk.serialize(), key)
 
         compilation.emitAsset('package/cache/config.rpk', new sources.RawSource(deflateSync(rpk.serialize())))
-        rpk.branches?.forEach(b => b.privateKey = null)
 
         const branchId = branch.id ?? DEFAULT_BRANCH_CONFIG.id
         compilation.emitAsset('package/branch.json', new sources.RawSource(JSON.stringify({
@@ -300,9 +309,13 @@ export default class ExtensionPackerPlugin {
           branches: rpk.branches?.map(b => ({
             id: b.id,
             url: b.url,
-            encrypt: b.encryptKey != null
+            encrypt: b.encryptKey != null,
+            enabled: b.publicKey != null
           })) ?? []
         } as IBranchConfig, null, 2)))
+
+        rpk.branches = rpk.branches?.filter(b => b.publicKey != null) ?? null
+        rpk.branches?.forEach(b => b.privateKey = null)
 
         let data = deflateSync(spk.serialize())
         if (branch.encryptKey != null) {
