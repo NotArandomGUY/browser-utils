@@ -194,7 +194,7 @@ const updateRules = async (): Promise<void> => {
       if (rule == null) return
 
       addRules.push({
-        id: (scriptIdx << 8) | (ruleIdx & 0xFF),
+        id: (scriptIdx << 20) | (ruleIdx & 0xFFFFF),
         ...rule
       })
     })

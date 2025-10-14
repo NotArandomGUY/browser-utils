@@ -249,7 +249,7 @@ class MessageBase<D extends MessageDefinition> {
 
     for (const [fieldTag, fieldDefinition] of fieldMap) {
       const value = getField(message, fieldDefinition)
-      if (value == null || value === getFieldDefault(fieldDefinition)) continue
+      if (value == null) continue
 
       serializeField(stream, fieldTag, fieldDefinition.ft, value)
     }

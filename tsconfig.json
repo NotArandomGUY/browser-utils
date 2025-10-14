@@ -38,6 +38,12 @@
       "baseUrl": "webpack",
       "rootDir": ".",
       "paths": {
+        "@ext/common/*": [
+          "../src/extension/script/common/*"
+        ],
+        "@ext/custom/*": [
+          "../src/extension/script/custom/*"
+        ],
         "@ext/*": [
           "../src/extension/*"
         ]
