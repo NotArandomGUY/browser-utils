@@ -23,6 +23,9 @@
     "scripting",
     "userScripts"
   ],
+  "optional_permissions": [
+    "userScripts"
+  ],
   "icons": {
     "16": "images/icon16.png",
     "32": "images/icon32.png",

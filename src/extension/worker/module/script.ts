@@ -1,8 +1,9 @@
+import { entries, fromEntries } from '@ext/global/object'
 import { bufferToString } from '@ext/lib/buffer'
 import { Feature } from '@ext/lib/feature'
 import Logger from '@ext/lib/logger'
 import { ScriptRunAt, ScriptWorld } from '@ext/proto/script/config'
-import { getPackageScriptEntry, getPackageScriptIDs, parseOptionalConfig, registerPackageLoadCallback, unregisterPackageLoadCallback } from '@ext/worker/module/package'
+import { getPackageScriptEntry, getPackageScriptIDs, parseOptionalConfig, registerPackageLoadCallback, reloadScriptPackage, unregisterPackageLoadCallback } from '@ext/worker/module/package'
 
 import CS = chrome.scripting
 import US = chrome.userScripts
@@ -45,7 +46,7 @@ const updateContentScripts = (): void => {
     }
   ] satisfies CS.RegisteredContentScript[]
 
-  CS.getRegisteredContentScripts().then(registeredScripts => {
+  chrome.scripting.getRegisteredContentScripts().then(registeredScripts => {
     const registerScripts: CS.RegisteredContentScript[] = []
     const updateScripts: CS.RegisteredContentScript[] = []
     const unregisterScripts = registeredScripts.filter(s => scripts.find(({ id }) => id === s.id) == null)
@@ -61,9 +62,9 @@ const updateContentScripts = (): void => {
     logger.info('register/update/unregister content scripts:', registerScripts, updateScripts, unregisterScripts)
 
     Promise.all([
-      registerScripts.length > 0 && CS.registerContentScripts(registerScripts),
-      updateScripts.length > 0 && CS.updateContentScripts(updateScripts),
-      unregisterScripts.length > 0 && CS.unregisterContentScripts({ ids: unregisterScripts.map(s => s.id) })
+      registerScripts.length > 0 && chrome.scripting.registerContentScripts(registerScripts),
+      updateScripts.length > 0 && chrome.scripting.updateContentScripts(updateScripts),
+      unregisterScripts.length > 0 && chrome.scripting.unregisterContentScripts({ ids: unregisterScripts.map(s => s.id) })
     ]).catch(error => {
       logger.error('update content scripts error:', error)
     })
@@ -71,6 +72,11 @@ const updateContentScripts = (): void => {
 }
 
 const updateUserScripts = async (): Promise<void> => {
+  if (chrome.userScripts == null) {
+    logger.error('user script api not available')
+    return
+  }
+
   const scripts: US.RegisteredUserScript[] = []
 
   const packageEntries = (await Promise.all((await getPackageScriptIDs()).map(getPackageScriptEntry))).filter(entry => entry != null)
@@ -113,7 +119,7 @@ const updateUserScripts = async (): Promise<void> => {
 
     scripts.push({
       ...USER_SCRIPT_CONFIG,
-      ...Object.fromEntries(Object.entries({
+      ...fromEntries(entries({
         ...parsed,
         runAt: RunAt[parsed.runAt as ScriptRunAt],
         world: UserScriptExecutionWorld[parsed.world as ScriptWorld]
@@ -123,7 +129,7 @@ const updateUserScripts = async (): Promise<void> => {
     })
   }
 
-  const registeredScripts = await US.getScripts()
+  const registeredScripts = await chrome.userScripts.getScripts()
 
   const registerScripts: US.RegisteredUserScript[] = []
   const updateScripts: US.RegisteredUserScript[] = []
@@ -140,18 +146,27 @@ const updateUserScripts = async (): Promise<void> => {
   logger.info('register/update/unregister user scripts:', registerScripts, updateScripts, unregisterScripts)
 
   Promise.all([
-    registerScripts.length > 0 && US.register(registerScripts),
-    updateScripts.length > 0 && US.update(updateScripts),
-    unregisterScripts.length > 0 && US.unregister({ ids: unregisterScripts.map(s => s.id) })
+    registerScripts.length > 0 && chrome.userScripts.register(registerScripts),
+    updateScripts.length > 0 && chrome.userScripts.update(updateScripts),
+    unregisterScripts.length > 0 && chrome.userScripts.unregister({ ids: unregisterScripts.map(s => s.id) })
   ]).catch(error => {
     logger.error('update user scripts error:', error)
   })
+}
+
+const onActionIconClick = async (): Promise<void> => {
+  if (chrome.userScripts != null || !await chrome.permissions.request({ permissions: ['userScripts'] })) return
+
+  logger.info('request for user scripts api success, reloading package...')
+
+  await reloadScriptPackage()
 }
 
 export default class WorkerInjectorModule extends Feature {
   protected activate(): boolean {
     registerPackageLoadCallback(updateUserScripts)
 
+    chrome.action.onClicked.addListener(onActionIconClick)
     chrome.runtime.onInstalled.addListener(updateContentScripts)
 
     return true
@@ -160,10 +175,11 @@ export default class WorkerInjectorModule extends Feature {
   protected deactivate(): boolean {
     unregisterPackageLoadCallback(updateUserScripts)
 
+    chrome.action.onClicked.removeListener(onActionIconClick)
     chrome.runtime.onInstalled.removeListener(updateContentScripts)
 
-    CS.getRegisteredContentScripts().then(scripts => CS.unregisterContentScripts({ ids: scripts.map(script => script.id) }))
-    US.getScripts().then(scripts => US.unregister({ ids: scripts.map(script => script.id) }))
+    chrome.scripting.getRegisteredContentScripts().then(scripts => chrome.scripting.unregisterContentScripts({ ids: scripts.map(script => script.id) }))
+    chrome.userScripts?.getScripts().then(scripts => chrome.userScripts.unregister({ ids: scripts.map(script => script.id) }))
 
     return true
   }

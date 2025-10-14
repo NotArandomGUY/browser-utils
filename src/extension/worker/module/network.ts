@@ -102,23 +102,19 @@ const parseScriptNetQueryKeyValue = (config?: InstanceType<typeof ScriptNetQuery
 const parseScriptNetQueryTransform = (config?: InstanceType<typeof ScriptNetQueryTransform> | null): DNR.QueryTransform | null => {
   if (config == null) return null
 
-  const parsed = parseOptionalConfig(config)
-
-  return {
-    ...parsed,
-    addOrReplaceParams: parsed.addOrReplaceParams?.map(parseScriptNetQueryKeyValue).filter(kv => kv != null)
-  }
+  return parseOptionalConfig({
+    ...config,
+    addOrReplaceParams: config.addOrReplaceParams?.map(parseScriptNetQueryKeyValue).filter(kv => kv != null)
+  })
 }
 
 const parseScriptNetRedirect = (config?: InstanceType<typeof ScriptNetRedirect> | null): DNR.Redirect | null => {
   if (config == null) return null
 
-  const parsed = parseOptionalConfig(config)
-
-  return {
-    ...parsed,
-    transform: parseScriptNetURLTransform(parsed.transform) ?? undefined
-  }
+  return parseOptionalConfig({
+    ...config,
+    transform: parseScriptNetURLTransform(config.transform)
+  })
 }
 
 const parseScriptNetRule = (config?: InstanceType<typeof ScriptNetRule> | null): Omit<DNR.Rule, 'id'> | null => {
@@ -144,9 +140,11 @@ const parseScriptNetRuleAction = (config?: InstanceType<typeof ScriptNetRuleActi
 
   return {
     type,
-    redirect: parseScriptNetRedirect(config.redirect) ?? undefined,
-    requestHeaders: config.requestHeaders?.map(parseScriptNetModifyHeaderInfo).filter(info => info != null),
-    responseHeaders: config.responseHeaders?.map(parseScriptNetModifyHeaderInfo).filter(info => info != null)
+    ...parseOptionalConfig({
+      redirect: parseScriptNetRedirect(config.redirect),
+      requestHeaders: config.requestHeaders?.map(parseScriptNetModifyHeaderInfo).filter(info => info != null),
+      responseHeaders: config.responseHeaders?.map(parseScriptNetModifyHeaderInfo).filter(info => info != null)
+    })
   }
 }
 
@@ -160,12 +158,11 @@ const parseScriptNetRuleCondition = (config?: InstanceType<typeof ScriptNetRuleC
     resourceTypes,
     excludedResourceTypes,
     responseHeaders,
-    excludedResponseHeaders,
-    ...parsed
-  } = parseOptionalConfig(config)
+    excludedResponseHeaders
+  } = config
 
-  return {
-    ...parsed,
+  return parseOptionalConfig({
+    ...config,
     domainType: DomainType[domainType as ScriptNetDomainType],
     requestMethods: requestMethods?.map(v => RequestMethod[v as ScriptNetRequestMethod]),
     excludedRequestMethods: excludedRequestMethods?.map(v => RequestMethod[v as ScriptNetRequestMethod]),
@@ -173,18 +170,16 @@ const parseScriptNetRuleCondition = (config?: InstanceType<typeof ScriptNetRuleC
     excludedResourceTypes: excludedResourceTypes?.map(v => ResourceType[v as ScriptNetResourceType]),
     responseHeaders: responseHeaders?.map(parseScriptNetHeaderInfo).filter(info => info != null),
     excludedResponseHeaders: excludedResponseHeaders?.map(parseScriptNetHeaderInfo).filter(info => info != null)
-  }
+  })
 }
 
 const parseScriptNetURLTransform = (config?: InstanceType<typeof ScriptNetURLTransform> | null): DNR.URLTransform | null => {
   if (config == null) return null
 
-  const parsed = parseOptionalConfig(config)
-
-  return {
-    ...parsed,
-    queryTransform: parseScriptNetQueryTransform(parsed.queryTransform) ?? undefined
-  }
+  return parseOptionalConfig({
+    ...config,
+    queryTransform: parseScriptNetQueryTransform(config.queryTransform)
+  })
 }
 
 const updateRules = async (): Promise<void> => {

@@ -245,6 +245,11 @@ export const updateScriptPackage = async (): Promise<boolean> => {
   }
 }
 
+export const reloadScriptPackage = async (): Promise<void> => {
+  closeScriptPackage()
+  if (await openScriptPackage()) loadCallbacks.forEach(callback => callback())
+}
+
 export const getPackageMessageKey = async (): Promise<Uint8Array | null> => {
   await openScriptPackage()
   return cache.messageKey
@@ -289,8 +294,7 @@ export default class WorkerPackageModule extends Feature {
         await putKV(BRANCH_KV, branch)
         if (await updateScriptPackage()) return
 
-        closeScriptPackage()
-        if (await openScriptPackage()) loadCallbacks.forEach(callback => callback())
+        await reloadScriptPackage()
       }
     })
 
