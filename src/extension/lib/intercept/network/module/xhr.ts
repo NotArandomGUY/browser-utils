@@ -143,8 +143,8 @@ async function handleXHRError(this: InterceptXMLHttpRequest): Promise<void> {
   await this.complete()
 }
 
-function progrsssEvent<TTarget, TMap>(eventTarget: InterceptEventTargetAdapter<TTarget, TMap>, type: Extract<keyof TMap, string>): void {
-  eventTarget.dispatchEvent(type, new ProgressEvent(type))
+function progressEvent<TTarget, TMap>(xhr: InterceptXMLHttpRequest, eventTarget: InterceptEventTargetAdapter<TTarget, TMap>, type: Extract<keyof TMap, string>): void {
+  eventTarget.dispatchEvent(type, new ProgressEvent(type), xhr)
 }
 
 class InterceptXMLHttpRequest extends XMLHttpRequest {
@@ -312,26 +312,26 @@ class InterceptXMLHttpRequest extends XMLHttpRequest {
     if (targetReadyState < currentReadyState) return
 
     if (targetReadyState === currentReadyState) {
-      progrsssEvent(eventTarget, 'readystatechange')
+      progressEvent(this, eventTarget, 'readystatechange')
       return
     }
 
     for (let readyState = currentReadyState + 1; readyState <= targetReadyState; readyState++) {
       this.overrideReadyState = readyState
-      progrsssEvent(eventTarget, 'readystatechange')
+      progressEvent(this, eventTarget, 'readystatechange')
 
       // Specific event for ready state
       switch (readyState) {
         case 2:
-          progrsssEvent(eventTarget, 'loadstart')
+          progressEvent(this, eventTarget, 'loadstart')
           break
         case 4:
           if (ctx?.state === NetworkState.SUCCESS) {
-            progrsssEvent(eventTarget, 'load')
+            progressEvent(this, eventTarget, 'load')
           } else {
-            progrsssEvent(eventTarget, 'error')
+            progressEvent(this, eventTarget, 'error')
           }
-          progrsssEvent(eventTarget, 'loadend')
+          progressEvent(this, eventTarget, 'loadend')
           break
       }
     }

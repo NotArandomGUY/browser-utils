@@ -1,4 +1,4 @@
-import { defineProperty } from '@ext/global/object'
+import { defineProperties } from '@ext/global/object'
 import Logger from '@ext/lib/logger'
 
 interface InterceptListenerEntry {
@@ -18,6 +18,7 @@ export default class InterceptEventTargetAdapter<TTarget, TMap> {
   /// Public ///
 
   public constructor(eventTarget: EventTarget) {
+    this.target = eventTarget
     this.eventHandlerMap = {}
     this.eventListenerMap = {}
     this.setterListenerMap = {}
@@ -84,7 +85,7 @@ export default class InterceptEventTargetAdapter<TTarget, TMap> {
     delete this.blockedEventMap[type]
   }
 
-  public async dispatchEvent<KM extends keyof TMap>(type: KM, evt: Event): Promise<void> {
+  public async dispatchEvent<KM extends keyof TMap>(type: KM, evt: Event, targetOverride?: EventTarget): Promise<void> {
     const listenerList = this.eventListenerMap[type]
     if (listenerList == null) return
 
@@ -94,7 +95,12 @@ export default class InterceptEventTargetAdapter<TTarget, TMap> {
     if (isBlocked) return
 
     let isPreventDispatch = false
-    defineProperty(evt, PreventDispatchEventSymbol, { configurable: true, enumerable: false, value() { isPreventDispatch = true } })
+
+    const target = targetOverride ?? this.target
+    defineProperties(evt, {
+      target: { configurable: true, writable: false, value: target },
+      [PreventDispatchEventSymbol]: { configurable: true, enumerable: false, value() { isPreventDispatch = true } }
+    })
 
     for (const { listener, options } of listenerList) {
       logger.trace('dispatch event:', type, listener, options)
@@ -104,7 +110,7 @@ export default class InterceptEventTargetAdapter<TTarget, TMap> {
 
       if (!aborted) {
         try {
-          await listener(evt)
+          await listener.call(target, evt)
         } catch (error) {
           logger.error('event listener error:', error)
         }
@@ -119,6 +125,7 @@ export default class InterceptEventTargetAdapter<TTarget, TMap> {
 
   /// Private ///
 
+  private target: EventTarget
   private eventHandlerMap: { [type in keyof TMap]?: (evt: Event) => void }
   private eventListenerMap: { [type in keyof TMap]?: InterceptListenerEntry[] }
   private setterListenerMap: { [prop in keyof TTarget]?: Function }
