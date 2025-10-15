@@ -28,6 +28,29 @@ export interface YTInnertubeRequestContext extends YTInnertubeContext {
   }
 }
 
+export interface YTInnertubeRequestPlaybackContext {
+  contentPlaybackContext: Partial<{
+    autoCaptionsDefaultOn: boolean
+    autonavState: string
+    currentUrl: string
+    html5Preference: string
+    lactMilliseconds: string
+    referer: string
+    signatureTimestamp: number
+    splay: boolean
+    vis: number
+    watchAmbientModeContext: Partial<{
+      hasShownAmbientMode: boolean
+      watchAmbientModeEnabled: boolean
+    }>
+  }>
+  devicePlaybackCapabilities: Partial<{
+    supportXhr: boolean
+    supportsVp9Encoding: boolean
+  }>
+  prefetchPlaybackContext: {}
+}
+
 type YTInnertubeRequestBase = {
   context: YTInnertubeRequestContext
 }
@@ -35,7 +58,7 @@ type YTInnertubeRequestBase = {
 type YTInnertubeRequestMap = {
   'get_watch': { playerRequest: object, watchNextRequest: object }
   'next': {}
-  'player': { contentCheckOk: boolean, racyCheckOk: boolean, params: InstanceType<typeof PlayerParams> }
+  'player': { contentCheckOk: boolean, racyCheckOk: boolean, params: InstanceType<typeof PlayerParams>, playbackContext: YTInnertubeRequestPlaybackContext }
   'search': { isPrefetch?: boolean, isZeroPrefixQuery?: boolean, query?: string, suggestionSearchParams?: { subtypes: unknown[] }, webSearchboxStatsUrl?: string }
 }
 export type YTInnertubeRequestEndpoint = keyof YTInnertubeRequestMap
