@@ -750,6 +750,10 @@ export const YTRendererSchemaMap = {
     footer: ytv_ren(),
     items: ytv_arr(ytv_ren())
   },
+  liveChatGetLiveChatReplayResponse: {
+    ...YTResponseCommonSchema,
+    continuationContents: ytv_ren(YTRendererContinuationContentSchema)
+  },
   liveChatGetLiveChatResponse: {
     ...YTResponseCommonSchema,
     continuationContents: ytv_ren(YTRendererContinuationContentSchema),

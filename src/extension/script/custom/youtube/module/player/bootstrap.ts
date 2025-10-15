@@ -48,7 +48,12 @@ export interface YTPVideoPlayerInstance extends YTPDisposableInstance {
   playerType: number
   videoData?: YTPVideoDataInstance
 
+  subscribe?<T, A extends unknown[]>(event: string, callback: (this: T, ...args: A) => void, instance: T): number
+  unsubscribe?<T, A extends unknown[]>(event: string, callback: (this: T, ...args: A) => void, instance: T): boolean
+
   getBufferHealth?(): number
+  getCurrentTime?(): number
+  getDuration?(): number
   getLiveLatency?(): number
   getPlaybackQuality?(): string
   getPlaybackRate?(): number

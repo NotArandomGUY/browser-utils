@@ -1,4 +1,3 @@
-import YTChatBootstrapModule from '@ext/custom/youtube/module/chat/bootstrap'
 import YTChatEmojiPickerModule from '@ext/custom/youtube/module/chat/emoji-picker'
 import YTChatPopoutModule from '@ext/custom/youtube/module/chat/popout'
 import YTCoreBootstrapModule from '@ext/custom/youtube/module/core/bootstrap'
@@ -57,7 +56,6 @@ registerFeatureGroup(PLAYER_GROUP_ID, group => {
 }, [CORE_GROUP_ID])
 
 registerFeatureGroup(CHAT_GROUP_ID, group => {
-  registerFeature(group, YTChatBootstrapModule)
   registerFeature(group, YTChatEmojiPickerModule)
   registerFeature(group, YTChatPopoutModule)
 }, [CORE_GROUP_ID])
