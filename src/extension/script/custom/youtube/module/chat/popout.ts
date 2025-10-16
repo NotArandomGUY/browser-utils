@@ -159,7 +159,7 @@ class MainAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, Cha
         })
         return
       default:
-        logger.warn('invalid message:', message)
+        logger.debug('invalid message:', message)
         return
     }
   }
@@ -282,7 +282,7 @@ class ChatAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, Cha
         return
       }
       default:
-        logger.warn('invalid message:', message)
+        logger.debug('invalid message:', message)
         return
     }
   }

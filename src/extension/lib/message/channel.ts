@@ -24,7 +24,7 @@ export default abstract class MessageChannel<M extends object, U extends string 
 
   private onMessageInternal({ data }: MessageEvent<SignedMessage<MessageDataUnion<M, U>>>): void {
     if (data == null || typeof data !== 'object' || !verifyMessage(MESSAGE_KEY, data)) {
-      logger.warn('invalid message:', data)
+      logger.debug('invalid message:', data)
       return
     }
 
