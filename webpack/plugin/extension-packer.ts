@@ -118,7 +118,7 @@ export default class ExtensionPackerPlugin {
     // Create/Load remote package
     const rpk = new RemotePackage({})
     try {
-      rpk.deserialize(inflateSync(readFileSync(join(cwd(), 'dist/extension/package/cache/config.rpk'))), true)
+      rpk.deserialize(inflateSync(readFileSync(join(cwd(), 'dist/extension/package/cache/config.rpk'))))
 
       if (rpk.version !== version) throw new Error('version changed')
     } catch (error) {

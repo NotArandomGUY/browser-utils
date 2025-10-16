@@ -54,7 +54,7 @@ const getRemoteBranch = async (): Promise<InstanceType<typeof RemoteBranch> & { 
   const rpk = new RemotePackage({})
 
   const rsp = await fetch(chrome.runtime.getURL('extension.rpk'))
-  if (rsp.ok) rpk.deserialize(await decompress(await rsp.arrayBuffer(), 'deflate'), true)
+  if (rsp.ok) rpk.deserialize(await decompress(await rsp.arrayBuffer(), 'deflate'))
 
   const branchId = await db.get<string>(BRANCH_KV) ?? DEFAULT_BRANCH_ID
 
@@ -118,7 +118,7 @@ const openScriptPackage = async (): Promise<boolean> => {
     for (const version of versions) {
       try {
         const { data } = await db.transaction('spk', trans => trans.objectStore('spk').get<IDBPackageEntry>(version))
-        cache.deserialize(await decryptScriptPackage(branch, data), true)
+        cache.deserialize(await decryptScriptPackage(branch, data))
       } catch (error) {
         logger.warn(`package '${version}' deserialize error:`, error)
       }
@@ -182,7 +182,7 @@ export const updateScriptPackage = async (): Promise<boolean> => {
     if (!rsp.ok) throw new Error(`network error status (${rsp.status})`)
 
     // Parse package
-    const spk = new ScriptPackage().deserialize(await decryptScriptPackage(branch, await rsp.arrayBuffer()), true)
+    const spk = new ScriptPackage().deserialize(await decryptScriptPackage(branch, await rsp.arrayBuffer()))
 
     const version = `${branch.id}:${spk.version}`
     if (parseVersion(version).length === 0) throw new Error('invalid version')
