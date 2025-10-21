@@ -162,7 +162,7 @@ class InterceptXMLHttpRequest extends XMLHttpRequest {
     this.ctx = null
 
     this.requestMethod = 'GET'
-    this.requestURL = new URL('/', location.href)
+    this.requestURL = new URL('/', location.origin)
     this.requestHeaders = {}
     this.requestBody = null
     this.overrideReadyState = 0
@@ -278,7 +278,7 @@ class InterceptXMLHttpRequest extends XMLHttpRequest {
   }
 
   public open(method: string, url: string | URL): void {
-    if (typeof url === 'string') url = new URL(url, location.href)
+    if (typeof url === 'string') url = new URL(url, location.origin)
 
     this.requestMethod = method.toUpperCase()
     this.requestURL = url
