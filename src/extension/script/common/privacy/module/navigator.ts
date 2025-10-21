@@ -15,6 +15,7 @@ export default class PrivacyNavigatorModule extends Feature {
     defineProperty(window.navigator, 'sendBeacon', {
       configurable: true,
       enumerable: false,
+      writable: true,
       value(url: string | URL, data?: BodyInit | null): boolean {
         logger.debug('intercepted send beacon:', url, data)
         return true
