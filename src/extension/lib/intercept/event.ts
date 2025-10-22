@@ -10,6 +10,8 @@ const logger = new Logger('INTERCEPT-EVENT')
 
 const PreventDispatchEventSymbol = Symbol()
 
+const { addEventListener, removeEventListener } = EventTarget.prototype
+
 export const preventDispatchEvent = (evt: Event): void => {
   if (PreventDispatchEventSymbol in evt && typeof evt[PreventDispatchEventSymbol] === 'function') evt[PreventDispatchEventSymbol]()
 }
@@ -24,8 +26,8 @@ export default class InterceptEventTargetAdapter<TTarget, TMap> {
     this.setterListenerMap = {}
     this.blockedEventMap = {}
 
-    this.internalAddEventListener = eventTarget.addEventListener.bind(eventTarget)
-    this.internalRemoveEventListener = eventTarget.removeEventListener.bind(eventTarget)
+    this.internalAddEventListener = addEventListener.bind(eventTarget)
+    this.internalRemoveEventListener = removeEventListener.bind(eventTarget)
 
     eventTarget.addEventListener = <EventTarget['addEventListener']>this.addEventListener.bind(this)
     eventTarget.removeEventListener = <EventTarget['removeEventListener']>this.removeEventListener.bind(this)

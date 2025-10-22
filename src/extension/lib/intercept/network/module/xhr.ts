@@ -1,5 +1,5 @@
-import { URL } from '@ext/global/network'
-import { assign } from '@ext/global/object'
+import { URL, XMLHttpRequest } from '@ext/global/network'
+import { assign, defineProperties, fromEntries, getOwnPropertyDescriptor, keys } from '@ext/global/object'
 import { bufferToString } from '@ext/lib/buffer'
 import InterceptEventTargetAdapter from '@ext/lib/intercept/event'
 import { NetworkContext, NetworkContextState, NetworkRequestCallback, NetworkResponseCallback, NetworkResponseContext, NetworkState } from '@ext/lib/intercept/network'
@@ -26,6 +26,7 @@ const XHR_EVENT_MAP = {
 let nativeXHR: (typeof XMLHttpRequest) | null = null
 let onRequestCallback: NetworkRequestCallback | null = null
 let onResponseCallback: NetworkResponseCallback | null = null
+let policy: Partial<TrustedTypePolicy> | null = null
 
 const responseBlob = (xhr: InterceptXMLHttpRequest): Blob | null => {
   const { status, responseType, response } = xhr
@@ -143,14 +144,20 @@ async function handleXHRError(this: InterceptXMLHttpRequest): Promise<void> {
   await this.complete()
 }
 
-function progressEvent<TTarget, TMap>(xhr: InterceptXMLHttpRequest, eventTarget: InterceptEventTargetAdapter<TTarget, TMap>, type: Extract<keyof TMap, string>): void {
-  eventTarget.dispatchEvent(type, new ProgressEvent(type), xhr)
-}
+const NativePrototype = XMLHttpRequest.prototype
+const NativePrototypeMap = new Map(([
+  'addEventListener',
+  'dispatchEvent',
+  'removeEventListener'
+] satisfies (keyof XMLHttpRequest)[]).map(key => [NativePrototype[key as keyof typeof NativePrototype], key]))
+
+const { addEventListener } = NativePrototype
 
 class InterceptXMLHttpRequest extends XMLHttpRequest {
   /// Public ///
 
   public ctx: NetworkContext | null
+  public requestSync: boolean
   public requestMethod: string
   public requestURL: URL
   public requestHeaders: Record<string, string>
@@ -161,6 +168,7 @@ class InterceptXMLHttpRequest extends XMLHttpRequest {
 
     this.ctx = null
 
+    this.requestSync = true
     this.requestMethod = 'GET'
     this.requestURL = new URL('/', location.origin)
     this.requestHeaders = {}
@@ -170,18 +178,15 @@ class InterceptXMLHttpRequest extends XMLHttpRequest {
     this.overrideHeaders = null
     this.overrideResponse = null
 
-    this.addEventListener('readystatechange', handleXHRReadyStateChange.bind(this))
-    this.addEventListener('abort', handleXHRError.bind(this))
-    this.addEventListener('error', handleXHRError.bind(this))
-    this.addEventListener('timeout', handleXHRError.bind(this))
-    this.addEventListener('load', handleXHRLoad.bind(this))
+    const externalData: Record<string | symbol, unknown> = {}
+
+    addEventListener.call(this, 'readystatechange', handleXHRReadyStateChange.bind(this))
+    addEventListener.call(this, 'abort', handleXHRError.bind(this))
+    addEventListener.call(this, 'error', handleXHRError.bind(this))
+    addEventListener.call(this, 'timeout', handleXHRError.bind(this))
+    addEventListener.call(this, 'load', handleXHRLoad.bind(this))
 
     const eventTarget = new InterceptEventTargetAdapter<XMLHttpRequest, XMLHttpRequestEventMap>(new EventTarget())
-    const externalData: Record<string | symbol, unknown> = {}
-    const prototype = (nativeXHR ?? window.XMLHttpRequest).prototype
-
-    this.addEventListener = eventTarget.addEventListener.bind(eventTarget)
-    this.removeEventListener = eventTarget.removeEventListener.bind(eventTarget)
     this.eventTarget = eventTarget
 
     return new Proxy(this, { // NOSONAR
@@ -189,9 +194,14 @@ class InterceptXMLHttpRequest extends XMLHttpRequest {
         if (p in XHR_EVENT_MAP) {
           // Event listener getter
           return eventTarget.getEventListener(p as keyof typeof XHR_EVENT_MAP)
-        } else if (p in prototype) {
+        } else if (p in NativePrototype) {
           // Only allow access to native properties if exists
-          const value = target[p as keyof typeof target]
+          let value = target[p as keyof typeof target]
+
+          // Some polyfill might use different name for native methods, override them too
+          const key = NativePrototypeMap.get(value)
+          if (p !== key && key != null) value = target[key as keyof typeof target]
+
           return typeof value === 'function' ? proxyBind(value, target) : value
         } else {
           // Use external data for properties that are not native
@@ -202,7 +212,7 @@ class InterceptXMLHttpRequest extends XMLHttpRequest {
         if (p in XHR_EVENT_MAP) {
           // Event listener setter
           eventTarget.setEventListener(p as keyof typeof XHR_EVENT_MAP, XHR_EVENT_MAP[p as keyof typeof XHR_EVENT_MAP], newValue)
-        } else if (p in prototype) {
+        } else if (p in NativePrototype) {
           // Only allow access to native properties if exists
           target[p as keyof typeof target] = newValue
         } else {
@@ -260,10 +270,18 @@ class InterceptXMLHttpRequest extends XMLHttpRequest {
   }
 
   public get responseXML(): Document {
-    return new DOMParser().parseFromString(this.responseText, 'text/xml')
+    return new DOMParser().parseFromString((policy?.createHTML?.(this.responseText) ?? this.responseText) as string, 'text/xml')
   }
 
   // Method
+
+  public addEventListener<KM extends keyof XMLHttpRequestEventMap>(type: KM, listener: (evt: XMLHttpRequestEventMap[KM]) => Promise<void> | void, options?: AddEventListenerOptions): void {
+    this.eventTarget.addEventListener(type, listener, options)
+  }
+
+  public removeEventListener<KM extends keyof XMLHttpRequestEventMap>(type: KM, listener: (evt: XMLHttpRequestEventMap[KM]) => Promise<void> | void): void {
+    this.eventTarget.removeEventListener(type, listener)
+  }
 
   public setRequestHeader(name: string, value: string): void {
     this.requestHeaders[name] = value
@@ -277,29 +295,35 @@ class InterceptXMLHttpRequest extends XMLHttpRequest {
     return overrideHeaders
   }
 
-  public open(method: string, url: string | URL): void {
+  public open(method: string, url: string | URL, async = true, username?: string | null, password?: string | null): void {
     if (typeof url === 'string') url = new URL(url, location.origin)
 
+    this.requestSync = !async
     this.requestMethod = method.toUpperCase()
     this.requestURL = url
 
-    super.open(method, url)
+    super.open(method, url, async, username, password)
   }
 
   public send(body?: XHRRequestBody): void {
     this.requestBody = body ?? null
 
+    const sendInternal = (isIntercepted: boolean): void => {
+      if (isIntercepted) return
+
+      const { requestHeaders, requestBody } = this
+
+      for (const name in requestHeaders) {
+        super.setRequestHeader(name, requestHeaders[name])
+      }
+      super.send(requestBody)
+    }
+
+    // Cannot wait for request handler in sync request
+    if (this.requestSync) return sendInternal(false)
+
     handleXHRSend.call(this)
-      .then(isIntercepted => {
-        if (isIntercepted) return
-
-        const { requestHeaders, requestBody } = this
-
-        for (const name in requestHeaders) {
-          super.setRequestHeader(name, requestHeaders[name])
-        }
-        super.send(requestBody)
-      })
+      .then(sendInternal)
       .catch(error => {
         logger.warn('send handler error:', error)
         this.abort()
@@ -307,31 +331,34 @@ class InterceptXMLHttpRequest extends XMLHttpRequest {
   }
 
   public changeReadyState(targetReadyState: number): void {
-    const { ctx, readyState: currentReadyState, eventTarget } = this
+    const { ctx, requestURL, readyState: currentReadyState } = this
 
     if (targetReadyState < currentReadyState) return
 
+    logger.trace(`change request '${requestURL.toString()}' ready state ${currentReadyState} -> ${targetReadyState}`)
+
     if (targetReadyState === currentReadyState) {
-      progressEvent(this, eventTarget, 'readystatechange')
+      // Only allow multiple ready state change on LOADING
+      if (targetReadyState === 3) this.dispatchProgress('readystatechange')
       return
     }
 
     for (let readyState = currentReadyState + 1; readyState <= targetReadyState; readyState++) {
       this.overrideReadyState = readyState
-      progressEvent(this, eventTarget, 'readystatechange')
+      this.dispatchProgress('readystatechange')
 
       // Specific event for ready state
       switch (readyState) {
         case 2:
-          progressEvent(this, eventTarget, 'loadstart')
+          this.dispatchProgress('loadstart')
           break
         case 4:
           if (ctx?.state === NetworkState.SUCCESS) {
-            progressEvent(this, eventTarget, 'load')
+            this.dispatchProgress('load')
           } else {
-            progressEvent(this, eventTarget, 'error')
+            this.dispatchProgress('error')
           }
-          progressEvent(this, eventTarget, 'loadend')
+          this.dispatchProgress('loadend')
           break
       }
     }
@@ -367,6 +394,12 @@ class InterceptXMLHttpRequest extends XMLHttpRequest {
     this.changeReadyState(4)
   }
 
+  public abort(): void {
+    logger.trace(`abort request '${this.requestURL.toString()}'`)
+
+    super.abort()
+  }
+
   /// Private ///
 
   private readonly eventTarget: InterceptEventTargetAdapter<XMLHttpRequestEventTarget, XMLHttpRequestEventMap>
@@ -374,13 +407,49 @@ class InterceptXMLHttpRequest extends XMLHttpRequest {
   private overrideStatus: number | null
   private overrideHeaders: string | null
   private overrideResponse: ArrayBuffer | null
+
+  private dispatchProgress(type: Extract<keyof XMLHttpRequestEventMap, string>): void {
+    this.eventTarget.dispatchEvent(type, new ProgressEvent(type), this)
+  }
 }
+
+const HookPrototype = InterceptXMLHttpRequest.prototype
+
+defineProperties(HookPrototype, fromEntries([...keys(NativePrototype), ...NativePrototypeMap.values()].map(key => {
+  const descriptor = getOwnPropertyDescriptor(HookPrototype, key)
+  if (descriptor == null) return null
+
+  const { writable, value, get, set } = descriptor
+  return [key, {
+    ...(getOwnPropertyDescriptor(NativePrototype, key) ?? { configurable: true, enumerable: true }),
+    ...((get != null || set != null) ? { get, set } : { writable, value })
+  }]
+}).filter(e => e != null)))
+defineProperties(InterceptXMLHttpRequest, fromEntries(keys(XMLHttpRequest).map(key => {
+  return [key, {
+    ...(getOwnPropertyDescriptor(XMLHttpRequest, key) ?? { configurable: true, enumerable: true }),
+    value: InterceptXMLHttpRequest[key as keyof typeof InterceptXMLHttpRequest]
+  }]
+}).filter(e => e != null)))
 
 export const registerInterceptNetworkXHRModule = (onRequest: NetworkRequestCallback, onResponse: NetworkResponseCallback): void => {
   if (nativeXHR != null) return
 
   onRequestCallback = onRequest
   onResponseCallback = onResponse
+
+  if (policy == null) {
+    try {
+      const { trustedTypes } = window
+      if (trustedTypes == null || trustedTypes.createPolicy == null) throw new Error('API not available')
+
+      policy = trustedTypes.createPolicy('intercept-xhr-dom', {
+        createHTML: (input: string) => input
+      })
+    } catch (error) {
+      logger.debug('create trusted-types policy error:', error)
+    }
+  }
 
   nativeXHR = window.XMLHttpRequest
   Object.defineProperty(window, 'XMLHttpRequest', {
