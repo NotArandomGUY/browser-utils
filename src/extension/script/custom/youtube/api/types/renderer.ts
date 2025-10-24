@@ -638,7 +638,7 @@ export const YTPlayerVideoDetailsSchema = {
   isUnpluggedCorpus: ytv_bol(),
   isUpcoming: ytv_bol(),
   keywords: ytv_arr(ytv_str()),
-  latencyClass: ytv_str(['MDE_STREAM_OPTIMIZATIONS_RENDERER_LATENCY_NORMAL', 'MDE_STREAM_OPTIMIZATIONS_RENDERER_LATENCY_ULTRA_LOW']),
+  latencyClass: ytv_str(['MDE_STREAM_OPTIMIZATIONS_RENDERER_LATENCY_UNKNOWN', 'MDE_STREAM_OPTIMIZATIONS_RENDERER_LATENCY_NORMAL', 'MDE_STREAM_OPTIMIZATIONS_RENDERER_LATENCY_LOW', 'MDE_STREAM_OPTIMIZATIONS_RENDERER_LATENCY_ULTRA_LOW']),
   lengthSeconds: ytv_str(),
   liveChunkReadahead: ytv_num(),
   musicVideoType: ytv_str(YTMusicVideoType),
@@ -3840,7 +3840,7 @@ export const YTRendererSchemaMap = {
     animationActivationEntitySelectorType: ytv_str(['THUMBNAIL_BADGE_ANIMATION_ENTITY_SELECTOR_TYPE_PLAYER_STATE']),
     animationActivationTargetId: ytv_str(),
     backgroundColor: ytv_ren(YTThemedColorSchema),
-    badgeStyle: ytv_str(['THUMBNAIL_OVERLAY_BADGE_STYLE_DEFAULT']),
+    badgeStyle: ytv_str(['THUMBNAIL_OVERLAY_BADGE_STYLE_DEFAULT', 'THUMBNAIL_OVERLAY_BADGE_STYLE_LIVE']),
     icon: ytv_sch(YTImageSchema),
     lottieData: ytv_sch({
       settings: ytv_sch({
