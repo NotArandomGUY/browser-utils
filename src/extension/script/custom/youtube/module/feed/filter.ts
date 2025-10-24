@@ -5,64 +5,65 @@ import { isYTLoggedIn } from '@ext/custom/youtube/module/core/bootstrap'
 import { getYTConfigBool, registerYTConfigMenuItem, YTConfigMenuItemType } from '@ext/custom/youtube/module/core/config'
 import { Feature } from '@ext/lib/feature'
 
-const SHOW_SHORTS_KEY = 'show-shorts'
-const SHOW_LIVE_KEY = 'show-live'
-const SHOW_VIDEO_KEY = 'show-video'
+const FEED_FILTER_KEY = 'feed-filter'
 
-export const isShowShorts = (): boolean => {
-  return getYTConfigBool(SHOW_SHORTS_KEY, true)
+export const enum YTFeedFilterMask {
+  VIDEO = 0x01,
+  VIDEO_LIVE = 0x02,
+  SHORTS = 0x04
 }
 
-export const isShowLive = (): boolean => {
-  return getYTConfigBool(SHOW_LIVE_KEY, true)
+export const isYTFeedFilterEnable = (mask: YTFeedFilterMask): boolean => {
+  return getYTConfigBool(FEED_FILTER_KEY, false, mask)
 }
 
-export const isShowVideo = (): boolean => {
-  return getYTConfigBool(SHOW_VIDEO_KEY, true)
-}
-
-const filterGuideEntry = (data: YTRendererData<YTRenderer<'guideEntryRenderer'>>): boolean => {
+const filterGuideEntryRenderer = (data: YTRendererData<YTRenderer<'guideEntryRenderer'>>): boolean => {
   const browseId = data.navigationEndpoint?.browseEndpoint?.browseId ?? ''
 
   // Remove promotion
   if (browseId === 'SPunlimited' || data.navigationEndpoint?.urlEndpoint != null) return false
 
   // Remove shorts
-  if (!isShowShorts() && data.serviceEndpoint?.reelWatchEndpoint != null) return false
+  if (isYTFeedFilterEnable(YTFeedFilterMask.SHORTS) && data.serviceEndpoint?.reelWatchEndpoint != null) return false
 
   // Items for logged in users only
   return isYTLoggedIn() || !['FEhistory', 'FElibrary', 'FEsubscriptions', 'SPaccount_overview', 'SPreport_history'].includes(browseId)
 }
 
-const filterShelf = (data: YTRendererData<YTRenderer<'reelShelfRenderer' | 'richShelfRenderer'>>): boolean => {
-  return isShowShorts() || !data.icon?.iconType?.includes('SHORTS')
+const filterShelfRenderer = (data: YTRendererData<YTRenderer<'reelShelfRenderer' | 'richShelfRenderer'>>): boolean => {
+  return !isYTFeedFilterEnable(YTFeedFilterMask.SHORTS) || !data.icon?.iconType?.includes('SHORTS')
 }
 
-const filterVideo = (data: YTRendererData<YTRenderer<'compactVideoRenderer' | 'videoRenderer'>>): boolean => {
-  if (!isShowShorts() && data.navigationEndpoint?.reelWatchEndpoint != null) return false
-
-  const icons = [
-    data.thumbnailOverlays?.find(r => r.thumbnailOverlayTimeStatusRenderer != null)?.thumbnailOverlayTimeStatusRenderer?.icon?.iconType,
-    ...data.badges?.map(b => b.metadataBadgeRenderer?.icon?.iconType) ?? []
-  ]
-  const isLive = icons.find(icon => icon?.includes('LIVE')) != null
-
-  if (!isShowLive() && isLive) return false
-  if (!isShowVideo() && !isLive) return false
-
-  return true
-}
-
-const filterTile = (data: YTRendererData<YTRenderer<'tileRenderer'>>): boolean => {
+const filterTileRenderer = (data: YTRendererData<YTRenderer<'tileRenderer'>>): boolean => {
   const header = data.header?.tileHeaderRenderer
 
   const icon = header?.thumbnailOverlays?.find(r => r.thumbnailOverlayTimeStatusRenderer != null)?.thumbnailOverlayTimeStatusRenderer?.icon?.iconType
   const isLive = icon?.includes('LIVE')
 
-  if (!isShowLive() && isLive) return false
-  if (!isShowVideo() && !isLive) return false
+  return !isYTFeedFilterEnable(isLive ? YTFeedFilterMask.VIDEO_LIVE : YTFeedFilterMask.VIDEO)
+}
 
-  return true
+const filterVideoRenderer = (data: YTRendererData<YTRenderer<'compactVideoRenderer' | 'videoRenderer'>>): boolean => {
+  if (isYTFeedFilterEnable(YTFeedFilterMask.SHORTS) && data.navigationEndpoint?.reelWatchEndpoint != null) return false
+
+  const icons = [
+    data.thumbnailOverlays?.find(r => r.thumbnailOverlayTimeStatusRenderer)?.thumbnailOverlayTimeStatusRenderer?.icon?.iconType,
+    ...data.badges?.map(b => b.metadataBadgeRenderer?.icon?.iconType) ?? []
+  ]
+  const isLive = icons.find(icon => icon?.includes('LIVE')) != null
+
+  return !isYTFeedFilterEnable(isLive ? YTFeedFilterMask.VIDEO_LIVE : YTFeedFilterMask.VIDEO)
+}
+
+const filterShortsViewModel = (_data: YTRendererData<YTRenderer<'shortsLockupViewModel'>>): boolean => {
+  return !isYTFeedFilterEnable(YTFeedFilterMask.SHORTS)
+}
+
+const filterVideoViewModel = (data: YTRendererData<YTRenderer<'lockupViewModel'>>): boolean => {
+  const badges = data.contentImage?.thumbnailViewModel?.overlays?.find(r => r.thumbnailOverlayBadgeViewModel)?.thumbnailOverlayBadgeViewModel?.thumbnailBadges
+  const isLive = badges?.find(r => r.thumbnailBadgeViewModel?.badgeStyle === 'THUMBNAIL_OVERLAY_BADGE_STYLE_LIVE') != null
+
+  return !isYTFeedFilterEnable(isLive ? YTFeedFilterMask.VIDEO_LIVE : YTFeedFilterMask.VIDEO)
 }
 
 export default class YTFeedFilterModule extends Feature {
@@ -71,43 +72,44 @@ export default class YTFeedFilterModule extends Feature {
   }
 
   protected activate(): boolean {
-    removeYTRendererPre(YTRendererSchemaMap['compactVideoRenderer'], filterVideo)
-    removeYTRendererPre(YTRendererSchemaMap['guideEntryRenderer'], filterGuideEntry)
-    removeYTRendererPre(YTRendererSchemaMap['reelShelfRenderer'], filterShelf)
-    removeYTRendererPre(YTRendererSchemaMap['richShelfRenderer'], filterShelf)
-    removeYTRendererPre(YTRendererSchemaMap['shortsLockupViewModel'], isShowShorts)
-    removeYTRendererPre(YTRendererSchemaMap['tileRenderer'], filterTile)
-    removeYTRendererPre(YTRendererSchemaMap['videoRenderer'], filterVideo)
+    removeYTRendererPre(YTRendererSchemaMap['compactVideoRenderer'], filterVideoRenderer)
+    removeYTRendererPre(YTRendererSchemaMap['guideEntryRenderer'], filterGuideEntryRenderer)
+    removeYTRendererPre(YTRendererSchemaMap['reelShelfRenderer'], filterShelfRenderer)
+    removeYTRendererPre(YTRendererSchemaMap['richShelfRenderer'], filterShelfRenderer)
+    removeYTRendererPre(YTRendererSchemaMap['tileRenderer'], filterTileRenderer)
+    removeYTRendererPre(YTRendererSchemaMap['videoRenderer'], filterVideoRenderer)
+    removeYTRendererPre(YTRendererSchemaMap['shortsLockupViewModel'], filterShortsViewModel)
+    removeYTRendererPre(YTRendererSchemaMap['lockupViewModel'], filterVideoViewModel)
 
     registerYTConfigMenuItem({
       type: YTConfigMenuItemType.TOGGLE,
-      key: SHOW_SHORTS_KEY,
+      key: FEED_FILTER_KEY,
       disabledIcon: YTIconType.YOUTUBE_SHORTS_BRAND_24,
-      disabledText: 'Show Shorts',
+      disabledText: 'Hide Shorts',
       enabledIcon: YTIconType.YOUTUBE_SHORTS_BRAND_24,
-      enabledText: 'Hide Shorts',
-      defaultValue: true,
-      signals: [YTSignalActionType.POPUP_BACK, YTSignalActionType.SOFT_RELOAD_PAGE]
+      enabledText: 'Show Shorts',
+      signals: [YTSignalActionType.POPUP_BACK, YTSignalActionType.SOFT_RELOAD_PAGE],
+      mask: YTFeedFilterMask.SHORTS
     })
     registerYTConfigMenuItem({
       type: YTConfigMenuItemType.TOGGLE,
-      key: SHOW_LIVE_KEY,
+      key: FEED_FILTER_KEY,
       disabledIcon: YTIconType.LIVE,
-      disabledText: 'Show Live',
+      disabledText: 'Hide Live',
       enabledIcon: YTIconType.LIVE,
-      enabledText: 'Hide Live',
-      defaultValue: true,
-      signals: [YTSignalActionType.POPUP_BACK, YTSignalActionType.SOFT_RELOAD_PAGE]
+      enabledText: 'Show Live',
+      signals: [YTSignalActionType.POPUP_BACK, YTSignalActionType.SOFT_RELOAD_PAGE],
+      mask: YTFeedFilterMask.VIDEO_LIVE
     })
     registerYTConfigMenuItem({
       type: YTConfigMenuItemType.TOGGLE,
-      key: SHOW_VIDEO_KEY,
+      key: FEED_FILTER_KEY,
       disabledIcon: YTIconType.VIDEOS,
-      disabledText: 'Show Video',
+      disabledText: 'Hide Video !!Dangerous!!',
       enabledIcon: YTIconType.VIDEOS,
-      enabledText: 'Hide Video !!Dangerous!!',
-      defaultValue: true,
-      signals: [YTSignalActionType.POPUP_BACK, YTSignalActionType.SOFT_RELOAD_PAGE]
+      enabledText: 'Show Video',
+      signals: [YTSignalActionType.POPUP_BACK, YTSignalActionType.SOFT_RELOAD_PAGE],
+      mask: YTFeedFilterMask.VIDEO
     })
 
     return true

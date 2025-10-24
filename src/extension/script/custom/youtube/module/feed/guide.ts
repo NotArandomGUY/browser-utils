@@ -2,7 +2,7 @@ import { YTSignalActionType } from '@ext/custom/youtube/api/endpoint'
 import { registerYTRendererPreProcessor, removeYTRendererPre, YTRenderer, YTRendererData, YTRendererSchemaMap } from '@ext/custom/youtube/api/renderer'
 import { isYTLoggedIn, registerYTPolymerCreateCallback } from '@ext/custom/youtube/module/core/bootstrap'
 import { registerYTSignalActionHandler } from '@ext/custom/youtube/module/core/event'
-import { isShowShorts } from '@ext/custom/youtube/module/feed/filter'
+import { isYTFeedFilterEnable, YTFeedFilterMask } from '@ext/custom/youtube/module/feed/filter'
 import { floor, max, min } from '@ext/global/math'
 import { Feature } from '@ext/lib/feature'
 
@@ -29,7 +29,7 @@ const filterGuideEntry = (data: YTRendererData<YTRenderer<'guideEntryRenderer'>>
   if (browseId === 'SPunlimited' || data.navigationEndpoint?.urlEndpoint != null) return false
 
   // Remove shorts guide entry
-  if (!isShowShorts() && data.serviceEndpoint?.reelWatchEndpoint != null) return false
+  if (isYTFeedFilterEnable(YTFeedFilterMask.SHORTS) && data.serviceEndpoint?.reelWatchEndpoint != null) return false
 
   // Hide inaccessible guide entries for guest
   return isYTLoggedIn() || !['FEhistory', 'FElibrary', 'FEsubscriptions', 'SPaccount_overview', 'SPreport_history'].includes(browseId)

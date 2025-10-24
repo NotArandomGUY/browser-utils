@@ -1,7 +1,7 @@
 import { YTSignalActionType } from '@ext/custom/youtube/api/endpoint'
 import { registerYTRendererPreProcessor, YTRenderer, YTRendererData, YTRendererSchemaMap } from '@ext/custom/youtube/api/renderer'
 import { YTIconType } from '@ext/custom/youtube/api/types/icon'
-import { getYTConfigInt, registerYTConfigMenuItem, YTConfigMenuItemType } from '@ext/custom/youtube/module/core/config'
+import { getYTConfigBool, registerYTConfigMenuItem, YTConfigMenuItemType } from '@ext/custom/youtube/module/core/config'
 import { dispatchYTSignalAction, registerYTSignalActionHandler } from '@ext/custom/youtube/module/core/event'
 import { registerYTInnertubeRequestProcessor } from '@ext/custom/youtube/module/core/network'
 import { Feature } from '@ext/lib/feature'
@@ -11,7 +11,7 @@ const CONTENT_CHECK_KEY = 'content-check'
 const playerActionsQueue: NonNullable<YTRendererData<YTRenderer<'playerResponse'>>['actions']>[] = []
 
 const isHideContentCheck = (): boolean => {
-  return getYTConfigInt(CONTENT_CHECK_KEY, 0) === 1
+  return getYTConfigBool(CONTENT_CHECK_KEY, false)
 }
 
 const updatePlayerResponse = (data: YTRendererData<YTRenderer<'playerResponse'>>): boolean => {
@@ -97,7 +97,6 @@ export default class YTPlayerContentCheckModule extends Feature {
       disabledText: 'Content Check: Default',
       enabledIcon: YTIconType.WARNING,
       enabledText: 'Content Check: Hide',
-      defaultValue: false,
       signals: [YTSignalActionType.POPUP_BACK, YTSignalActionType.SOFT_RELOAD_PAGE]
     })
 

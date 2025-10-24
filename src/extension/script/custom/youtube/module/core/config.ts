@@ -33,7 +33,8 @@ interface YTConfigMenuToggleItem extends YTConfigMenuActionItemBase<YTConfigMenu
   disabledText: string
   enabledIcon: YTIconType
   enabledText: string
-  defaultValue: boolean
+  defaultValue?: boolean
+  mask?: number
 }
 
 export type YTConfigMenuItem<T extends YTConfigMenuItemType | void = void> = T extends YTConfigMenuItemType ? Extract<YTConfigMenuItem, { type: T }> : (
@@ -84,24 +85,27 @@ const renderConfigMenuItem = (isTV: boolean, item: YTConfigMenuItem): YTValueDat
           serviceEndpoint: buildActionItemCommand(item)
         }
       }
-    case YTConfigMenuItemType.TOGGLE:
+    case YTConfigMenuItemType.TOGGLE: {
+      const mask = item.mask ?? 1
+
       return {
         [isTV ? 'toggleButtonRenderer' : 'toggleMenuServiceItemRenderer']: {
           defaultIcon: { iconType: item.disabledIcon },
           defaultText: { simpleText: item.disabledText },
           defaultServiceEndpoint: buildActionItemCommand({
             commands: item.commands,
-            signals: [getSetterSignalActionType(item.key, 1), ...item.signals ?? []]
+            signals: [getSetterSignalActionType(item.key, mask), ...item.signals ?? []]
           }),
           toggledIcon: { iconType: item.enabledIcon },
           toggledText: { simpleText: item.enabledText },
           toggledServiceEndpoint: buildActionItemCommand({
             commands: item.commands,
-            signals: [getSetterSignalActionType(item.key, 0), ...item.signals ?? []]
+            signals: [getSetterSignalActionType(item.key, -mask), ...item.signals ?? []]
           }),
-          isToggled: getYTConfigBool(item.key, item.defaultValue)
+          isToggled: getYTConfigBool(item.key, !!item.defaultValue, mask)
         }
       }
+    }
     default:
       throw new Error('invalid menu item type')
   }
@@ -165,8 +169,8 @@ const updateTvSurfaceContentRenderer = (data: YTRendererData<YTRenderer<'tvSurfa
   return true
 }
 
-export const getYTConfigBool = (key: string, defaultValue: boolean): boolean => {
-  return getYTConfigInt(key, defaultValue ? 1 : 0) !== 0
+export const getYTConfigBool = (key: string, defaultValue: boolean, mask = 1): boolean => {
+  return (getYTConfigInt(key, defaultValue ? mask : 0) & mask) !== 0
 }
 
 export const getYTConfigInt = (key: string, defaultValue: number): number => {
@@ -178,8 +182,8 @@ export const getYTConfigInt = (key: string, defaultValue: number): number => {
   return value
 }
 
-export const setYTConfigBool = (key: string, value: boolean): void => {
-  setYTConfigInt(key, value ? 1 : 0)
+export const setYTConfigBool = (key: string, value: boolean, mask = 1): void => {
+  setYTConfigInt(key, (getYTConfigInt(key, 0) & ~mask) | (value ? mask : 0))
 }
 
 export const setYTConfigInt = (key: string, value: number): void => {
@@ -190,11 +194,13 @@ export const setYTConfigInt = (key: string, value: number): void => {
 }
 
 export const registerYTConfigMenuItem = (item: YTConfigMenuItem): void => {
-  if (configMenuItems.find(i => i.key === item.key) != null) return
+  if (configMenuItems.find(i => i.key === item.key && (i as YTConfigMenuToggleItem).mask === (item as YTConfigMenuToggleItem).mask) != null) return
 
   if (item.type === YTConfigMenuItemType.TOGGLE) {
-    registerYTSignalActionHandler(getSetterSignalActionType(item.key, 0), setYTConfigBool.bind(null, item.key, false))
-    registerYTSignalActionHandler(getSetterSignalActionType(item.key, 1), setYTConfigBool.bind(null, item.key, true))
+    const mask = item.mask ?? 1
+
+    registerYTSignalActionHandler(getSetterSignalActionType(item.key, -mask), setYTConfigBool.bind(null, item.key, false, mask))
+    registerYTSignalActionHandler(getSetterSignalActionType(item.key, mask), setYTConfigBool.bind(null, item.key, true, mask))
   }
 
   configMenuItems.push(item)
