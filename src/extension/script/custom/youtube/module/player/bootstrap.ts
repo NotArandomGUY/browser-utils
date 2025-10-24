@@ -10,8 +10,11 @@ const LOGGER_OVERRIDE_ID = `logovr-${Date.now()}`
 const STYLE_SHEET = '.app-quality-root .ytLrWatchDefaultControl .ytLrWatchDefaultControlsBackground,.app-quality-root .ytLrWatchDefaultPivot .ytLrWatchDefaultControlsBackground{background:-webkit-linear-gradient(180deg,rgba(0,0,0,0) 0%,rgba(0,0,0,.41) 67.43%,rgba(0,0,0,.7) 100%)!important;background:linear-gradient(180deg,rgba(0,0,0,0) 0%,rgba(0,0,0,.41) 67.43%,rgba(0,0,0,.7) 100%)!important;}'
 
 const STAT_METHOD_MAP = {
+  bandwidth: 'getBandWidth',
   bufferhealth: 'getBufferHealth',
-  livelatency: 'getLiveLatency'
+  networkactivity: 'getNetworkActivity',
+  livelatency: 'getLiveLatency',
+  rawlivelatency: 'getRawLiveLatency'
 } satisfies Record<string, keyof YTPVideoPlayerInstance>
 
 export const enum YTPInstanceType {
@@ -51,13 +54,16 @@ export interface YTPVideoPlayerInstance extends YTPDisposableInstance {
   subscribe?<T, A extends unknown[]>(event: string, callback: (this: T, ...args: A) => void, instance: T): number
   unsubscribe?<T, A extends unknown[]>(event: string, callback: (this: T, ...args: A) => void, instance: T): boolean
 
+  getBandWidth?(): number
   getBufferHealth?(): number
   getCurrentTime?(): number
   getDuration?(): number
   getLiveLatency?(): number
+  getNetworkActivity?(): number
   getPlaybackQuality?(): string
   getPlaybackRate?(): number
   getPreferredQuality?(): string
+  getRawLiveLatency?(): number
   getVolume?(): number
   isAtLiveHead?(): boolean
   isBackground?(): boolean
