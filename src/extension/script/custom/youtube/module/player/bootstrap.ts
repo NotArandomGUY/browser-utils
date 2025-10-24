@@ -7,7 +7,23 @@ import Logger from '@ext/lib/logger'
 
 const LOGGER_OVERRIDE_ID = `logovr-${Date.now()}`
 
-const STYLE_SHEET = '.app-quality-root .ytLrWatchDefaultControl .ytLrWatchDefaultControlsBackground,.app-quality-root .ytLrWatchDefaultPivot .ytLrWatchDefaultControlsBackground{background:-webkit-linear-gradient(180deg,rgba(0,0,0,0) 0%,rgba(0,0,0,.41) 67.43%,rgba(0,0,0,.7) 100%)!important;background:linear-gradient(180deg,rgba(0,0,0,0) 0%,rgba(0,0,0,.41) 67.43%,rgba(0,0,0,.7) 100%)!important;}'
+const STYLE_SHEET = [
+  // leanback watch controls background style
+  '.app-quality-root .ytLrWatchDefaultControl .ytLrWatchDefaultControlsBackground,.app-quality-root .ytLrWatchDefaultPivot .ytLrWatchDefaultControlsBackground{background:-webkit-linear-gradient(180deg,rgba(0,0,0,0) 0%,rgba(0,0,0,.41) 67.43%,rgba(0,0,0,.7) 100%)!important;background:linear-gradient(180deg,rgba(0,0,0,0) 0%,rgba(0,0,0,.41) 67.43%,rgba(0,0,0,.7) 100%)!important}',
+  // leanback live chat styles
+  '.ytLrLiveChatHost{text-shadow:.125rem .125rem .15rem #0f0f0f;width:19.375rem}',
+  '.ytLrLiveChatMessageList{margin:2.75rem 2.5rem 2.75rem 2rem;width:14.875rem}',
+  '.ytLrLiveChatClientMessageHost,.ytLrLiveChatPaidMessageRendererHost,.ytLrLiveChatTextMessageRendererHost{background-color:#0f0f0f1f!important;border-radius:.125rem}',
+  '.ytLrLiveChatClientMessageHost{padding:.125rem}',
+  '.ytLrLiveChatPaidMessageRendererHeader{border-radius:.125rem .125rem 0 0;padding:.125rem;text-shadow:none}',
+  '.ytLrLiveChatPaidMessageRendererBody{background-color:initial!important;border-radius:0 0 .125rem .125rem;padding:.125rem}',
+  '.ytLrLiveChatTextMessageRendererContent{padding:.125rem .125rem .125rem 0}',
+  '.ytLrLiveChatTextMessageRendererBody{margin-top:.025rem}',
+  '.app-quality-root .ytLrLiveChatTextMessageRendererAuthorName{display:inline}',
+  '.ytLrLiveChatPaidMessageRendererAuthorPhoto,.ytLrLiveChatTextMessageRendererAuthorPhoto{height:1.25rem;width:1.25rem;left:.125rem;margin-top:.125rem}',
+  '.ytLrLiveChatPaidMessageRendererHasImage .ytLrLiveChatPaidMessageRendererHeader,.ytLrLiveChatPaidMessageRendererHasImage .ytLrLiveChatPaidMessageRendererBody{padding-left:1.5rem}',
+  '.ytLrLiveChatTextMessageRendererContentHasImage{margin-left:1.5rem}'
+].join('\n')
 
 const STAT_METHOD_MAP = {
   bandwidth: 'getBandWidth',
