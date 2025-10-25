@@ -2,21 +2,6 @@ import { registerYTRendererPreProcessor, removeYTRendererPre, YTRenderer, YTRend
 import { isYTLoggedIn } from '@ext/custom/youtube/module/core/bootstrap'
 import { Feature } from '@ext/lib/feature'
 
-const updateFeedNudgeRenderer = (data: YTRendererData<YTRenderer<'feedNudgeRenderer'>>): boolean => {
-  if (!isYTLoggedIn()) {
-    data.title = { simpleText: 'Oh hi!' }
-    data.subtitle = {
-      runs: [
-        { text: 'Home feed has been disabled~\n' },
-        { text: 'Sign in to use it!\n' },
-        { text: 'P.S. let me know if it suddenly works, it should not' }
-      ]
-    }
-  }
-
-  return true
-}
-
 const updateChannelRenderer = (data: YTRendererData<YTRenderer<'channelRenderer' | 'gridChannelRenderer'>>): boolean => {
   if (!isYTLoggedIn()) delete data.subscribeButton
 
@@ -40,7 +25,6 @@ export default class YTMiscsGuestModule extends Feature {
 
   protected activate(): boolean {
     registerYTRendererPreProcessor(YTRendererSchemaMap['channelRenderer'], updateChannelRenderer)
-    registerYTRendererPreProcessor(YTRendererSchemaMap['feedNudgeRenderer'], updateFeedNudgeRenderer)
     registerYTRendererPreProcessor(YTRendererSchemaMap['gridChannelRenderer'], updateChannelRenderer)
     registerYTRendererPreProcessor(YTRendererSchemaMap['videoOwnerRenderer'], updateVideoOwnerRenderer)
 

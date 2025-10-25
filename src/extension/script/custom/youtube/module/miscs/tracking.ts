@@ -2,7 +2,7 @@ import { YTSignalActionType } from '@ext/custom/youtube/api/endpoint'
 import { registerYTRendererPreProcessor, setYTServiceTrackingOverride, YTLoggingDirectivesSchema, YTRenderer, YTRendererData, YTRendererSchemaMap } from '@ext/custom/youtube/api/renderer'
 import { YTIconType } from '@ext/custom/youtube/api/types/icon'
 import { isYTLoggedIn } from '@ext/custom/youtube/module/core/bootstrap'
-import { getYTConfigInt, registerYTConfigMenuItem, YTConfigMenuItemType } from '@ext/custom/youtube/module/core/config'
+import { CONFIG_TEXT_DISABLE, CONFIG_TEXT_ENABLE, getYTConfigBool, registerYTConfigMenuItem, YTConfigMenuItemType } from '@ext/custom/youtube/module/core/config'
 import { registerYTInnertubeRequestProcessor } from '@ext/custom/youtube/module/core/network'
 import { assign } from '@ext/global/object'
 import { Feature } from '@ext/lib/feature'
@@ -12,7 +12,8 @@ import { addInterceptNetworkCallback, NetworkContext, NetworkContextState, Netwo
 import { addInterceptNetworkUrlFilter } from '@ext/lib/intercept/network/filter/url'
 import { buildPathnameRegexp } from '@ext/lib/regexp'
 
-const TRACKING_LEVEL_KEY = 'tracking-level'
+const TRACKING_SWITCHES_KEY = 'tracking-switches'
+const SHARE_URL_ALLOW_PARAMS = ['fmt', 'hl', 'index', 'list', 'pp', 't', 'v']
 
 const HOST_REGEXP = /./
 const FORBID_PATH_REGEXP = buildPathnameRegexp([
@@ -37,16 +38,39 @@ const FAKE_403_PATH_REGEXP = buildPathnameRegexp([
   //'/videoplayback\\?.*?&ctier=L&.*?%2Cctier%2C.*'
 ])
 */
-const DYNAMIC_BLACKLIST_PATH_REGEXP = buildPathnameRegexp([
+const STATS_BLACKLIST_PATH_REGEXP = buildPathnameRegexp([
   '/api/stats'
 ])
-const DYNAMIC_WHITELIST_PATH_REGEXP = buildPathnameRegexp([
+const STATS_WHITELIST_PATH_REGEXP = buildPathnameRegexp([
   '/api/stats/(atr|playback|delayplay|watchtime)'
 ])
 
-const enum TrackingLevel {
-  DEFAULT = 0,
-  DISABLE
+const enum YTTrackingSwitchMask {
+  GUEST_STATS = 0x01,
+  LOGIN_STATS = 0x02,
+  SHARE_ID = 0x04
+}
+
+export const isYTTrackingSwitchEnabled = (mask: YTTrackingSwitchMask): boolean => {
+  return getYTConfigBool(TRACKING_SWITCHES_KEY, false, mask)
+}
+
+const sanitizeShareUrl = (url: string | URL): string => {
+  try {
+    url = new URL(url)
+
+    const { searchParams } = url
+
+    if (['youtu.be', 'youtube.com', 'youtube-nocookie.com'].includes(url.hostname)) {
+      searchParams.forEach((_, key) => SHARE_URL_ALLOW_PARAMS.includes(key) || searchParams.delete(key))
+    } else {
+      searchParams.forEach((value, key) => searchParams.set(key, sanitizeShareUrl(value)))
+    }
+
+    return url.toString()
+  } catch {
+    return String(url)
+  }
 }
 
 const processRequest = (ctx: NetworkRequestContext): void => {
@@ -55,15 +79,12 @@ const processRequest = (ctx: NetworkRequestContext): void => {
   // Remove visitor id from everything
   request.headers.delete('x-goog-visitor-id')
 
-  // Ignore non dynamic blacklist requests
+  // Ignore non stats api requests
   const path = url.pathname + url.search
-  if (!DYNAMIC_BLACKLIST_PATH_REGEXP.test(path)) return
+  if (!STATS_BLACKLIST_PATH_REGEXP.test(path)) return
 
-  const level = getYTConfigInt(TRACKING_LEVEL_KEY, TrackingLevel.DEFAULT)
-  if (level !== TrackingLevel.DISABLE) {
-    // Enable dynamic whitelist when logged in
-    if (isYTLoggedIn() && DYNAMIC_WHITELIST_PATH_REGEXP.test(path)) return
-  }
+  // Allow basic stats api if switch is enabled
+  if (isYTTrackingSwitchEnabled(isYTLoggedIn() ? YTTrackingSwitchMask.LOGIN_STATS : YTTrackingSwitchMask.GUEST_STATS) && STATS_WHITELIST_PATH_REGEXP.test(path)) return
 
   // Block request
   assign<NetworkContext, NetworkContextState>(ctx, { state: NetworkState.FAILED, error: new Error('Failed') })
@@ -92,6 +113,50 @@ const updateSearchResponse = (data: YTRendererData<YTRenderer<'searchResponse'>>
   return true
 }
 
+const updateCopyLinkRenderer = (data: YTRendererData<YTRenderer<'copyLinkRenderer'>>): boolean => {
+  const { shortUrl } = data
+
+  if (!isYTTrackingSwitchEnabled(YTTrackingSwitchMask.SHARE_ID) && shortUrl != null) {
+    data.shortUrl = sanitizeShareUrl(shortUrl)
+  }
+
+  return true
+}
+
+const updateFeedNudgeRenderer = (data: YTRendererData<YTRenderer<'feedNudgeRenderer'>>): boolean => {
+  if (!isYTTrackingSwitchEnabled(isYTLoggedIn() ? YTTrackingSwitchMask.LOGIN_STATS : YTTrackingSwitchMask.GUEST_STATS)) {
+    data.title = { simpleText: 'Oh hi!' }
+    data.subtitle = {
+      runs: [
+        { text: 'Watch history is currently disabled\n' },
+        { text: 'You can enable watch history from the menu' }
+      ]
+    }
+  }
+
+  return true
+}
+
+const updateShareTargetRenderer = (data: YTRendererData<YTRenderer<'shareTargetRenderer'>>): boolean => {
+  const { navigationEndpoint } = data
+
+  if (!isYTTrackingSwitchEnabled(YTTrackingSwitchMask.SHARE_ID) && navigationEndpoint != null) {
+    const { commandMetadata, urlEndpoint } = navigationEndpoint
+    const { webCommandMetadata } = commandMetadata ?? {}
+
+    if (webCommandMetadata?.url != null) webCommandMetadata.url = sanitizeShareUrl(webCommandMetadata.url)
+    if (urlEndpoint?.url != null) urlEndpoint.url = sanitizeShareUrl(urlEndpoint.url)
+  }
+
+  return true
+}
+
+const updateSharingEmbedRenderer = (data: YTRendererData<YTRenderer<'sharingEmbedRenderer'>>): boolean => {
+  if (!isYTTrackingSwitchEnabled(YTTrackingSwitchMask.SHARE_ID)) delete data.attributionId
+
+  return true
+}
+
 export default class YTMiscsTrackingModule extends Feature {
   public constructor() {
     super('tracking')
@@ -104,6 +169,10 @@ export default class YTMiscsTrackingModule extends Feature {
     registerYTRendererPreProcessor(YTLoggingDirectivesSchema, updateLoggingDirectives)
     registerYTRendererPreProcessor(YTRendererSchemaMap['playerResponse'], updatePlayerResponse)
     registerYTRendererPreProcessor(YTRendererSchemaMap['searchResponse'], updateSearchResponse)
+    registerYTRendererPreProcessor(YTRendererSchemaMap['copyLinkRenderer'], updateCopyLinkRenderer)
+    registerYTRendererPreProcessor(YTRendererSchemaMap['feedNudgeRenderer'], updateFeedNudgeRenderer)
+    registerYTRendererPreProcessor(YTRendererSchemaMap['shareTargetRenderer'], updateShareTargetRenderer)
+    registerYTRendererPreProcessor(YTRendererSchemaMap['sharingEmbedRenderer'], updateSharingEmbedRenderer)
 
     registerYTInnertubeRequestProcessor('player', ({ params }) => {
       params.searchQuery = null
@@ -133,13 +202,33 @@ export default class YTMiscsTrackingModule extends Feature {
 
     registerYTConfigMenuItem({
       type: YTConfigMenuItemType.TOGGLE,
-      key: TRACKING_LEVEL_KEY,
-      disabledIcon: YTIconType.PRIVACY_PUBLIC,
-      disabledText: 'Tracking: Default',
-      enabledIcon: YTIconType.PRIVACY_PRIVATE,
-      enabledText: 'Tracking: Disable',
-      defaultValue: false,
-      signals: [YTSignalActionType.POPUP_BACK, YTSignalActionType.SOFT_RELOAD_PAGE]
+      key: TRACKING_SWITCHES_KEY,
+      disabledIcon: YTIconType.PRIVACY_PRIVATE,
+      disabledText: `Guest Watch History: ${CONFIG_TEXT_DISABLE}`,
+      enabledIcon: YTIconType.PRIVACY_PUBLIC,
+      enabledText: `Guest Watch History: ${CONFIG_TEXT_ENABLE}`,
+      signals: [YTSignalActionType.POPUP_BACK, YTSignalActionType.SOFT_RELOAD_PAGE],
+      mask: YTTrackingSwitchMask.GUEST_STATS
+    })
+    registerYTConfigMenuItem({
+      type: YTConfigMenuItemType.TOGGLE,
+      key: TRACKING_SWITCHES_KEY,
+      disabledIcon: YTIconType.PRIVACY_PRIVATE,
+      disabledText: `Login Watch History: ${CONFIG_TEXT_DISABLE}`,
+      enabledIcon: YTIconType.PRIVACY_PUBLIC,
+      enabledText: `Login Watch History: ${CONFIG_TEXT_ENABLE}`,
+      signals: [YTSignalActionType.POPUP_BACK, YTSignalActionType.SOFT_RELOAD_PAGE],
+      mask: YTTrackingSwitchMask.LOGIN_STATS
+    })
+    registerYTConfigMenuItem({
+      type: YTConfigMenuItemType.TOGGLE,
+      key: TRACKING_SWITCHES_KEY,
+      disabledIcon: YTIconType.PRIVACY_PRIVATE,
+      disabledText: `Share ID: ${CONFIG_TEXT_DISABLE}`,
+      enabledIcon: YTIconType.PRIVACY_PUBLIC,
+      enabledText: `Share ID: ${CONFIG_TEXT_ENABLE}`,
+      signals: [YTSignalActionType.POPUP_BACK, YTSignalActionType.SOFT_RELOAD_PAGE],
+      mask: YTTrackingSwitchMask.SHARE_ID
     })
 
     return true

@@ -798,6 +798,9 @@ export const YTRendererSchemaMap = {
     targetId: ytv_str(),
     topbar: ytv_ren()
   },
+  shareGetSharePanelResponse: {
+    ...YTResponseCommonSchema,
+  },
   updatedMetadataResponse: {
     ...YTResponseCommonSchema,
     continuation: ytv_ren(YTRendererContinuationSchema)
@@ -1259,6 +1262,10 @@ export const YTRendererSchemaMap = {
   },
   conversationBarRenderer: {
     availabilityMessage: ytv_ren()
+  },
+  copyLinkRenderer: {
+    copyButton: ytv_ren(),
+    shortUrl: ytv_str()
   },
   decoratedPlayerBarRenderer: {
     playerBar: ytv_ren(),
@@ -2781,6 +2788,39 @@ export const YTRendererSchemaMap = {
   secondarySearchContainerRenderer: {
     contents: ytv_arr(ytv_ren())
   },
+  sharePanelHeaderRenderer: {
+    title: ytv_ren()
+  },
+  sharePanelTitleV15Renderer: {
+    title: ytv_sch(YTTextSchema)
+  },
+  shareTargetRenderer: {
+    navigationEndpoint: ytv_enp(),
+    serviceEndpoint: ytv_enp(),
+    serviceName: ytv_str(),
+    targetId: ytv_num(),
+    title: ytv_sch(YTTextSchema)
+  },
+  sharingEmbedRenderer: {
+    actionButtons: ytv_arr(ytv_ren()),
+    attributionId: ytv_str(),
+    apiReferenceLinkLabel: ytv_sch(YTTextSchema),
+    developerSampleLinkLabel: ytv_sch(YTTextSchema),
+    embedOptionsLabel: ytv_sch(YTTextSchema),
+    enablePrivacyModeOptionLabel: ytv_sch(YTTextSchema),
+    encryptedEmbedConfig: ytv_str(),
+    height: ytv_num(),
+    legalInfo: ytv_sch(YTTextSchema),
+    previewHeight: ytv_num(),
+    previewWidth: ytv_num(),
+    showPlayerControlsOptionLabel: ytv_sch(YTTextSchema),
+    showSuggestedVideosOptionLabel: ytv_sch(YTTextSchema),
+    showVideoTitleOptionLabel: ytv_sch(YTTextSchema),
+    startAt: ytv_ren(),
+    title: ytv_sch(YTTextSchema),
+    videoId: ytv_str(),
+    width: ytv_num()
+  },
   shelfHeaderRenderer: {
     avatarLockup: ytv_ren(),
     icon: ytv_sch(YTIconSchema),
@@ -2883,6 +2923,9 @@ export const YTRendererSchemaMap = {
     tooltip: ytv_str()
   },
   sortFilterSubMenuItemRenderer: YTSortFilterSubMenuItemRendererSchema,
+  startAtRenderer: {
+    startAtOptionLabel: ytv_sch(YTTextSchema)
+  },
   structuredDescriptionContentRenderer: {
     items: ytv_arr(ytv_ren())
   },
@@ -2963,6 +3006,10 @@ export const YTRendererSchemaMap = {
     selected: ytv_bol(),
     tabIdentifier: ytv_str(),
     title: ytv_str()
+  },
+  thirdPartyShareTargetSectionRenderer: {
+    accessibility: ytv_sch(YTAccessibilitySchema),
+    shareTargets: ytv_arr(ytv_ren())
   },
   thumbnailLandscapePortraitRenderer: {
     landscape: ytv_sch(YTThumbnailSchema),
@@ -3133,6 +3180,9 @@ export const YTRendererSchemaMap = {
     secondaryResults: ytv_ren(),
   },
   unifiedSharePanelRenderer: {
+    contents: ytv_arr(ytv_ren()),
+    header: ytv_ren(),
+    sharePanelVersion: ytv_num(),
     showLoadingSpinner: ytv_bol()
   },
   universalWatchCardRenderer: {
@@ -3565,6 +3615,7 @@ export const YTRendererSchemaMap = {
       streamTimeMillis: ytv_str()
     })
   },
+  firstPartyNetworkSectionViewModel: {},
   flexibleActionsViewModel: {
     actionsRows: ytv_arr(ytv_sch({
       actions: ytv_arr(ytv_ren())
@@ -4001,6 +4052,11 @@ export const YTRendererSchemaMap = {
   templatedAdText: {
     isTemplated: ytv_bol(),
     text: ytv_str()
+  },
+  thirdPartyNetworkSection: {
+    copyLinkContainer: ytv_ren(),
+    shareTargetContainer: ytv_ren(),
+    startAtContainer: ytv_ren()
   }
 } satisfies Record<string, YTRendererSchema>
 
