@@ -126,11 +126,11 @@ type YTLoggingImsPayload = {
 
 const triggeredDetectionSources = new Set<string>()
 
-function handleAppCrashed(payload: YTLoggingImsPayloadVariants['appCrashed']): void {
+const handleAppCrashed = (payload: YTLoggingImsPayloadVariants['appCrashed']): void => {
   logger.warn('app crashed, info:', payload)
 }
 
-function handleBiscottiBasedDetection(payload: YTLoggingImsPayloadVariants['biscottiBasedDetection']): void {
+const handleBiscottiBasedDetection = (payload: YTLoggingImsPayloadVariants['biscottiBasedDetection']): void => {
   const { detected, detectionResult, source } = payload
 
   logger.debug('biscotti based detection source:', source, 'result:', detectionResult)
@@ -155,7 +155,7 @@ function handleBiscottiBasedDetection(payload: YTLoggingImsPayloadVariants['bisc
   }, 5e3)
 }
 
-function handleClientError(payload: YTLoggingImsPayloadVariants['clientError']): void {
+const handleClientError = (payload: YTLoggingImsPayloadVariants['clientError']): void => {
   logger.warn('client error, info:', payload)
 }
 

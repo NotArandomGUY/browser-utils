@@ -1,7 +1,7 @@
 import { registerYTRendererPreProcessor, YTRenderer, YTRendererData, YTRendererSchemaMap } from '@ext/custom/youtube/api/renderer'
 import { Feature } from '@ext/lib/feature'
 
-function updateEmojiPickerRenderer(data: YTRendererData<YTRenderer<'emojiPickerRenderer'>>): boolean {
+const updateEmojiPickerRenderer = (data: YTRendererData<YTRenderer<'emojiPickerRenderer'>>): boolean => {
   // Replace upsell categories with noraml categories
   data.categories?.forEach(c => {
     if (c.emojiPickerUpsellCategoryRenderer == null) return

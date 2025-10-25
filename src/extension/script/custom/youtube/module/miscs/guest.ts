@@ -2,7 +2,7 @@ import { registerYTRendererPreProcessor, removeYTRendererPre, YTRenderer, YTRend
 import { isYTLoggedIn } from '@ext/custom/youtube/module/core/bootstrap'
 import { Feature } from '@ext/lib/feature'
 
-function updateFeedNudgeRenderer(data: YTRendererData<YTRenderer<'feedNudgeRenderer'>>): boolean {
+const updateFeedNudgeRenderer = (data: YTRendererData<YTRenderer<'feedNudgeRenderer'>>): boolean => {
   if (!isYTLoggedIn()) {
     data.title = { simpleText: 'Oh hi!' }
     data.subtitle = {
@@ -17,19 +17,19 @@ function updateFeedNudgeRenderer(data: YTRendererData<YTRenderer<'feedNudgeRende
   return true
 }
 
-function updateChannelRenderer(data: YTRendererData<YTRenderer<'channelRenderer' | 'gridChannelRenderer'>>): boolean {
+const updateChannelRenderer = (data: YTRendererData<YTRenderer<'channelRenderer' | 'gridChannelRenderer'>>): boolean => {
   if (!isYTLoggedIn()) delete data.subscribeButton
 
   return true
 }
 
-function updateVideoOwnerRenderer(data: YTRendererData<YTRenderer<'videoOwnerRenderer'>>): boolean {
+const updateVideoOwnerRenderer = (data: YTRendererData<YTRenderer<'videoOwnerRenderer'>>): boolean => {
   if (!isYTLoggedIn()) delete data.membershipButton
 
   return true
 }
 
-function filterMenuFlexibleItem(data: YTRendererData<YTRenderer<'menuFlexibleItemRenderer'>>): boolean {
+const filterMenuFlexibleItem = (data: YTRendererData<YTRenderer<'menuFlexibleItemRenderer'>>): boolean => {
   return isYTLoggedIn() || !['PLAYLIST_ADD'].includes(data.menuItem?.menuServiceItemRenderer?.icon?.iconType ?? '')
 }
 

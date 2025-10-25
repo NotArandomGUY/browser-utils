@@ -8,6 +8,9 @@ import { Feature } from '@ext/lib/feature'
 
 const CONFIG_MENU_TITLE = 'BU Menu'
 
+export const CONFIG_TEXT_DISABLE = 'Disable'
+export const CONFIG_TEXT_ENABLE = 'Enable'
+
 export const enum YTConfigMenuItemType {
   BUTTON,
   TOGGLE

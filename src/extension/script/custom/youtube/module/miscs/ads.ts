@@ -9,13 +9,13 @@ import Logger from '@ext/lib/logger'
 
 const logger = new Logger('YTMISCS-ADS')
 
-function updateNextResponse(data: YTRendererData<YTRenderer<'nextResponse'>>): boolean {
+const updateNextResponse = (data: YTRendererData<YTRenderer<'nextResponse'>>): boolean => {
   delete data.adEngagementPanels
 
   return true
 }
 
-function filterReel(data: YTEndpointData<YTEndpoint<'reelWatchEndpoint'>>): boolean {
+const filterReel = (data: YTEndpointData<YTEndpoint<'reelWatchEndpoint'>>): boolean => {
   return data.adClientParams == null
 }
 

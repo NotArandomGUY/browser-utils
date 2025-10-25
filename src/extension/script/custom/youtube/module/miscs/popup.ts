@@ -1,7 +1,7 @@
 import { registerYTRendererPreProcessor, removeYTRendererPre, YTRenderer, YTRendererData, YTRendererSchemaMap } from '@ext/custom/youtube/api/renderer'
 import { Feature } from '@ext/lib/feature'
 
-function updateNextResponse(data: YTRendererData<YTRenderer<'nextResponse'>>): boolean {
+const updateNextResponse = (data: YTRendererData<YTRenderer<'nextResponse'>>): boolean => {
   delete data.survey
 
   return true

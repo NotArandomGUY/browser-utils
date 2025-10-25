@@ -1,7 +1,7 @@
 import { YTSignalActionType } from '@ext/custom/youtube/api/endpoint'
 import { registerYTRendererPreProcessor, YTRenderer, YTRendererData, YTRendererSchemaMap } from '@ext/custom/youtube/api/renderer'
 import { YTIconType } from '@ext/custom/youtube/api/types/icon'
-import { getYTConfigBool, registerYTConfigMenuItem, YTConfigMenuItemType } from '@ext/custom/youtube/module/core/config'
+import { CONFIG_TEXT_DISABLE, CONFIG_TEXT_ENABLE, getYTConfigBool, registerYTConfigMenuItem, YTConfigMenuItemType } from '@ext/custom/youtube/module/core/config'
 import { getYTPInstance, YTPInstanceType } from '@ext/custom/youtube/module/player/bootstrap'
 import { abs, max, min, round } from '@ext/global/math'
 import { defineProperty } from '@ext/global/object'
@@ -17,9 +17,7 @@ const LATENCY_TOLERANCE = 50
 const SYNC_INTERVAL = 250
 const MIN_SYNC_RATE = 0.95
 const MAX_SYNC_RATE = 1.05
-
-const CONFIG_DISABLE_TEXT = 'Disable (Default Behaviour)'
-const CONFIG_ENABLE_TEXT = 'Enable'
+const MAX_DESYNC_TICKS = 5
 
 export const enum YTLiveBehaviourMask {
   LOW_LATENCY = 0x01,
@@ -53,7 +51,7 @@ const liveHeadUpdate = (): void => {
   if (!player.isAtLiveHead?.()) {
     // Attempt to catch back up to live head if buffer health was too bad and we went out of live head range
     if (desyncTime < 0) desyncTime = now
-    if ((now - desyncTime) < (syncLiveHeadDeltaTime * 2)) {
+    if ((now - desyncTime) < (syncLiveHeadDeltaTime * MAX_DESYNC_TICKS)) {
       player.setPlaybackRate?.(MAX_SYNC_RATE)
       return
     }
@@ -153,9 +151,9 @@ export default class YTPlayerLiveModule extends Feature {
       type: YTConfigMenuItemType.TOGGLE,
       key: LIVE_BEHAVIOUR_KEY,
       disabledIcon: YTIconType.CLOCK,
-      disabledText: `Live Low Latency: ${CONFIG_DISABLE_TEXT}`,
+      disabledText: `Live Low Latency: ${CONFIG_TEXT_DISABLE}`,
       enabledIcon: YTIconType.CLOCK,
-      enabledText: `Live Low Latency: ${CONFIG_ENABLE_TEXT}`,
+      enabledText: `Live Low Latency: ${CONFIG_TEXT_ENABLE}`,
       defaultValue: false,
       signals: [YTSignalActionType.POPUP_BACK, YTSignalActionType.SOFT_RELOAD_PAGE],
       mask: YTLiveBehaviourMask.LOW_LATENCY
@@ -164,9 +162,9 @@ export default class YTPlayerLiveModule extends Feature {
       type: YTConfigMenuItemType.TOGGLE,
       key: LIVE_BEHAVIOUR_KEY,
       disabledIcon: YTIconType.CLOCK,
-      disabledText: `Live DVR: ${CONFIG_DISABLE_TEXT}`,
+      disabledText: `Live DVR: ${CONFIG_TEXT_DISABLE}`,
       enabledIcon: YTIconType.CLOCK,
-      enabledText: `Live DVR: ${CONFIG_ENABLE_TEXT}`,
+      enabledText: `Live DVR: ${CONFIG_TEXT_ENABLE}`,
       defaultValue: false,
       signals: [YTSignalActionType.POPUP_BACK, YTSignalActionType.SOFT_RELOAD_PAGE],
       mask: YTLiveBehaviourMask.FORCE_DVR

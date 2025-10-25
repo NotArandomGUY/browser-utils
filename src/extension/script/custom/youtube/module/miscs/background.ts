@@ -3,7 +3,7 @@ import { random } from '@ext/global/math'
 import { defineProperties } from '@ext/global/object'
 import { Feature } from '@ext/lib/feature'
 
-function generateActivity(): void {
+const generateActivity = (): void => {
   if (random() > 0.15) return
 
   const ytglobal = window.ytglobal
