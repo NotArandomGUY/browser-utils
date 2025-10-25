@@ -155,8 +155,8 @@ export default class YTPlayerLiveModule extends Feature {
       enabledIcon: YTIconType.CLOCK,
       enabledText: `Live Low Latency: ${CONFIG_TEXT_ENABLE}`,
       defaultValue: false,
-      signals: [YTSignalActionType.POPUP_BACK, YTSignalActionType.SOFT_RELOAD_PAGE],
-      mask: YTLiveBehaviourMask.LOW_LATENCY
+      mask: YTLiveBehaviourMask.LOW_LATENCY,
+      signals: [YTSignalActionType.POPUP_BACK, YTSignalActionType.SOFT_RELOAD_PAGE]
     })
     registerYTConfigMenuItem({
       type: YTConfigMenuItemType.TOGGLE,
@@ -166,8 +166,8 @@ export default class YTPlayerLiveModule extends Feature {
       enabledIcon: YTIconType.CLOCK,
       enabledText: `Live DVR: ${CONFIG_TEXT_ENABLE}`,
       defaultValue: false,
-      signals: [YTSignalActionType.POPUP_BACK, YTSignalActionType.SOFT_RELOAD_PAGE],
-      mask: YTLiveBehaviourMask.FORCE_DVR
+      mask: YTLiveBehaviourMask.FORCE_DVR,
+      signals: [YTSignalActionType.POPUP_BACK, YTSignalActionType.SOFT_RELOAD_PAGE]
     })
 
     lastSyncLiveHeadTime = Date.now()

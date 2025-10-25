@@ -2,7 +2,7 @@ import { YTSignalActionType } from '@ext/custom/youtube/api/endpoint'
 import { registerYTRendererPreProcessor, setYTServiceTrackingOverride, YTLoggingDirectivesSchema, YTRenderer, YTRendererData, YTRendererSchemaMap } from '@ext/custom/youtube/api/renderer'
 import { YTIconType } from '@ext/custom/youtube/api/types/icon'
 import { isYTLoggedIn } from '@ext/custom/youtube/module/core/bootstrap'
-import { CONFIG_TEXT_DISABLE, CONFIG_TEXT_ENABLE, getYTConfigBool, registerYTConfigMenuItem, YTConfigMenuItemType } from '@ext/custom/youtube/module/core/config'
+import { CONFIG_TEXT_DISABLE, CONFIG_TEXT_ENABLE, getYTConfigBool, getYTConfigInt, registerYTConfigMenuItem, setYTConfigInt, YTConfigMenuItemType } from '@ext/custom/youtube/module/core/config'
 import { registerYTInnertubeRequestProcessor } from '@ext/custom/youtube/module/core/network'
 import { assign } from '@ext/global/object'
 import { Feature } from '@ext/lib/feature'
@@ -207,8 +207,8 @@ export default class YTMiscsTrackingModule extends Feature {
       disabledText: `Guest Watch History: ${CONFIG_TEXT_DISABLE}`,
       enabledIcon: YTIconType.PRIVACY_PUBLIC,
       enabledText: `Guest Watch History: ${CONFIG_TEXT_ENABLE}`,
-      signals: [YTSignalActionType.POPUP_BACK, YTSignalActionType.SOFT_RELOAD_PAGE],
-      mask: YTTrackingSwitchMask.GUEST_STATS
+      mask: YTTrackingSwitchMask.GUEST_STATS,
+      signals: [YTSignalActionType.POPUP_BACK, YTSignalActionType.SOFT_RELOAD_PAGE]
     })
     registerYTConfigMenuItem({
       type: YTConfigMenuItemType.TOGGLE,
@@ -217,8 +217,8 @@ export default class YTMiscsTrackingModule extends Feature {
       disabledText: `Login Watch History: ${CONFIG_TEXT_DISABLE}`,
       enabledIcon: YTIconType.PRIVACY_PUBLIC,
       enabledText: `Login Watch History: ${CONFIG_TEXT_ENABLE}`,
-      signals: [YTSignalActionType.POPUP_BACK, YTSignalActionType.SOFT_RELOAD_PAGE],
-      mask: YTTrackingSwitchMask.LOGIN_STATS
+      mask: YTTrackingSwitchMask.LOGIN_STATS,
+      signals: [YTSignalActionType.POPUP_BACK, YTSignalActionType.SOFT_RELOAD_PAGE]
     })
     registerYTConfigMenuItem({
       type: YTConfigMenuItemType.TOGGLE,
@@ -227,9 +227,12 @@ export default class YTMiscsTrackingModule extends Feature {
       disabledText: `Share ID: ${CONFIG_TEXT_DISABLE}`,
       enabledIcon: YTIconType.PRIVACY_PUBLIC,
       enabledText: `Share ID: ${CONFIG_TEXT_ENABLE}`,
-      signals: [YTSignalActionType.POPUP_BACK, YTSignalActionType.SOFT_RELOAD_PAGE],
-      mask: YTTrackingSwitchMask.SHARE_ID
+      mask: YTTrackingSwitchMask.SHARE_ID,
+      signals: [YTSignalActionType.POPUP_BACK, YTSignalActionType.SOFT_RELOAD_PAGE]
     })
+
+    // Default only enable login stats
+    if (getYTConfigInt(TRACKING_SWITCHES_KEY, -1) < 0) setYTConfigInt(TRACKING_SWITCHES_KEY, YTTrackingSwitchMask.LOGIN_STATS)
 
     return true
   }
