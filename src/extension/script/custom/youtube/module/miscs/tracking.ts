@@ -173,8 +173,22 @@ export default class YTMiscsTrackingModule extends Feature {
     registerYTRendererPreProcessor(YTRendererSchemaMap['shareTargetRenderer'], updateShareTargetRenderer)
     registerYTRendererPreProcessor(YTRendererSchemaMap['sharingEmbedRenderer'], updateSharingEmbedRenderer)
 
-    registerYTInnertubeRequestProcessor('player', ({ params }) => {
+    registerYTInnertubeRequestProcessor('player', ({ params, playbackContext, playlistId, playlistIndex, videoId }) => {
       params.searchQuery = null
+
+      const contentPlaybackContext = playbackContext?.contentPlaybackContext
+      if (contentPlaybackContext == null) return
+
+      delete contentPlaybackContext.referer
+
+      // Limited current url (can also be used to unlock formats in leanback /player request)
+      const searchParams = new URLSearchParams()
+
+      if (videoId != null) searchParams.set('v', videoId)
+      if (playlistId != null) searchParams.set('list', playlistId)
+      if (playlistIndex != null) searchParams.set('index', `${playlistIndex}`)
+
+      contentPlaybackContext.currentUrl = `/watch?${searchParams.toString()}`
     })
     registerYTInnertubeRequestProcessor('search', request => {
       request.context.client.visitorData = ''

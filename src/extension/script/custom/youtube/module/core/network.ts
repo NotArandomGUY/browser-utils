@@ -56,10 +56,26 @@ type YTInnertubeRequestBase = {
 }
 
 type YTInnertubeRequestMap = {
-  'get_watch': { playerRequest: object, watchNextRequest: object }
+  'get_watch': {
+    playerRequest: object
+    watchNextRequest: object
+  }
   'next': {}
-  'player': { contentCheckOk: boolean, racyCheckOk: boolean, params: InstanceType<typeof PlayerParams>, playbackContext: YTInnertubeRequestPlaybackContext }
-  'search': { isPrefetch?: boolean, isZeroPrefixQuery?: boolean, query?: string, suggestionSearchParams?: { subtypes: unknown[] }, webSearchboxStatsUrl?: string }
+  'player': Partial<{
+    contentCheckOk: boolean
+    racyCheckOk: boolean
+    playbackContext: YTInnertubeRequestPlaybackContext
+    playlistId: string
+    playlistIndex: number
+    videoId: string
+  }> & { params: InstanceType<typeof PlayerParams> }
+  'search': Partial<{
+    isPrefetch: boolean
+    isZeroPrefixQuery: boolean
+    query: string
+    suggestionSearchParams: { subtypes: unknown[] }
+    webSearchboxStatsUrl: string
+  }>
 }
 export type YTInnertubeRequestEndpoint = keyof YTInnertubeRequestMap
 export type YTInnertubeRequest<E extends YTInnertubeRequestEndpoint = YTInnertubeRequestEndpoint> = YTInnertubeRequestBase & YTInnertubeRequestMap[E]
