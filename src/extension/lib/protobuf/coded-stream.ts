@@ -49,10 +49,10 @@ function encodeZigZag64(n: bigint): bigint {
 }
 
 export default class CodedStream {
-  private buffer: Uint8Array
+  private buffer: Uint8Array<ArrayBuffer>
   private position: number
 
-  public constructor(buffer?: Uint8Array) {
+  public constructor(buffer?: Uint8Array<ArrayBuffer>) {
     this.buffer = buffer ?? new Uint8Array(0)
     this.position = 0
   }
@@ -61,19 +61,19 @@ export default class CodedStream {
     return this.position >= this.buffer.length
   }
 
-  public getReadBuffer(): Uint8Array {
+  public getReadBuffer(): Uint8Array<ArrayBuffer> {
     const { buffer, position } = this
 
     return buffer.slice(position)
   }
 
-  public getWriteBuffer(): Uint8Array {
+  public getWriteBuffer(): Uint8Array<ArrayBuffer> {
     const { buffer, position } = this
 
     return buffer.slice(0, position)
   }
 
-  public getBuffer(): Uint8Array {
+  public getBuffer(): Uint8Array<ArrayBuffer> {
     return this.buffer
   }
 
@@ -87,7 +87,7 @@ export default class CodedStream {
     return buffer.length - position
   }
 
-  public setBuffer(buffer: Uint8Array): void {
+  public setBuffer(buffer: Uint8Array<ArrayBuffer>): void {
     const { position } = this
 
     this.buffer = buffer
@@ -177,11 +177,11 @@ export default class CodedStream {
     return bufferToString(this.readBytes())
   }
 
-  public readBytes(): Uint8Array {
+  public readBytes(): Uint8Array<ArrayBuffer> {
     return this.readRawBytes(this.readUInt32())
   }
 
-  public readRawBytes(size: number): Uint8Array {
+  public readRawBytes(size: number): Uint8Array<ArrayBuffer> {
     const { buffer, position } = this
 
     const nextPosition = position + size

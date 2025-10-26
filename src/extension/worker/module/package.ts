@@ -23,7 +23,7 @@ const logger = new Logger('WORKER-PACKAGE')
 
 interface IDBPackageEntry {
   version: string
-  data: Uint8Array
+  data: Uint8Array<ArrayBuffer>
 }
 
 const fetchMutex = new Mutex()
@@ -75,7 +75,7 @@ const setPackageUpdateStatus = (status: string): void => {
   getExtensionMessageSender(cache.messageKey, ExtensionMessageSource.WORKER).sendMessageToMain(ExtensionMessageType.PACKAGE_UPDATE, { status })
 }
 
-const encryptScriptPackage = async (branch: InstanceType<typeof RemoteBranch>, data: Uint8Array): Promise<Uint8Array> => {
+const encryptScriptPackage = async (branch: InstanceType<typeof RemoteBranch>, data: Uint8Array<ArrayBuffer>): Promise<Uint8Array<ArrayBuffer>> => {
   data = await compress(data, 'deflate')
   if (branch.encryptKey == null || branch.publicKey == null) return data
 
@@ -83,7 +83,7 @@ const encryptScriptPackage = async (branch: InstanceType<typeof RemoteBranch>, d
   return new Uint8Array(await subtle.encrypt({ ...ENCRYPT_ALGO, iv: branch.publicKey.subarray(0, 16) }, key, data))
 }
 
-const decryptScriptPackage = async (branch: InstanceType<typeof RemoteBranch>, data: BufferSource): Promise<Uint8Array> => {
+const decryptScriptPackage = async (branch: InstanceType<typeof RemoteBranch>, data: BufferSource): Promise<Uint8Array<ArrayBuffer>> => {
   if (branch.encryptKey != null && branch.publicKey != null) {
     const key = await subtle.importKey('raw', branch.encryptKey, ENCRYPT_ALGO, false, ['decrypt'])
     data = new Uint8Array(await subtle.decrypt({ ...ENCRYPT_ALGO, iv: branch.publicKey.subarray(0, 16) }, key, data))

@@ -664,7 +664,7 @@ export const bufferWriteDoubleBE = (buffer: Uint8Array, value: number, offset: n
   return writeDoubleImpl(buffer, value, offset, false)
 }
 
-export const bufferFromString = (input: string, encoding: Encoding = 'utf8'): Uint8Array => {
+export const bufferFromString = (input: string, encoding: Encoding = 'utf8'): Uint8Array<ArrayBuffer> => {
   switch (encoding) {
     case 'ascii':
     case 'latin1':
@@ -675,7 +675,7 @@ export const bufferFromString = (input: string, encoding: Encoding = 'utf8'): Ui
   }
 }
 
-export const bufferToString = (input: BufferSource, encoding: Encoding = 'utf8'): string => {
+export const bufferToString = (input: Uint8Array | ArrayBuffer, encoding: Encoding = 'utf8'): string => {
   switch (encoding) {
     case 'latin1': {
       const buffer = ArrayBuffer.isView(input)
@@ -690,7 +690,7 @@ export const bufferToString = (input: BufferSource, encoding: Encoding = 'utf8')
   }
 }
 
-export const bufferConcat = (parts: Uint8Array[]): Uint8Array => {
+export const bufferConcat = (parts: Uint8Array[]): Uint8Array<ArrayBuffer> => {
   const concatParts = new Uint8Array(parts.reduce((total, part) => total + part.length, 0))
 
   let offset = 0

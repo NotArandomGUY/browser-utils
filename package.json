@@ -4,7 +4,8 @@
   "description": "Browser Utils",
   "scripts": {
     "watch": "webpack --config webpack/webpack.dev.ts --watch",
-    "build": "webpack --config webpack/webpack.prod.ts"
+    "build": "webpack --config webpack/webpack.prod.ts",
+    "check": "tsc --noEmit --skipLibCheck"
   },
   "author": "NotArandomGUY",
   "license": "AGPL-3.0-only",
@@ -24,7 +25,7 @@
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
     "tsconfig-paths-webpack-plugin": "^4.2.0",
-    "typescript": "5.8.3",
+    "typescript": "^5.9.3",
     "webpack": "^5.76.0",
     "webpack-cli": "^4.0.0",
     "webpack-merge": "^5.0.0",

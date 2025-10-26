@@ -76,6 +76,11 @@ enum RuntimeField {
   asyncModule = 'a'
 }
 
+interface RuntimeChunkLoadedFn {
+  <T>(result: T): T
+  <T>(result: T, chunkIds: ChunkID[], fn: () => T, priority: number): T
+}
+
 interface RuntimeProxy {
   (this: WebpackRuntime, moduleId: ModuleID): object
   [RuntimeField.publicPath]: string
@@ -112,9 +117,7 @@ interface RuntimeProxy {
   [RuntimeField.getMiniCssChunkFilename](): string
   // [RuntimeField.startup]
   // [RuntimeField.startupEntrypoint]
-  [RuntimeField.onChunksLoaded]<T>(result: T): T
-  [RuntimeField.onChunksLoaded]<T>(result: T, chunkIds: ChunkID[], fn: () => T, priority: number): T
-  [RuntimeField.onChunksLoaded]: { [id: string]: (chunkId: ChunkID) => boolean }
+  [RuntimeField.onChunksLoaded]: RuntimeChunkLoadedFn & { [id: string]: (chunkId: ChunkID) => boolean }
   // [RuntimeField.externalInstallChunk]
   // [RuntimeField.interceptModuleExecution]
   [RuntimeField.global]: typeof globalThis

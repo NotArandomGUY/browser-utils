@@ -62,7 +62,7 @@ class UMPSlice {
     return this.type
   }
 
-  public getBuffer(): Uint8Array {
+  public getBuffer(): Uint8Array<ArrayBuffer> {
     return bufferConcat(this.chunks)
   }
 
@@ -317,7 +317,7 @@ const processUMPRequest = async (ctx: NetworkRequestContext): Promise<void> => {
   }
 
   try {
-    let body: Uint8Array = new Uint8Array(await request.arrayBuffer())
+    let body = new Uint8Array(await request.arrayBuffer())
 
     switch (url.pathname) {
       case '/initplayback': {

@@ -241,7 +241,7 @@ class MessageBase<D extends MessageDefinition> {
     skippedTags.splice(0)
   }
 
-  public serialize(): Uint8Array {
+  public serialize(): Uint8Array<ArrayBuffer> {
     const { fieldMap, skippedTags } = this
 
     const message = this as Message<D>
@@ -262,7 +262,7 @@ class MessageBase<D extends MessageDefinition> {
     return stream.getWriteBuffer()
   }
 
-  public deserialize(buffer: Uint8Array | CodedStream, isOptional = true): this {
+  public deserialize(buffer: Uint8Array<ArrayBuffer> | CodedStream, isOptional = true): this {
     this.reset(isOptional)
 
     const { fieldMap, skippedTags } = this

@@ -36,7 +36,7 @@ export type ValueData<T extends ValueType> = {
   [ValueType.SFIXED64]: bigint
   [ValueType.BOOL]: boolean
   [ValueType.STRING]: string
-  [ValueType.BYTES]: Uint8Array,
+  [ValueType.BYTES]: Uint8Array<ArrayBuffer>,
   [ValueType.HEX]: string,
   [ValueType.MESSAGE]: Message<MessageDefinition>
 }[T]

@@ -118,7 +118,7 @@ export default class ExtensionPackerPlugin {
     // Create/Load remote package
     const rpk = new RemotePackage({})
     try {
-      rpk.deserialize(inflateSync(readFileSync(join(cwd(), 'dist/extension/package/cache/config.rpk'))))
+      rpk.deserialize(new Uint8Array(inflateSync(readFileSync(join(cwd(), 'dist/extension/package/cache/config.rpk')))))
 
       if (rpk.version !== version) throw new Error('version changed')
     } catch (error) {
@@ -150,7 +150,7 @@ export default class ExtensionPackerPlugin {
         console.log(`[${PLUGIN_NAME}]`, `generating private key for branch '${id}'...`)
 
         privateKey = generateKeyPairSync('ed25519').privateKey
-        branch.privateKey = privateKey.export({ type: 'pkcs8', format: 'der' })
+        branch.privateKey = new Uint8Array(privateKey.export({ type: 'pkcs8', format: 'der' }))
       }
 
       if (!enabled) {
@@ -162,7 +162,7 @@ export default class ExtensionPackerPlugin {
         console.log(`[${PLUGIN_NAME}]`, `extracting public key for branch '${id}'...`)
 
         if (privateKey == null) privateKey = createPrivateKey({ key: Buffer.from(branch.privateKey), type: 'pkcs8', format: 'der' })
-        branch.publicKey = createPublicKey(privateKey).export({ type: 'spki', format: 'der' })
+        branch.publicKey = new Uint8Array(createPublicKey(privateKey).export({ type: 'spki', format: 'der' }))
       }
     }
     rpk.branches = rpk.branches.filter(branch => branchConfig.branches.find(entry => entry.id === branch.id) != null)
@@ -294,12 +294,12 @@ export default class ExtensionPackerPlugin {
             return
           }
 
-          entry.code = source.buffer()
+          entry.code = new Uint8Array(source.buffer())
         })
 
         console.log(`[${PLUGIN_NAME}]`, 'signing package...')
 
-        spk.sign = sign(null, spk.serialize(), key)
+        spk.sign = new Uint8Array(sign(null, spk.serialize(), key))
 
         compilation.emitAsset('package/cache/config.rpk', new sources.RawSource(deflateSync(rpk.serialize())))
 

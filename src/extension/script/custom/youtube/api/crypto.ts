@@ -100,7 +100,7 @@ export const encodeTrackingParam = (trackingParam: string): string => {
   return data.join('')
 }
 
-export const decryptOnesie = async (content: Uint8Array, keys: Uint8Array[], params: CryptoParams | null): Promise<[Uint8Array, Uint8Array | null]> => {
+export const decryptOnesie = async (content: Uint8Array<ArrayBuffer>, keys: Uint8Array[], params: CryptoParams | null): Promise<[Uint8Array<ArrayBuffer>, Uint8Array | null]> => {
   const { hmac, iv, compressionType, isUnencrypted } = params ?? {}
 
   let validKey: Uint8Array | null = null
@@ -134,7 +134,7 @@ export const decryptOnesie = async (content: Uint8Array, keys: Uint8Array[], par
   return [content, validKey]
 }
 
-export const encryptOnesie = async (content: Uint8Array, key: Uint8Array | null, params: CryptoParams | null): Promise<Uint8Array> => {
+export const encryptOnesie = async (content: Uint8Array<ArrayBuffer>, key: Uint8Array | null, params: CryptoParams | null): Promise<Uint8Array<ArrayBuffer>> => {
   const { iv, compressionType, isUnencrypted } = params ?? {}
 
   if (!isCompressionSupported()) throw COMPRESSION_API_ERROR
