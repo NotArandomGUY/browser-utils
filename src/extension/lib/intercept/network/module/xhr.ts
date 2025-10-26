@@ -81,7 +81,7 @@ async function handleXHRSend(this: InterceptXMLHttpRequest): Promise<boolean> {
       break
     default: {
       const request = ctx.request.clone()
-      this.requestMethod = request.method
+      this.open(request.method, request.url)
       this.requestHeaders = Object.fromEntries(request.headers.entries())
       this.requestBody = await request.blob()
       return false
