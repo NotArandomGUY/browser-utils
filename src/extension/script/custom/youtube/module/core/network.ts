@@ -17,14 +17,13 @@ const logger = new Logger('YTCORE-NETWORK')
 const INNERTUBE_API_REGEXP = /(?<=^\/youtubei\/v\d+\/).*$/
 
 export interface YTInnertubeRequestContext extends YTInnertubeContext {
-  adSignalsInfo: {
+  adSignalsInfo?: {
     params: { key: string, value: string }[]
   }
-  request: {
-    consistencyTokenJars: unknown[]
-    internalExperimentFlags: unknown[]
-    useSsl: boolean
+  clickTracking?: {
+    clickTrackingParams: string
   }
+  clientScreenNonce?: string
 }
 
 export interface YTInnertubeRequestPlaybackContext {
@@ -33,7 +32,11 @@ export interface YTInnertubeRequestPlaybackContext {
     autonavState: string
     currentUrl: string
     html5Preference: string
+    isLivingRoomDeeplink: boolean
     lactMilliseconds: string
+    mdxContext: Partial<{}>
+    playerHeightPixels: number
+    playerWidthPixels: number
     referer: string
     signatureTimestamp: number
     splay: boolean
@@ -55,6 +58,7 @@ type YTInnertubeRequestBase = {
 }
 
 type YTInnertubeRequestMap = {
+  '*': {}
   'get_watch': {
     playerRequest: object
     watchNextRequest: object
@@ -62,6 +66,7 @@ type YTInnertubeRequestMap = {
   'next': {}
   'player': Partial<{
     contentCheckOk: boolean
+    cpn: string
     racyCheckOk: boolean
     playbackContext: YTInnertubeRequestPlaybackContext
     playlistId: string
@@ -127,6 +132,8 @@ const processInnertubeRequest = async (endpoint: string, request?: YTInnertubeRe
       processors.forEach(processor => processor(request))
       break
   }
+
+  innertubeRequestProcessorMap['*']?.forEach(processor => processor(request))
 }
 
 const processInnertubeResponse = async (endpoint: string, response: Response): Promise<Response> => {

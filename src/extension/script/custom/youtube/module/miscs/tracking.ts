@@ -8,12 +8,13 @@ import { assign } from '@ext/global/object'
 import { Feature } from '@ext/lib/feature'
 import { preventDispatchEvent } from '@ext/lib/intercept/event'
 import InterceptImage from '@ext/lib/intercept/image'
-import { addInterceptNetworkCallback, NetworkContext, NetworkContextState, NetworkRequestContext, NetworkState } from '@ext/lib/intercept/network'
+import { addInterceptNetworkCallback, NetworkContext, NetworkContextState, NetworkRequestContext, NetworkState, replaceRequest } from '@ext/lib/intercept/network'
 import { addInterceptNetworkUrlFilter } from '@ext/lib/intercept/network/filter/url'
 import { buildPathnameRegexp } from '@ext/lib/regexp'
 
 const TRACKING_SWITCHES_KEY = 'tracking-switches'
 const SHARE_URL_ALLOW_PARAMS = ['fmt', 'hl', 'index', 'list', 'pp', 't', 'v']
+const STATS_API_BLOCK_PARAMS = ['cbr', 'cbrand', 'cbrver', 'cmodel', 'cos', 'cosver']
 
 const HOST_REGEXP = /./
 const FORBID_PATH_REGEXP = buildPathnameRegexp([
@@ -73,21 +74,27 @@ const sanitizeShareUrl = (url: string | URL): string => {
   }
 }
 
-const processRequest = (ctx: NetworkRequestContext): void => {
+const processRequest = async (ctx: NetworkRequestContext): Promise<void> => {
   const { url, request } = ctx
+  const { pathname, search, searchParams } = url
 
   // Remove visitor id from everything
   request.headers.delete('x-goog-visitor-id')
 
-  // Ignore non stats api requests
-  const path = url.pathname + url.search
+  // Ignore non stats requests
+  const path = pathname + search
   if (!STATS_BLACKLIST_PATH_REGEXP.test(path)) return
 
-  // Allow basic stats api if switch is enabled
-  if (isYTTrackingSwitchEnabled(isYTLoggedIn() ? YTTrackingSwitchMask.LOGIN_STATS : YTTrackingSwitchMask.GUEST_STATS) && STATS_WHITELIST_PATH_REGEXP.test(path)) return
+  // Block stats requests unless switch is enabled
+  if (!isYTTrackingSwitchEnabled(isYTLoggedIn() ? YTTrackingSwitchMask.LOGIN_STATS : YTTrackingSwitchMask.GUEST_STATS) || !STATS_WHITELIST_PATH_REGEXP.test(path)) {
+    assign<NetworkContext, NetworkContextState>(ctx, { state: NetworkState.FAILED, error: new Error('Failed') })
+    return
+  }
 
-  // Block request
-  assign<NetworkContext, NetworkContextState>(ctx, { state: NetworkState.FAILED, error: new Error('Failed') })
+  // Sanitize stats requests params
+  searchParams.forEach((_, key) => STATS_API_BLOCK_PARAMS.includes(key) && searchParams.delete(key))
+
+  await replaceRequest(ctx, { url })
 }
 
 const updateLoggingDirectives = (data: YTRendererData<typeof YTLoggingDirectivesSchema>): boolean => {
@@ -173,13 +180,24 @@ export default class YTMiscsTrackingModule extends Feature {
     registerYTRendererPreProcessor(YTRendererSchemaMap['shareTargetRenderer'], updateShareTargetRenderer)
     registerYTRendererPreProcessor(YTRendererSchemaMap['sharingEmbedRenderer'], updateSharingEmbedRenderer)
 
+    registerYTInnertubeRequestProcessor('*', ({ context }) => {
+      delete context.adSignalsInfo
+      delete context.clickTracking
+      delete context.clientScreenNonce
+    })
+
     registerYTInnertubeRequestProcessor('player', ({ params, playbackContext, playlistId, playlistIndex, videoId }) => {
       params.searchQuery = null
 
       const contentPlaybackContext = playbackContext?.contentPlaybackContext
       if (contentPlaybackContext == null) return
 
+      delete contentPlaybackContext.isLivingRoomDeeplink
+      delete contentPlaybackContext.playerHeightPixels
+      delete contentPlaybackContext.playerWidthPixels
       delete contentPlaybackContext.referer
+
+      contentPlaybackContext.lactMilliseconds = '-1'
 
       // Limited current url (can also be used to unlock formats in leanback /player request)
       const searchParams = new URLSearchParams()
@@ -197,8 +215,8 @@ export default class YTMiscsTrackingModule extends Feature {
       delete request.webSearchboxStatsUrl
     })
 
-    addInterceptNetworkCallback(ctx => {
-      if (ctx.state === NetworkState.UNSENT) processRequest(ctx)
+    addInterceptNetworkCallback(async ctx => {
+      if (ctx.state === NetworkState.UNSENT) await processRequest(ctx)
     })
     addInterceptNetworkUrlFilter(HOST_REGEXP, FORBID_PATH_REGEXP, { state: NetworkState.FAILED, error: new Error('Failed') })
     addInterceptNetworkUrlFilter(HOST_REGEXP, FAKE_200_PATH_REGEXP, { state: NetworkState.SUCCESS, response: new Response(null, { status: 200 }) })

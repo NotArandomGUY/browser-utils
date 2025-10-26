@@ -35,7 +35,7 @@ type YTInitData = YTInitDataResponse & Partial<{
 }>
 
 export interface YTInnertubeContext {
-  client: {
+  client: Partial<{
     hl: string
     gl: string
     remoteHost: string
@@ -58,16 +58,18 @@ export interface YTInnertubeContext {
     acceptHeader: string
     deviceExperimentId: string
     rolloutToken: string
-  }
-  user: {
+  }>
+  user: Partial<{
     lockedSafetyMode: boolean
-  }
-  request: {
+  }>
+  request: Partial<{
+    consistencyTokenJars: unknown[]
+    internalExperimentFlags: unknown[]
     useSsl: boolean
-  }
-  clickTracking: {
+  }>
+  clickTracking?: Partial<{
     clickTrackingParams: string
-  }
+  }>
 }
 
 export interface YTPlayerConfig {
@@ -354,6 +356,11 @@ export default class YTCoreBootstrapModule extends Feature {
         let [key, value] = args as [string, unknown]
 
         switch (key) {
+          case 'EXPERIMENT_FLAGS':
+            assign(value as object, {
+              json_condensed_response: true
+            })
+            break
           case 'INNERTUBE_CONTEXT':
             assign((value as YTInnertubeContext).client, {
               browserName: undefined,
