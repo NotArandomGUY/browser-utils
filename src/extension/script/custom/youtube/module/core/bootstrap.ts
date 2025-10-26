@@ -307,10 +307,10 @@ export default class YTCoreBootstrapModule extends Feature {
         document.title = deviceLabel
 
         assign(feature_switches ?? {}, {
-          mdx_device_label: deviceLabel
+          mdx_device_label: deviceLabel,
+          supports_video_pause_on_blur: false
         })
         assign(flags ?? {}, {
-          disable_sign_in_on_castbuki_devices: false,
           force_memory_saving_mode: false
         })
       }
