@@ -31,6 +31,31 @@ const logger = new Logger('INTERCEPT-NETWORK')
 
 const callbacks = new Set<NetworkCallback>()
 
+const REQUEST_INIT_KEYS = [
+  'body',
+  'cache',
+  'credentials',
+  'headers',
+  'integrity',
+  'keepalive',
+  'method',
+  'mode',
+  'redirect',
+  'referrer',
+  'referrerPolicy',
+  'signal'
+] satisfies (keyof RequestInit)[]
+
+export const replaceRequest = async (ctx: NetworkRequestContext, init: Partial<{ url: URL | string } & RequestInit>): Promise<void> => {
+  const { request } = ctx
+
+  if (typeof init.body === 'undefined' && request.body != null) {
+    init.body = await request.arrayBuffer()
+  }
+
+  ctx.request = new Request(init.url ?? request.url, Object.fromEntries(REQUEST_INIT_KEYS.map(key => [key, init[key] ?? request[key]])))
+}
+
 export const onInterceptNetworkRequest = async (input: RequestInput, init?: RequestInit): Promise<NetworkContext> => {
   const request = new Request(input, init)
   const ctx: NetworkContext = {

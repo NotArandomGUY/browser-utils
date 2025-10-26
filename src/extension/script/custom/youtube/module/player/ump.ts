@@ -21,11 +21,11 @@ import UMPSnackbarMessage from '@ext/custom/youtube/api/proto/ump/snackbar-messa
 import { registerYTConfigInitCallback, type YTPlayerWebPlayerContextConfig } from '@ext/custom/youtube/module/core/bootstrap'
 import { dispatchYTOpenPopupAction } from '@ext/custom/youtube/module/core/event'
 import { ceil, min } from '@ext/global/math'
-import { Request, URLSearchParams } from '@ext/global/network'
+import { URLSearchParams } from '@ext/global/network'
 import { assign, fromEntries } from '@ext/global/object'
 import { bufferConcat, bufferFromString, bufferToString } from '@ext/lib/buffer'
 import { Feature } from '@ext/lib/feature'
-import { addInterceptNetworkCallback, NetworkContext, NetworkContextState, NetworkRequestContext, NetworkState, onInterceptNetworkRequest } from '@ext/lib/intercept/network'
+import { addInterceptNetworkCallback, NetworkContext, NetworkContextState, NetworkRequestContext, NetworkState, onInterceptNetworkRequest, replaceRequest } from '@ext/lib/intercept/network'
 import Logger from '@ext/lib/logger'
 import CodedStream from '@ext/lib/protobuf/coded-stream'
 import { varint32Encode } from '@ext/lib/protobuf/varint'
@@ -340,7 +340,7 @@ const processUMPRequest = async (ctx: NetworkRequestContext): Promise<void> => {
       }
     }
 
-    if (!['GET', 'HEAD'].includes(request.method.toUpperCase())) ctx.request = new Request(request, { body })
+    await replaceRequest(ctx, { body })
   } catch (error) {
     if (error instanceof Response) {
       assign<NetworkContext, NetworkContextState>(ctx, { state: NetworkState.SUCCESS, response: error })

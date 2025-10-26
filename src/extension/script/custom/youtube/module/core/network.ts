@@ -2,12 +2,11 @@ import { processYTRenderer } from '@ext/custom/youtube/api/processor'
 import PlayerParams from '@ext/custom/youtube/api/proto/player-params'
 import { YTRendererSchemaMap } from '@ext/custom/youtube/api/renderer'
 import { YTInnertubeContext } from '@ext/custom/youtube/module/core/bootstrap'
-import { Request } from '@ext/global/network'
 import { defineProperty, fromEntries } from '@ext/global/object'
 import { bufferFromString, bufferToString } from '@ext/lib/buffer'
 import { compress, decompress } from '@ext/lib/compression'
 import { Feature } from '@ext/lib/feature'
-import { addInterceptNetworkCallback, NetworkContext, NetworkRequestContext, NetworkState } from '@ext/lib/intercept/network'
+import { addInterceptNetworkCallback, NetworkContext, NetworkRequestContext, NetworkState, replaceRequest } from '@ext/lib/intercept/network'
 import Logger from '@ext/lib/logger'
 import { Message, MessageDefinition } from '@ext/lib/protobuf/message'
 
@@ -82,7 +81,7 @@ export type YTInnertubeRequest<E extends YTInnertubeRequestEndpoint = YTInnertub
 
 export type YTInnertubeRequestProcessor<E extends YTInnertubeRequestEndpoint = YTInnertubeRequestEndpoint> = (request: YTInnertubeRequest<E>) => Promise<void> | void
 
-const innertubeRequestProcessorMap: { [E in YTInnertubeRequestEndpoint]?: Set<YTInnertubeRequestProcessor<E>> } = {}
+const innertubeRequestProcessorMap: { [endpoint: string]: Set<YTInnertubeRequestProcessor> } = {}
 
 const protoBase64UrlDecode = <D extends MessageDefinition>(message: Message<D>, data?: string): Message<D> => {
   if (typeof data !== 'string') return message
@@ -97,24 +96,24 @@ const protoBase64UrlEncode = <D extends MessageDefinition>(message: Message<D>):
   return encodeURIComponent(btoa(bufferToString(data, 'latin1')).replace(/\+/g, '-').replace(/\//g, '_'))
 }
 
-const processInnertubeRequestData = async (endpoint: YTInnertubeRequestEndpoint, requestData?: YTInnertubeRequest): Promise<void> => {
-  if (requestData == null) return
+const processInnertubeRequest = async (endpoint: string, request?: YTInnertubeRequest): Promise<void> => {
+  if (request == null) return
 
-  const processors = innertubeRequestProcessorMap[endpoint] as Set<YTInnertubeRequestProcessor>
+  const processors = innertubeRequestProcessorMap[endpoint]
   if (processors == null) return
 
   switch (endpoint) {
     case 'get_watch': {
-      const data = requestData as YTInnertubeRequest<typeof endpoint>
+      const data = request as YTInnertubeRequest<typeof endpoint>
 
       processors.forEach(processor => processor(data))
 
-      processInnertubeRequestData('player', data.playerRequest as YTInnertubeRequest)
-      processInnertubeRequestData('next', data.watchNextRequest as YTInnertubeRequest)
+      processInnertubeRequest('player', data.playerRequest as YTInnertubeRequest)
+      processInnertubeRequest('next', data.watchNextRequest as YTInnertubeRequest)
       break
     }
     case 'player': {
-      const data = requestData as Omit<YTInnertubeRequest<typeof endpoint>, 'params'> & {
+      const data = request as Omit<YTInnertubeRequest<typeof endpoint>, 'params'> & {
         params?: InstanceType<typeof PlayerParams> | string
       }
       data.params = protoBase64UrlDecode(new PlayerParams(), data.params as string)
@@ -125,65 +124,8 @@ const processInnertubeRequestData = async (endpoint: YTInnertubeRequestEndpoint,
       break
     }
     default:
-      processors.forEach(processor => processor(requestData))
+      processors.forEach(processor => processor(request))
       break
-  }
-}
-
-const processInnertubeRequest = async (endpoint: string, request: Request): Promise<Request> => {
-  const encoding = request.headers.get('content-encoding')
-
-  let data = null
-  try {
-    const clonedRequest = request.clone()
-
-    switch (encoding) {
-      case 'deflate':
-      case 'gzip':
-        data = parse(bufferToString(await decompress(await clonedRequest.arrayBuffer(), encoding)))
-        break
-      default:
-        data = await clonedRequest.json()
-        break
-    }
-  } catch {
-    return request
-  }
-
-  try {
-    await processInnertubeRequestData(endpoint as YTInnertubeRequestEndpoint, data)
-  } catch (error) {
-    logger.warn('process innertube request error:', error)
-  }
-
-  logger.debug('innertube request:', endpoint, data)
-
-  switch (request.method.toUpperCase()) {
-    case 'GET':
-    case 'HEAD':
-      return new Request(request.url, {
-        method: request.method,
-        headers: request.headers
-      })
-    default: {
-      let body = bufferFromString(stringify(data))
-
-      switch (encoding) {
-        case 'deflate':
-        case 'gzip':
-          body = await compress(body, encoding)
-          break
-        default:
-          request.headers.delete('content-encoding')
-          break
-      }
-
-      return new Request(request.url, {
-        method: request.method,
-        headers: request.headers,
-        body
-      })
-    }
   }
 }
 
@@ -209,7 +151,43 @@ const processRequest = async (ctx: NetworkRequestContext): Promise<void> => {
   const innertubeEndpoint = INNERTUBE_API_REGEXP.exec(url.pathname)?.[0]
   if (innertubeEndpoint == null) return
 
-  ctx.request = await processInnertubeRequest(innertubeEndpoint, request)
+  const encoding = request.headers.get('content-encoding')
+
+  let data = null
+  try {
+    const clonedRequest = request.clone()
+    switch (encoding) {
+      case 'deflate':
+      case 'gzip':
+        data = parse(bufferToString(await decompress(await clonedRequest.arrayBuffer(), encoding)))
+        break
+      default:
+        data = await clonedRequest.json()
+        break
+    }
+  } catch {
+    return
+  }
+
+  try {
+    await processInnertubeRequest(innertubeEndpoint, data)
+  } catch (error) {
+    logger.warn('process innertube request error:', error)
+  }
+
+  logger.debug('innertube request:', innertubeEndpoint, data)
+
+  let body = bufferFromString(stringify(data))
+  switch (encoding) {
+    case 'deflate':
+    case 'gzip':
+      body = await compress(body, encoding)
+      break
+    default:
+      request.headers.delete('content-encoding')
+      break
+  }
+  await replaceRequest(ctx, { body })
 }
 
 const processResponse = async (ctx: NetworkContext<unknown, NetworkState.SUCCESS>): Promise<void> => {
@@ -228,7 +206,7 @@ export const registerYTInnertubeRequestProcessor = <E extends YTInnertubeRequest
     innertubeRequestProcessorMap[endpoint] = processors
   }
 
-  processors.add(processor)
+  processors.add(processor as YTInnertubeRequestProcessor)
 }
 
 export default class YTCoreNetworkModule extends Feature {
