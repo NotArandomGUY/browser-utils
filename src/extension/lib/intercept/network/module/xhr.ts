@@ -1,6 +1,7 @@
 import { URL, XMLHttpRequest } from '@ext/global/network'
 import { assign, defineProperties, fromEntries, getOwnPropertyDescriptor, keys } from '@ext/global/object'
 import { bufferToString } from '@ext/lib/buffer'
+import { unsafePolicy } from '@ext/lib/dom'
 import InterceptEventTargetAdapter from '@ext/lib/intercept/event'
 import { NetworkContext, NetworkContextState, NetworkRequestCallback, NetworkResponseCallback, NetworkResponseContext, NetworkState } from '@ext/lib/intercept/network'
 import Logger from '@ext/lib/logger'
@@ -26,7 +27,6 @@ const XHR_EVENT_MAP = {
 let nativeXHR: (typeof XMLHttpRequest) | null = null
 let onRequestCallback: NetworkRequestCallback | null = null
 let onResponseCallback: NetworkResponseCallback | null = null
-let policy: Partial<TrustedTypePolicy> | null = null
 
 const responseBlob = (xhr: InterceptXMLHttpRequest): Blob | null => {
   const { status, responseType, response } = xhr
@@ -270,7 +270,7 @@ class InterceptXMLHttpRequest extends XMLHttpRequest {
   }
 
   public get responseXML(): Document {
-    return new DOMParser().parseFromString((policy?.createHTML?.(this.responseText) ?? this.responseText) as string, 'text/xml')
+    return new DOMParser().parseFromString(unsafePolicy.createHTML(this.responseText), 'text/xml')
   }
 
   // Method
@@ -437,19 +437,6 @@ export const registerInterceptNetworkXHRModule = (onRequest: NetworkRequestCallb
 
   onRequestCallback = onRequest
   onResponseCallback = onResponse
-
-  if (policy == null) {
-    try {
-      const { trustedTypes } = window
-      if (trustedTypes == null || trustedTypes.createPolicy == null) throw new Error('API not available')
-
-      policy = trustedTypes.createPolicy('intercept-xhr-dom', {
-        createHTML: (input: string) => input
-      })
-    } catch (error) {
-      logger.debug('create trusted-types policy error:', error)
-    }
-  }
 
   nativeXHR = window.XMLHttpRequest
   Object.defineProperty(window, 'XMLHttpRequest', {

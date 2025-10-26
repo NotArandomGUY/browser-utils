@@ -2,10 +2,18 @@ import Logger from '@ext/lib/logger'
 
 const logger = new Logger('DOM')
 
+const UNSAFE_POLICY_OPTIONS = {
+  createHTML: input => input,
+  createScript: input => input,
+  createScriptURL: input => input
+} satisfies TrustedTypePolicyOptions
+
 const elementMap: { [selectors: string]: Element } = {}
 const monitorSelectorList: [string, (element: Element) => void][] = []
 
 let timer: ReturnType<typeof setTimeout> | null = null
+
+export const unsafePolicy = (window.trustedTypes?.createPolicy(`unsafe-policy-${Date.now()}`, UNSAFE_POLICY_OPTIONS) ?? UNSAFE_POLICY_OPTIONS) as Required<TrustedTypePolicyOptions>
 
 const update = (): void => {
   if (monitorSelectorList.length === 0) {

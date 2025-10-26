@@ -1,9 +1,9 @@
+import { unsafePolicy } from '@ext/lib/dom'
 import { Feature } from '@ext/lib/feature'
 
 let debug: () => void
 try {
-  const trusted = window.trustedTypes?.createPolicy('debug', { createScript: (input) => input })
-  debug = eval.bind(null, trusted?.createScript('debugger') as unknown as string ?? 'debugger')
+  debug = eval.bind(null, unsafePolicy.createScript('debugger'))
 } catch {
   debug = () => { }
 }
