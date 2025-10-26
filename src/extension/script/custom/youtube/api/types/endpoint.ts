@@ -300,6 +300,7 @@ export const YTEntityMutationPayloadSchema = {
       })),
       markersDecoration: ytv_sch({
         timedMarkerDecorations: ytv_arr(ytv_sch({
+          badge: ytv_ren(),
           decorationTimeMillis: ytv_num(),
           icon: ytv_str(YTIconType),
           label: ytv_sch(YTTextSchema),
@@ -312,6 +313,18 @@ export const YTEntityMutationPayloadSchema = {
           maxHeightDp: ytv_num(),
           minHeightDp: ytv_num(),
           showHideAnimationDurationMillis: ytv_num()
+        }),
+        timestampMarkerMetadata: ytv_sch({
+          snappingData: ytv_arr(ytv_sch({
+            endMediaTimeMs: ytv_num(),
+            maxSnappingCount: ytv_num(),
+            onSnappingAriaLabel: ytv_str(),
+            onSnappingCommand: ytv_enp(),
+            overseekAllowanceMediaTimeMs: ytv_num(),
+            snappingLingeringTimeoutMs: ytv_num(),
+            startMediaTimeMs: ytv_num(),
+            targetMediaTimeMs: ytv_num()
+          }))
         })
       })
     })

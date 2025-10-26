@@ -113,6 +113,70 @@ const buildChangeTimelyActionVisibilityCommand = (id: number, isVisible: boolean
   }
 }
 
+const buildMarkerMutationFromSegmentEntry = (entry: SkipSegmentEntry, startTimeMs?: number, endTimeMs?: number): YTObjectData<typeof YTEntityMutationSchema> => {
+  startTimeMs ??= entry.startTimeMs
+  endTimeMs ??= entry.endTimeMs
+
+  const duration = endTimeMs - startTimeMs
+  const entityKey = getSkipSegmentEntityKey(entry.segmentId)
+  const title = ['Skip', entry.category, 'segment', `(${floor(duration / 1e3)}s)`].join(' ')
+
+  return {
+    entityKey,
+    type: 'ENTITY_MUTATION_TYPE_REPLACE',
+    payload: {
+      macroMarkersListEntity: {
+        externalVideoId: lastLoadedVideoId ?? undefined,
+        key: entityKey,
+        markersList: {
+          markerType: 'MARKER_TYPE_TIMESTAMPS',
+          markers: [
+            {
+              sourceType: 'SOURCE_TYPE_SMART_SKIP',
+              startMillis: entry.endTimeMs.toString(),
+              durationMillis: '0'
+            }
+          ],
+          markersDecoration: {
+            timedMarkerDecorations: [
+              {
+                visibleTimeRangeStartMillis: endTimeMs,
+                visibleTimeRangeEndMillis: endTimeMs,
+                label: { simpleText: title }
+              }
+            ]
+          },
+          markersMetadata: {
+            timestampMarkerMetadata: {
+              snappingData: [
+                {
+                  startMediaTimeMs: startTimeMs,
+                  endMediaTimeMs: endTimeMs,
+                  targetMediaTimeMs: endTimeMs,
+                  maxSnappingCount: 1,
+                  snappingLingeringTimeoutMs: 5e3,
+                  overseekAllowanceMediaTimeMs: 60e3,
+                  onSnappingCommand: {
+                    openPopupAction: {
+                      popup: {
+                        overlayToastRenderer: {
+                          title: { simpleText: title }
+                        }
+                      },
+                      popupType: 'TOAST'
+                    }
+                  },
+                  onSnappingAriaLabel: title
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
 const buildTimelyActionFromSegmentEntry = (entry: SkipSegmentEntry, startTimeMs?: number, endTimeMs?: number): YTValueData<{ type: YTValueType.RENDERER }> => {
   startTimeMs ??= entry.startTimeMs
   endTimeMs ??= entry.endTimeMs
@@ -167,6 +231,37 @@ const buildTimelyActionFromSegmentEntry = (entry: SkipSegmentEntry, startTimeMs?
       }
     }
   }
+}
+
+const addMarkerMutationFromSegmentEntry = (mutations: YTObjectData<typeof YTEntityMutationSchema>[], entry: SkipSegmentEntry): void => {
+  let { startTimeMs, endTimeMs } = entry
+
+  // Merge overlapping markers to the same segment
+  for (const mutation of mutations) {
+    const snappingData = mutation.payload?.macroMarkersListEntity?.markersList?.markersMetadata?.timestampMarkerMetadata?.snappingData
+    if (!Array.isArray(snappingData)) continue
+
+    for (const marker of snappingData) {
+      const { startMediaTimeMs, endMediaTimeMs } = marker
+
+      const markerStartMs = Number(startMediaTimeMs)
+      const markerEndMs = Number(endMediaTimeMs)
+      if (isNaN(markerStartMs) || isNaN(markerEndMs) || markerStartMs > endTimeMs || markerEndMs < startTimeMs) continue
+
+      if (startTimeMs > markerStartMs) startTimeMs = markerStartMs
+      if (endTimeMs < markerEndMs) endTimeMs = markerEndMs
+
+      snappingData.splice(snappingData.indexOf(marker), 1)
+    }
+
+    if (snappingData.length === 0) mutations.splice(mutations.indexOf(mutation), 1)
+  }
+
+  // Ignore segments that are too short
+  const duration = endTimeMs - startTimeMs
+  if (duration < 5e3) return
+
+  mutations.push(buildMarkerMutationFromSegmentEntry(entry))
 }
 
 const addTimelyActionFromSegmentEntry = (timelyActions: YTValueData<{ type: YTValueType.RENDERER }>[], entry: SkipSegmentEntry): void => {
@@ -255,35 +350,27 @@ const processPlayerResponse = async (data: YTRendererData<YTRenderer<'playerResp
 const updateNextResponse = async (data: YTRendererData<YTRenderer<'nextResponse'>>): Promise<boolean> => {
   const entries = await fetchSegmentEntries(lastLoadedVideoId)
 
-  data.onResponseReceivedEndpoints ??= []
-  data.onResponseReceivedEndpoints.push({
-    loadMarkersCommand: {
-      entityKeys: entries.map(entry => getSkipSegmentEntityKey(entry.segmentId))
-    }
-  })
-
   data.frameworkUpdates ??= {}
   data.frameworkUpdates.entityBatchUpdate ??= {}
-  data.frameworkUpdates.entityBatchUpdate.mutations ??= []
-  data.frameworkUpdates.entityBatchUpdate.mutations.push(...entries.map(entry => ({
-    entityKey: getSkipSegmentEntityKey(entry.segmentId),
-    type: 'ENTITY_MUTATION_TYPE_REPLACE',
-    payload: {
-      macroMarkersListEntity: {
-        key: getSkipSegmentEntityKey(entry.segmentId),
-        markersList: {
-          markerType: 'MARKER_TYPE_TIMESTAMPS',
-          markers: [
-            {
-              sourceType: 'SOURCE_TYPE_SMART_SKIP',
-              startMillis: entry.endTimeMs.toString(),
-              durationMillis: '0'
-            }
-          ]
-        }
-      }
-    }
-  } satisfies YTObjectData<typeof YTEntityMutationSchema>)))
+
+  let mutations = data.frameworkUpdates.entityBatchUpdate.mutations
+  if (!Array.isArray(mutations)) {
+    mutations = []
+    data.frameworkUpdates.entityBatchUpdate.mutations = mutations
+  }
+
+  for (const entry of entries) {
+    addMarkerMutationFromSegmentEntry(mutations, entry)
+  }
+
+  const entityKeys = entries.map(entry => getSkipSegmentEntityKey(entry.segmentId))
+
+  if (data.onUiReady == null || data.onUiReady.loadMarkersCommand != null) {
+    data.onUiReady = { loadMarkersCommand: { entityKeys: [...data.onUiReady?.loadMarkersCommand?.entityKeys ?? [], ...entityKeys] } }
+  } else {
+    data.onResponseReceivedEndpoints ??= []
+    data.onResponseReceivedEndpoints.push({ loadMarkersCommand: { entityKeys } })
+  }
 
   return true
 }
