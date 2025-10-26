@@ -4,7 +4,7 @@ import ScriptNetRule from '@ext/proto/script/net/rule'
 import ScriptNetRuleAction, { ScriptNetRuleActionType } from '@ext/proto/script/net/rule-action'
 import ScriptNetRuleCondition, { ScriptNetResourceType } from '@ext/proto/script/net/rule-condition'
 
-const TV_USER_AGENT = 'Mozilla/5.0 (Fuchsia) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36 CrKey/1.56.500000'
+const TV_USER_AGENT = 'Mozilla/5.0 (PlayStation 5/SmartTV) AppleWebKit/605.1.15 (KHTML, like Gecko)'
 
 export default {
   name: 'youtube',
