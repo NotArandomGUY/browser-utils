@@ -100,7 +100,6 @@ const updateLoggingDirectives = (data: YTRendererData<typeof YTLoggingDirectives
 const updatePlayerResponse = (data: YTRendererData<YTRenderer<'playerResponse'>>): boolean => {
   delete data.playbackTracking?.ptrackingUrl
   delete data.playbackTracking?.qoeUrl
-  delete data.playbackTracking?.atrUrl
   delete data.playbackTracking?.googleRemarketingUrl
   delete data.playbackTracking?.youtubeRemarketingUrl
 
