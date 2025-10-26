@@ -2307,6 +2307,14 @@ export const YTRendererSchemaMap = {
     dismissalCommand: ytv_enp(),
     overlay: ytv_ren()
   },
+  overlayToastRenderer: {
+    icon: ytv_sch(YTIconSchema),
+    image: ytv_sch(YTThumbnailSchema),
+    showImmediately: ytv_bol(),
+    subtitle: ytv_sch(YTTextSchema),
+    title: ytv_sch(YTTextSchema),
+    turnOffAriaLive: ytv_bol()
+  },
   overlayTwoPanelRenderer: {
     actionPanel: ytv_ren(),
     backButton: ytv_ren()

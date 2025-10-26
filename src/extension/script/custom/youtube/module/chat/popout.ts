@@ -152,7 +152,10 @@ class MainAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, Cha
           durationHintMs: 5e3,
           popup: {
             notificationActionRenderer: {
-              responseText: { runs: [{ text: message.data.text }] }
+              responseText: { simpleText: message.data.text }
+            },
+            overlayToastRenderer: {
+              title: { simpleText: message.data.text }
             }
           },
           popupType: 'TOAST'

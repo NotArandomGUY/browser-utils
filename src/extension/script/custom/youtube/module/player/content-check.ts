@@ -38,6 +38,9 @@ const updatePlayerResponse = (data: YTRendererData<YTRenderer<'playerResponse'>>
               popup: {
                 notificationActionRenderer: {
                   responseText: playerErrorMessageRenderer.reason ?? { simpleText: status }
+                },
+                overlayToastRenderer: {
+                  title: playerErrorMessageRenderer.reason ?? { simpleText: status }
                 }
               },
               popupType: 'TOAST'
