@@ -17,7 +17,7 @@ const LATENCY_TOLERANCE = 50
 const SYNC_INTERVAL = 250
 const MIN_SYNC_RATE = 0.95
 const MAX_SYNC_RATE = 1.05
-const MAX_DESYNC_TICKS = 5
+const MAX_DESYNC_TICKS = Math.ceil(10e3 / SYNC_INTERVAL)
 
 export const enum YTLiveBehaviourMask {
   LOW_LATENCY = 0x01,
@@ -48,6 +48,8 @@ const liveHeadUpdate = (): void => {
   const player = getYTPInstance(YTPInstanceType.APP)?.playerRef?.deref()
   if (player == null || !player.isPlaying?.()) return
 
+  healthDev *= HEALTH_DEV_DECAY_MUL
+
   if (!player.isAtLiveHead?.()) {
     // Attempt to catch back up to live head if buffer health was too bad and we went out of live head range
     if (desyncTime < 0) desyncTime = now
@@ -71,7 +73,7 @@ const liveHeadUpdate = (): void => {
   if (desyncTime >= 0) desyncTime = -1
 
   healthAvg = ((healthAvg * (HEALTH_AVG_SAMPLE_SIZE - 1)) + currentHealth) / HEALTH_AVG_SAMPLE_SIZE
-  healthDev = max(healthDev * HEALTH_DEV_DECAY_MUL, abs(currentHealth - healthAvg) * HEALTH_DEV_MUL)
+  healthDev = max(healthDev, abs(currentHealth - healthAvg) * HEALTH_DEV_MUL)
   latencyAvg = ((latencyAvg * (LATENCY_AVG_SAMPLE_SIZE - 1)) + currentLatency) / LATENCY_AVG_SAMPLE_SIZE
 
   const targetHealth = max(syncLiveHeadDeltaTime * 2, healthDev) + healthDev
@@ -82,8 +84,8 @@ const liveHeadUpdate = (): void => {
       // Decrease latency if buffer health is sufficient
       targetLatency = (round(latencyAvg / LATENCY_STEP) - 1) * LATENCY_STEP
       break
-    case healthAvg < (targetHealth - healthDev):
-      // Increase latency if buffer health is insufficient
+    case healthAvg < (targetHealth - healthDev) && (now - desyncTime) >= (syncLiveHeadDeltaTime * MAX_DESYNC_TICKS):
+      // Increase latency if buffer health is insufficient and wasn't catching up from desync
       targetLatency = (round(latencyAvg / LATENCY_STEP) + 1) * LATENCY_STEP
       break
     default:
