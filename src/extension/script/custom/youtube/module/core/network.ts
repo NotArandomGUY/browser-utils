@@ -104,6 +104,8 @@ const protoBase64UrlEncode = <D extends MessageDefinition>(message: Message<D>):
 const processInnertubeRequest = async (endpoint: string, request?: YTInnertubeRequest): Promise<void> => {
   if (request == null) return
 
+  innertubeRequestProcessorMap['*']?.forEach(processor => processor(request))
+
   const processors = innertubeRequestProcessorMap[endpoint]
   if (processors == null) return
 
@@ -132,8 +134,6 @@ const processInnertubeRequest = async (endpoint: string, request?: YTInnertubeRe
       processors.forEach(processor => processor(request))
       break
   }
-
-  innertubeRequestProcessorMap['*']?.forEach(processor => processor(request))
 }
 
 const processInnertubeResponse = async (endpoint: string, response: Response): Promise<Response> => {
