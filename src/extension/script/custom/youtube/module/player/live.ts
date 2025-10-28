@@ -8,16 +8,16 @@ import { defineProperty } from '@ext/global/object'
 import { Feature } from '@ext/lib/feature'
 
 const LIVE_BEHAVIOUR_KEY = 'live-behaviour'
-const HEALTH_AVG_SAMPLE_SIZE = 20
-const HEALTH_DEV_MUL = 1.05
-const HEALTH_DEV_DECAY_MUL = 0.95
-const LATENCY_AVG_SAMPLE_SIZE = 8
-const LATENCY_STEP = 100
-const LATENCY_TOLERANCE = 50
-const SYNC_INTERVAL = 250
+const SYNC_INTERVAL = 50
 const MIN_SYNC_RATE = 0.95
 const MAX_SYNC_RATE = 1.05
-const MAX_DESYNC_TICKS = Math.ceil(10e3 / SYNC_INTERVAL)
+const HEALTH_AVG_SAMPLE_SIZE = (1e3 / SYNC_INTERVAL) * 5 // ~5s of samples
+const HEALTH_DEV_MUL = 1.05
+const HEALTH_DEV_DECAY_MUL = 1 - ((SYNC_INTERVAL / 5e3) * 0.05) // decay 5% over 5s
+const LATENCY_AVG_SAMPLE_SIZE = (1e3 / SYNC_INTERVAL) * 2 // ~2s of samples
+const LATENCY_STEP = 100
+const LATENCY_TOLERANCE = 50
+const MAX_DESYNC_TICKS = Math.ceil(30e3 / SYNC_INTERVAL) // 30s of recovery time before giving up
 
 export const enum YTLiveBehaviourMask {
   LOW_LATENCY = 0x01,
