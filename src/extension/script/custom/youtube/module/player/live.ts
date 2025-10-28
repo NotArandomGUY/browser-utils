@@ -24,8 +24,10 @@ export const enum YTLiveBehaviourMask {
   FORCE_DVR = 0x02
 }
 
-let lastSyncLiveHeadTime = 0
-let syncLiveHeadDeltaTime = 0
+let liveHeadUpdateTimer: ReturnType<typeof setInterval> | null = null
+let lastLiveHeadUpdateTime = 0
+let liveHeadUpdateDeltaTime = 0
+
 let healthAvg = 0
 let healthDev = 0
 let latencyAvg = 0
@@ -38,12 +40,10 @@ export const isYTLiveBehaviourEnabled = (mask: YTLiveBehaviourMask): boolean => 
 
 const liveHeadUpdate = (): void => {
   const now = Date.now()
-  const delta = max(1, now - lastSyncLiveHeadTime)
+  const delta = max(1, now - lastLiveHeadUpdateTime)
 
-  syncLiveHeadDeltaTime = (syncLiveHeadDeltaTime + delta) / 2
-  lastSyncLiveHeadTime = now
-
-  if (!isYTLiveBehaviourEnabled(YTLiveBehaviourMask.LOW_LATENCY)) return
+  liveHeadUpdateDeltaTime = (liveHeadUpdateDeltaTime + delta) / 2
+  lastLiveHeadUpdateTime = now
 
   const player = getYTPInstance(YTPInstanceType.APP)?.playerRef?.deref()
   if (player == null || !player.isPlaying?.()) return
@@ -53,16 +53,7 @@ const liveHeadUpdate = (): void => {
   if (!player.isAtLiveHead?.()) {
     // Attempt to catch back up to live head if buffer health was too bad and we went out of live head range
     if (desyncTime < 0) desyncTime = now
-    if ((now - desyncTime) < (syncLiveHeadDeltaTime * MAX_DESYNC_TICKS)) {
-      player.setPlaybackRate?.(MAX_SYNC_RATE)
-      return
-    }
-
-    // Reset playback rate if not at live head
-    const playbackRate = Number(player.getPlaybackRate?.())
-    if (isNaN(playbackRate) || playbackRate === 1 || playbackRate < MIN_SYNC_RATE || playbackRate > MAX_SYNC_RATE) return
-
-    player.setPlaybackRate?.(1)
+    if ((now - desyncTime) < (liveHeadUpdateDeltaTime * MAX_DESYNC_TICKS)) player.setPlaybackRate?.(MAX_SYNC_RATE)
     return
   }
 
@@ -76,7 +67,7 @@ const liveHeadUpdate = (): void => {
   healthDev = max(healthDev, abs(currentHealth - healthAvg) * HEALTH_DEV_MUL)
   latencyAvg = ((latencyAvg * (LATENCY_AVG_SAMPLE_SIZE - 1)) + currentLatency) / LATENCY_AVG_SAMPLE_SIZE
 
-  const targetHealth = max(syncLiveHeadDeltaTime * 2, healthDev) + healthDev
+  const targetHealth = max(liveHeadUpdateDeltaTime * 2, healthDev) + healthDev
 
   let targetLatency: number
   switch (true) {
@@ -84,7 +75,7 @@ const liveHeadUpdate = (): void => {
       // Decrease latency if buffer health is sufficient
       targetLatency = (round(latencyAvg / LATENCY_STEP) - 1) * LATENCY_STEP
       break
-    case healthAvg < (targetHealth - healthDev) && (now - desyncTime) >= (syncLiveHeadDeltaTime * MAX_DESYNC_TICKS):
+    case healthAvg < (targetHealth - healthDev) && (now - desyncTime) >= (liveHeadUpdateDeltaTime * MAX_DESYNC_TICKS):
       // Increase latency if buffer health is insufficient and wasn't catching up from desync
       targetLatency = (round(latencyAvg / LATENCY_STEP) + 1) * LATENCY_STEP
       break
@@ -97,7 +88,7 @@ const liveHeadUpdate = (): void => {
   const latencyDelta = currentLatency - targetLatency
   latencyDeltaAvg = ((latencyDeltaAvg * (LATENCY_AVG_SAMPLE_SIZE - 1)) + latencyDelta) / LATENCY_AVG_SAMPLE_SIZE
 
-  const playbackRate = abs(latencyDeltaAvg) < LATENCY_TOLERANCE ? 1 : max(MIN_SYNC_RATE, min(MAX_SYNC_RATE, (syncLiveHeadDeltaTime + latencyDelta) / syncLiveHeadDeltaTime))
+  const playbackRate = abs(latencyDeltaAvg) < LATENCY_TOLERANCE ? 1 : max(MIN_SYNC_RATE, min(MAX_SYNC_RATE, (liveHeadUpdateDeltaTime + latencyDelta) / liveHeadUpdateDeltaTime))
   player.setPlaybackRate?.(playbackRate)
 
   defineProperty(window, 'ytp_live_head', {
@@ -112,11 +103,35 @@ const liveHeadUpdate = (): void => {
   })
 }
 
+const startLiveHeadUpdate = (): void => {
+  if (liveHeadUpdateTimer != null) return
+
+  lastLiveHeadUpdateTime = Date.now()
+  liveHeadUpdateDeltaTime = SYNC_INTERVAL
+  liveHeadUpdateTimer = setInterval(liveHeadUpdate, SYNC_INTERVAL)
+}
+
+const stopLiveHeadUpdate = (): void => {
+  if (liveHeadUpdateTimer == null) return
+
+  clearInterval(liveHeadUpdateTimer)
+  liveHeadUpdateTimer = null
+
+  const player = getYTPInstance(YTPInstanceType.APP)?.playerRef?.deref()
+  if (player == null) return
+
+  // Reset playback rate for normal playback
+  player.setPlaybackRate?.(1)
+}
+
 const updatePlayerResponse = (data: YTRendererData<YTRenderer<'playerResponse'>>): boolean => {
   const playerConfig = data.playerConfig
   const videoDetails = data.videoDetails
 
-  if (playerConfig == null || !videoDetails?.isLive) return true
+  if (playerConfig == null || !videoDetails?.isLive) {
+    stopLiveHeadUpdate()
+    return true
+  }
 
   if (isYTLiveBehaviourEnabled(YTLiveBehaviourMask.LOW_LATENCY)) {
     videoDetails.isLowLatencyLiveStream = true
@@ -125,6 +140,8 @@ const updatePlayerResponse = (data: YTRendererData<YTRenderer<'playerResponse'>>
     if (startMinReadaheadPolicy != null && startMinReadaheadPolicy.length > 0) {
       startMinReadaheadPolicy.forEach(policy => policy.minReadaheadMs ??= 50)
     }
+
+    startLiveHeadUpdate()
   }
 
   if (isYTLiveBehaviourEnabled(YTLiveBehaviourMask.FORCE_DVR) && !videoDetails.isLiveDvrEnabled) {
@@ -172,14 +189,12 @@ export default class YTPlayerLiveModule extends Feature {
       signals: [YTSignalActionType.POPUP_BACK, YTSignalActionType.SOFT_RELOAD_PAGE]
     })
 
-    lastSyncLiveHeadTime = Date.now()
-    syncLiveHeadDeltaTime = SYNC_INTERVAL
-    setInterval(liveHeadUpdate, SYNC_INTERVAL)
-
     return true
   }
 
   protected deactivate(): boolean {
+    stopLiveHeadUpdate()
+
     return false
   }
 }
