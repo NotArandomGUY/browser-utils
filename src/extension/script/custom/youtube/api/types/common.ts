@@ -34,7 +34,7 @@ export type YTValueData<S extends YTValueSchema = YTValueSchema, RL extends numb
   S extends YTValueSchemaOf<YTValueType.UNKNOWN> ? unknown :
   S extends YTValueSchemaOf<YTValueType.BOOLEAN> ? boolean :
   S extends YTValueSchemaOf<YTValueType.NUMBER> ? number :
-  S extends YTValueSchemaOf<YTValueType.STRING> ? S['enum'] extends string[] ? S['enum'][number] : string :
+  S extends YTValueSchemaOf<YTValueType.STRING> ? S['enum'] extends string[] ? S['enum'][number] : S['enum'] extends Record<string, string> ? keyof S['enum'] : string :
   S extends YTValueSchemaOf<YTValueType.OBJECT> ? Record<YTValueData<S['key'], Subtract<RL, 1>>, YTValueData<S['value'], Subtract<RL, 1>>> :
   S extends YTValueSchemaOf<YTValueType.SCHEMA> ? YTObjectData<S['schema'], Subtract<RL, 1>> :
   S extends YTValueSchemaOf<YTValueType.ARRAY> ? YTValueData<S['value'], Subtract<RL, 1>>[] :
@@ -227,12 +227,6 @@ export const YTUrlSchema = {
 export const YTOfflineabilityRendererSchema = {
   addToOfflineButtonState: ytv_str(YTAddToOfflineButtonState),
   contentCheckOk: ytv_bol(),
-  formats: ytv_arr(ytv_sch({
-    availabilityType: ytv_str(['OFFLINEABILITY_AVAILABILITY_TYPE_PREMIUM_UNLOCKED']),
-    formatType: ytv_str(['HD', 'HD_1080', 'LD', 'SD']),
-    name: ytv_sch(YTTextSchema),
-    savedSettingShouldExpire: ytv_bol()
-  })),
   key: ytv_str(),
   loggingDirectives: ytv_ren(YTLoggingDirectivesSchema),
   offlineabilityRenderer: ytv_str(),

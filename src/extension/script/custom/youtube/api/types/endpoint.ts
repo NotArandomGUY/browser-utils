@@ -1,6 +1,14 @@
 import { YTAccessibilitySchema, YTAdSlotLoggingDataSchema, YTEndpointSchema, YTEngagementPanelIdentifier, YTEngagementPanelVisibility, YTLikeStatus, YTLoggingDirectivesSchema, YTMusicVideoType, YTObjectData, YTObjectSchema, YTOfflineabilityRendererSchema, YTTextSchema, YTThumbnailSchema, YTUrlSchema, ytv_arr, ytv_bol, ytv_enp, ytv_num, ytv_obj, ytv_ren, ytv_sch, ytv_str, ytv_unk } from './common'
 import { YTIconType } from './icon'
 
+export enum YTOfflineFormatType {
+  UNKNOWN_FORMAT_TYPE = 'UNKNOWN_FORMAT_TYPE',
+  HD = 'HD',
+  HD_1080 = 'HD_1080',
+  LD = 'LD',
+  SD = 'SD'
+}
+
 export enum YTSignalActionType {
   ACK_POST_AADC_NOTICE = 'ACK_POST_AADC_NOTICE',
   ACKNOWLEDGE_YOUTHERE = 'ACKNOWLEDGE_YOUTHERE',
@@ -116,7 +124,7 @@ export const YTEnvironmentSchema = {
 } satisfies YTObjectSchema
 
 export const YTEntityMutationOptionSchema = {
-  persistenceOption: ytv_str(['ENTITY_PERSISTENCE_OPTION_INMEMORY_AND_PERSIST'])
+  persistenceOption: ytv_str(['ENTITY_PERSISTENCE_OPTION_INMEMORY_AND_PERSIST', 'ENTITY_PERSISTENCE_OPTION_PERSIST'])
 } satisfies YTObjectSchema
 
 export const YTEntityMutationPayloadSchema = {
@@ -224,6 +232,17 @@ export const YTEntityMutationPayloadSchema = {
       viewRepliesTooltipIdentifier: ytv_str()
     })
   }),
+  downloadQualityPickerEntity: ytv_sch({
+    formats: ytv_arr(ytv_sch({
+      approximateSize: ytv_str(),
+      availabilityType: ytv_str(['OFFLINEABILITY_AVAILABILITY_TYPE_PREMIUM_LOCKED', 'OFFLINEABILITY_AVAILABILITY_TYPE_UNKNOWN', 'OFFLINEABILITY_AVAILABILITY_TYPE_PREMIUM_UNLOCKED']),
+      format: ytv_str(YTOfflineFormatType),
+      name: ytv_str(),
+      savedSettingShouldExpire: ytv_bol()
+    })),
+    key: ytv_str(),
+    rememberSettingString: ytv_str()
+  }),
   emojiFountainDataEntity: ytv_sch({
     key: ytv_str(),
     reactionBuckets: ytv_arr(ytv_sch({
@@ -329,7 +348,25 @@ export const YTEntityMutationPayloadSchema = {
       })
     })
   }),
+  offlineVideoPolicy: ytv_sch({
+    action: ytv_str(['OFFLINE_VIDEO_POLICY_ACTION_DISABLE', 'OFFLINE_VIDEO_POLICY_ACTION_DOWNLOAD_FAILED', 'OFFLINE_VIDEO_POLICY_ACTION_OK']),
+    expirationTimestamp: ytv_str(),
+    key: ytv_str(),
+    lastUpdatedTimestampSeconds: ytv_str(),
+    offlineStateBytes: ytv_str(),
+    offlineToken: ytv_str()
+  }),
   offlineabilityEntity: ytv_ren(YTOfflineabilityRendererSchema),
+  playbackData: ytv_sch({
+    key: ytv_str(),
+    offlineVideoPolicy: ytv_str(),
+    playerResponseJson: ytv_str(),
+    playerResponsePlayabilityCanPlayStatus: ytv_str(),
+    playerResponseTimestamp: ytv_str(),
+    streamDownloadTimestampSeconds: ytv_str(),
+    transfer: ytv_str(),
+    videoDownloadContextEntity: ytv_str()
+  }),
   playlistLoopStateEntity: ytv_sch({
     key: ytv_str(),
     state: ytv_str(['PLAYLIST_LOOP_STATE_ALL', 'PLAYLIST_LOOP_STATE_NONE', 'PLAYLIST_LOOP_STATE_ONE'])
@@ -559,6 +596,7 @@ export const YTEndpointSchemaMap = {
     })
   },
   getDownloadActionCommand: {
+    isCrossDeviceDownload: ytv_bol(),
     offlineabilityEntityKey: ytv_str(),
     params: ytv_str(),
     videoId: ytv_str()
@@ -798,6 +836,11 @@ export const YTEndpointSchemaMap = {
     params: ytv_str()
   },
   offlineVideoEndpoint: {
+    action: ytv_str(['ACTION_ADD']),
+    actionParams: ytv_sch({
+      formatType: ytv_str(YTOfflineFormatType),
+      settingsAction: ytv_str(['DOWNLOAD_QUALITY_SETTINGS_ACTION_ALREADY_SAVED', 'DOWNLOAD_QUALITY_SETTINGS_ACTION_DONT_SAVE', 'DOWNLOAD_QUALITY_SETTINGS_ACTION_EXPIRING_SAVE', 'DOWNLOAD_QUALITY_SETTINGS_ACTION_SAVE'])
+    }),
     onAddCommand: ytv_enp(),
     videoId: ytv_str()
   },

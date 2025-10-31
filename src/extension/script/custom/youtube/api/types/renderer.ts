@@ -765,6 +765,49 @@ export const YTRendererSchemaMap = {
   notificationGetUnseenCountResponse: {
     ...YTResponseCommonSchema
   },
+  offlineGetDownloadActionResponse: {
+    ...YTResponseCommonSchema
+  },
+  offlineGetPlaybackDataEntityResponse: {
+    ...YTResponseCommonSchema,
+    orchestrationActions: ytv_arr(ytv_sch({
+      actionMetadata: ytv_sch({
+        priority: ytv_num(),
+        transferEntityActionMetadata: ytv_sch({
+          isEnqueuedForPes: ytv_bol(),
+          maximumDownloadQuality: ytv_str()
+        })
+      }),
+      actionType: ytv_str(['OFFLINE_ORCHESTRATION_ACTION_TYPE_ADD', 'OFFLINE_ORCHESTRATION_ACTION_TYPE_DELETE', 'OFFLINE_ORCHESTRATION_ACTION_TYPE_REFRESH']),
+      entityKey: ytv_str()
+    }))
+  },
+  offlineResponse: {
+    ...YTResponseCommonSchema,
+    videos: ytv_arr(ytv_sch({
+      offlineVideoData: ytv_sch({
+        channel: ytv_sch({
+          offlineChannelData: ytv_sch({
+            channelId: ytv_str(),
+            isChannelOwner: ytv_bol(),
+            thumbnail: ytv_sch(YTThumbnailSchema),
+            title: ytv_str()
+          })
+        }),
+        description: ytv_sch(YTTextSchema),
+        lengthSeconds: ytv_str(),
+        lengthText: ytv_str(),
+        likesCount: ytv_str(),
+        publishedTimestamp: ytv_str(),
+        shareUrl: ytv_str(),
+        shortViewCountText: ytv_str(),
+        thumbnail: ytv_sch(YTThumbnailSchema),
+        title: ytv_str(),
+        videoId: ytv_str(),
+        viewCount: ytv_str()
+      })
+    }))
+  },
   playerResponse: YTPlayerResponseSchema,
   playerHeartbeatResponse: {
     ...YTResponseCommonSchema,
@@ -1307,6 +1350,10 @@ export const YTRendererSchemaMap = {
     size: ytv_str(YTSizeType),
     style: ytv_str(YTButtonStyle),
     targetId: ytv_str()
+  },
+  downloadQualitySelectorRenderer: {
+    downloadQualityPickerEntityKey: ytv_str(),
+    onSubmitEndpoint: ytv_enp()
   },
   emojiPickerCategoryButtonRenderer: {
     accessibility: ytv_sch(YTAccessibilitySchema),
@@ -4076,3 +4123,4 @@ export const YTRendererMixinSchema = {
 
 export type YTRendererKey = keyof typeof YTRendererSchemaMap
 export type YTRenderer<K extends YTRendererKey = YTRendererKey> = typeof YTRendererSchemaMap[K]
+export type YTResponseRenderer = YTRenderer<{ [P in YTRendererKey]: P extends `${string}Response` ? P : never }[YTRendererKey]>

@@ -64,7 +64,26 @@ type YTInnertubeRequestMap = {
     playerRequest: object
     watchNextRequest: object
   }
-  'next': {}
+  'next': Partial<{
+    continuation: string
+  }>
+  'offline': Partial<{
+    videoIds: string[]
+  }>
+  'offline/get_download_action': Partial<{
+    crossDeviceDownloadData: { isCrossDeviceDownload?: boolean }
+    lastOfflineQualitySettingsSavedMs: string
+    offlineWebClientEligibility: { isSupported: boolean }
+    params: string
+    preferredFormatType: string
+    videoId: string
+  }>
+  'offline/get_playback_data_entity': Partial<{
+    videos: {
+      downloadParameters?: { maximumDownloadQuality?: string }
+      entityKey: string
+    }[]
+  }>
   'player': Partial<{
     contentCheckOk: boolean
     cpn: string
@@ -119,32 +138,32 @@ const processInnertubeRequest = async (endpoint: string, request?: YTInnertubeRe
 
   let response = await invokeProcessors(request, innertubeRequestProcessorMap['*'])
   if (response == null) {
-  const processors = innertubeRequestProcessorMap[endpoint]
-  switch (endpoint) {
-    case 'get_watch': {
-      const data = request as YTInnertubeRequest<typeof endpoint>
+    const processors = innertubeRequestProcessorMap[endpoint]
+    switch (endpoint) {
+      case 'get_watch': {
+        const data = request as YTInnertubeRequest<typeof endpoint>
 
         response = await invokeProcessors(request, processors)
 
         await processInnertubeRequest('player', data.playerRequest as YTInnertubeRequest)
         await processInnertubeRequest('next', data.watchNextRequest as YTInnertubeRequest)
-      break
-    }
-    case 'player': {
-      const data = request as Omit<YTInnertubeRequest<typeof endpoint>, 'params'> & {
-        params?: InstanceType<typeof PlayerParams> | string
+        break
       }
-      data.params = protoBase64UrlDecode(new PlayerParams(), data.params as string)
+      case 'player': {
+        const data = request as Omit<YTInnertubeRequest<typeof endpoint>, 'params'> & {
+          params?: InstanceType<typeof PlayerParams> | string
+        }
+        data.params = protoBase64UrlDecode(new PlayerParams(), data.params as string)
 
         response = await invokeProcessors(request, processors)
 
-      data.params = protoBase64UrlEncode(data.params as InstanceType<typeof PlayerParams>)
-      break
+        data.params = protoBase64UrlEncode(data.params as InstanceType<typeof PlayerParams>)
+        break
+      }
+      default:
+        response = await invokeProcessors(request, processors)
+        break
     }
-    default:
-        response = await invokeProcessors(request, processors)
-      break
-  }
   }
   if (response == null) return null
 
