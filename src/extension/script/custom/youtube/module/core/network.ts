@@ -1,12 +1,13 @@
 import { processYTRenderer } from '@ext/custom/youtube/api/processor'
 import PlayerParams from '@ext/custom/youtube/api/proto/player-params'
-import { YTRendererSchemaMap } from '@ext/custom/youtube/api/renderer'
+import { YTRenderer, YTRendererSchemaMap, YTResponseRenderer } from '@ext/custom/youtube/api/renderer'
+import { YTRendererData } from '@ext/custom/youtube/api/types/common'
 import { YTInnertubeContext } from '@ext/custom/youtube/module/core/bootstrap'
-import { defineProperty, fromEntries } from '@ext/global/object'
+import { assign, defineProperty, fromEntries } from '@ext/global/object'
 import { bufferFromString, bufferToString } from '@ext/lib/buffer'
 import { compress, decompress } from '@ext/lib/compression'
 import { Feature } from '@ext/lib/feature'
-import { addInterceptNetworkCallback, NetworkContext, NetworkRequestContext, NetworkState, replaceRequest } from '@ext/lib/intercept/network'
+import { addInterceptNetworkCallback, NetworkContext, NetworkContextState, NetworkRequestContext, NetworkState, replaceRequest } from '@ext/lib/intercept/network'
 import Logger from '@ext/lib/logger'
 import { Message, MessageDefinition } from '@ext/lib/protobuf/message'
 
@@ -84,7 +85,7 @@ type YTInnertubeRequestMap = {
 export type YTInnertubeRequestEndpoint = keyof YTInnertubeRequestMap
 export type YTInnertubeRequest<E extends YTInnertubeRequestEndpoint = YTInnertubeRequestEndpoint> = YTInnertubeRequestBase & YTInnertubeRequestMap[E]
 
-export type YTInnertubeRequestProcessor<E extends YTInnertubeRequestEndpoint = YTInnertubeRequestEndpoint> = (request: YTInnertubeRequest<E>) => Promise<void> | void
+export type YTInnertubeRequestProcessor<E extends YTInnertubeRequestEndpoint = YTInnertubeRequestEndpoint> = (request: YTInnertubeRequest<E>) => Promise<YTRendererData<YTResponseRenderer> | void> | YTRendererData<YTRenderer> | void
 
 const innertubeRequestProcessorMap: { [endpoint: string]: Set<YTInnertubeRequestProcessor> } = {}
 
@@ -101,22 +102,32 @@ const protoBase64UrlEncode = <D extends MessageDefinition>(message: Message<D>):
   return encodeURIComponent(btoa(bufferToString(data, 'latin1')).replace(/\+/g, '-').replace(/\//g, '_'))
 }
 
-const processInnertubeRequest = async (endpoint: string, request?: YTInnertubeRequest): Promise<void> => {
-  if (request == null) return
+const invokeProcessors = async (request: YTInnertubeRequest, processors?: Set<YTInnertubeRequestProcessor>): Promise<YTRendererData<YTResponseRenderer> | null> => {
+  let response: YTRendererData<YTResponseRenderer> | null = null
+  if (processors == null) return response
 
-  innertubeRequestProcessorMap['*']?.forEach(processor => processor(request))
+  for (const processor of processors) {
+    response = await processor(request) ?? null
+    if (response != null) break
+  }
 
+  return response
+}
+
+const processInnertubeRequest = async (endpoint: string, request?: YTInnertubeRequest): Promise<Response | null> => {
+  if (request == null) return null
+
+  let response = await invokeProcessors(request, innertubeRequestProcessorMap['*'])
+  if (response == null) {
   const processors = innertubeRequestProcessorMap[endpoint]
-  if (processors == null) return
-
   switch (endpoint) {
     case 'get_watch': {
       const data = request as YTInnertubeRequest<typeof endpoint>
 
-      processors.forEach(processor => processor(data))
+        response = await invokeProcessors(request, processors)
 
-      processInnertubeRequest('player', data.playerRequest as YTInnertubeRequest)
-      processInnertubeRequest('next', data.watchNextRequest as YTInnertubeRequest)
+        await processInnertubeRequest('player', data.playerRequest as YTInnertubeRequest)
+        await processInnertubeRequest('next', data.watchNextRequest as YTInnertubeRequest)
       break
     }
     case 'player': {
@@ -125,15 +136,28 @@ const processInnertubeRequest = async (endpoint: string, request?: YTInnertubeRe
       }
       data.params = protoBase64UrlDecode(new PlayerParams(), data.params as string)
 
-      processors.forEach(processor => processor(data))
+        response = await invokeProcessors(request, processors)
 
       data.params = protoBase64UrlEncode(data.params as InstanceType<typeof PlayerParams>)
       break
     }
     default:
-      processors.forEach(processor => processor(request))
+        response = await invokeProcessors(request, processors)
       break
   }
+  }
+  if (response == null) return null
+
+  if (response.responseContext == null) {
+    response.responseContext = {
+      mainAppWebResponseContext: {
+        trackingParam: '' // should get filled by response processor
+      },
+      serviceTrackingParams: []
+    }
+  }
+
+  return new Response(stringify(response), { status: 200, headers: { 'content-type': 'application/json' } })
 }
 
 const processInnertubeResponse = async (endpoint: string, response: Response): Promise<Response> => {
@@ -177,7 +201,11 @@ const processRequest = async (ctx: NetworkRequestContext): Promise<void> => {
   }
 
   try {
-    await processInnertubeRequest(innertubeEndpoint, data)
+    const response = await processInnertubeRequest(innertubeEndpoint, data)
+    if (response != null) {
+      assign<NetworkContext, NetworkContextState>(ctx, { state: NetworkState.SUCCESS, response })
+      return
+    }
   } catch (error) {
     logger.warn('process innertube request error:', error)
   }
