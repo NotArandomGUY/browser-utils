@@ -358,7 +358,7 @@ export default class YTCoreBootstrapModule extends Feature {
         switch (key) {
           case 'EXPERIMENT_FLAGS':
             assign(value as object, {
-              json_condensed_response: true
+              json_condensed_response: location.pathname !== '/tv'
             })
             break
           case 'INNERTUBE_CONTEXT':

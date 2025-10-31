@@ -4,7 +4,8 @@ import ScriptNetRule from '@ext/proto/script/net/rule'
 import ScriptNetRuleAction, { ScriptNetRuleActionType } from '@ext/proto/script/net/rule-action'
 import ScriptNetRuleCondition, { ScriptNetResourceType } from '@ext/proto/script/net/rule-condition'
 
-const TV_USER_AGENT = 'Mozilla/5.0 (PlayStation 5/SmartTV) AppleWebKit/605.1.15 (KHTML, like Gecko)'
+const DESKTOP_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36'
+const CONSOLE_USER_AGENT = 'Mozilla/5.0 (PlayStation 5/SmartTV) AppleWebKit/605.1.15 (KHTML, like Gecko)'
 
 export default {
   name: 'youtube',
@@ -22,7 +23,7 @@ export default {
           new ScriptNetModifyHeaderInfo({
             header: 'user-agent',
             operation: ScriptNetHeaderOperation.SET,
-            value: TV_USER_AGENT
+            value: CONSOLE_USER_AGENT
           })
         ]
       }),
@@ -38,12 +39,28 @@ export default {
           new ScriptNetModifyHeaderInfo({
             header: 'user-agent',
             operation: ScriptNetHeaderOperation.SET,
-            value: TV_USER_AGENT
+            value: CONSOLE_USER_AGENT
           })
         ]
       }),
       condition: new ScriptNetRuleCondition({
         urlFilter: '||youtube.com/api/stats/*?*el=leanback',
+        resourceTypes: [ScriptNetResourceType.XMLHTTPREQUEST]
+      })
+    }),
+    new ScriptNetRule({
+      action: new ScriptNetRuleAction({
+        type: ScriptNetRuleActionType.MODIFY_HEADERS,
+        requestHeaders: [
+          new ScriptNetModifyHeaderInfo({
+            header: 'user-agent',
+            operation: ScriptNetHeaderOperation.SET,
+            value: DESKTOP_USER_AGENT
+          })
+        ]
+      }),
+      condition: new ScriptNetRuleCondition({
+        urlFilter: '||youtube.com/youtubei/*?*prettyPrint=',
         resourceTypes: [ScriptNetResourceType.XMLHTTPREQUEST]
       })
     }),
