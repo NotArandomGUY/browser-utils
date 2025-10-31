@@ -33,6 +33,7 @@ export default {
       })
     }),
     new ScriptNetRule({
+      priority: 2,
       action: new ScriptNetRuleAction({
         type: ScriptNetRuleActionType.MODIFY_HEADERS,
         requestHeaders: [
@@ -49,6 +50,7 @@ export default {
       })
     }),
     new ScriptNetRule({
+      priority: 2,
       action: new ScriptNetRuleAction({
         type: ScriptNetRuleActionType.MODIFY_HEADERS,
         requestHeaders: [
@@ -65,6 +67,7 @@ export default {
       })
     }),
     new ScriptNetRule({
+      priority: 1,
       action: new ScriptNetRuleAction({
         type: ScriptNetRuleActionType.MODIFY_HEADERS,
         requestHeaders: [
