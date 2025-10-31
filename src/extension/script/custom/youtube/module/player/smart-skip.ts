@@ -1,6 +1,6 @@
 import { registerOverlayPage } from '@ext/common/preload/overlay'
 import { YTEntityMutationSchema } from '@ext/custom/youtube/api/endpoint'
-import EntityKey from '@ext/custom/youtube/api/proto/entity-key'
+import { createEntityKey } from '@ext/custom/youtube/api/proto/entity-key'
 import { registerYTRendererPreProcessor, YTRenderer, YTRendererData, YTRendererSchemaMap } from '@ext/custom/youtube/api/renderer'
 import { YTObjectData, YTValueData, YTValueType } from '@ext/custom/youtube/api/types/common'
 import YTSkipSegmentPage from '@ext/custom/youtube/pages/skip-segments'
@@ -82,13 +82,9 @@ const segmentFetchMutex = new Mutex()
 let lastLoadedVideoId: string | null = null
 let state: State<SkipSegmentEntry[]> | null = null
 
-const getSkipSegmentEntityKey = (id: number): string => {
-  const buffer = new EntityKey({
-    key: `SMART_SKIP_${id}`
-  }).serialize()
-
-  return encodeURIComponent(btoa(new Array(buffer.length).fill(0).map((_, i) => String.fromCharCode(buffer[i])).join('')))
-}
+const getSkipSegmentEntityKey = (id: number): string => createEntityKey({
+  id: `SMART_SKIP_${id}`
+})
 
 const buildChangeMarkersVisibilityCommand = (entityKey: string, isVisible: boolean): YTValueData<{ type: YTValueType.ENDPOINT }> => {
   return {
