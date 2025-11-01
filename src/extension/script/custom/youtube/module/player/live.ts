@@ -136,10 +136,9 @@ const updatePlayerResponse = (data: YTRendererData<YTRenderer<'playerResponse'>>
   if (isYTLiveBehaviourEnabled(YTLiveBehaviourMask.LOW_LATENCY)) {
     videoDetails.isLowLatencyLiveStream = true
 
-    const startMinReadaheadPolicy = playerConfig.mediaCommonConfig?.serverPlaybackStartConfig?.playbackStartPolicy?.startMinReadaheadPolicy
-    if (startMinReadaheadPolicy != null && startMinReadaheadPolicy.length > 0) {
-      startMinReadaheadPolicy.forEach(policy => policy.minReadaheadMs ??= 50)
-    }
+    const playbackStartPolicy = playerConfig.mediaCommonConfig?.serverPlaybackStartConfig?.playbackStartPolicy
+    playbackStartPolicy?.resumeMinReadaheadPolicy?.forEach(policy => policy.minReadaheadMs = 50)
+    playbackStartPolicy?.startMinReadaheadPolicy?.forEach(policy => policy.minReadaheadMs = 50)
 
     startLiveHeadUpdate()
   }

@@ -166,6 +166,11 @@ export const YTMediaFormatSchema = {
   xtags: ytv_str()
 } satisfies YTRendererSchema
 
+export const YTMinReadaheadPolicy = {
+  minBandwidthBytesPerSec: ytv_num(),
+  minReadaheadMs: ytv_num()
+} satisfies YTRendererSchema
+
 export const YTRendererContinuationDataSchema = {
   autoloadEnabled: ytv_bol(),
   autoloadThresholdItemsFromEnd: ytv_num(),
@@ -538,9 +543,8 @@ export const YTPlayerConfigSchema = {
     serverPlaybackStartConfig: ytv_sch({
       enable: ytv_bol(),
       playbackStartPolicy: ytv_sch({
-        startMinReadaheadPolicy: ytv_arr(ytv_sch({
-          minReadaheadMs: ytv_num()
-        }))
+        resumeMinReadaheadPolicy: ytv_arr(ytv_ren(YTMinReadaheadPolicy)),
+        startMinReadaheadPolicy: ytv_arr(ytv_ren(YTMinReadaheadPolicy))
       })
     }),
     splitScreenEligible: ytv_bol(),
