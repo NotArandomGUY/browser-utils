@@ -34,6 +34,9 @@ export default abstract class Lifecycle<P> extends HTMLElement {
 
   public disconnectedCallback(): void {
     this.onDestroy()
+
+    this.innerHTML = ''
+    Array.from(this.attributes).forEach(attr => this.removeAttribute(attr.name))
   }
 
   public connectedMoveCallback(): void {
