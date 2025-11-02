@@ -83,7 +83,7 @@ let lastLoadedVideoId: string | null = null
 let state: State<SkipSegmentEntry[]> | null = null
 
 const getSkipSegmentEntityKey = (id: number): string => createEntityKey({
-  id: `SMART_SKIP_${id}`
+  entityId: `SMART_SKIP_${id}`
 })
 
 const buildChangeMarkersVisibilityCommand = (entityKey: string, isVisible: boolean): YTValueData<{ type: YTValueType.ENDPOINT }> => {
