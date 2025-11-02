@@ -1,6 +1,6 @@
-import { encodeTrackingParam } from '@ext/custom/youtube/api/crypto'
 import { YTRendererData, YTRendererSchema } from '@ext/custom/youtube/api/types/common'
 import { YTRenderer, YTResponseContextSchema } from '@ext/custom/youtube/api/types/renderer'
+import { encodeTrackingParam } from '@ext/custom/youtube/utils/crypto'
 import Logger from '@ext/lib/logger'
 
 export { YTLoggingDirectivesSchema, YTRendererData, YTRendererSchema } from '@ext/custom/youtube/api/types/common'
