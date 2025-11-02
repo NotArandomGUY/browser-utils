@@ -1,5 +1,6 @@
 import { floor, random } from '@ext/global/math'
 import { defineProperty } from '@ext/global/object'
+import { unsafePolicy } from '@ext/lib/dom'
 
 const PropsSymbol = Symbol()
 
@@ -35,7 +36,7 @@ export default abstract class Lifecycle<P> extends HTMLElement {
   public disconnectedCallback(): void {
     this.onDestroy()
 
-    this.innerHTML = ''
+    this.innerHTML = unsafePolicy.createHTML('')
     Array.from(this.attributes).forEach(attr => this.removeAttribute(attr.name))
   }
 
