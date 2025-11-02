@@ -1,4 +1,4 @@
-import { OnesieCompressionType, OnesieCryptoParams } from '@ext/custom/youtube/api/proto/onesie/common'
+import { OnesieCompressionType, OnesieCryptoParams } from '@ext/custom/youtube/proto/onesie/common'
 import { floor, random } from '@ext/global/math'
 import { bufferConcat } from '@ext/lib/buffer'
 import { compress, decompress, isCompressionSupported } from '@ext/lib/compression'

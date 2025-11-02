@@ -1,4 +1,4 @@
-import OnesieInnertubeRequest from '@ext/custom/youtube/api/proto/onesie/innertube-request'
+import OnesieInnertubeRequest from '@ext/custom/youtube/proto/onesie/innertube-request'
 import { pbf_bin, pbf_bol, pbf_msg, pbf_str } from '@ext/lib/protobuf/field'
 import { createMessage } from '@ext/lib/protobuf/message'
 

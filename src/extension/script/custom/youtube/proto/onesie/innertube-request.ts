@@ -1,4 +1,4 @@
-import { OnesieHttpHeader } from '@ext/custom/youtube/api/proto/onesie/common'
+import { OnesieHttpHeader } from '@ext/custom/youtube/proto/onesie/common'
 import { pbf_bin, pbf_bol, pbf_msg, pbf_repeat, pbf_str } from '@ext/lib/protobuf/field'
 import { createMessage } from '@ext/lib/protobuf/message'
 

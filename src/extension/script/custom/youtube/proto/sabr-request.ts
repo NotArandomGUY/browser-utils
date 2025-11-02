@@ -1,4 +1,4 @@
-import BufferedRange from '@ext/custom/youtube/api/proto/buffered-range'
+import BufferedRange from '@ext/custom/youtube/proto/buffered-range'
 import { pbf_bin, pbf_i32, pbf_i64, pbf_msg, pbf_repeat } from '@ext/lib/protobuf/field'
 import { createMessage } from '@ext/lib/protobuf/message'
 

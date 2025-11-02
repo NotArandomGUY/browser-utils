@@ -1,4 +1,4 @@
-import { OnesieCryptoParams } from '@ext/custom/youtube/api/proto/onesie/common'
+import { OnesieCryptoParams } from '@ext/custom/youtube/proto/onesie/common'
 import { pbf_i32, pbf_i64, pbf_msg, pbf_str, pbf_u64 } from '@ext/lib/protobuf/field'
 import { createMessage } from '@ext/lib/protobuf/message'
 

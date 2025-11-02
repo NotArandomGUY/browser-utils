@@ -1,5 +1,5 @@
-import BufferedRange from '@ext/custom/youtube/api/proto/buffered-range'
-import OnesieEncryptedInnertubeRequest from '@ext/custom/youtube/api/proto/onesie/encrypted-innertube-request'
+import BufferedRange from '@ext/custom/youtube/proto/buffered-range'
+import OnesieEncryptedInnertubeRequest from '@ext/custom/youtube/proto/onesie/encrypted-innertube-request'
 import { pbf_bin, pbf_i32, pbf_msg, pbf_repeat, pbf_str } from '@ext/lib/protobuf/field'
 import { createMessage } from '@ext/lib/protobuf/message'
 
