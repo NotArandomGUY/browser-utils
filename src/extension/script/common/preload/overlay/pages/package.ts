@@ -81,7 +81,7 @@ const FeatureTableItem = ({ parentClassName, groupId, featureId, feature, visibl
 
   return tr(
     { class: buildClass(parentClassName, 'shrink'), style: () => visible.val ? '' : 'display:none;' },
-    td({ style: 'text-align:left!important;' }, feature.getName() ?? `ID-${featureId}`),
+    td({ style: 'text-align:left!important' }, feature.getName() ?? `ID-${featureId}`),
     td(button({ disabled: feature.getState() === FeatureState.INACTIVE, onclick: handleToggleClick }, () => enabled.val ? 'Disable' : 'Enable'))
   )
 }
@@ -94,7 +94,7 @@ const PackagePage = ({ parentClassName, updateStatus, onUpdateClick }: PackagePa
     { class: buildClass([parentClassName, 'page'], [className]) },
     h1('Update'),
     div(
-      { style: 'display:flex;flex-direction:row;align-items:center;gap:0.5em;' },
+      { style: 'display:flex;flex-direction:row;align-items:center;gap:0.5em' },
       button({ onclick: onUpdateClick }, 'Check for update'),
       p(() => `Status: ${updateStatus.val}`)
     ),

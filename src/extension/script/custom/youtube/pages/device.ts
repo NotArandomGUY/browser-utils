@@ -22,12 +22,12 @@ const YTDevicePage = (): Element => {
   }
 
   const elem = div(
-    { style: 'display:flex;flex-direction:column;' },
+    { style: 'display:flex;flex-direction:column' },
     table(
       tbody(
         tr(
-          th({ style: 'width:1px;' }, 'Label'),
-          td(input({ style: 'width:100%;', placeholder: 'My Device', value: label, oninput: e => label.val = e.target.value }))
+          th({ style: 'width:1px' }, 'Label'),
+          td(input({ style: 'width:100%', placeholder: 'My Device', value: label, oninput: e => label.val = e.target.value }))
         )
       )
     ),
