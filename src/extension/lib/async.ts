@@ -28,7 +28,7 @@ export type PromiseResolve<T> = (value: T | PromiseLike<T>) => void
 export type PromiseReject<T> = (reason?: T) => void
 export type PromiseProgress<T> = (progress: T) => void
 
-export class PromiseWithProgress<TResolve = void, TReject = void, TProgress = void> extends Promise<TResolve> {
+export class PromiseWithProgress<TResolve, TProgress, TReject = unknown> extends Promise<TResolve> {
   private readonly progressCallbacks: PromiseProgress<TProgress>[]
   private resolved: boolean
 
