@@ -1,5 +1,5 @@
 import { bufferFromString, bufferToString } from '@ext/lib/buffer'
-import { pbf_i32, pbf_str } from '@ext/lib/protobuf/field'
+import { pbf_bol, pbf_i32, pbf_str } from '@ext/lib/protobuf/field'
 import { createMessage } from '@ext/lib/protobuf/message'
 
 export enum EntityType {
@@ -95,14 +95,15 @@ export enum EntityType {
 
 const EntityKey = createMessage({
   entityId: pbf_str(2),
-  entityType: pbf_i32(4)
+  entityType: pbf_i32(4),
+  isPersistent: pbf_bol(5)
 })
 
-export const createEntityKey = (...args: ConstructorParameters<typeof EntityKey>): string => {
+export const encodeEntityKey = (...args: ConstructorParameters<typeof EntityKey>): string => {
   return encodeURIComponent(btoa(bufferToString(new EntityKey(...args).serialize(), 'latin1')))
 }
 
-export const parseEntityKey = (entityKey: string): InstanceType<typeof EntityKey> => {
+export const decodeEntityKey = (entityKey: string): InstanceType<typeof EntityKey> => {
   return new EntityKey().deserialize(bufferFromString(atob(decodeURIComponent(entityKey)), 'latin1'))
 }
 

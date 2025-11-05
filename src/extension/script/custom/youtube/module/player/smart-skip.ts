@@ -3,7 +3,7 @@ import { YTEntityMutationSchema } from '@ext/custom/youtube/api/endpoint'
 import { registerYTRendererPreProcessor, YTRenderer, YTRendererData, YTRendererSchemaMap } from '@ext/custom/youtube/api/renderer'
 import { YTObjectData, YTValueData, YTValueType } from '@ext/custom/youtube/api/types/common'
 import YTSkipSegmentPage from '@ext/custom/youtube/pages/skip-segments'
-import { createEntityKey } from '@ext/custom/youtube/proto/entity-key'
+import { encodeEntityKey } from '@ext/custom/youtube/proto/entity-key'
 import { floor, max } from '@ext/global/math'
 import { fetch } from '@ext/global/network'
 import { Mutex } from '@ext/lib/async'
@@ -82,7 +82,7 @@ const segmentFetchMutex = new Mutex()
 let lastLoadedVideoId: string | null = null
 let state: State<SkipSegmentEntry[]> | null = null
 
-const getSkipSegmentEntityKey = (id: number): string => createEntityKey({
+const getSkipSegmentEntityKey = (id: number): string => encodeEntityKey({
   entityId: `SMART_SKIP_${id}`
 })
 
