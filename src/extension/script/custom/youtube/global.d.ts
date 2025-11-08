@@ -55,6 +55,7 @@ declare var getInitialCommand: () => object
 declare var getInitialData: () => object
 declare var loadInitialCommand: (command: object) => void
 declare var loadInitialData: (data: object) => void
+declare var default_kevlar_base: Record<string, unknown>
 declare var environment: YTEnvironment | undefined
 declare var yt: { config_: object, logging: object }
 declare var ytcfg: YTConfig | undefined

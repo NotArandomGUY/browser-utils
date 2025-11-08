@@ -358,6 +358,7 @@ export default class YTCoreBootstrapModule extends Feature {
         switch (key) {
           case 'EXPERIMENT_FLAGS':
             assign(value as object, {
+              html5_offline_playback_position_sync: !!ytcfg.get('LOGGED_IN'),
               json_condensed_response: location.pathname !== '/tv'
             })
             break

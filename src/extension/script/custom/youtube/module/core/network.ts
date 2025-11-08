@@ -84,6 +84,14 @@ type YTInnertubeRequestMap = {
       entityKey: string
     }[]
   }>
+  'offline/offline_video_playback_position_sync': Partial<{
+    lastSyncTimestampUsec: string
+    videoPlaybackPositionEntities: {
+      key: string
+      lastPlaybackPositionSeconds: string
+      videoId: string
+    }[]
+  }>
   'player': Partial<{
     contentCheckOk: boolean
     cpn: string
