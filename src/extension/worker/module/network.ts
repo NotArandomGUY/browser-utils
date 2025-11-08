@@ -64,7 +64,7 @@ const RULE_EXCLUDE_DOMAIN_KV = 'rule-exclude-domain'
 
 const logger = new Logger('WORKER-NETWORK')
 
-const kv = new IndexedKV('network')
+const kv = new IndexedKV('network', [])
 
 const parseScriptNetHeaderInfo = (config?: InstanceType<typeof ScriptNetHeaderInfo> | null): DNR.HeaderInfo | null => {
   if (config == null) return null

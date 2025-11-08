@@ -1,29 +1,47 @@
-export type IndexedDBTransactionCallback<T = void> = (transaction: IndexedDBTransaction) => Promise<T> | T
+export type IndexedDBTransactionCallback<T = void, S extends string[] = string[]> = (
+  transaction: IndexedDBTransaction<S>,
+) => Promise<T> | T
+
+export interface IndexedDBIndexDefinition {
+  name: string
+  keyPath: string | string[]
+  params?: IDBIndexParameters
+}
 
 export interface IndexedDBStoreDefinition {
   name: string
-  params: IDBObjectStoreParameters
+  params?: IDBObjectStoreParameters
+  index?: IndexedDBIndexDefinition[]
 }
 
-export class IndexedDBObjectStore {
-  private store: IDBObjectStore
+export class IndexedDBIndex<I extends IDBObjectStore | IDBIndex = IDBIndex> {
+  protected interface: I
 
-  public constructor(store: IDBObjectStore) {
-    this.store = store
+  public constructor(index: I) {
+    this.interface = index
   }
 
   public getAllKeys(query?: IDBValidKey | IDBKeyRange | null, count?: number): Promise<IDBValidKey[]> {
     return new Promise<IDBValidKey[]>((resolve, reject) => {
-      const request = this.store.getAllKeys(query, count)
+      const request = this.interface.getAllKeys(query, count)
 
       request.onerror = () => reject(request.error)
       request.onsuccess = () => resolve(request.result)
     })
   }
 
+  public getAll<T extends unknown[] = unknown[]>(query?: IDBValidKey | IDBKeyRange | null, count?: number): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+      const request = this.interface.getAll(query, count)
+
+      request.onerror = () => reject(request.error)
+      request.onsuccess = () => resolve(request.result as T)
+    })
+  }
+
   public has(query: IDBValidKey | IDBKeyRange): Promise<boolean> {
     return new Promise<boolean>((resolve, reject) => {
-      const request = this.store.openCursor(query)
+      const request = this.interface.openCursor(query)
 
       request.onerror = () => reject(request.error)
       request.onsuccess = () => resolve(request.result != null)
@@ -32,16 +50,22 @@ export class IndexedDBObjectStore {
 
   public get<T = unknown>(query: IDBValidKey | IDBKeyRange): Promise<T> {
     return new Promise<T>((resolve, reject) => {
-      const request = this.store.get(query)
+      const request = this.interface.get(query)
 
       request.onerror = () => reject(request.error)
       request.onsuccess = () => resolve(request.result)
     })
   }
+}
+
+export class IndexedDBObjectStore extends IndexedDBIndex<IDBObjectStore> {
+  public constructor(store: IDBObjectStore) {
+    super(store)
+  }
 
   public put<T = unknown>(value: T, key?: IDBValidKey): Promise<void> {
     return new Promise((resolve, reject) => {
-      const request = this.store.put(value, key)
+      const request = this.interface.put(value, key)
 
       request.onerror = () => reject(request.error)
       request.onsuccess = () => resolve()
@@ -50,15 +74,19 @@ export class IndexedDBObjectStore {
 
   public delete(query: IDBValidKey | IDBKeyRange): Promise<void> {
     return new Promise<void>((resolve, reject) => {
-      const request = this.store.delete(query)
+      const request = this.interface.delete(query)
 
       request.onerror = () => reject(request.error)
       request.onsuccess = () => resolve()
     })
   }
+
+  public index(name: string): IndexedDBIndex {
+    return new IndexedDBIndex(this.interface.index(name))
+  }
 }
 
-export class IndexedDBTransaction {
+export class IndexedDBTransaction<const S extends string[] = string[]> {
   private transaction: IDBTransaction
 
   public constructor(transaction: IDBTransaction) {
@@ -74,20 +102,24 @@ export class IndexedDBTransaction {
     })
   }
 
-  public objectStore(name: string): IndexedDBObjectStore {
+  public objectStore(name: S[number]): IndexedDBObjectStore {
     return new IndexedDBObjectStore(this.transaction.objectStore(name))
   }
 }
 
-export default class IndexedDB {
+export default class IndexedDB<const Stores extends IndexedDBStoreDefinition[] = IndexedDBStoreDefinition[]> {
   private name: string
   private stores: IndexedDBStoreDefinition[]
   private db: IDBDatabase | null
 
-  public constructor(name: string, stores: IndexedDBStoreDefinition[]) {
+  public constructor(name: string, stores: Stores) {
     this.name = name
     this.stores = stores
     this.db = null
+  }
+
+  public [Symbol.dispose](): void {
+    this.close()
   }
 
   public async open(): Promise<boolean> {
@@ -102,7 +134,11 @@ export default class IndexedDB {
       request.onupgradeneeded = () => {
         const db = request.result
 
-        stores.forEach((store) => db.createObjectStore(store.name, store.params))
+        stores.forEach(({ name, params, index }) => {
+          const store = db.createObjectStore(name, params)
+          index?.forEach(({ name, keyPath, params }) => store.createIndex(name, keyPath, params))
+          return store
+        })
       }
       request.onsuccess = () => {
         const db = request.result
@@ -124,9 +160,9 @@ export default class IndexedDB {
     this.db = null
   }
 
-  public async transaction<T = void>(
-    storeNames: string | Iterable<string>,
-    callback: IndexedDBTransactionCallback<T>,
+  public async transaction<T = void, S extends Stores[number]['name'] | Stores[number]['name'][] = []>(
+    storeNames: S,
+    callback: IndexedDBTransactionCallback<T, S extends string ? [S] : S>,
   ): Promise<T> {
     const openDbByTransaction = await this.open()
 
@@ -135,11 +171,11 @@ export default class IndexedDB {
 
     try {
       const transaction = new IndexedDBTransaction(db.transaction(storeNames, 'readwrite'))
-      const result = await Promise.resolve(callback(transaction))
 
-      await transaction.promise()
-
-      return result
+      return (await Promise.all([
+        callback(transaction),
+        transaction.promise()
+      ]))[0]
     } finally {
       if (openDbByTransaction) this.close()
     }

@@ -1,13 +1,17 @@
 import IndexedDB, { IndexedDBStoreDefinition } from '@ext/lib/idb'
 
+const KV_STORES = [
+  { name: 'kv', params: { keyPath: 'key' } }
+] as const satisfies IndexedDBStoreDefinition[]
+
 interface IndexedKVEntry<T> {
   key: string
   value: T
 }
 
-export default class IndexedKV extends IndexedDB {
-  public constructor(name: string, stores?: IndexedDBStoreDefinition[]) {
-    super(name, [{ name: 'kv', params: { keyPath: 'key' } }, ...stores ?? []])
+export default class IndexedKV<const Stores extends IndexedDBStoreDefinition[] = []> extends IndexedDB<[...typeof KV_STORES, ...Stores]> {
+  public constructor(name: string, stores: Stores) {
+    super(name, [...KV_STORES, ...stores])
   }
 
   public async keys(): Promise<string[]> {
