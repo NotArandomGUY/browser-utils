@@ -18,4 +18,4 @@ registerFeatureGroup('viu', group => {
   registerFeature(group, ViuUserDataModule)
 
   hideOwnWebpackRuntimeFromGlobal()
-}, ['preload', 'adblock', 'privacy'])
+}, ['preload'])

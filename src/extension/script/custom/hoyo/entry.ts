@@ -10,7 +10,7 @@ registerFeatureGroup('hoyo', group => {
   registerFeature(group, HoyoVueModule)
 
   hideOwnWebpackRuntimeFromGlobal()
-}, ['preload', 'adblock', 'privacy'])
+}, ['preload'])
 
 interruptWebpackRuntime((chunkLoadingGlobal) => {
   console.log('webpack runtime load:', chunkLoadingGlobal)

@@ -41,7 +41,7 @@ registerFeatureGroup(CORE_GROUP_ID, group => {
   registerFeature(group, YTCoreConfigModule)
 
   hideOwnWebpackRuntimeFromGlobal()
-}, ['preload', 'adblock', 'privacy'])
+}, ['preload'])
 
 registerFeatureGroup(FEED_GROUP_ID, group => {
   registerFeature(group, YTFeedGuideModule)

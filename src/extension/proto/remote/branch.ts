@@ -1,4 +1,4 @@
-import { pbf_bin, pbf_str } from '@ext/lib/protobuf/field'
+import { pbf_bin, pbf_repeat, pbf_str } from '@ext/lib/protobuf/field'
 import { createMessage } from '@ext/lib/protobuf/message'
 
 const RemoteBranch = createMessage({
@@ -6,7 +6,8 @@ const RemoteBranch = createMessage({
   url: pbf_str(2),
   encryptKey: pbf_bin(3),
   publicKey: pbf_bin(4),
-  privateKey: pbf_bin(5)
+  privateKey: pbf_bin(5),
+  scripts: pbf_repeat(pbf_str(6))
 })
 
 export default RemoteBranch

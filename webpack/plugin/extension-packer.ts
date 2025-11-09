@@ -18,6 +18,7 @@ import { deflateSync, inflateSync } from 'zlib'
 interface IBranchConfigEntry {
   id: string
   url: string | null
+  scripts: string[] | null
   encrypt: boolean
   enabled: boolean
 }
@@ -33,6 +34,7 @@ const SCRIPT_PREFIXES = ['common', 'custom']
 const DEFAULT_BRANCH_CONFIG = {
   id: 'main',
   url: null,
+  scripts: null,
   encrypt: false,
   enabled: true
 } satisfies IBranchConfigEntry
@@ -57,6 +59,7 @@ function getBranchConfig(): IBranchConfig {
     config.branches = config.branches.map(entry => ({
       id: String(entry.id),
       url: String(entry.url ?? '') || null,
+      scripts: Array.isArray(entry.scripts) ? entry.scripts : null,
       encrypt: !!entry.encrypt,
       enabled: !!entry.enabled
     }))
@@ -135,7 +138,7 @@ export default class ExtensionPackerPlugin {
     rpk.branches ??= []
 
     // Update remote package branches by config
-    for (const { id, url, encrypt, enabled } of branchConfig.branches) {
+    for (const { id, url, scripts, encrypt, enabled } of branchConfig.branches) {
       let branch = rpk.branches.find(branch => branch.id === id)
       if (branch == null) {
         branch = new RemoteBranch({ id })
@@ -143,6 +146,7 @@ export default class ExtensionPackerPlugin {
       }
 
       branch.url = url
+      branch.scripts = scripts
       branch.encryptKey = encrypt ? (branch.encryptKey ?? getRandomValues(new Uint8Array(32))) : null
 
       let privateKey: KeyObject | null = null
@@ -208,12 +212,16 @@ export default class ExtensionPackerPlugin {
             continue
           }
 
+          const scriptName = `${prefix}/${entry}`
+          if (branch.scripts != null && !branch.scripts.includes(scriptName)) continue
+
           const config = require(configPath)?.default
           if (config == null || typeof config !== 'object') {
-            console.warn(`[${PLUGIN_NAME}]`, `script ${prefix}/${entry} config invalid`)
+            console.warn(`[${PLUGIN_NAME}]`, `script ${scriptName} config invalid`)
             continue
           }
-          const scriptId = getScriptId(`${prefix}/${entry}`)
+
+          const scriptId = getScriptId(scriptName)
 
           entryPoints[`package/cache/${scriptId}`] = {
             runtime: `package/cache/${spk.entries![0].id}`, // runtime
@@ -309,13 +317,17 @@ export default class ExtensionPackerPlugin {
           branches: rpk.branches?.map(b => ({
             id: b.id,
             url: b.url,
+            scripts: b.scripts,
             encrypt: b.encryptKey != null,
             enabled: b.publicKey != null
           })) ?? []
         } as IBranchConfig, null, 2)))
 
         rpk.branches = rpk.branches?.filter(b => b.publicKey != null) ?? null
-        rpk.branches?.forEach(b => b.privateKey = null)
+        rpk.branches?.forEach(b => {
+          b.privateKey = null
+          b.scripts = null
+        })
 
         let data = deflateSync(spk.serialize())
         if (branch.encryptKey != null) {
