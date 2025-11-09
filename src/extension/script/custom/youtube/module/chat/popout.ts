@@ -198,7 +198,7 @@ class MainAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, Cha
       this.send(ChatPopoutMessageType.PLAYER_KEEPALIVE, { videoId })
     }
 
-    const player = getYTPInstance(YTPInstanceType.VIDEO_PLAYER)
+    const player = getYTPInstance(YTPInstanceType.APP)?.playerRef?.deref()
     if (listeningPlayer != null) {
       if (player === listeningPlayer) return
 
