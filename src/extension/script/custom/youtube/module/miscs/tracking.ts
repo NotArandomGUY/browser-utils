@@ -4,7 +4,7 @@ import { YTIconType } from '@ext/custom/youtube/api/types/icon'
 import { isYTLoggedIn } from '@ext/custom/youtube/module/core/bootstrap'
 import { CONFIG_TEXT_DISABLE, CONFIG_TEXT_ENABLE, getYTConfigBool, getYTConfigInt, registerYTConfigMenuItem, setYTConfigInt, YTConfigMenuItemType } from '@ext/custom/youtube/module/core/config'
 import { registerYTInnertubeRequestProcessor } from '@ext/custom/youtube/module/core/network'
-import { assign } from '@ext/global/object'
+import { assign, defineProperty, getOwnPropertyDescriptor } from '@ext/global/object'
 import { Feature } from '@ext/lib/feature'
 import { preventDispatchEvent } from '@ext/lib/intercept/event'
 import InterceptImage from '@ext/lib/intercept/image'
@@ -221,6 +221,16 @@ export default class YTMiscsTrackingModule extends Feature {
     addInterceptNetworkUrlFilter(HOST_REGEXP, FORBID_PATH_REGEXP, { state: NetworkState.FAILED, error: new Error('Failed') })
     addInterceptNetworkUrlFilter(HOST_REGEXP, FAKE_200_PATH_REGEXP, { state: NetworkState.SUCCESS, response: new Response(null, { status: 200 }) })
     addInterceptNetworkUrlFilter(HOST_REGEXP, FAKE_204_PATH_REGEXP, { state: NetworkState.SUCCESS, response: new Response(null, { status: 204 }) })
+
+    const { get, set } = getOwnPropertyDescriptor(Document.prototype, 'cookie') ?? getOwnPropertyDescriptor(HTMLDocument.prototype, 'cookie') ?? {}
+    defineProperty(document, 'cookie', {
+      configurable: true,
+      enumerable: true,
+      get,
+      set(v) {
+        if (!String(v).startsWith('ST-')) set?.call(document, v)
+      }
+    })
 
     InterceptImage.setCallback((type, event) => {
       if (type !== 'srcchange') return
