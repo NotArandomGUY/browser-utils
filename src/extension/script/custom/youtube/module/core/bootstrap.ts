@@ -388,12 +388,16 @@ export default class YTCoreBootstrapModule extends Feature {
               VISITOR_DATA: ''
             })
             break
+          case 'VALID_SESSION_TEMPDATA_DOMAINS':
+            value = []
+            defineProperty(value, 'push', { configurable: true, writable: true, enumerable: false, value() { } })
+            break
         }
 
         ytcfg.d()[key] = value
       }
     } as YTConfig)
-    defineProperty(window, 'ytcfg', { value: ytcfg, configurable: false, writable: false })
+    defineProperty(window, 'ytcfg', { configurable: false, writable: false, value: ytcfg })
 
     // Override player application create
     defineProperty(window, 'yt', {

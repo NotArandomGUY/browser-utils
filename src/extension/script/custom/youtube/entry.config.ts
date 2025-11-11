@@ -21,6 +21,21 @@ export default {
         type: ScriptNetRuleActionType.MODIFY_HEADERS,
         requestHeaders: [
           new ScriptNetModifyHeaderInfo({
+            header: 'referer',
+            operation: ScriptNetHeaderOperation.REMOVE
+          })
+        ]
+      }),
+      condition: new ScriptNetRuleCondition({
+        urlFilter: '||youtube.com',
+        resourceTypes: [ScriptNetResourceType.MAIN_FRAME, ScriptNetResourceType.SUB_FRAME, ScriptNetResourceType.XMLHTTPREQUEST]
+      })
+    }),
+    new ScriptNetRule({
+      action: new ScriptNetRuleAction({
+        type: ScriptNetRuleActionType.MODIFY_HEADERS,
+        requestHeaders: [
+          new ScriptNetModifyHeaderInfo({
             header: 'user-agent',
             operation: ScriptNetHeaderOperation.SET,
             value: CONSOLE_USER_AGENT
@@ -40,29 +55,28 @@ export default {
           new ScriptNetModifyHeaderInfo({
             header: 'user-agent',
             operation: ScriptNetHeaderOperation.SET,
-            value: CONSOLE_USER_AGENT
-          })
-        ]
-      }),
-      condition: new ScriptNetRuleCondition({
-        urlFilter: '||youtube.com/api/stats/*?*el=leanback',
-        resourceTypes: [ScriptNetResourceType.XMLHTTPREQUEST]
-      })
-    }),
-    new ScriptNetRule({
-      priority: 2,
-      action: new ScriptNetRuleAction({
-        type: ScriptNetRuleActionType.MODIFY_HEADERS,
-        requestHeaders: [
-          new ScriptNetModifyHeaderInfo({
-            header: 'user-agent',
-            operation: ScriptNetHeaderOperation.SET,
             value: DESKTOP_USER_AGENT
           })
         ]
       }),
       condition: new ScriptNetRuleCondition({
         urlFilter: '||youtube.com/youtubei/*?*prettyPrint=',
+        resourceTypes: [ScriptNetResourceType.XMLHTTPREQUEST]
+      })
+    }),
+    new ScriptNetRule({
+      priority: 1,
+      action: new ScriptNetRuleAction({
+        type: ScriptNetRuleActionType.MODIFY_HEADERS,
+        requestHeaders: [
+          new ScriptNetModifyHeaderInfo({
+            header: 'user-agent',
+            operation: ScriptNetHeaderOperation.REMOVE
+          })
+        ]
+      }),
+      condition: new ScriptNetRuleCondition({
+        urlFilter: '||youtube.com/api/stats/',
         resourceTypes: [ScriptNetResourceType.XMLHTTPREQUEST]
       })
     }),

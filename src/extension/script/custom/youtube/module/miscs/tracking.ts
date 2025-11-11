@@ -4,7 +4,7 @@ import { YTIconType } from '@ext/custom/youtube/api/types/icon'
 import { isYTLoggedIn } from '@ext/custom/youtube/module/core/bootstrap'
 import { CONFIG_TEXT_DISABLE, CONFIG_TEXT_ENABLE, getYTConfigBool, getYTConfigInt, registerYTConfigMenuItem, setYTConfigInt, YTConfigMenuItemType } from '@ext/custom/youtube/module/core/config'
 import { registerYTInnertubeRequestProcessor } from '@ext/custom/youtube/module/core/network'
-import { assign, defineProperty, getOwnPropertyDescriptor } from '@ext/global/object'
+import { assign, defineProperty, getOwnPropertyDescriptor, keys } from '@ext/global/object'
 import { Feature } from '@ext/lib/feature'
 import { preventDispatchEvent } from '@ext/lib/intercept/event'
 import InterceptImage from '@ext/lib/intercept/image'
@@ -192,6 +192,9 @@ export default class YTMiscsTrackingModule extends Feature {
       const contentPlaybackContext = playbackContext?.contentPlaybackContext
       if (contentPlaybackContext == null) return
 
+      if (contentPlaybackContext.mdxContext != null && keys(contentPlaybackContext.mdxContext).length === 0) {
+        delete contentPlaybackContext.mdxContext
+      }
       delete contentPlaybackContext.isLivingRoomDeeplink
       delete contentPlaybackContext.playerHeightPixels
       delete contentPlaybackContext.playerWidthPixels

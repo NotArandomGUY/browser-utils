@@ -19,6 +19,9 @@ const INNERTUBE_API_REGEXP = /(?<=^\/youtubei\/v\d+\/).*$/
 
 export interface YTInnertubeRequestContext extends YTInnertubeContext {
   adSignalsInfo?: {
+    advertisingId?: string
+    advertisingIdSignalType?: string
+    limitAdTracking?: boolean
     params: { key: string, value: string }[]
   }
   clickTracking?: {
@@ -35,7 +38,30 @@ export interface YTInnertubeRequestPlaybackContext {
     html5Preference: string
     isLivingRoomDeeplink: boolean
     lactMilliseconds: string
-    mdxContext: Partial<{}>
+    mdxContext: Partial<{
+      mdxPlaybackSourceContext: Partial<{
+        mdxPlaybackContainerInfo: {
+          sourceContainerPlaylistId: string
+        }
+        serializedMdxMetadata: string
+      }>
+      remoteContexts: {
+        adSignalsInfo: YTInnertubeRequestContext['adSignalsInfo']
+        remoteClient: {
+          applicationState: 'ACTIVE' | 'INACTIVE'
+          clientFormFactor: 'LARGE_FORM_FACTOR' | 'SMALL_FORM_FACTOR' | 'UNKNOWN_FORM_FACTOR'
+          clientName: 'ANDROID' | 'ANDROID_KIDS' | 'ANDROID_MUSIC' | 'ANDROID_UNPLUGGED' | 'WEB' | 'WEB_REMIX' | 'WEB_UNPLUGGED' | 'IOS' | 'IOS_KIDS' | 'IOS_MUSIC' | 'IOS_UNPLUGGED' | 'UNKNOWN_INTERFACE'
+          clientVersion: string
+          platform: 'DESKTOP' | 'MOBILE' | 'TABLET' | 'UNKNOWN_PLATFORM'
+          osName?: string
+          userAgent?: string
+          windowHeightPoints?: string
+          windowWidthPoints?: string
+        }
+      }[]
+      skippableAdsSupported: boolean
+      triggeredByMdx: boolean
+    }>
     playerHeightPixels: number
     playerWidthPixels: number
     referer: string
