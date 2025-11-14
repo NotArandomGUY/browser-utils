@@ -59,7 +59,7 @@ const liveHeadUpdate = (): void => {
 
   const currentHealth = Number(player.getBufferHealth?.()) * 1e3
   const currentLatency = Number(player.getRawLiveLatency?.()) * 1e3
-  if (isNaN(currentHealth) || isNaN(currentLatency)) return
+  if (isNaN(currentHealth) || isNaN(currentLatency) || !isFinite(currentLatency)) return
 
   if (desyncTime >= 0) desyncTime = -1
 
