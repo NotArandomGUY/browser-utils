@@ -259,7 +259,7 @@ const processUMPRequest = async (ctx: NetworkRequestContext): Promise<void> => {
 const processUMPResponse = async (ctx: NetworkContext<unknown, NetworkState.SUCCESS>): Promise<void> => {
   const { url, response } = ctx
 
-  if (url.searchParams.has('mime')) return
+  if (url.searchParams.get('sabr') !== '1') return
 
   const error = await ump.feed(new Uint8Array(await response.arrayBuffer()), false)
   if (error != null) {
