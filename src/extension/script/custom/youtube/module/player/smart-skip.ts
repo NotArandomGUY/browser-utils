@@ -4,6 +4,7 @@ import { registerYTRendererPreProcessor, YTRenderer, YTRendererData, YTRendererS
 import { YTObjectData, YTValueData, YTValueType } from '@ext/custom/youtube/api/types/common'
 import YTSkipSegmentPage from '@ext/custom/youtube/pages/skip-segments'
 import { encodeEntityKey } from '@ext/custom/youtube/proto/entity-key'
+import { digestSHA256 } from '@ext/custom/youtube/utils/crypto'
 import { floor, max } from '@ext/global/math'
 import { fetch } from '@ext/global/network'
 import { Mutex } from '@ext/lib/async'
@@ -295,16 +296,16 @@ const fetchSegmentEntries = async (videoId: string | null): Promise<SkipSegmentE
     let entries = segmentEntriesCacheMap.get(videoId)
     if (entries != null) return entries
 
-    const hash = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', bufferFromString(videoId)))).map(b => b.toString(16).padStart(2, '0')).join('')
+    const hash = Array.from(await digestSHA256(bufferFromString(videoId), 2)).map(b => b.toString(16).padStart(2, '0')).join('')
 
     logger.debug('fetching skip segments for video:', videoId, hash)
 
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), 2500)
-    const rsp = await fetch(`${DB_API_HOST}/api/skipSegments/${hash.slice(0, 4)}?actionType=skip&trimUUIDs=1`, { signal: controller.signal })
+    const response = await fetch(`${DB_API_HOST}/api/skipSegments/${hash}?actionType=skip&trimUUIDs=1`, { signal: controller.signal })
     clearTimeout(timer)
 
-    const data = Array.from<VideoSegmentInfo>(await rsp.json())
+    const data = Array.from<VideoSegmentInfo>(await response.json())
 
     for (const info of data) {
       if (segmentEntriesCacheMap.get(info.videoID)?.length === info.segments?.length) continue
