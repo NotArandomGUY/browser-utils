@@ -73,15 +73,16 @@ class MainAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, Cha
     this.lastIdlePopoutAnnounce = Date.now()
 
     const onPlayerUnload = (): void => {
-      const { liveChatVideoId } = this
+      const { listeningPlayer, liveChatVideoId } = this
 
-      if (liveChatVideoId == null) return
+      if (listeningPlayer != null) this.setPlayerListener('unsubscribe', null)
+      if (liveChatVideoId != null) {
+        logger.debug('unload live chat video:', liveChatVideoId)
 
-      logger.debug('unload live chat video:', liveChatVideoId)
-
-      this.liveChatVideoId = null
-      this.liveChatContinuation = null
-      this.send(ChatPopoutMessageType.PLAYER_UNLOAD, { videoId: liveChatVideoId })
+        this.liveChatVideoId = null
+        this.liveChatContinuation = null
+        this.send(ChatPopoutMessageType.PLAYER_UNLOAD, { videoId: liveChatVideoId })
+      }
     }
 
     registerYTRendererPreProcessor(YTRendererSchemaMap['playerResponse'], data => {
@@ -191,30 +192,34 @@ class MainAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, Cha
     if (videoId != null) this.send(ChatPopoutMessageType.PLAYER_MESSAGE, { videoId, forwardMessage: { 'yt-player-state-change': state } })
   }
 
+  private setPlayerListener(action: 'subscribe' | 'unsubscribe', player: YTPVideoPlayerInstance | null): void {
+    const { listeningPlayer, onPlayerProgress, onPlayerAdStart, onPlayerAdEnd, onPlayerStateChange } = this
+
+    this.listeningPlayer = player
+    player ??= listeningPlayer
+
+    if (player == null) return
+
+    player[action]?.('onVideoProgress', onPlayerProgress, this)
+    player[action]?.('onAdStart', onPlayerAdStart, this)
+    player[action]?.('onAdEnd', onPlayerAdEnd, this)
+    player[action]?.('onStateChange', onPlayerStateChange, this)
+  }
+
   private update(): void {
-    const { listeningPlayer, videoId, onPlayerProgress, onPlayerAdStart, onPlayerAdEnd, onPlayerStateChange } = this
+    const { listeningPlayer, videoId } = this
 
     if (videoId != null) {
       this.send(ChatPopoutMessageType.PLAYER_KEEPALIVE, { videoId })
     }
 
     const player = getYTPInstance(YTPInstanceType.APP)?.playerRef?.deref()
-    if (listeningPlayer != null) {
-      if (player === listeningPlayer) return
+    if (player === listeningPlayer) return
 
-      listeningPlayer.unsubscribe?.('onVideoProgress', onPlayerProgress, this)
-      listeningPlayer.unsubscribe?.('onAdStart', onPlayerAdStart, this)
-      listeningPlayer.unsubscribe?.('onAdEnd', onPlayerAdEnd, this)
-      listeningPlayer.unsubscribe?.('onStateChange', onPlayerStateChange, this)
-      this.listeningPlayer = null
-    }
+    this.setPlayerListener('unsubscribe', null)
     if (player == null) return
 
-    this.listeningPlayer = player
-    player.subscribe?.('onVideoProgress', onPlayerProgress, this)
-    player.subscribe?.('onAdStart', onPlayerAdStart, this)
-    player.subscribe?.('onAdEnd', onPlayerAdEnd, this)
-    player.subscribe?.('onStateChange', onPlayerStateChange, this)
+    this.setPlayerListener('subscribe', player)
   }
 }
 
