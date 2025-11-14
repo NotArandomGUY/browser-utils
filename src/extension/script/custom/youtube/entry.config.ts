@@ -28,7 +28,7 @@ export default {
       }),
       condition: new ScriptNetRuleCondition({
         urlFilter: '||youtube.com',
-        resourceTypes: [ScriptNetResourceType.MAIN_FRAME, ScriptNetResourceType.SUB_FRAME, ScriptNetResourceType.XMLHTTPREQUEST]
+        resourceTypes: [ScriptNetResourceType.MAIN_FRAME, ScriptNetResourceType.XMLHTTPREQUEST]
       })
     }),
     new ScriptNetRule({
