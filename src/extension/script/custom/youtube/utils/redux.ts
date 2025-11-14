@@ -2,7 +2,7 @@ import { getYTLocalEntities, YTLocalEntityData } from '@ext/custom/youtube/utils
 import { values } from '@ext/global/object'
 import { waitTick } from '@ext/lib/async'
 
-const REDUX_STORE_GETTER_REGEXP = /[A-Za-z0-9_]+\|\|\([A-Za-z0-9_]+=[A-Za-z0-9_]+\(\)\);return [A-Za-z0-9_]+/
+const REDUX_STORE_GETTER_REGEXP = /[a-zA-Z_$][\w$]+\|\|\([a-zA-Z_$][\w$]+=[a-zA-Z_$][\w$]+\(\)\);return [a-zA-Z_$][\w$]+/
 
 interface YTReduxAction<T = unknown> {
   type: string
