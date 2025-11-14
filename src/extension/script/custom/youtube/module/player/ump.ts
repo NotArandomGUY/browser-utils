@@ -209,7 +209,7 @@ const processOnesieInnertubeRequest = async (innertubeRequest: InstanceType<type
   }
 }
 
-const processUMPRequest = async (ctx: NetworkRequestContext): Promise<void> => {
+const processRequest = async (ctx: NetworkRequestContext): Promise<void> => {
   const { url, request } = ctx
 
   if (url.searchParams.has('expire')) {
@@ -256,7 +256,7 @@ const processUMPRequest = async (ctx: NetworkRequestContext): Promise<void> => {
   }
 }
 
-const processUMPResponse = async (ctx: NetworkContext<unknown, NetworkState.SUCCESS>): Promise<void> => {
+const processResponse = async (ctx: NetworkContext<unknown, NetworkState.SUCCESS>): Promise<void> => {
   const { url, response } = ctx
 
   if (url.searchParams.get('sabr') !== '1') return
@@ -310,10 +310,10 @@ export default class YTPlayerUMPModule extends Feature {
 
       switch (ctx.state) {
         case NetworkState.UNSENT:
-          await processUMPRequest(ctx)
+          await processRequest(ctx)
           break
         case NetworkState.SUCCESS:
-          await processUMPResponse(ctx)
+          await processResponse(ctx)
           break
       }
     })
