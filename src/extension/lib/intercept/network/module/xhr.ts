@@ -185,6 +185,7 @@ class InterceptXMLHttpRequest extends XMLHttpRequest {
     addEventListener.call(this, 'error', handleXHRError.bind(this))
     addEventListener.call(this, 'timeout', handleXHRError.bind(this))
     addEventListener.call(this, 'load', handleXHRLoad.bind(this))
+    addEventListener.call(this, 'progress', this.dispatchProgress.bind(this, 'progress'))
 
     const eventTarget = new InterceptEventTargetAdapter<XMLHttpRequest, XMLHttpRequestEventMap>(new EventTarget())
     this.eventTarget = eventTarget
@@ -408,8 +409,8 @@ class InterceptXMLHttpRequest extends XMLHttpRequest {
   private overrideHeaders: string | null
   private overrideResponse: ArrayBuffer | null
 
-  private dispatchProgress(type: Extract<keyof XMLHttpRequestEventMap, string>): void {
-    this.eventTarget.dispatchEvent(type, new ProgressEvent(type), this)
+  private dispatchProgress(type: Extract<keyof XMLHttpRequestEventMap, string>, init?: ProgressEventInit): void {
+    this.eventTarget.dispatchEvent(type, new ProgressEvent(type, init), this)
   }
 }
 
