@@ -20,7 +20,7 @@ import UMPSabrContextContentAds from '@ext/custom/youtube/proto/ump/sabr-context
 import UMPSabrError from '@ext/custom/youtube/proto/ump/sabr-error'
 import UMPSnackbarMessage from '@ext/custom/youtube/proto/ump/snackbar-message'
 import { decryptOnesie, encryptOnesie } from '@ext/custom/youtube/utils/crypto'
-import { UMPContext, UMPSliceFlags } from '@ext/custom/youtube/utils/ump'
+import { UMPContextManager, UMPSliceFlags } from '@ext/custom/youtube/utils/ump'
 import { ceil } from '@ext/global/math'
 import { URLSearchParams } from '@ext/global/network'
 import { assign, fromEntries } from '@ext/global/object'
@@ -38,7 +38,7 @@ let isFirstInterrupt = true
 let onesieClientKeys: Uint8Array[] = []
 let onesieHeader: InstanceType<typeof UMPOnesieHeader> | null = null
 
-const ump = new UMPContext({
+const manager = new UMPContextManager({
   [UMPType.UNKNOWN]: (_, slice) => logger.trace('slice type:', slice.getType(), 'size:', slice.getSize()),
   [UMPType.ONESIE_HEADER]: (data) => {
     onesieHeader = new UMPOnesieHeader().deserialize(data)
@@ -48,7 +48,7 @@ const ump = new UMPContext({
   [UMPType.ONESIE_DATA]: async (data, slice) => {
     if (onesieHeader == null) {
       logger.warn('onesie data without header')
-      slice.setFlag(UMPSliceFlags.DEFER_OR_DROP)
+      slice.setFlag(UMPSliceFlags.DROP)
       return
     }
 
@@ -147,7 +147,7 @@ const ump = new UMPContext({
     const message = new UMPSnackbarMessage().deserialize(data)
 
     logger.debug('snackbar message:', message)
-    slice.setFlag(UMPSliceFlags.DEFER_OR_DROP)
+    slice.setFlag(UMPSliceFlags.DROP)
   }
 })
 
@@ -257,20 +257,21 @@ const processRequest = async (ctx: NetworkRequestContext): Promise<void> => {
 }
 
 const processResponse = async (ctx: NetworkContext<unknown, NetworkState.SUCCESS>): Promise<void> => {
-  const { url, response } = ctx
+  const { url: { searchParams }, response: { status, headers, body } } = ctx
 
-  if (url.searchParams.get('sabr') !== '1') return
+  if (body == null || headers.get('content-type') !== 'application/vnd.yt-ump') return
 
-  const error = await ump.feed(new Uint8Array(await response.arrayBuffer()), false)
-  if (error != null) {
-    if (error instanceof Response) {
-      ctx.response = error
-      return
+  const ump = manager.grab(searchParams)
+  const output = new ReadableStream({
+    start(controller) {
+      ump.feed(body, controller).catch(error => {
+        logger.warn('process response error:', error)
+        controller.error(error)
+      })
     }
-    logger.error('process response error:', error, error.slice)
-  }
+  })
 
-  ctx.response = new Response(ump.getBuffer(), { status: response.status, headers: fromEntries(response.headers.entries()) })
+  ctx.response = new Response(output, { status, headers: fromEntries(headers.entries()) })
 }
 
 const processTVConfig = async (ctx: NetworkContext<unknown, NetworkState.SUCCESS>): Promise<void> => {
