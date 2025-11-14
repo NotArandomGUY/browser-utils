@@ -5,15 +5,15 @@ import { createMessage } from '@ext/lib/protobuf/message'
 
 const OnesieRequest = createMessage({
   urls: pbf_repeat(pbf_str(1)),
-  clientAbrState: pbf_bin(2),
-  innertubeRequest: pbf_msg(3, OnesieEncryptedInnertubeRequest),
-  onesieUstreamerConfig: pbf_bin(4),
-  maxVp9Height: pbf_i32(5),
-  clientDisplayHeight: pbf_i32(6),
-  streamerContext: pbf_bin(10),
-  requestTarget: pbf_i32(13),
-  bufferedRanges: pbf_repeat(pbf_msg(14, BufferedRange)),
-  reloadPlaybackParams: pbf_bin(15)
+  /*@__MANGLE_PROP__*/clientAbrState: pbf_bin(2),
+  /*@__MANGLE_PROP__*/innertubeRequest: pbf_msg(3, OnesieEncryptedInnertubeRequest),
+  /*@__MANGLE_PROP__*/onesieUstreamerConfig: pbf_bin(4),
+  /*@__MANGLE_PROP__*/maxVp9Height: pbf_i32(5),
+  /*@__MANGLE_PROP__*/clientDisplayHeight: pbf_i32(6),
+  /*@__MANGLE_PROP__*/streamerContext: pbf_bin(10),
+  /*@__MANGLE_PROP__*/requestTarget: pbf_i32(13),
+  /*@__MANGLE_PROP__*/bufferedRanges: pbf_repeat(pbf_msg(14, BufferedRange)),
+  /*@__MANGLE_PROP__*/reloadPlaybackParams: pbf_bin(15)
 })
 
 export default OnesieRequest

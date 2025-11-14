@@ -6,8 +6,8 @@ const OnesieInnertubeRequest = createMessage({
   urls: pbf_repeat(pbf_str(1)),
   headers: pbf_repeat(pbf_msg(2, OnesieHttpHeader)),
   body: pbf_bin(3),
-  proxiedByTrustedBandaid: pbf_bol(4),
-  skipResponseEncryption: pbf_bol(6)
+  /*@__MANGLE_PROP__*/proxiedByTrustedBandaid: pbf_bol(4),
+  /*@__MANGLE_PROP__*/skipResponseEncryption: pbf_bol(6)
 })
 
 export default OnesieInnertubeRequest

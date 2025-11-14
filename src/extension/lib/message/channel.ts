@@ -6,23 +6,23 @@ import { MESSAGE_KEY } from '@virtual/package'
 const logger = new Logger('MESSAGE-CHANNEL')
 
 export default abstract class MessageChannel<M extends object, U extends string | number | symbol> {
-  private readonly channel: BroadcastChannel
+  private readonly channel_: BroadcastChannel
 
   public constructor(name: string) {
     const channel = new BroadcastChannel(name)
 
-    channel.addEventListener('message', this.onMessageInternal.bind(this))
+    channel.addEventListener('message', this.onMessageInternal_.bind(this))
 
-    this.channel = channel
+    this.channel_ = channel
   }
 
   public send<T extends U>(type: T, data: MessageData<M, T>): void {
-    this.channel.postMessage(signMessage(MESSAGE_KEY, { type, data }))
+    this.channel_.postMessage(signMessage(MESSAGE_KEY, { type, data }))
   }
 
   protected abstract onMessage(message: MessageDataUnion<M, U>): void
 
-  private onMessageInternal({ data }: MessageEvent<SignedMessage<MessageDataUnion<M, U>>>): void {
+  private onMessageInternal_({ data }: MessageEvent<SignedMessage<MessageDataUnion<M, U>>>): void {
     if (data == null || typeof data !== 'object' || !verifyMessage(MESSAGE_KEY, data)) {
       logger.debug('invalid message:', data)
       return

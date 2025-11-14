@@ -57,48 +57,48 @@ type ChatPopoutMessageDataMap = {
 }
 
 class MainAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, ChatPopoutMessageType> {
-  private listeningPlayer: YTPVideoPlayerInstance | null
-  private videoId: string | null
-  private liveChatVideoId: string | null
-  private liveChatContinuation: string | null
-  private lastIdlePopoutAnnounce: number
+  private listeningPlayer_: YTPVideoPlayerInstance | null
+  private videoId_: string | null
+  private liveChatVideoId_: string | null
+  private liveChatContinuation_: string | null
+  private lastIdlePopoutAnnounce_: number
 
   public constructor() {
     super(CHANNEL_NAME)
 
-    this.listeningPlayer = null
-    this.videoId = null
-    this.liveChatVideoId = null
-    this.liveChatContinuation = null
-    this.lastIdlePopoutAnnounce = Date.now()
+    this.listeningPlayer_ = null
+    this.videoId_ = null
+    this.liveChatVideoId_ = null
+    this.liveChatContinuation_ = null
+    this.lastIdlePopoutAnnounce_ = Date.now()
 
     const onPlayerUnload = (): void => {
-      const { listeningPlayer, liveChatVideoId } = this
+      const { listeningPlayer_, liveChatVideoId_ } = this
 
-      if (listeningPlayer != null) this.setPlayerListener('unsubscribe', null)
-      if (liveChatVideoId != null) {
-        logger.debug('unload live chat video:', liveChatVideoId)
+      if (listeningPlayer_ != null) this.setPlayerListener_('unsubscribe', null)
+      if (liveChatVideoId_ != null) {
+        logger.debug('unload live chat video:', liveChatVideoId_)
 
-        this.liveChatVideoId = null
-        this.liveChatContinuation = null
-        this.send(ChatPopoutMessageType.PLAYER_UNLOAD, { videoId: liveChatVideoId })
+        this.liveChatVideoId_ = null
+        this.liveChatContinuation_ = null
+        this.send(ChatPopoutMessageType.PLAYER_UNLOAD, { videoId: liveChatVideoId_ })
       }
     }
 
     registerYTRendererPreProcessor(YTRendererSchemaMap['playerResponse'], data => {
       const videoId = data.videoDetails?.videoId ?? null
-      if (videoId !== this.liveChatVideoId) onPlayerUnload()
+      if (videoId !== this.liveChatVideoId_) onPlayerUnload()
 
-      this.videoId = videoId
+      this.videoId_ = videoId
 
       return true
     })
     registerYTRendererPreProcessor(YTRendererSchemaMap['liveChatRenderer'], data => {
-      const { videoId, liveChatVideoId, lastIdlePopoutAnnounce } = this
+      const { videoId_, liveChatVideoId_, lastIdlePopoutAnnounce_ } = this
       const { continuations, isReplay } = data
 
-      if (videoId != null && videoId !== liveChatVideoId) {
-        logger.debug('load live chat for video:', videoId)
+      if (videoId_ != null && videoId_ !== liveChatVideoId_) {
+        logger.debug('load live chat for video:', videoId_)
 
         const continuation = isReplay ? continuations?.map(c => c.reloadContinuationData).find(c => c != null)?.continuation : null
         if (continuation === undefined) {
@@ -106,23 +106,23 @@ class MainAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, Cha
           return true
         }
 
-        this.liveChatVideoId = videoId
-        this.liveChatContinuation = continuation
+        this.liveChatVideoId_ = videoId_
+        this.liveChatContinuation_ = continuation
 
         if (continuation == null) {
-          this.send(ChatPopoutMessageType.PLAYER_LOAD_LIVE_CHAT, { videoId })
+          this.send(ChatPopoutMessageType.PLAYER_LOAD_LIVE_CHAT, { videoId: videoId_ })
         } else {
-          this.send(ChatPopoutMessageType.PLAYER_LOAD_LIVE_CHAT_REPLAY, { videoId, continuation })
+          this.send(ChatPopoutMessageType.PLAYER_LOAD_LIVE_CHAT_REPLAY, { videoId: videoId_, continuation })
         }
       }
 
       // Collapse chat if popout window is available
-      data.initialDisplayState = (Date.now() - lastIdlePopoutAnnounce) <= COLLAPSED_CHAT_TIMEOUT ? 'LIVE_CHAT_DISPLAY_STATE_COLLAPSED' : 'LIVE_CHAT_DISPLAY_STATE_EXPANDED'
+      data.initialDisplayState = (Date.now() - lastIdlePopoutAnnounce_) <= COLLAPSED_CHAT_TIMEOUT ? 'LIVE_CHAT_DISPLAY_STATE_COLLAPSED' : 'LIVE_CHAT_DISPLAY_STATE_EXPANDED'
 
       return true
     })
 
-    setInterval(this.update.bind(this), 5e3)
+    setInterval(this.update_.bind(this), 5e3)
 
     window.addEventListener('beforeunload', onPlayerUnload)
   }
@@ -132,19 +132,19 @@ class MainAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, Cha
 
     switch (message.type) {
       case ChatPopoutMessageType.POPOUT_ANNOUNCE: {
-        const { liveChatVideoId, liveChatContinuation } = this
+        const { liveChatVideoId_, liveChatContinuation_ } = this
         const { source, videoId } = message.data
 
-        if (liveChatVideoId === videoId) {
-          this.lastIdlePopoutAnnounce = Date.now()
+        if (liveChatVideoId_ === videoId) {
+          this.lastIdlePopoutAnnounce_ = Date.now()
           return
         }
-        if (liveChatVideoId == null) return
+        if (liveChatVideoId_ == null) return
 
-        if (liveChatContinuation == null) {
-          this.send(ChatPopoutMessageType.PLAYER_LOAD_LIVE_CHAT, { source, videoId: liveChatVideoId })
+        if (liveChatContinuation_ == null) {
+          this.send(ChatPopoutMessageType.PLAYER_LOAD_LIVE_CHAT, { source, videoId: liveChatVideoId_ })
         } else {
-          this.send(ChatPopoutMessageType.PLAYER_LOAD_LIVE_CHAT_REPLAY, { source, videoId: liveChatVideoId, continuation: liveChatContinuation })
+          this.send(ChatPopoutMessageType.PLAYER_LOAD_LIVE_CHAT_REPLAY, { source, videoId: liveChatVideoId_, continuation: liveChatContinuation_ })
         }
         return
       }
@@ -168,85 +168,85 @@ class MainAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, Cha
     }
   }
 
-  private onPlayerProgress(): void {
-    const { videoId } = this
+  private onPlayerProgress_(): void {
+    const { videoId_, listeningPlayer_ } = this
 
-    if (videoId != null) this.send(ChatPopoutMessageType.PLAYER_MESSAGE, { videoId, forwardMessage: { 'yt-player-video-progress': this.listeningPlayer?.getCurrentTime?.() ?? 0 } })
+    if (videoId_ != null) this.send(ChatPopoutMessageType.PLAYER_MESSAGE, { videoId: videoId_, forwardMessage: { 'yt-player-video-progress': listeningPlayer_?.getCurrentTime?.() ?? 0 } })
   }
 
-  private onPlayerAdStart(cpn: string): void {
-    const { videoId } = this
+  private onPlayerAdStart_(cpn: string): void {
+    const { videoId_ } = this
 
-    if (videoId != null) this.send(ChatPopoutMessageType.PLAYER_MESSAGE, { videoId, forwardMessage: { 'yt-player-ad-start': cpn } })
+    if (videoId_ != null) this.send(ChatPopoutMessageType.PLAYER_MESSAGE, { videoId: videoId_, forwardMessage: { 'yt-player-ad-start': cpn } })
   }
 
-  private onPlayerAdEnd(): void {
-    const { videoId } = this
+  private onPlayerAdEnd_(): void {
+    const { videoId_ } = this
 
-    if (videoId != null) this.send(ChatPopoutMessageType.PLAYER_MESSAGE, { videoId, forwardMessage: { 'yt-player-ad-end': true } })
+    if (videoId_ != null) this.send(ChatPopoutMessageType.PLAYER_MESSAGE, { videoId: videoId_, forwardMessage: { 'yt-player-ad-end': true } })
   }
 
-  private onPlayerStateChange(state: number): void {
-    const { videoId } = this
+  private onPlayerStateChange_(state: number): void {
+    const { videoId_ } = this
 
-    if (videoId != null) this.send(ChatPopoutMessageType.PLAYER_MESSAGE, { videoId, forwardMessage: { 'yt-player-state-change': state } })
+    if (videoId_ != null) this.send(ChatPopoutMessageType.PLAYER_MESSAGE, { videoId: videoId_, forwardMessage: { 'yt-player-state-change': state } })
   }
 
-  private setPlayerListener(action: 'subscribe' | 'unsubscribe', player: YTPVideoPlayerInstance | null): void {
-    const { listeningPlayer, onPlayerProgress, onPlayerAdStart, onPlayerAdEnd, onPlayerStateChange } = this
+  private setPlayerListener_(action: 'subscribe' | 'unsubscribe', player: YTPVideoPlayerInstance | null): void {
+    const { listeningPlayer_, onPlayerProgress_, onPlayerAdStart_, onPlayerAdEnd_, onPlayerStateChange_ } = this
 
-    this.listeningPlayer = player
-    player ??= listeningPlayer
+    this.listeningPlayer_ = player
+    player ??= listeningPlayer_
 
     if (player == null) return
 
-    player[action]?.('onVideoProgress', onPlayerProgress, this)
-    player[action]?.('onAdStart', onPlayerAdStart, this)
-    player[action]?.('onAdEnd', onPlayerAdEnd, this)
-    player[action]?.('onStateChange', onPlayerStateChange, this)
+    player[action]?.('onVideoProgress', onPlayerProgress_, this)
+    player[action]?.('onAdStart', onPlayerAdStart_, this)
+    player[action]?.('onAdEnd', onPlayerAdEnd_, this)
+    player[action]?.('onStateChange', onPlayerStateChange_, this)
   }
 
-  private update(): void {
-    const { listeningPlayer, videoId } = this
+  private update_(): void {
+    const { listeningPlayer_, videoId_ } = this
 
-    if (videoId != null) {
-      this.send(ChatPopoutMessageType.PLAYER_KEEPALIVE, { videoId })
+    if (videoId_ != null) {
+      this.send(ChatPopoutMessageType.PLAYER_KEEPALIVE, { videoId: videoId_ })
     }
 
     const player = getYTPInstance(YTPInstanceType.APP)?.playerRef?.deref()
-    if (player === listeningPlayer) return
+    if (player === listeningPlayer_) return
 
-    this.setPlayerListener('unsubscribe', null)
+    this.setPlayerListener_('unsubscribe', null)
     if (player == null) return
 
-    this.setPlayerListener('subscribe', player)
+    this.setPlayerListener_('subscribe', player)
   }
 }
 
 class ChatAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, ChatPopoutMessageType> {
-  private videoId: string | null
-  private state: ChatPopoutState
-  private lastUpdate: number
-  private isLoaded: boolean
+  private videoId_: string | null
+  private state_: ChatPopoutState
+  private lastUpdate_: number
+  private isLoaded_: boolean
 
   public constructor() {
     super(CHANNEL_NAME)
 
-    this.videoId = null
-    this.state = ChatPopoutState.STATE_NONE
-    this.lastUpdate = 0
-    this.isLoaded = false
+    this.videoId_ = null
+    this.state_ = ChatPopoutState.STATE_NONE
+    this.lastUpdate_ = 0
+    this.isLoaded_ = false
 
     registerYTRendererPreProcessor(YTRendererSchemaMap['liveChatGetLiveChatResponse'], data => {
-      const { videoId, state } = this
+      const { videoId_, state_ } = this
 
-      if (state & ChatPopoutState.MASK_LOCK) {
+      if (state_ & ChatPopoutState.MASK_LOCK) {
         const continuations = data.continuationContents?.liveChatContinuation?.continuations
         if (continuations != null && continuations.length > 0) {
           this.lock('live_chat_update')
         } else {
           this.unlock('live_chat_end')
-          this.send(ChatPopoutMessageType.TOAST_MESSAGE, { text: `Popout live chat '${videoId}' ended` })
+          this.send(ChatPopoutMessageType.TOAST_MESSAGE, { text: `Popout live chat '${videoId_}' ended` })
         }
       }
 
@@ -257,14 +257,16 @@ class ChatAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, Cha
   }
 
   protected onMessage(message: MessageDataUnion<ChatPopoutMessageDataMap, ChatPopoutMessageType>): void {
+    const { videoId_, state_ } = this
+
     switch (message.type) {
       case ChatPopoutMessageType.PLAYER_LOAD_LIVE_CHAT: {
         const { source, videoId } = message.data
 
-        if ((this.state & ChatPopoutState.MASK_LOCK) || (source != null && source !== CHANNEL_SOURCE)) return
+        if ((state_ & ChatPopoutState.MASK_LOCK) || (source != null && source !== CHANNEL_SOURCE)) return
 
-        this.videoId = videoId
-        this.state = ChatPopoutState.STATE_LIVE
+        this.videoId_ = videoId
+        this.state_ = ChatPopoutState.STATE_LIVE
         this.lock('live_chat_load')
         this.redirect(LIVE_CHAT_PATHNAME, 'v', videoId)
         return
@@ -272,10 +274,10 @@ class ChatAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, Cha
       case ChatPopoutMessageType.PLAYER_LOAD_LIVE_CHAT_REPLAY: {
         const { source, videoId, continuation } = message.data
 
-        if ((this.state & ChatPopoutState.MASK_LOCK) || (source != null && source !== CHANNEL_SOURCE)) return
+        if ((state_ & ChatPopoutState.MASK_LOCK) || (source != null && source !== CHANNEL_SOURCE)) return
 
-        this.videoId = videoId
-        this.state = ChatPopoutState.STATE_LIVE_REPLAY
+        this.videoId_ = videoId
+        this.state_ = ChatPopoutState.STATE_LIVE_REPLAY
         this.lock('live_chat_replay_load')
         this.redirect(LIVE_CHAT_REPLAY_PATHNAME, 'continuation', continuation)
         return
@@ -283,7 +285,7 @@ class ChatAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, Cha
       case ChatPopoutMessageType.PLAYER_KEEPALIVE: {
         const { videoId } = message.data
 
-        if (!(this.state & ChatPopoutState.MASK_LOCK) || this.videoId !== videoId) return
+        if (!(state_ & ChatPopoutState.MASK_LOCK) || videoId_ !== videoId) return
 
         this.lock('player_keepalive')
         return
@@ -291,7 +293,7 @@ class ChatAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, Cha
       case ChatPopoutMessageType.PLAYER_MESSAGE: {
         const { videoId, forwardMessage } = message.data
 
-        if (!(this.state & ChatPopoutState.MASK_LOCK) || this.videoId !== videoId) return
+        if (!(state_ & ChatPopoutState.MASK_LOCK) || videoId_ !== videoId) return
 
         window.postMessage(forwardMessage)
         return
@@ -299,7 +301,7 @@ class ChatAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, Cha
       case ChatPopoutMessageType.PLAYER_UNLOAD: {
         const { videoId } = message.data
 
-        if (videoId !== this.videoId) return
+        if (videoId_ !== videoId) return
 
         this.unlock('unload_player')
         this.send(ChatPopoutMessageType.POPOUT_ANNOUNCE, { source: CHANNEL_SOURCE, videoId: null })
@@ -312,21 +314,21 @@ class ChatAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, Cha
   }
 
   private redirect(path: string, key: string, value: string): void {
-    const { videoId, isLoaded } = this
+    const { videoId_, isLoaded_ } = this
 
     const url = new URL(location.href)
     const { pathname, searchParams } = url
 
     if (pathname === path && searchParams.get(key) === value) {
-      if (isLoaded) return
+      if (isLoaded_) return
 
-      this.isLoaded = true
-      this.send(ChatPopoutMessageType.TOAST_MESSAGE, { text: `Popout live chat '${videoId}' loaded` })
+      this.isLoaded_ = true
+      this.send(ChatPopoutMessageType.TOAST_MESSAGE, { text: `Popout live chat '${videoId_}' loaded` })
       return
     }
 
-    this.isLoaded = false
-    this.send(ChatPopoutMessageType.TOAST_MESSAGE, { text: `Popout live chat '${videoId}' loading...` })
+    this.isLoaded_ = false
+    this.send(ChatPopoutMessageType.TOAST_MESSAGE, { text: `Popout live chat '${videoId_}' loading...` })
 
     url.pathname = path
     searchParams.forEach((_, key) => searchParams.delete(key))
@@ -336,32 +338,32 @@ class ChatAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, Cha
   }
 
   private lock(reason: string): void {
-    const { state } = this
+    const { state_ } = this
 
-    if ((state & ChatPopoutState.MASK_STATE) === ChatPopoutState.STATE_NONE) {
-      logger.warn('cannot lock in state:', state, 'reason:', reason)
+    if ((state_ & ChatPopoutState.MASK_STATE) === ChatPopoutState.STATE_NONE) {
+      logger.warn('cannot lock in state:', state_, 'reason:', reason)
       return
     }
 
-    logger.debug(`chat popout ${(state & ChatPopoutState.MASK_LOCK) ? 'keepalive' : 'lock'}, reason: ${reason}`)
+    logger.debug(`chat popout ${(state_ & ChatPopoutState.MASK_LOCK) ? 'keepalive' : 'lock'}, reason: ${reason}`)
 
-    this.state |= ChatPopoutState.MASK_LOCK
-    this.lastUpdate = Date.now()
+    this.state_ |= ChatPopoutState.MASK_LOCK
+    this.lastUpdate_ = Date.now()
   }
 
   private unlock(reason: string): void {
-    if (!(this.state & ChatPopoutState.MASK_LOCK)) return
+    if (!(this.state_ & ChatPopoutState.MASK_LOCK)) return
 
     logger.debug(`chat popout unlock, reason: ${reason}`)
-    this.state &= ChatPopoutState.MASK_STATE
+    this.state_ &= ChatPopoutState.MASK_STATE
   }
 
   private update(): void {
-    const { state, videoId, lastUpdate } = this
+    const { videoId_, state_, lastUpdate_ } = this
 
-    if (state & ChatPopoutState.MASK_LOCK) {
-      if ((Date.now() - lastUpdate) < CHAT_POPOUT_IDLE_TIMEOUT) {
-        this.send(ChatPopoutMessageType.POPOUT_ANNOUNCE, { source: CHANNEL_SOURCE, videoId })
+    if (state_ & ChatPopoutState.MASK_LOCK) {
+      if ((Date.now() - lastUpdate_) < CHAT_POPOUT_IDLE_TIMEOUT) {
+        this.send(ChatPopoutMessageType.POPOUT_ANNOUNCE, { source: CHANNEL_SOURCE, videoId: videoId_ })
         return
       }
 
@@ -373,12 +375,12 @@ class ChatAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, Cha
 }
 
 export default class YTChatPopoutModule extends Feature {
-  public channel: MessageChannel<ChatPopoutMessageDataMap, ChatPopoutMessageType> | null
+  public channel_: MessageChannel<ChatPopoutMessageDataMap, ChatPopoutMessageType> | null
 
   public constructor() {
     super('popout')
 
-    this.channel = null
+    this.channel_ = null
   }
 
   protected activate(): boolean {
@@ -388,10 +390,10 @@ export default class YTChatPopoutModule extends Feature {
       case LIVE_CHAT_PATHNAME:
       case LIVE_CHAT_REPLAY_PATHNAME:
         if (top != null && top !== window) return false
-        this.channel = new ChatAppMessageChannel()
+        this.channel_ = new ChatAppMessageChannel()
         break
       default:
-        this.channel = new MainAppMessageChannel()
+        this.channel_ = new MainAppMessageChannel()
         break
     }
 
@@ -399,7 +401,7 @@ export default class YTChatPopoutModule extends Feature {
   }
 
   protected deactivate(): boolean {
-    this.channel = null
+    this.channel_ = null
 
     return false
   }

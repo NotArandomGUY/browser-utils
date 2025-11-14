@@ -25,8 +25,8 @@ const UMPSabrContextUpdate = createMessage({
   type: pbf_i32(1),
   scope: pbf_i32(2),
   value: pbf_bin(3),
-  sendByDefault: pbf_bol(4),
-  writePolicy: pbf_i32(5)
+  /*@__MANGLE_PROP__*/sendByDefault: pbf_bol(4),
+  /*@__MANGLE_PROP__*/writePolicy: pbf_i32(5)
 })
 
 export default UMPSabrContextUpdate

@@ -37,64 +37,64 @@ const removeSlice = (stream: CodedStream, begin: number, end: number): void => {
 }
 
 export class UMPSlice {
-  private flags: UMPSliceFlags
-  private type: UMPType
-  private data: Uint8Array<ArrayBuffer>
+  private flags_: UMPSliceFlags
+  private type_: UMPType
+  private data_: Uint8Array<ArrayBuffer>
 
   public constructor(type: UMPType, data: Uint8Array<ArrayBuffer>) {
-    this.flags = UMPSliceFlags.NONE
-    this.type = type
-    this.data = data
+    this.flags_ = UMPSliceFlags.NONE
+    this.type_ = type
+    this.data_ = data
   }
 
-  public getFlag(mask: UMPSliceFlags): boolean {
-    return (this.flags & mask) !== 0
+  /*@__MANGLE_PROP__*/public getFlag(mask: UMPSliceFlags): boolean {
+    return (this.flags_ & mask) !== 0
   }
 
-  public getType(): UMPType {
-    return this.type
+  /*@__MANGLE_PROP__*/public getType(): UMPType {
+    return this.type_
   }
 
-  public getSize(): number {
-    return this.data.length
+  /*@__MANGLE_PROP__*/public getSize(): number {
+    return this.data_.length
   }
 
-  public getData(): Uint8Array<ArrayBuffer> {
-    return this.data
+  /*@__MANGLE_PROP__*/public getData(): Uint8Array<ArrayBuffer> {
+    return this.data_
   }
 
-  public setFlag(mask: UMPSliceFlags, value = true): void {
-    this.flags = (this.flags & ~mask) | (value ? mask : 0)
+  /*@__MANGLE_PROP__*/public setFlag(mask: UMPSliceFlags, value = true): void {
+    this.flags_ = (this.flags_ & ~mask) | (value ? mask : 0)
   }
 
-  public setType(type: UMPType): void {
-    this.flags |= UMPSliceFlags.DIRTY
-    this.type = type
+  /*@__MANGLE_PROP__*/public setType(type: UMPType): void {
+    this.flags_ |= UMPSliceFlags.DIRTY
+    this.type_ = type
   }
 
-  public setData(data: Uint8Array<ArrayBuffer>): void {
-    this.flags |= UMPSliceFlags.DIRTY
-    this.data = data
+  /*@__MANGLE_PROP__*/public setData(data: Uint8Array<ArrayBuffer>): void {
+    this.flags_ |= UMPSliceFlags.DIRTY
+    this.data_ = data
   }
 }
 
 export class UMPContext {
-  private readonly manager: UMPContextManager
-  private readonly stream: CodedStream
-  private readonly expireAt: number
+  private readonly manager_: UMPContextManager
+  private readonly stream_: CodedStream
+  private readonly expire_: number
 
-  public constructor(manager: UMPContextManager, expireAt: number) {
-    this.manager = manager
-    this.stream = new CodedStream()
-    this.expireAt = expireAt
+  public constructor(manager: UMPContextManager, expire: number) {
+    this.manager_ = manager
+    this.stream_ = new CodedStream()
+    this.expire_ = expire
   }
 
-  public get isExpired(): boolean {
-    return Date.now() >= this.expireAt
+  /*@__MANGLE_PROP__*/public get isExpired(): boolean {
+    return Date.now() >= this.expire_
   }
 
   public async feed(input: ReadableStream<Uint8Array<ArrayBuffer>>, output?: ReadableStreamDefaultController<Uint8Array>): Promise<void> {
-    const { stream } = this
+    const { stream_ } = this
 
     const reader = input.getReader()
     try {
@@ -103,76 +103,76 @@ export class UMPContext {
         if (done) return output?.close()
 
         await this.push(value)
-        output?.enqueue(stream.getWriteBuffer())
+        output?.enqueue(stream_.getWriteBuffer())
       }
     } catch (error) {
-      stream.setPosition(stream.getBuffer().length)
+      stream_.setPosition(stream_.getBuffer().length)
       throw error
     } finally {
-      stream.setBuffer(stream.getReadBuffer())
+      stream_.setBuffer(stream_.getReadBuffer())
       reader.releaseLock()
     }
   }
 
   public async push(chunk: Uint8Array<ArrayBuffer>): Promise<void> {
-    const { manager, stream } = this
+    const { manager_, stream_ } = this
 
     let position = 0
     try {
-      stream.setBuffer(stream.getRemainSize() > 0 ? bufferConcat([stream.getReadBuffer(), chunk]) : chunk)
+      stream_.setBuffer(stream_.getRemainSize() > 0 ? bufferConcat([stream_.getReadBuffer(), chunk]) : chunk)
 
-      while (!stream.isEnd) {
-        position = stream.getPosition()
+      while (!stream_.isEnd) {
+        position = stream_.getPosition()
 
-        const slice = new UMPSlice(stream.readVUInt32(), stream.readRawBytes(stream.readVUInt32()))
-        await manager.invoke(slice.getType(), slice)
+        const slice = new UMPSlice(stream_.readVUInt32(), stream_.readRawBytes(stream_.readVUInt32()))
+        await manager_.invoke(slice.getType(), slice)
 
         switch (true) {
           case slice.getFlag(UMPSliceFlags.DROP):
-            removeSlice(stream, position, stream.getPosition())
+            removeSlice(stream_, position, stream_.getPosition())
             break
           case slice.getFlag(UMPSliceFlags.DIRTY):
-            replaceSlice(stream, position, stream.getPosition(), slice)
+            replaceSlice(stream_, position, stream_.getPosition(), slice)
             break
         }
       }
     } catch (error) {
-      if (error instanceof RangeError) return stream.setPosition(position)
+      if (error instanceof RangeError) return stream_.setPosition(position)
       throw error
     }
   }
 }
 
 export class UMPContextManager {
-  private readonly callbackMap: Map<number, UMPSliceCallback>
-  private readonly contextMap: Map<string, UMPContext>
+  private readonly callbackMap_: Map<number, UMPSliceCallback>
+  private readonly contextMap_: Map<string, UMPContext>
 
   public constructor(callbackMap: Record<number, UMPSliceCallback>) {
-    this.callbackMap = new Map(entries(callbackMap).map(([k, v]) => [Number(k), v]))
-    this.contextMap = new Map()
+    this.callbackMap_ = new Map(entries(callbackMap).map(([k, v]) => [Number(k), v]))
+    this.contextMap_ = new Map()
   }
 
   public grab(params: URLSearchParams): UMPContext {
-    const { contextMap } = this
+    const { contextMap_ } = this
 
-    const expireAt = (Number(params.get('expire')) * 1e3) || (Date.now() + 60e3)
-    const id = `${params.get('id')}~${params.get('itag')}~${expireAt}`
+    const expire = (Number(params.get('expire')) * 1e3) || (Date.now() + 60e3)
+    const id = `${params.get('id')}~${params.get('itag')}~${expire}`
 
-    let context = contextMap.get(id)
+    let context = contextMap_.get(id)
     if (context != null) return context
 
-    context = new UMPContext(this, expireAt)
-    contextMap.set(id, context)
-    contextMap.forEach((v, k) => {
-      if (v.isExpired) contextMap.delete(k)
+    context = new UMPContext(this, expire)
+    contextMap_.set(id, context)
+    contextMap_.forEach((v, k) => {
+      if (v.isExpired) contextMap_.delete(k)
     })
 
     return context
   }
 
   public async invoke(type: UMPType, slice: UMPSlice): Promise<void> {
-    const { callbackMap } = this
+    const { callbackMap_ } = this
 
-    await (callbackMap.get(type) ?? callbackMap.get(UMPType.UNKNOWN))?.(slice.getData(), slice)
+    await (callbackMap_.get(type) ?? callbackMap_.get(UMPType.UNKNOWN))?.(slice.getData(), slice)
   }
 }

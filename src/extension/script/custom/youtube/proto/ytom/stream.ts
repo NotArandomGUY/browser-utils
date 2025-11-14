@@ -25,14 +25,14 @@ const YTOfflineMediaStream = createMessage({
   mimeType: pbf_str(5),
   initRange: pbf_msg(6, FormatRange),
   indexRange: pbf_msg(7, FormatRange),
-  maxKnownEndTime: pbf_i32(8),
-  averageByteRate: pbf_i32(9),
+  /*@__MANGLE_PROP__*/maxKnownEndTime: pbf_i32(8),
+  /*@__MANGLE_PROP__*/averageByteRate: pbf_i32(9),
 
   // 10-19: stream content info
   contentLength: pbf_u64(10),
-  chunkSize: pbf_u32(11),
-  chunkKey: pbf_bin(12),
-  chunkIv: pbf_bin(13),
+  /*@__MANGLE_PROP__*/chunkSize: pbf_u32(11),
+  /*@__MANGLE_PROP__*/chunkKey: pbf_bin(12),
+  /*@__MANGLE_PROP__*/chunkIv: pbf_bin(13),
 
   // 20-29: audio stream format info
   audioChannels: pbf_i32(20),

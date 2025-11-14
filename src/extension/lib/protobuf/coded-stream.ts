@@ -49,271 +49,271 @@ function encodeZigZag64(n: bigint): bigint {
 }
 
 export default class CodedStream {
-  private buffer: Uint8Array<ArrayBuffer>
-  private position: number
+  private buffer_: Uint8Array<ArrayBuffer>
+  private position_: number
 
   public constructor(buffer?: Uint8Array<ArrayBuffer>) {
-    this.buffer = buffer ?? new Uint8Array(0)
-    this.position = 0
+    this.buffer_ = buffer ?? new Uint8Array(0)
+    this.position_ = 0
   }
 
-  public get isEnd(): boolean {
-    return this.position >= this.buffer.length
+  /*@__MANGLE_PROP__*/public get isEnd(): boolean {
+    return this.position_ >= this.buffer_.length
   }
 
-  public getReadBuffer(): Uint8Array<ArrayBuffer> {
-    const { buffer, position } = this
+  /*@__MANGLE_PROP__*/public getReadBuffer(): Uint8Array<ArrayBuffer> {
+    const { buffer_, position_ } = this
 
-    return buffer.slice(position)
+    return buffer_.slice(position_)
   }
 
-  public getWriteBuffer(): Uint8Array<ArrayBuffer> {
-    const { buffer, position } = this
+  /*@__MANGLE_PROP__*/public getWriteBuffer(): Uint8Array<ArrayBuffer> {
+    const { buffer_, position_ } = this
 
-    return buffer.slice(0, position)
+    return buffer_.slice(0, position_)
   }
 
-  public getBuffer(): Uint8Array<ArrayBuffer> {
-    return this.buffer
+  /*@__MANGLE_PROP__*/public getBuffer(): Uint8Array<ArrayBuffer> {
+    return this.buffer_
   }
 
-  public getPosition(): number {
-    return this.position
+  /*@__MANGLE_PROP__*/public getPosition(): number {
+    return this.position_
   }
 
-  public getRemainSize(): number {
-    const { buffer, position } = this
+  /*@__MANGLE_PROP__*/public getRemainSize(): number {
+    const { buffer_, position_ } = this
 
-    return buffer.length - position
+    return buffer_.length - position_
   }
 
-  public setBuffer(buffer: Uint8Array<ArrayBuffer>, position = 0): void {
-    this.buffer = buffer
-    this.position = min(position, buffer.length)
+  /*@__MANGLE_PROP__*/public setBuffer(buffer: Uint8Array<ArrayBuffer>, position = 0): void {
+    this.buffer_ = buffer
+    this.position_ = min(position, buffer.length)
   }
 
-  public setPosition(position: number): void {
-    this.position = position
+  /*@__MANGLE_PROP__*/public setPosition(position: number): void {
+    this.position_ = position
   }
 
-  public readDouble(): number {
+  /*@__MANGLE_PROP__*/public readDouble(): number {
     return bufferReadDoubleLE(this.readRawBytes(8), 0)
   }
 
-  public readFloat(): number {
+  /*@__MANGLE_PROP__*/public readFloat(): number {
     return bufferReadFloatLE(this.readRawBytes(4), 0)
   }
 
-  public readInt32(): number {
+  /*@__MANGLE_PROP__*/public readInt32(): number {
     return signed32(this.readUInt32())
   }
 
-  public readInt64(): bigint {
+  /*@__MANGLE_PROP__*/public readInt64(): bigint {
     return signed64(this.readUInt64())
   }
 
-  public readVInt32(): number {
+  /*@__MANGLE_PROP__*/public readVInt32(): number {
     return signed32(this.readVUInt32())
   }
 
-  public readUInt32(): number {
-    const { buffer, position } = this
+  /*@__MANGLE_PROP__*/public readUInt32(): number {
+    const { buffer_, position_ } = this
 
-    const [value, nextPosition] = varintDecode32(buffer, position)
-    this.position = nextPosition
+    const [value, nextPosition] = varintDecode32(buffer_, position_)
+    this.position_ = nextPosition
 
     return value >>> 0
   }
 
-  public readUInt64(): bigint {
-    const { buffer, position } = this
+  /*@__MANGLE_PROP__*/public readUInt64(): bigint {
+    const { buffer_, position_ } = this
 
-    const [value, nextPosition] = varintDecode64(buffer, position)
-    this.position = nextPosition
-
-    return value
-  }
-
-  public readVUInt32(): number {
-    const { buffer, position } = this
-
-    const [value, nextPosition] = varint32Decode(buffer, position)
-    this.position = nextPosition
+    const [value, nextPosition] = varintDecode64(buffer_, position_)
+    this.position_ = nextPosition
 
     return value
   }
 
-  public readSInt32(): number {
+  /*@__MANGLE_PROP__*/public readVUInt32(): number {
+    const { buffer_, position_ } = this
+
+    const [value, nextPosition] = varint32Decode(buffer_, position_)
+    this.position_ = nextPosition
+
+    return value
+  }
+
+  /*@__MANGLE_PROP__*/public readSInt32(): number {
     return decodeZigZag32(this.readUInt32())
   }
 
-  public readSInt64(): bigint {
+  /*@__MANGLE_PROP__*/public readSInt64(): bigint {
     return decodeZigZag64(this.readUInt64())
   }
 
-  public readFixed32(): number {
+  /*@__MANGLE_PROP__*/public readFixed32(): number {
     return bufferReadUInt32LE(this.readRawBytes(4), 0)
   }
 
-  public readFixed64(): bigint {
+  /*@__MANGLE_PROP__*/public readFixed64(): bigint {
     return bufferReadBigUInt64LE(this.readRawBytes(8), 0)
   }
 
-  public readSFixed32(): number {
+  /*@__MANGLE_PROP__*/public readSFixed32(): number {
     return bufferReadInt32LE(this.readRawBytes(4), 0)
   }
 
-  public readSFixed64(): bigint {
+  /*@__MANGLE_PROP__*/public readSFixed64(): bigint {
     return bufferReadBigInt64LE(this.readRawBytes(8), 0)
   }
 
-  public readBool(): boolean {
+  /*@__MANGLE_PROP__*/public readBool(): boolean {
     return this.readUInt32() !== 0
   }
 
-  public readString(): string {
+  /*@__MANGLE_PROP__*/public readString(): string {
     return bufferToString(this.readBytes())
   }
 
-  public readBytes(): Uint8Array<ArrayBuffer> {
+  /*@__MANGLE_PROP__*/public readBytes(): Uint8Array<ArrayBuffer> {
     return this.readRawBytes(this.readUInt32())
   }
 
-  public readRawBytes(size: number): Uint8Array<ArrayBuffer> {
-    const { buffer, position } = this
+  /*@__MANGLE_PROP__*/public readRawBytes(size: number): Uint8Array<ArrayBuffer> {
+    const { buffer_, position_ } = this
 
-    const nextPosition = position + size
-    if (nextPosition > buffer.length) throw new RangeError('Out of range')
+    const nextPosition = position_ + size
+    if (nextPosition > buffer_.length) throw new RangeError('Out of range')
 
-    const bytes = buffer.slice(position, nextPosition)
-    this.position = nextPosition
+    const bytes = buffer_.slice(position_, nextPosition)
+    this.position_ = nextPosition
 
     return bytes
   }
 
-  public writeDouble(value: number): this {
-    this.ensureCapacity(8)
+  /*@__MANGLE_PROP__*/public writeDouble(value: number): this {
+    this.ensureCapacity_(8)
 
-    const { buffer, position } = this
+    const { buffer_, position_ } = this
 
-    bufferWriteDoubleLE(buffer, value, position)
-    this.position += 8
-
-    return this
-  }
-
-  public writeFloat(value: number): this {
-    this.ensureCapacity(4)
-
-    const { buffer, position } = this
-
-    bufferWriteFloatLE(buffer, value, position)
-    this.position += 4
+    bufferWriteDoubleLE(buffer_, value, position_)
+    this.position_ += 8
 
     return this
   }
 
-  public writeInt32(value: number): this {
+  /*@__MANGLE_PROP__*/public writeFloat(value: number): this {
+    this.ensureCapacity_(4)
+
+    const { buffer_, position_ } = this
+
+    bufferWriteFloatLE(buffer_, value, position_)
+    this.position_ += 4
+
+    return this
+  }
+
+  /*@__MANGLE_PROP__*/public writeInt32(value: number): this {
     return this.writeRawBytes(varintEncode(unsigned32(value))[0])
   }
 
-  public writeInt64(value: bigint): this {
+  /*@__MANGLE_PROP__*/public writeInt64(value: bigint): this {
     return this.writeRawBytes(varintEncode(unsigned64(value))[0])
   }
 
-  public writeVInt32(value: number): this {
+  /*@__MANGLE_PROP__*/public writeVInt32(value: number): this {
     return this.writeRawBytes(varint32Encode(unsigned32(value))[0])
   }
 
-  public writeUInt32(value: number): this {
+  /*@__MANGLE_PROP__*/public writeUInt32(value: number): this {
     return this.writeRawBytes(varintEncode(value & UINT32_MAX)[0])
   }
 
-  public writeUInt64(value: bigint): this {
+  /*@__MANGLE_PROP__*/public writeUInt64(value: bigint): this {
     return this.writeRawBytes(varintEncode(value & UINT64_MAX)[0])
   }
 
-  public writeVUInt32(value: number): this {
+  /*@__MANGLE_PROP__*/public writeVUInt32(value: number): this {
     return this.writeRawBytes(varint32Encode(value & UINT32_MAX)[0])
   }
 
-  public writeSInt32(value: number): this {
+  /*@__MANGLE_PROP__*/public writeSInt32(value: number): this {
     return this.writeUInt32(encodeZigZag32(value))
   }
 
-  public writeSInt64(value: bigint): this {
+  /*@__MANGLE_PROP__*/public writeSInt64(value: bigint): this {
     return this.writeUInt64(encodeZigZag64(value))
   }
 
-  public writeFixed32(value: number): this {
-    this.ensureCapacity(4)
+  /*@__MANGLE_PROP__*/public writeFixed32(value: number): this {
+    this.ensureCapacity_(4)
 
-    const { buffer, position } = this
+    const { buffer_, position_ } = this
 
-    bufferWriteUInt32LE(buffer, value, position)
-    this.position += 4
-
-    return this
-  }
-
-  public writeFixed64(value: bigint): this {
-    this.ensureCapacity(8)
-
-    const { buffer, position } = this
-
-    bufferWriteBigUInt64LE(buffer, value, position)
-    this.position += 8
+    bufferWriteUInt32LE(buffer_, value, position_)
+    this.position_ += 4
 
     return this
   }
 
-  public writeSFixed32(value: number): this {
-    this.ensureCapacity(4)
+  /*@__MANGLE_PROP__*/public writeFixed64(value: bigint): this {
+    this.ensureCapacity_(8)
 
-    const { buffer, position } = this
+    const { buffer_, position_ } = this
 
-    bufferWriteInt32LE(buffer, value, position)
-    this.position += 4
-
-    return this
-  }
-
-  public writeSFixed64(value: bigint): this {
-    this.ensureCapacity(8)
-
-    const { buffer, position } = this
-
-    bufferWriteBigInt64LE(buffer, value, position)
-    this.position += 8
+    bufferWriteBigUInt64LE(buffer_, value, position_)
+    this.position_ += 8
 
     return this
   }
 
-  public writeBool(value: boolean): this {
+  /*@__MANGLE_PROP__*/public writeSFixed32(value: number): this {
+    this.ensureCapacity_(4)
+
+    const { buffer_, position_ } = this
+
+    bufferWriteInt32LE(buffer_, value, position_)
+    this.position_ += 4
+
+    return this
+  }
+
+  /*@__MANGLE_PROP__*/public writeSFixed64(value: bigint): this {
+    this.ensureCapacity_(8)
+
+    const { buffer_, position_ } = this
+
+    bufferWriteBigInt64LE(buffer_, value, position_)
+    this.position_ += 8
+
+    return this
+  }
+
+  /*@__MANGLE_PROP__*/public writeBool(value: boolean): this {
     return this.writeUInt32(value ? 1 : 0)
   }
 
-  public writeString(value: string): this {
+  /*@__MANGLE_PROP__*/public writeString(value: string): this {
     return this.writeBytes(bufferFromString(value))
   }
 
-  public writeBytes(bytes: Uint8Array): this {
+  /*@__MANGLE_PROP__*/public writeBytes(bytes: Uint8Array): this {
     return this.writeUInt32(bytes.length).writeRawBytes(bytes)
   }
 
-  public writeRawBytes(bytes: Uint8Array): this {
+  /*@__MANGLE_PROP__*/public writeRawBytes(bytes: Uint8Array): this {
     const size = bytes.length
-    this.ensureCapacity(size)
+    this.ensureCapacity_(size)
 
-    const { buffer, position } = this
+    const { buffer_, position_ } = this
 
-    buffer.set(bytes, position)
-    this.position = position + size
+    buffer_.set(bytes, position_)
+    this.position_ = position_ + size
 
     return this
   }
 
-  public skipTag(tag: number, depth = 0): void {
+  /*@__MANGLE_PROP__*/public skipTag(tag: number, depth = 0): void {
     if (depth >= 64) throw new Error('Recursion limit exceeded')
 
     switch (getTagWireType(tag)) {
@@ -321,11 +321,11 @@ export default class CodedStream {
         this.readUInt64()
         break
       case WireType.FIXED64:
-        this.position += 8
+        this.position_ += 8
         break
       case WireType.LENGTH_DELIMITED: {
         const size = this.readUInt32()
-        this.position += size
+        this.position_ += size
         break
       }
       case WireType.START_GROUP: {
@@ -348,20 +348,20 @@ export default class CodedStream {
       case WireType.END_GROUP:
         throw new Error('Corresponding start-group was missing')
       case WireType.FIXED32:
-        this.position += 4
+        this.position_ += 4
         break
     }
   }
 
-  private ensureCapacity(additionalBytes: number): void {
-    const { buffer, position } = this
+  private ensureCapacity_(additionalBytes: number): void {
+    const { buffer_, position_ } = this
 
-    const requiredCapacity = position + additionalBytes
-    if (requiredCapacity <= buffer.length) return
+    const requiredCapacity = position_ + additionalBytes
+    if (requiredCapacity <= buffer_.length) return
 
-    const newBuffer = new Uint8Array(max(buffer.length * 2, requiredCapacity))
-    newBuffer.set(buffer)
+    const newBuffer = new Uint8Array(max(buffer_.length * 2, requiredCapacity))
+    newBuffer.set(buffer_)
 
-    this.buffer = newBuffer
+    this.buffer_ = newBuffer
   }
 }

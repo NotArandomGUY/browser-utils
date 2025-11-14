@@ -21,12 +21,12 @@ const UMPOnesieHeader = createMessage({
   type: pbf_i32(1),
   videoId: pbf_str(2),
   itag: pbf_str(3),
-  cryptoParams: pbf_msg(4, OnesieCryptoParams),
+  /*@__MANGLE_PROP__*/cryptoParams: pbf_msg(4, OnesieCryptoParams),
   lmt: pbf_u64(5),
-  expectedMediaSizeBytes: pbf_i64(7),
-  restrictedFormats: pbf_str(11),
+  /*@__MANGLE_PROP__*/expectedMediaSizeBytes: pbf_i64(7),
+  /*@__MANGLE_PROP__*/restrictedFormats: pbf_str(11),
   xtags: pbf_str(15),
-  sequenceNumber: pbf_i64(18),
+  /*@__MANGLE_PROP__*/sequenceNumber: pbf_i64(18),
 })
 
 export default UMPOnesieHeader

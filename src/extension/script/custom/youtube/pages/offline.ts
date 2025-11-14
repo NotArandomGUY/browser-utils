@@ -54,33 +54,33 @@ class YTOfflinePageLifecycle extends Lifecycle<void> {
     return Lifecycle.create({}, YTOfflinePageLifecycle.ID) as YTOfflinePageLifecycle
   }
 
-  private fileInput: HTMLInputElement
-  private mainVideoEntities: State<YTMainVideoEntity[]>
-  private password: State<string>
-  private status: State<string>
-  private refreshTimer: ReturnType<typeof setInterval> | null
+  private fileInput_: HTMLInputElement
+  private mainVideoEntities_: State<YTMainVideoEntity[]>
+  private password_: State<string>
+  private status_: State<string>
+  private refreshTimer_: ReturnType<typeof setInterval> | null
 
   public constructor() {
     super()
 
-    this.fileInput = input({ style: 'display:none', type: 'file', accept: '.ytom' })
-    this.mainVideoEntities = van.state([])
-    this.password = van.state('')
-    this.status = van.state('-')
-    this.refreshTimer = null
+    this.fileInput_ = input({ style: 'display:none', type: 'file', accept: '.ytom' })
+    this.mainVideoEntities_ = van.state([])
+    this.password_ = van.state('')
+    this.status_ = van.state('-')
+    this.refreshTimer_ = null
   }
 
   protected override onCreate(): void {
-    const { classList, fileInput, mainVideoEntities, password, status } = this
+    const { classList, fileInput_, mainVideoEntities_, password_, status_ } = this
 
     const className = buildClass(['bu-overlay', 'page'])
     classList.add(className)
 
     const promiseStatus = async (promise: Promise<void> | PromiseWithProgress<void, string>): Promise<void> => {
-      if (promise instanceof PromiseWithProgress) promise.progress(progress => status.val = progress)
+      if (promise instanceof PromiseWithProgress) promise.progress(progress => status_.val = progress)
 
       return promise.catch(error => {
-        status.val = error instanceof Error ? error.message : String(error)
+        status_.val = error instanceof Error ? error.message : String(error)
       })
     }
 
@@ -105,13 +105,13 @@ class YTOfflinePageLifecycle extends Lifecycle<void> {
           }
         })))
         .then(entities => {
-          mainVideoEntities.val = entities.filter(entity => entity.addedTimestamp >= 0).sort((l, r) => (
+          mainVideoEntities_.val = entities.filter(entity => entity.addedTimestamp >= 0).sort((l, r) => (
             l.isAutoDownload === r.isAutoDownload ?
               (r.addedTimestamp - l.addedTimestamp) :
               (l.isAutoDownload ? 1 : -1)
           ))
         })
-        .catch(error => status.val = error instanceof Error ? error.message : String(error))
+        .catch(error => status_.val = error instanceof Error ? error.message : String(error))
     }
 
     const handleWatch = (id: string): void => {
@@ -131,23 +131,23 @@ class YTOfflinePageLifecycle extends Lifecycle<void> {
     }
 
     const handleImportFile = (): void => {
-      const { files } = fileInput
+      const { files } = fileInput_
 
       const file = files?.[0]
       if (file == null) return
 
-      promiseStatus(importYTOfflineMediaBundle(file, password.val)).finally(refreshTable)
-      fileInput.value = ''
+      promiseStatus(importYTOfflineMediaBundle(file, password_.val)).finally(refreshTable)
+      fileInput_.value = ''
     }
 
     const handleImport = (): void => {
-      fileInput.click()
+      fileInput_.click()
     }
 
     const handleExport = (id: string, format: ExportFormat): void => {
       switch (format) {
         case ExportFormat.BUNDLE:
-          promiseStatus(exportYTOfflineMediaBundle(id, password.val))
+          promiseStatus(exportYTOfflineMediaBundle(id, password_.val))
           break
         case ExportFormat.AUDIO_STREAM:
           promiseStatus(exportYTOfflineMediaStream(id, YTLocalMediaType.AUDIO))
@@ -156,7 +156,7 @@ class YTOfflinePageLifecycle extends Lifecycle<void> {
           promiseStatus(exportYTOfflineMediaStream(id, YTLocalMediaType.VIDEO))
           break
         default:
-          status.val = 'invalid export format'
+          status_.val = 'invalid export format'
           break
       }
     }
@@ -165,10 +165,10 @@ class YTOfflinePageLifecycle extends Lifecycle<void> {
       promiseStatus(deleteYTOfflineMedia(id)).finally(refreshTable)
     }
 
-    this.refreshTimer = setInterval(refreshTable, 60e3)
+    this.refreshTimer_ = setInterval(refreshTable, 60e3)
     refreshTable()
 
-    fileInput.onchange = handleImportFile
+    fileInput_.onchange = handleImportFile
 
     van.add(
       this,
@@ -177,27 +177,27 @@ class YTOfflinePageLifecycle extends Lifecycle<void> {
         { style: 'display:flex;flex-direction:row;align-items:center;gap:0.5em' },
         button({ onclick: refreshTable }, 'Refresh'),
         button({ onclick: handleImport }, 'Import Bundle'),
-        input({ style: FLEX_ITEM_GROW_STYLE, placeholder: 'Bundle password (Optional)', value: password, oninput: e => password.val = e.target.value }),
-        p({ style: FLEX_ITEM_GROW_STYLE }, () => `Status: ${status.val}`)
+        input({ style: FLEX_ITEM_GROW_STYLE, placeholder: 'Bundle password (Optional)', value: password_, oninput: e => password_.val = e.target.value }),
+        p({ style: FLEX_ITEM_GROW_STYLE }, () => `Status: ${status_.val}`)
       ),
       table(
         thead(tr(th('ID'), th('Title'), th('Added On'), th('Export As'), th('Action'))),
         () => tbody(
-          mainVideoEntities.val.length > 0 ?
-            mainVideoEntities.val.map(YTMainVideoEntityTableItem.bind(null, handleWatch, handleExport, handleDelete)) :
+          mainVideoEntities_.val.length > 0 ?
+            mainVideoEntities_.val.map(YTMainVideoEntityTableItem.bind(null, handleWatch, handleExport, handleDelete)) :
             tr(td({ colSpan: 5 }, 'Videos you download will appear here'))
         )
       ),
-      fileInput
+      fileInput_
     )
   }
 
   protected override onDestroy(): void {
-    const { refreshTimer } = this
+    const { refreshTimer_ } = this
 
-    if (refreshTimer != null) {
-      clearInterval(refreshTimer)
-      this.refreshTimer = null
+    if (refreshTimer_ != null) {
+      clearInterval(refreshTimer_)
+      this.refreshTimer_ = null
     }
   }
 }

@@ -20,8 +20,8 @@ export const enum OnesieProxyStatus {
 }
 
 const OnesieInnertubeResponse = createMessage({
-  onesiePorxyStatus: pbf_i32(1),
-  httpStatus: pbf_i32(2),
+  /*@__MANGLE_PROP__*/onesiePorxyStatus: pbf_i32(1),
+  /*@__MANGLE_PROP__*/httpStatus: pbf_i32(2),
   headers: pbf_repeat(pbf_msg(3, OnesieHttpHeader)),
   body: pbf_bin(4)
 })

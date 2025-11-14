@@ -96,7 +96,7 @@ export enum EntityType {
 const EntityKey = createMessage({
   entityId: pbf_str(2),
   entityType: pbf_i32(4),
-  isPersistent: pbf_bol(5)
+  /*@__MANGLE_PROP__*/isPersistent: pbf_bol(5)
 })
 
 export const encodeEntityKey = (...args: ConstructorParameters<typeof EntityKey>): string => {

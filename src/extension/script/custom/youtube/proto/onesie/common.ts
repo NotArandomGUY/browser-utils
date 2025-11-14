@@ -10,8 +10,8 @@ export const enum OnesieCompressionType {
 export const OnesieCryptoParams = createMessage({
   hmac: pbf_bin(4),
   iv: pbf_bin(5),
-  compressionType: pbf_i32(6),
-  isUnencrypted: pbf_bol(7)
+  /*@__MANGLE_PROP__*/compressionType: pbf_i32(6),
+  /*@__MANGLE_PROP__*/isUnencrypted: pbf_bol(7)
 })
 
 export const OnesieHttpHeader = createMessage({

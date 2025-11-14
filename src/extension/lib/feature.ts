@@ -14,20 +14,20 @@ export const enum FeatureState {
 }
 
 export abstract class Feature {
-  private readonly name: string | null
-  private state: FeatureState
+  private readonly name_: string | null
+  private state_: FeatureState
 
   public constructor(name?: string) {
-    this.name = name ?? null
-    this.state = FeatureState.INACTIVE
+    this.name_ = name ?? null
+    this.state_ = FeatureState.INACTIVE
   }
 
   public getName(): string | null {
-    return this.name
+    return this.name_
   }
 
   public getState(): FeatureState {
-    return this.state
+    return this.state_
   }
 
   public setState(state: FeatureState): boolean {
@@ -35,17 +35,17 @@ export abstract class Feature {
       switch (state) {
         case FeatureState.DISABLED:
         case FeatureState.INACTIVE:
-          if (this.state === FeatureState.ACTIVE && !this.deactivate()) return false
+          if (this.state_ === FeatureState.ACTIVE && !this.deactivate()) return false
           break
         case FeatureState.ACTIVE:
-          if (this.state !== FeatureState.ACTIVE && !this.activate()) return false
+          if (this.state_ !== FeatureState.ACTIVE && !this.activate()) return false
           break
       }
-      this.state = state
+      this.state_ = state
       return true
     } catch (error) {
       logger.warn(`feature state ${state} error:`, error)
-      this.state = FeatureState.DISABLED
+      this.state_ = FeatureState.DISABLED
       return false
     }
   }

@@ -320,9 +320,9 @@ export default class YTCoreBootstrapModule extends Feature {
 
     // Override config
     ytcfg = assign(window.ytcfg ?? {}, {
-      init_: false,
+      'init_': false,
       d() {
-        return window.yt && yt.config_ || ytcfg.data_ || (ytcfg.data_ = new Proxy({}, {
+        return window.yt && yt['config_'] || ytcfg['data_'] || (ytcfg['data_'] = new Proxy({}, {
           set(target, p, newValue, receiver) {
             if (p === 'CATSTAT' || p === 'DCLKSTAT') logger.debug('set detection stat:', p, newValue)
             return Reflect.set(target, p, newValue, receiver)
@@ -336,9 +336,9 @@ export default class YTCoreBootstrapModule extends Feature {
         if (args.length <= 1) {
           let data = (args[0] ?? {}) as { [key: string]: unknown }
 
-          if (!ytcfg.init_) {
+          if (!ytcfg['init_']) {
             data = assign(ytcfg.d(), data)
-            ytcfg.init_ = true
+            ytcfg['init_'] = true
 
             try {
               configInitCallbacks.forEach(callback => callback(ytcfg))
