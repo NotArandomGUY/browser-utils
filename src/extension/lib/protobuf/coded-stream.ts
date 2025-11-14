@@ -87,11 +87,9 @@ export default class CodedStream {
     return buffer.length - position
   }
 
-  public setBuffer(buffer: Uint8Array<ArrayBuffer>): void {
-    const { position } = this
-
+  public setBuffer(buffer: Uint8Array<ArrayBuffer>, position?: number): void {
     this.buffer = buffer
-    this.position = min(position, buffer.length)
+    this.position = min(position ?? 0, buffer.length)
   }
 
   public setPosition(position: number): void {
