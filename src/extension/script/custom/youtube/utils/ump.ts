@@ -1,6 +1,6 @@
 import { UMPSliceType } from '@ext/custom/youtube/proto/gvs/common/enum'
 import { entries } from '@ext/global/object'
-import { Mutex } from '@ext/lib/async'
+import { Mutex, PromiseWithProgress } from '@ext/lib/async'
 import { bufferConcat } from '@ext/lib/buffer'
 import CodedStream from '@ext/lib/protobuf/coded-stream'
 import { varint32Encode } from '@ext/lib/protobuf/varint'
@@ -98,28 +98,28 @@ export class UMPContext {
     return Date.now() >= this.expire_
   }
 
-  public async feed(input: ReadableStream<Uint8Array<ArrayBuffer>>, output?: ReadableStreamDefaultController<Uint8Array>): Promise<void> {
-    const { mutex_, stream_ } = this
+  public feed(input: ReadableStream<Uint8Array<ArrayBuffer>>): PromiseWithProgress<void, Uint8Array<ArrayBuffer>> {
+    return new PromiseWithProgress(async (resolve, reject, progress) => {
+      const { mutex_, stream_ } = this
 
-    const reader = input.getReader()
+      await mutex_.lock()
+      try {
+        const reader = input.getReader()
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) return resolve()
 
-    await mutex_.lock()
-    try {
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) return output?.close()
-
-        await this.push(value)
-        output?.enqueue(stream_.getWriteBuffer())
+          await this.push(value)
+          progress(stream_.getWriteBuffer())
+        }
+      } catch (error) {
+        stream_.setPosition(stream_.getBuffer().length)
+        reject(error)
+      } finally {
+        stream_.setBuffer(stream_.getRemainSize() > 0 ? stream_.getReadBuffer() : EMPTY_BUFFER)
+        mutex_.unlock()
       }
-    } catch (error) {
-      stream_.setPosition(stream_.getBuffer().length)
-      throw error
-    } finally {
-      stream_.setBuffer(stream_.getRemainSize() > 0 ? stream_.getReadBuffer() : EMPTY_BUFFER)
-      reader.releaseLock()
-      mutex_.unlock()
-    }
+    })
   }
 
   public async push(chunk: Uint8Array<ArrayBuffer>): Promise<void> {

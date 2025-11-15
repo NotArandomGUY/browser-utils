@@ -271,17 +271,29 @@ const processResponse = async (ctx: NetworkContext<unknown, NetworkState.SUCCESS
 
   if (body == null || headers.get('content-type') !== 'application/vnd.yt-ump') return
 
-  const ump = manager.grab(searchParams)
-  const output = new ReadableStream({
-    start(controller) {
-      ump.feed(body, controller).catch(error => {
-        logger.warn('process response error:', error)
-        controller.error(error)
-      })
-    }
+  return new Promise((resolve: (() => void) | null) => {
+    ctx.response = new Response(
+      new ReadableStream({
+        start(controller) {
+          manager.grab(searchParams).feed(body).progress(chunk => {
+            if (resolve != null) {
+              resolve()
+              resolve = null
+            }
+            controller.enqueue(chunk)
+          }).then(() => {
+            resolve?.()
+            controller.close()
+          }).catch(error => {
+            if (error instanceof Response) ctx.response = error
+            resolve?.()
+            controller.error(error instanceof Error ? error : new Error())
+          })
+        }
+      }),
+      { status, headers: fromEntries(headers.entries()) }
+    )
   })
-
-  ctx.response = new Response(output, { status, headers: fromEntries(headers.entries()) })
 }
 
 const processTVConfig = async (ctx: NetworkContext<unknown, NetworkState.SUCCESS>): Promise<void> => {
