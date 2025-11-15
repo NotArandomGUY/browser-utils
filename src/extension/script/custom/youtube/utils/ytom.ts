@@ -1,6 +1,6 @@
 import { YTMediaFormatSchema, YTRenderer, YTRendererData } from '@ext/custom/youtube/api/renderer'
 import { decodeEntityKey, encodeEntityKey, EntityType } from '@ext/custom/youtube/proto/entity-key'
-import FormatRange from '@ext/custom/youtube/proto/format-range'
+import FormatRange from '@ext/custom/youtube/proto/gvs/common/format-range'
 import YTOfflineMediaCaption from '@ext/custom/youtube/proto/ytom/caption'
 import YTOfflineMediaEntity from '@ext/custom/youtube/proto/ytom/entity'
 import YTOfflineMediaMetadata from '@ext/custom/youtube/proto/ytom/metadata'

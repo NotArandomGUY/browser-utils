@@ -1,10 +1,10 @@
-import { OnesieHttpHeader } from '@ext/custom/youtube/proto/onesie/common'
+import HttpHeader from '@ext/custom/youtube/proto/gvs/common/http-header'
 import { pbf_bin, pbf_bol, pbf_msg, pbf_repeat, pbf_str } from '@ext/lib/protobuf/field'
 import { createMessage } from '@ext/lib/protobuf/message'
 
 const OnesieInnertubeRequest = createMessage({
   urls: pbf_repeat(pbf_str(1)),
-  headers: pbf_repeat(pbf_msg(2, OnesieHttpHeader)),
+  headers: pbf_repeat(pbf_msg(2, HttpHeader)),
   body: pbf_bin(3),
   /*@__MANGLE_PROP__*/proxiedByTrustedBandaid: pbf_bol(4),
   /*@__MANGLE_PROP__*/skipResponseEncryption: pbf_bol(6)

@@ -1,4 +1,4 @@
-import TimeRange from '@ext/custom/youtube/proto/time-range'
+import TimeRange from '@ext/custom/youtube/proto/gvs/common/time-range'
 import { pbf_i32, pbf_i64, pbf_msg } from '@ext/lib/protobuf/field'
 import { createMessage } from '@ext/lib/protobuf/message'
 

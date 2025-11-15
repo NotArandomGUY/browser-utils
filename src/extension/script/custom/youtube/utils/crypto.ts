@@ -1,4 +1,5 @@
-import { OnesieCompressionType, OnesieCryptoParams } from '@ext/custom/youtube/proto/onesie/common'
+import CryptoParams from '@ext/custom/youtube/proto/gvs/common/crypto-params'
+import { CompressionType } from '@ext/custom/youtube/proto/gvs/common/enum'
 import { floor, random } from '@ext/global/math'
 import { bufferConcat, bufferFromString } from '@ext/lib/buffer'
 import { compress, decompress, isCompressionSupported } from '@ext/lib/compression'
@@ -14,7 +15,7 @@ const CRYPTO_API_ERROR = new Error('crypto api not available')
 const CRYPTO_KEY_ERROR = new Error('no key available')
 const COMPRESSION_API_ERROR = new Error('compression api not available')
 
-type CryptoParams = Partial<Omit<InstanceType<typeof OnesieCryptoParams>, 'serialize' | 'deserialize' | 'reset'>>
+type CryptoParamsObject = Partial<Omit<InstanceType<typeof CryptoParams>, 'serialize' | 'deserialize' | 'reset'>>
 
 const getRandomValuesArray = (size: number, key?: string): number[] => {
   const rand = new Uint8Array(size)
@@ -145,7 +146,7 @@ export const encryptAesCtr = async (key: BufferSource | CryptoKey, iv: BufferSou
   ))
 }
 
-export const decryptOnesie = async (content: Uint8Array<ArrayBuffer>, keys: Uint8Array[], params: CryptoParams | null): Promise<[Uint8Array<ArrayBuffer>, Uint8Array | null]> => {
+export const decryptOnesie = async (content: Uint8Array<ArrayBuffer>, keys: Uint8Array[], params: CryptoParamsObject | null): Promise<[Uint8Array<ArrayBuffer>, Uint8Array | null]> => {
   const { hmac, iv, compressionType, isUnencrypted } = params ?? {}
 
   let validKey: Uint8Array | null = null
@@ -167,26 +168,26 @@ export const decryptOnesie = async (content: Uint8Array<ArrayBuffer>, keys: Uint
   if (!isCompressionSupported()) throw COMPRESSION_API_ERROR
 
   switch (compressionType) {
-    case OnesieCompressionType.GZIP:
+    case CompressionType.GZIP:
       content = await decompress(content, 'gzip')
       break
-    case OnesieCompressionType.BROTLI:
+    case CompressionType.BROTLI:
       throw COMPRESSION_API_ERROR
   }
 
   return [content, validKey]
 }
 
-export const encryptOnesie = async (content: Uint8Array<ArrayBuffer>, key: Uint8Array | null, params: CryptoParams | null): Promise<Uint8Array<ArrayBuffer>> => {
+export const encryptOnesie = async (content: Uint8Array<ArrayBuffer>, key: Uint8Array | null, params: CryptoParamsObject | null): Promise<Uint8Array<ArrayBuffer>> => {
   const { iv, compressionType, isUnencrypted } = params ?? {}
 
   if (!isCompressionSupported()) throw COMPRESSION_API_ERROR
 
   switch (compressionType) {
-    case OnesieCompressionType.GZIP:
+    case CompressionType.GZIP:
       content = await compress(content, 'gzip')
       break
-    case OnesieCompressionType.BROTLI:
+    case CompressionType.BROTLI:
       throw COMPRESSION_API_ERROR
   }
 

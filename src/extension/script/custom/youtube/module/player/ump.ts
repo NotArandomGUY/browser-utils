@@ -1,24 +1,23 @@
 import { processYTRenderer } from '@ext/custom/youtube/api/processor'
 import { registerYTConfigInitCallback, type YTPlayerWebPlayerContextConfig } from '@ext/custom/youtube/module/core/bootstrap'
 import { dispatchYTOpenPopupAction } from '@ext/custom/youtube/module/core/event'
-import OnesieRequest from '@ext/custom/youtube/proto/onesie-request'
-import { OnesieHttpHeader } from '@ext/custom/youtube/proto/onesie/common'
-import OnesieEncryptedInnertubeRequest from '@ext/custom/youtube/proto/onesie/encrypted-innertube-request'
-import OnesieEncryptedInnertubeResponse from '@ext/custom/youtube/proto/onesie/encrypted-innertube-response'
-import OnesieInnertubeRequest from '@ext/custom/youtube/proto/onesie/innertube-request'
-import OnesieInnertubeResponse, { OnesieProxyStatus } from '@ext/custom/youtube/proto/onesie/innertube-response'
-import SabrRequest from '@ext/custom/youtube/proto/sabr-request'
-import { UMPType } from '@ext/custom/youtube/proto/ump'
-import UMPFormatInitializationMetadata from '@ext/custom/youtube/proto/ump/format-initialization-metadata'
-import UMPFormatSelectionConfig from '@ext/custom/youtube/proto/ump/format-selection-config'
-import UMPMediaHeader from '@ext/custom/youtube/proto/ump/media-header'
-import UMPNextRequestPolicy from '@ext/custom/youtube/proto/ump/next-request-policy'
-import UMPOnesieHeader, { OnesieHeaderType } from '@ext/custom/youtube/proto/ump/onesie-header'
-import UMPPlaybackStartPolicy from '@ext/custom/youtube/proto/ump/playback-start-policy'
-import UMPSabrContextUpdate, { UMPSabrContextScope, UMPSabrContextValue } from '@ext/custom/youtube/proto/ump/sabr-context-update'
-import UMPSabrContextContentAds from '@ext/custom/youtube/proto/ump/sabr-context/content-ads'
-import UMPSabrError from '@ext/custom/youtube/proto/ump/sabr-error'
-import UMPSnackbarMessage from '@ext/custom/youtube/proto/ump/snackbar-message'
+import { OnesieHeaderType, OnesieProxyStatus, SabrContextScope, UMPSliceType } from '@ext/custom/youtube/proto/gvs/common/enum'
+import HttpHeader from '@ext/custom/youtube/proto/gvs/common/http-header'
+import OnesieEncryptedInnertubeRequest from '@ext/custom/youtube/proto/gvs/onesie/encrypted-innertube-request'
+import OnesieEncryptedInnertubeResponse from '@ext/custom/youtube/proto/gvs/onesie/encrypted-innertube-response'
+import OnesieInnertubeRequest from '@ext/custom/youtube/proto/gvs/onesie/innertube-request'
+import OnesieInnertubeResponse from '@ext/custom/youtube/proto/gvs/onesie/innertube-response'
+import { InitPlaybackRequest, VideoPlaybackRequest } from '@ext/custom/youtube/proto/gvs/request'
+import UMPFormatInitializationMetadata from '@ext/custom/youtube/proto/gvs/ump/format-initialization-metadata'
+import UMPFormatSelectionConfig from '@ext/custom/youtube/proto/gvs/ump/format-selection-config'
+import UMPMediaHeader from '@ext/custom/youtube/proto/gvs/ump/media-header'
+import UMPNextRequestPolicy from '@ext/custom/youtube/proto/gvs/ump/next-request-policy'
+import UMPOnesieHeader from '@ext/custom/youtube/proto/gvs/ump/onesie-header'
+import UMPPlaybackStartPolicy from '@ext/custom/youtube/proto/gvs/ump/playback-start-policy'
+import UMPSabrContextUpdate from '@ext/custom/youtube/proto/gvs/ump/sabr-context-update'
+import UMPSabrContextContentAds from '@ext/custom/youtube/proto/gvs/ump/sabr-context/content-ads'
+import UMPSabrError from '@ext/custom/youtube/proto/gvs/ump/sabr-error'
+import UMPSnackbarMessage from '@ext/custom/youtube/proto/gvs/ump/snackbar-message'
 import { decryptOnesie, encryptOnesie } from '@ext/custom/youtube/utils/crypto'
 import { UMPContextManager, UMPSliceFlags } from '@ext/custom/youtube/utils/ump'
 import { ceil } from '@ext/global/math'
@@ -39,13 +38,13 @@ let onesieClientKeys: Uint8Array[] = []
 let onesieHeader: InstanceType<typeof UMPOnesieHeader> | null = null
 
 const manager = new UMPContextManager({
-  [UMPType.UNKNOWN]: (_, slice) => logger.trace('slice type:', slice.getType(), 'size:', slice.getSize()),
-  [UMPType.ONESIE_HEADER]: (data) => {
+  [UMPSliceType.UNKNOWN]: (data, slice) => logger.trace('slice type:', slice.getType(), data),
+  [UMPSliceType.ONESIE_HEADER]: (data) => {
     onesieHeader = new UMPOnesieHeader().deserialize(data)
 
     logger.trace('onesie header:', onesieHeader)
   },
-  [UMPType.ONESIE_DATA]: async (data, slice) => {
+  [UMPSliceType.ONESIE_DATA]: async (data, slice) => {
     if (onesieHeader == null) {
       logger.warn('onesie data without header')
       slice.setFlag(UMPSliceFlags.DROP)
@@ -81,48 +80,48 @@ const manager = new UMPContextManager({
         return
     }
   },
-  [UMPType.MEDIA_HEADER]: (data) => {
+  [UMPSliceType.MEDIA_HEADER]: (data) => {
     const message = new UMPMediaHeader().deserialize(data)
 
     logger.trace('media header:', message)
   },
-  [UMPType.MEDIA]: (data) => logger.trace('media size:', data.length),
-  [UMPType.MEDIA_END]: (data) => logger.trace('media end:', data),
-  [UMPType.NEXT_REQUEST_POLICY]: (data) => {
+  [UMPSliceType.MEDIA]: () => { },//(data) => logger.trace('media size:', data.length),
+  [UMPSliceType.MEDIA_END]: (data) => logger.trace('media end:', data),
+  [UMPSliceType.NEXT_REQUEST_POLICY]: (data) => {
     const message = new UMPNextRequestPolicy().deserialize(data)
 
     logger.trace('next request policy:', message)
   },
-  [UMPType.FORMAT_SELECTION_CONFIG]: (data) => {
+  [UMPSliceType.FORMAT_SELECTION_CONFIG]: (data) => {
     const message = new UMPFormatSelectionConfig().deserialize(data)
 
-    logger.debug('format selection config:', message)
+    logger.trace('format selection config:', message)
   },
-  [UMPType.FORMAT_INITIALIZATION_METADATA]: (data) => {
+  [UMPSliceType.FORMAT_INITIALIZATION_METADATA]: (data) => {
     const message = new UMPFormatInitializationMetadata().deserialize(data)
 
-    logger.debug('format initialization metadata:', message)
+    logger.trace('format initialization metadata:', message)
   },
-  [UMPType.SABR_ERROR]: (data) => {
+  [UMPSliceType.SABR_ERROR]: (data) => {
     const message = new UMPSabrError().deserialize(data)
 
     logger.warn('sabr error:', message)
   },
-  [UMPType.PLAYBACK_START_POLICY]: (data) => {
+  [UMPSliceType.PLAYBACK_START_POLICY]: (data) => {
     const message = new UMPPlaybackStartPolicy().deserialize(data)
 
     logger.trace('playback start policy:', message)
   },
-  [UMPType.SABR_CONTEXT_UPDATE]: (data) => {
+  [UMPSliceType.SABR_CONTEXT_UPDATE]: (data) => {
     const message = new UMPSabrContextUpdate().deserialize(data)
 
     logger.debug('sabr context update:', message)
 
-    if (message.type === 5 && message.scope === UMPSabrContextScope.SABR_CONTEXT_SCOPE_CONTENT_ADS && message.value != null) {
-      const value = new UMPSabrContextValue().deserialize(message.value)
-      if (value.content == null) return
+    const content = message.value?.content
+    if (content == null) return
 
-      const context = new UMPSabrContextContentAds().deserialize(value.content)
+    if (message.type === 5 && message.scope === SabrContextScope.SABR_CONTEXT_SCOPE_CONTENT_ADS) {
+      const context = new UMPSabrContextContentAds().deserialize(content)
 
       const backoffTimeMs = context.backoffTimeMs ?? 0
       if (backoffTimeMs <= 0) return
@@ -143,7 +142,7 @@ const manager = new UMPContextManager({
       })
     }
   },
-  [UMPType.SNACKBAR_MESSAGE]: (data, slice) => {
+  [UMPSliceType.SNACKBAR_MESSAGE]: (data, slice) => {
     const message = new UMPSnackbarMessage().deserialize(data)
 
     logger.debug('snackbar message:', message)
@@ -201,7 +200,7 @@ const processOnesieInnertubeRequest = async (innertubeRequest: InstanceType<type
     body: onesieRequest.body
   })
 
-  onesieRequest.headers = Array.from(request.headers.entries()).map(e => new OnesieHttpHeader({ name: e[0].replace(/(^|-)[a-z]/g, c => c.toUpperCase()), value: e[1] }))
+  onesieRequest.headers = Array.from(request.headers.entries()).map(e => new HttpHeader({ name: e[0].replace(/(^|-)[a-z]/g, c => c.toUpperCase()), value: e[1] }))
   onesieRequest.body = new Uint8Array(await request.arrayBuffer())
 
   if (encryptionKey != null) {
@@ -227,21 +226,21 @@ const processRequest = async (ctx: NetworkRequestContext): Promise<void> => {
 
     switch (url.pathname) {
       case '/initplayback': {
-        const onesieRequest = new OnesieRequest().deserialize(body)
+        const initPlaybackRequest = new InitPlaybackRequest().deserialize(body)
 
-        logger.debug('onesie request:', onesieRequest)
+        logger.debug('init playback request:', initPlaybackRequest)
 
-        await processOnesieInnertubeRequest(onesieRequest.innertubeRequest)
+        await processOnesieInnertubeRequest(initPlaybackRequest.innertubeRequest)
 
-        body = onesieRequest.serialize()
+        body = initPlaybackRequest.serialize()
         break
       }
       case '/videoplayback': {
-        const sabrRequest = new SabrRequest().deserialize(body)
+        const videoPlaybackRequest = new VideoPlaybackRequest().deserialize(body)
 
-        logger.debug('sabr request:', sabrRequest)
+        logger.debug('video playback request:', videoPlaybackRequest)
 
-        body = sabrRequest.serialize()
+        body = videoPlaybackRequest.serialize()
         break
       }
     }

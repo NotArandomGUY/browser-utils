@@ -1,4 +1,4 @@
-import { UMPType } from '@ext/custom/youtube/proto/ump'
+import { UMPSliceType } from '@ext/custom/youtube/proto/gvs/common/enum'
 import { entries } from '@ext/global/object'
 import { bufferConcat } from '@ext/lib/buffer'
 import CodedStream from '@ext/lib/protobuf/coded-stream'
@@ -38,10 +38,10 @@ const removeSlice = (stream: CodedStream, begin: number, end: number): void => {
 
 export class UMPSlice {
   private flags_: UMPSliceFlags
-  private type_: UMPType
+  private type_: UMPSliceType
   private data_: Uint8Array<ArrayBuffer>
 
-  public constructor(type: UMPType, data: Uint8Array<ArrayBuffer>) {
+  public constructor(type: UMPSliceType, data: Uint8Array<ArrayBuffer>) {
     this.flags_ = UMPSliceFlags.NONE
     this.type_ = type
     this.data_ = data
@@ -51,7 +51,7 @@ export class UMPSlice {
     return (this.flags_ & mask) !== 0
   }
 
-  /*@__MANGLE_PROP__*/public getType(): UMPType {
+  /*@__MANGLE_PROP__*/public getType(): UMPSliceType {
     return this.type_
   }
 
@@ -67,7 +67,7 @@ export class UMPSlice {
     this.flags_ = (this.flags_ & ~mask) | (value ? mask : 0)
   }
 
-  /*@__MANGLE_PROP__*/public setType(type: UMPType): void {
+  /*@__MANGLE_PROP__*/public setType(type: UMPSliceType): void {
     this.flags_ |= UMPSliceFlags.DIRTY
     this.type_ = type
   }
@@ -170,9 +170,9 @@ export class UMPContextManager {
     return context
   }
 
-  public async invoke(type: UMPType, slice: UMPSlice): Promise<void> {
+  public async invoke(type: UMPSliceType, slice: UMPSlice): Promise<void> {
     const { callbackMap_ } = this
 
-    await (callbackMap_.get(type) ?? callbackMap_.get(UMPType.UNKNOWN))?.(slice.getData(), slice)
+    await (callbackMap_.get(type) ?? callbackMap_.get(UMPSliceType.UNKNOWN))?.(slice.getData(), slice)
   }
 }
