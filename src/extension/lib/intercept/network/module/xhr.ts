@@ -11,6 +11,7 @@ type XHRRequestBody = Document | XMLHttpRequestBodyInit
 
 const logger = new Logger('INTERCEPT-XHR')
 
+const DOM_MIME_TYPES = ['application/xhtml+xml', 'application/xml', 'image/svg+xml', 'text/html', 'text/xml']
 const NULL_BODY_STATUS = [101, 204, 205, 304]
 const HEADER_LINE_REGEXP = /^\s*(.*?)\s*:\s*(.*)\s*$/
 const XHR_EVENT_MAP = {
@@ -27,6 +28,24 @@ const XHR_EVENT_MAP = {
 let nativeXHR: (typeof XMLHttpRequest) | null = null
 let onRequestCallback: NetworkRequestCallback | null = null
 let onResponseCallback: NetworkResponseCallback | null = null
+
+const parseHeaders = (headers: string): Record<string, string> => {
+  return fromEntries(
+    headers
+      .split('\n')
+      .map(line => HEADER_LINE_REGEXP.exec(line)?.slice(1))
+      .filter(entry => entry?.length === 2) as [string, string][]
+  )
+}
+
+const parseDOM = (parser => (string: string, type?: string | null) => {
+  type = type?.split(';')[0]?.trim()
+  return parser.parseFromString(unsafePolicy.createHTML(string), (DOM_MIME_TYPES.includes(type!) ? type : 'text/xml') as DOMParserSupportedType)
+})(new DOMParser())
+
+const responseMimeType = (xhr: InterceptXMLHttpRequest): string | null => {
+  return new Headers(parseHeaders(xhr.getAllResponseHeaders())).get('content-type')
+}
 
 const responseBlob = (xhr: InterceptXMLHttpRequest): Blob | null => {
   const { status, responseType, response } = xhr
@@ -108,10 +127,7 @@ async function handleXHRLoad(this: InterceptXMLHttpRequest): Promise<void> {
       state: NetworkState.SUCCESS,
       response: new Response(responseBlob(this), {
         status: this.status,
-        headers: this.getAllResponseHeaders()
-          .split('\n')
-          .map(line => HEADER_LINE_REGEXP.exec(line)?.slice(1))
-          .filter(entry => entry?.length === 2) as [string, string][]
+        headers: parseHeaders(this.getAllResponseHeaders())
       })
     })
   }
@@ -251,27 +267,38 @@ class InterceptXMLHttpRequest extends XMLHttpRequest {
       case 'blob':
         return new Blob([overrideResponse])
       case 'document':
-        return this.responseXML
+        return parseDOM(bufferToString(overrideResponse), responseMimeType(this))
       case 'json':
-        return JSON.parse(this.responseText)
+        return JSON.parse(bufferToString(overrideResponse) || 'null')
       case 'text':
       case '':
-        return this.responseText
+        return bufferToString(overrideResponse)
       default:
         return null
     }
   }
 
   public get responseText(): string {
-    const { overrideResponse } = this
+    const { responseType, response } = this
 
-    if (overrideResponse == null) return super.responseText
+    if (typeof response === 'string') return response
 
-    return bufferToString(overrideResponse)
+    throw new DOMException(
+      `Failed to read the 'responseText' property from 'XMLHttpRequest': The value is only accessible if the object's 'responseType' is '' or 'text' (was '${responseType}').`,
+      'InvalidStateError'
+    )
   }
 
   public get responseXML(): Document {
-    return new DOMParser().parseFromString(unsafePolicy.createHTML(this.responseText), 'text/xml')
+    const { responseType, response } = this
+
+    if (response instanceof Document) return response
+    if (responseType === '' && typeof response === 'string') return parseDOM(response, responseMimeType(this))
+
+    throw new DOMException(
+      `Failed to read the 'responseXML' property from 'XMLHttpRequest': The value is only accessible if the object's 'responseType' is '' or 'document' (was '${responseType}').`,
+      'InvalidStateError'
+    )
   }
 
   // Method
