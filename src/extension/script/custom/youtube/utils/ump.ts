@@ -1,5 +1,6 @@
 import { UMPSliceType } from '@ext/custom/youtube/proto/gvs/common/enum'
 import { entries } from '@ext/global/object'
+import { Mutex } from '@ext/lib/async'
 import { bufferConcat } from '@ext/lib/buffer'
 import CodedStream from '@ext/lib/protobuf/coded-stream'
 import { varint32Encode } from '@ext/lib/protobuf/varint'
@@ -11,6 +12,8 @@ export const enum UMPSliceFlags {
 }
 
 export type UMPSliceCallback = (data: Uint8Array<ArrayBuffer>, slice: UMPSlice) => PromiseLike<void> | void
+
+const EMPTY_BUFFER = new Uint8Array(0)
 
 const replaceSlice = (stream: CodedStream, begin: number, end: number, slice: UMPSlice): void => {
   const data = bufferConcat([varint32Encode(slice.getType())[0], varint32Encode(slice.getSize())[0], slice.getData()])
@@ -80,12 +83,14 @@ export class UMPSlice {
 
 export class UMPContext {
   private readonly manager_: UMPContextManager
+  private readonly mutex_: Mutex
   private readonly stream_: CodedStream
   private readonly expire_: number
 
   public constructor(manager: UMPContextManager, expire: number) {
     this.manager_ = manager
-    this.stream_ = new CodedStream()
+    this.mutex_ = new Mutex()
+    this.stream_ = new CodedStream(EMPTY_BUFFER)
     this.expire_ = expire
   }
 
@@ -94,9 +99,11 @@ export class UMPContext {
   }
 
   public async feed(input: ReadableStream<Uint8Array<ArrayBuffer>>, output?: ReadableStreamDefaultController<Uint8Array>): Promise<void> {
-    const { stream_ } = this
+    const { mutex_, stream_ } = this
 
     const reader = input.getReader()
+
+    await mutex_.lock()
     try {
       while (true) {
         const { done, value } = await reader.read()
@@ -109,8 +116,9 @@ export class UMPContext {
       stream_.setPosition(stream_.getBuffer().length)
       throw error
     } finally {
-      stream_.setBuffer(stream_.getReadBuffer())
+      stream_.setBuffer(stream_.getRemainSize() > 0 ? stream_.getReadBuffer() : EMPTY_BUFFER)
       reader.releaseLock()
+      mutex_.unlock()
     }
   }
 
@@ -155,17 +163,16 @@ export class UMPContextManager {
   public grab(params: URLSearchParams): UMPContext {
     const { contextMap_ } = this
 
-    const expire = (Number(params.get('expire')) * 1e3) || (Date.now() + 60e3)
-    const id = `${params.get('id')}~${params.get('itag')}~${expire}`
+    const id = `${params.get('id')}~${params.get('ei')}~${params.get('itag')}`
 
     let context = contextMap_.get(id)
-    if (context != null) return context
-
-    context = new UMPContext(this, expire)
-    contextMap_.set(id, context)
-    contextMap_.forEach((v, k) => {
-      if (v.isExpired) contextMap_.delete(k)
-    })
+    if (context == null) {
+      context = new UMPContext(this, (Number(params.get('expire')) * 1e3) || (Date.now() + 43200e3))
+      contextMap_.set(id, context)
+      contextMap_.forEach((v, k) => {
+        if (v.isExpired) contextMap_.delete(k)
+      })
+    }
 
     return context
   }
