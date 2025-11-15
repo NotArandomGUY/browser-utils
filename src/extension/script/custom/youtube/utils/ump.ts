@@ -37,44 +37,44 @@ const removeSlice = (stream: CodedStream, begin: number, end: number): void => {
 }
 
 export class UMPSlice {
-  private flags_: UMPSliceFlags
-  private type_: UMPSliceType
-  private data_: Uint8Array<ArrayBuffer>
+  private sliceFlags_: UMPSliceFlags
+  private sliceType_: UMPSliceType
+  private sliceData_: Uint8Array<ArrayBuffer>
 
   public constructor(type: UMPSliceType, data: Uint8Array<ArrayBuffer>) {
-    this.flags_ = UMPSliceFlags.NONE
-    this.type_ = type
-    this.data_ = data
+    this.sliceFlags_ = UMPSliceFlags.NONE
+    this.sliceType_ = type
+    this.sliceData_ = data
   }
 
   /*@__MANGLE_PROP__*/public getFlag(mask: UMPSliceFlags): boolean {
-    return (this.flags_ & mask) !== 0
+    return (this.sliceFlags_ & mask) !== 0
   }
 
   /*@__MANGLE_PROP__*/public getType(): UMPSliceType {
-    return this.type_
+    return this.sliceType_
   }
 
   /*@__MANGLE_PROP__*/public getSize(): number {
-    return this.data_.length
+    return this.sliceData_.length
   }
 
   /*@__MANGLE_PROP__*/public getData(): Uint8Array<ArrayBuffer> {
-    return this.data_
+    return this.sliceData_
   }
 
   /*@__MANGLE_PROP__*/public setFlag(mask: UMPSliceFlags, value = true): void {
-    this.flags_ = (this.flags_ & ~mask) | (value ? mask : 0)
+    this.sliceFlags_ = (this.sliceFlags_ & ~mask) | (value ? mask : 0)
   }
 
   /*@__MANGLE_PROP__*/public setType(type: UMPSliceType): void {
-    this.flags_ |= UMPSliceFlags.DIRTY
-    this.type_ = type
+    this.sliceFlags_ |= UMPSliceFlags.DIRTY
+    this.sliceType_ = type
   }
 
   /*@__MANGLE_PROP__*/public setData(data: Uint8Array<ArrayBuffer>): void {
-    this.flags_ |= UMPSliceFlags.DIRTY
-    this.data_ = data
+    this.sliceFlags_ |= UMPSliceFlags.DIRTY
+    this.sliceData_ = data
   }
 }
 
