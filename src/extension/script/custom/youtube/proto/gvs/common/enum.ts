@@ -1,7 +1,21 @@
+export const enum AudioQuality {
+  UNKNOWN = 0,
+  ULTRALOW = 5,
+  LOW = 10,
+  MEDIUM = 20,
+  HIGH = 30
+}
+
 export const enum CompressionType {
   NONE = 0,
   GZIP = 1,
   BROTLI = 2
+}
+
+export const enum NetworkMeteredState {
+  UNKNOWN = 0,
+  UNMETERED = 1,
+  METERED = 2
 }
 
 export const enum OnesieHeaderType {
@@ -34,6 +48,22 @@ export const enum OnesieProxyStatus {
   DECOMPRESSION_FAILED = 11,
   JSON_PARSING_FAILED = 12,
   UNKNOWN_COMPRESSION_TYPE = 13
+}
+
+export const enum PlaybackAudioRouteOutputType {
+  UNKNOWN = 0,
+  LINE_OUT = 1,
+  HEADPHONES = 2,
+  BLUETOOTH_A2DP = 3,
+  BUILT_IN_RECEIVER = 4,
+  BUILT_IN_SPEAKER = 5,
+  HDMI = 6,
+  AIR_PLAY = 7,
+  BLUETOOTH_LE = 8,
+  BLUETOOTH_HFP = 9,
+  USB_AUDIO = 10,
+  CAR_PLAY = 11,
+  ANDROID_AUDIO = 12
 }
 
 export const enum SabrContextScope {
@@ -93,4 +123,11 @@ export const enum UMPSliceType {
   PREWARM_CONNECTION = 65,
   PLAYBACK_DEBUG_INFO = 66,
   SNACKBAR_MESSAGE = 67
+}
+
+export const enum VideoQualitySetting {
+  UNKNOWN = 0,
+  HIGHER_QUALITY = 1,
+  DATA_SAVER = 2,
+  ADVANCED_MENU = 3
 }

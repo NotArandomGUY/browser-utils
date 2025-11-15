@@ -1,11 +1,12 @@
 import BufferedRange from '@ext/custom/youtube/proto/gvs/common/buffered-range'
+import ClientAbrState from '@ext/custom/youtube/proto/gvs/common/client-abr-state'
 import OnesieEncryptedInnertubeRequest from '@ext/custom/youtube/proto/gvs/onesie/encrypted-innertube-request'
 import { pbf_bin, pbf_i32, pbf_i64, pbf_msg, pbf_repeat, pbf_str } from '@ext/lib/protobuf/field'
 import { createMessage } from '@ext/lib/protobuf/message'
 
 export const InitPlaybackRequest = createMessage({
   urls: pbf_repeat(pbf_str(1)),
-  /*@__MANGLE_PROP__*/clientAbrState: pbf_bin(2),
+  /*@__MANGLE_PROP__*/clientAbrState: pbf_msg(2, ClientAbrState),
   /*@__MANGLE_PROP__*/innertubeRequest: pbf_msg(3, OnesieEncryptedInnertubeRequest),
   /*@__MANGLE_PROP__*/onesieUstreamerConfig: pbf_bin(4),
   /*@__MANGLE_PROP__*/maxVp9Height: pbf_i32(5),
@@ -17,7 +18,7 @@ export const InitPlaybackRequest = createMessage({
 })
 
 export const VideoPlaybackRequest = createMessage({
-  /*@__MANGLE_PROP__*/clientAbrState: pbf_bin(1),
+  /*@__MANGLE_PROP__*/clientAbrState: pbf_msg(1, ClientAbrState),
   /*@__MANGLE_PROP__*/selectedFormatIds: pbf_repeat(pbf_i32(2)),
   /*@__MANGLE_PROP__*/bufferedRanges: pbf_repeat(pbf_msg(3, BufferedRange)),
   /*@__MANGLE_PROP__*/playerTimeMs: pbf_i64(4),

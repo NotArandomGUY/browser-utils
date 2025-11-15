@@ -5,14 +5,14 @@ import { createMessage } from '@ext/lib/protobuf/message'
 const UMPFormatInitializationMetadata = createMessage({
   videoId: pbf_str(1),
   formatId: pbf_i32(2),
-  endTimeMs: pbf_i32(3),
-  endSegmentNumber: pbf_i64(4),
+  endTimeMs: pbf_i64(3),
+  /*@__MANGLE_PROP__*/endSegmentNumber: pbf_i64(4),
   mimeType: pbf_str(5),
   initRange: pbf_msg(6, FormatRange),
   indexRange: pbf_msg(7, FormatRange),
-  unknown8: pbf_i32(8),
-  durationMs: pbf_i32(9),
-  unknown10: pbf_i32(10)
+  i8: pbf_i64(8),
+  /*@__MANGLE_PROP__*/durationUnits: pbf_i64(9),
+  /*@__MANGLE_PROP__*/durationTimescale: pbf_i64(10)
 })
 
 export default UMPFormatInitializationMetadata
