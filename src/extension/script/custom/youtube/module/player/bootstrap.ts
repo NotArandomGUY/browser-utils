@@ -8,6 +8,13 @@ import Logger from '@ext/lib/logger'
 const LOGGER_OVERRIDE_ID = `logovr-${Date.now()}`
 
 const STYLE_SHEET = [
+  // player stats
+  ':root .ytp-sfn{margin:0;background:rgba(28,28,28,.5);border-radius:4px;color:#fff;position:absolute;left:1em;top:1em;z-index:64;min-width:26em;font-size:11px}',
+  ':root .ytp-sfn .ytp-sfn-content{padding:5px}',
+  ':root .ytp-sfn .ytp-sfn-content>div>div{display:inline-block;font-weight:500;padding:0 .5em;text-align:right;width:10em}',
+  ':root .ytp-sfn .ytp-sfn-cpn{font-family:Consolas,Monaco,monospace;font-size:12px}',
+  ':root .ytp-sfn .ytp-horizonchart{display:inline-block;margin:2px;position:relative;vertical-align:bottom}',
+  ':root .ytp-sfn .ytp-horizonchart>span{display:inline-block;position:absolute}',
   // leanback watch controls background style
   '.app-quality-root .ytLrWatchDefaultControl .ytLrWatchDefaultControlsBackground,.app-quality-root .ytLrWatchDefaultPivot .ytLrWatchDefaultControlsBackground{background:-webkit-linear-gradient(180deg,rgba(0,0,0,0) 0%,rgba(0,0,0,.41) 67.43%,rgba(0,0,0,.7) 100%)!important;background:linear-gradient(180deg,rgba(0,0,0,0) 0%,rgba(0,0,0,.41) 67.43%,rgba(0,0,0,.7) 100%)!important}',
   // leanback live chat styles
