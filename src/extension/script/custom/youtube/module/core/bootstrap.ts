@@ -313,7 +313,8 @@ export default class YTCoreBootstrapModule extends Feature {
           supports_video_pause_on_blur: false
         })
         assign(flags ?? {}, {
-          force_memory_saving_mode: false
+          force_memory_saving_mode: false,
+          watch_cap_group: 'none'
         })
       }
     })

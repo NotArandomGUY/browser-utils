@@ -30,6 +30,20 @@ import Logger from '@ext/lib/logger'
 
 const logger = new Logger('YTPLAYER-UMP')
 
+const PLAYER_EXPERIMENT_FLAGS: [key: string, value?: string][] = [
+  // unlock higher quality formats
+  ['html5_force_hfr_support'],
+  ['html5_tv_ignore_capable_constraint'],
+
+  // smoother buffer when using csdai
+  ['html5_enable_sabr_csdai'],
+
+  // try to avoid dropping resolution with sabr live
+  ['html5_disable_bandwidth_cofactors_for_sabr_live'],
+  ['html5_live_quality_cap', '0'],
+  ['html5_sabr_live_timing'],
+  ['html5_streaming_resilience']
+]
 const UMP_PATHNAME_REGEXP = /^\/(init|video)playback$/
 const JSON_PREFIX_REGEXP = /^\)]}'\n/
 
@@ -160,11 +174,7 @@ const loadPlayerContextConfig = (webPlayerContextConfig: Record<string, YTPlayer
     const { serializedExperimentFlags, onesieHotConfig } = config
 
     const flags = new URLSearchParams(serializedExperimentFlags)
-
-    flags.set('html5_enable_sabr_csdai', 'true')
-    flags.set('html5_force_hfr_support', 'true')
-    flags.set('html5_tv_ignore_capable_constraint', 'true')
-
+    PLAYER_EXPERIMENT_FLAGS.forEach(([k, v]) => flags.set(k, v ?? 'true'))
     config.serializedExperimentFlags = flags.toString()
 
     const clientKey = onesieHotConfig?.clientKey
