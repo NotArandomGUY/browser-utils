@@ -158,7 +158,7 @@ const LOCAL_DATABASE_CONFIGS = [
     name: 'PersistentEntityStoreDb',
     stores: [
       { name: 'EntityStore', params: { keyPath: 'key' }, index: [{ name: 'entityType', keyPath: 'entityType' }] },
-      { name: 'EntityAssociationStore', params: { keyPath: ['parentEntityKey', 'childEntityKey'] } }
+      { name: 'EntityAssociationStore', params: { keyPath: ['parentEntityKey', 'childEntityKey'] }, index: [{ name: 'byParentEntityKey', keyPath: 'parentEntityKey' }, { name: 'byChildEntityKey', keyPath: 'childEntityKey' }] }
     ]
   },
   {
