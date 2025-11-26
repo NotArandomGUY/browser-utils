@@ -35,8 +35,9 @@ const PLAYER_EXPERIMENT_FLAGS: [key: string, value?: string][] = [
   ['html5_force_hfr_support'],
   ['html5_tv_ignore_capable_constraint'],
 
-  // smoother buffer when using csdai
-  ['html5_enable_sabr_csdai'],
+  // sabr usually have a smoother buffer, but prevent csdai seeking in some cases
+  ['html5_enable_sabr_csdai', 'false'],
+  ['html5_remove_client_sabr_determination', 'true'],
 
   // try to avoid dropping resolution with sabr live
   ['html5_disable_bandwidth_cofactors_for_sabr_live'],

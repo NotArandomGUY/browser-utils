@@ -146,8 +146,9 @@ const updatePlayerResponse = (data: YTRendererData<YTRenderer<'playerResponse'>>
   if (isYTLiveBehaviourEnabled(YTLiveBehaviourMask.FORCE_DVR) && !videoDetails.isLiveDvrEnabled) {
     videoDetails.isLiveDvrEnabled = true
 
-    if (playerConfig.mediaCommonConfig?.useServerDrivenAbr && playerConfig.daiConfig == null) {
-      playerConfig.daiConfig = {
+    if (playerConfig.mediaCommonConfig?.useServerDrivenAbr) {
+      playerConfig.mediaCommonConfig.useServerDrivenAbr = false
+      playerConfig.daiConfig ??= {
         daiType: 'DAI_TYPE_CLIENT_STITCHED',
         enableDai: true
       }
