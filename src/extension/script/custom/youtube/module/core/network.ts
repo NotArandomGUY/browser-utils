@@ -177,7 +177,7 @@ const processInnertubeRequest = async (endpoint: string, request?: YTInnertubeRe
       case 'get_watch': {
         const data = request as YTInnertubeRequest<typeof endpoint>
 
-        response = await invokeProcessors(request, processors)
+        response = await invokeProcessors(data, processors)
 
         await processInnertubeRequest('player', data.playerRequest as YTInnertubeRequest)
         await processInnertubeRequest('next', data.watchNextRequest as YTInnertubeRequest)
@@ -189,9 +189,9 @@ const processInnertubeRequest = async (endpoint: string, request?: YTInnertubeRe
         }
         data.params = protoBase64UrlDecode(new PlayerParams(), data.params as string)
 
-        response = await invokeProcessors(request, processors)
+        response = await invokeProcessors(data, processors)
 
-        data.params = protoBase64UrlEncode(data.params as InstanceType<typeof PlayerParams>)
+        data.params = protoBase64UrlEncode(data.params)
         break
       }
       default:
@@ -201,13 +201,11 @@ const processInnertubeRequest = async (endpoint: string, request?: YTInnertubeRe
   }
   if (response == null) return null
 
-  if (response.responseContext == null) {
-    response.responseContext = {
-      mainAppWebResponseContext: {
-        trackingParam: '' // should get filled by response processor
-      },
-      serviceTrackingParams: []
-    }
+  response.responseContext ??= {
+    mainAppWebResponseContext: {
+      trackingParam: '' // should get filled by response processor
+    },
+    serviceTrackingParams: []
   }
 
   return new Response(stringify(response), { status: 200, headers: { 'content-type': 'application/json' } })
