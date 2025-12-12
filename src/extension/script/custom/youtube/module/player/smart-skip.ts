@@ -297,6 +297,7 @@ const fetchSegmentEntries = async (videoId: string | null): Promise<SkipSegmentE
     if (entries != null) return entries
 
     const hash = Array.from(await digestSHA256(bufferFromString(videoId), 2)).map(b => b.toString(16).padStart(2, '0')).join('')
+    if (hash.length === 0) return []
 
     logger.debug('fetching skip segments for video:', videoId, hash)
 
