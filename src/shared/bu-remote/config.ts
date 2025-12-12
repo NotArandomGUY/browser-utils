@@ -7,3 +7,7 @@ export const PEER_CONFIG: PeerOptions = {
   secure: true,
   key: ''
 }
+
+export const FRAME_CONFIG = {
+  domains: []
+}

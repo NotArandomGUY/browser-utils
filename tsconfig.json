@@ -46,6 +46,9 @@
         ],
         "@ext/*": [
           "../src/extension/*"
+        ],
+        "@sh/*": [
+          "../src/shared/*"
         ]
       }
     }

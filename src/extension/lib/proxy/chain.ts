@@ -121,7 +121,8 @@ class ProxyChainImpl<T> {
           trace: [...trace, p],
           ...options.properties?.[p as keyof ToObjectType<T>]
         })
-        Reflect.set(target, p, proxy)
+        if (!options.readonly) Reflect.set(target, p, proxy)
+
         return proxy
       },
       set(target, p, newValue, receiver) {

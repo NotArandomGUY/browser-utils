@@ -94,7 +94,7 @@ export default class Hook<T, A extends unknown[], R, U = unknown> {
           result = invokeHooks(ctx, hooks[HookType.MAIN], result)
           result = invokeHooks(ctx, hooks[HookType.POST], result)
 
-          return result === HookResult.EXECUTION_IGNORE ? origin.apply(self, args) : ctx.returnValue
+          return result === HookResult.EXECUTION_IGNORE ? origin.apply(ctx.self, ctx.args) : ctx.returnValue
         }
       })
     })

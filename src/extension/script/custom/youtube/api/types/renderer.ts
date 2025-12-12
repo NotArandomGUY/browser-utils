@@ -1821,6 +1821,14 @@ export const YTRendererSchemaMap = {
     items: ytv_arr(ytv_ren()),
     wrap: ytv_bol()
   },
+  linkPhoneWithTvCodeRenderer: {
+    summary: ytv_sch(YTTextSchema),
+    title: ytv_sch(YTTextSchema)
+  },
+  linkPhoneWithWiFiRenderer: {
+    summary: ytv_sch(YTTextSchema),
+    title: ytv_sch(YTTextSchema)
+  },
   liveChatAuthorBadgeRenderer: {
     accessibility: ytv_sch(YTAccessibilitySchema),
     customThumbnail: ytv_sch(YTThumbnailSchema),
@@ -3250,6 +3258,10 @@ export const YTRendererSchemaMap = {
     footer: ytv_ren(),
     header: ytv_ren(),
     sections: ytv_arr(ytv_ren())
+  },
+  unlinkDevicesRenderer: {
+    thumbnail: ytv_sch(YTThumbnailSchema),
+    title: ytv_sch(YTTextSchema)
   },
   uploadTimeFactoidRenderer: {
     factoid: ytv_ren(),
