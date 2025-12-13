@@ -86,7 +86,8 @@ const processRequest = async (ctx: NetworkRequestContext): Promise<void> => {
   if (!STATS_BLACKLIST_PATH_REGEXP.test(path)) return
 
   // Block stats requests unless switch is enabled
-  if (!isYTTrackingSwitchEnabled(isYTLoggedIn() ? YTTrackingSwitchMask.LOGIN_STATS : YTTrackingSwitchMask.GUEST_STATS) || !STATS_WHITELIST_PATH_REGEXP.test(path)) {
+  const isLoggedIn = isYTLoggedIn() || (searchParams.has('cttype') && searchParams.has('ctt'))
+  if (!isYTTrackingSwitchEnabled(isLoggedIn ? YTTrackingSwitchMask.LOGIN_STATS : YTTrackingSwitchMask.GUEST_STATS) || !STATS_WHITELIST_PATH_REGEXP.test(path)) {
     assign<NetworkContext, NetworkContextState>(ctx, { state: NetworkState.FAILED, error: new Error('Failed') })
     return
   }
