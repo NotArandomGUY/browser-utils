@@ -40,18 +40,18 @@ const STYLE_SHEET = [
   // leanback watch controls background style
   '.app-quality-root .ytLrWatchDefaultControl .ytLrWatchDefaultControlsBackground,.app-quality-root .ytLrWatchDefaultPivot .ytLrWatchDefaultControlsBackground{background:-webkit-linear-gradient(180deg,rgba(0,0,0,0) 0%,rgba(0,0,0,.41) 67.43%,rgba(0,0,0,.7) 100%)!important;background:linear-gradient(180deg,rgba(0,0,0,0) 0%,rgba(0,0,0,.41) 67.43%,rgba(0,0,0,.7) 100%)!important}',
   // leanback live chat styles
-  '.ytLrLiveChatHost{text-shadow:.125rem .125rem .15rem #0f0f0f;width:19.375rem}',
-  '.ytLrLiveChatMessageList{margin:2.75rem 2.5rem 2.75rem 2rem;width:14.875rem}',
-  '.ytLrLiveChatClientMessageHost,.ytLrLiveChatPaidMessageRendererHost,.ytLrLiveChatTextMessageRendererHost{background-color:#0f0f0f1f!important;border-radius:.125rem}',
-  '.ytLrLiveChatClientMessageHost{padding:.125rem}',
-  '.ytLrLiveChatPaidMessageRendererHeader{border-radius:.125rem .125rem 0 0;padding:.125rem;text-shadow:none}',
-  '.ytLrLiveChatPaidMessageRendererBody{background-color:initial!important;border-radius:0 0 .125rem .125rem;padding:.125rem}',
-  '.ytLrLiveChatTextMessageRendererContent{padding:.125rem .125rem .125rem 0}',
-  '.ytLrLiveChatTextMessageRendererBody{margin-top:.025rem}',
-  '.app-quality-root .ytLrLiveChatTextMessageRendererAuthorName{display:inline}',
-  '.ytLrLiveChatPaidMessageRendererAuthorPhoto,.ytLrLiveChatTextMessageRendererAuthorPhoto{height:1.25rem;width:1.25rem;left:.125rem;margin-top:.125rem}',
-  '.ytLrLiveChatPaidMessageRendererHasImage .ytLrLiveChatPaidMessageRendererHeader,.ytLrLiveChatPaidMessageRendererHasImage .ytLrLiveChatPaidMessageRendererBody{padding-left:1.5rem}',
-  '.ytLrLiveChatTextMessageRendererContentHasImage{margin-left:1.5rem}'
+  '.ytLrLiveChatHost,.DEPcRc{text-shadow:.125rem .125rem .15rem #0f0f0f;width:19.375rem}',
+  '.ytLrLiveChatMessageList,.JjIq5d{margin:2.75rem 2.5rem 2.75rem 2rem;width:14.875rem}',
+  '.ytLrLiveChatClientMessageHost,.ytLrLiveChatPaidMessageRendererHost,.ytLrLiveChatTextMessageRendererHost,.Al763e,.GdyuCd,.SoC2id{background-color:#0f0f0f1f!important;border-radius:.125rem}',
+  '.ytLrLiveChatClientMessageHost,.Al763e{padding:.125rem}',
+  '.ytLrLiveChatPaidMessageRendererHeader,.LxxQOb{border-radius:.125rem .125rem 0 0;padding:.125rem;text-shadow:none}',
+  '.ytLrLiveChatPaidMessageRendererBody,.a8Dqxe{background-color:initial!important;border-radius:0 0 .125rem .125rem;padding:.125rem}',
+  '.ytLrLiveChatTextMessageRendererContent,.DBsPxe{padding:.125rem .125rem .125rem 0}',
+  '.ytLrLiveChatTextMessageRendererBody,.WIjhVc{margin-top:.025rem}',
+  '.app-quality-root .ytLrLiveChatTextMessageRendererAuthorNamem,.app-quality-root .lFzQBb{display:inline}',
+  '.ytLrLiveChatPaidMessageRendererAuthorPhoto,.ytLrLiveChatTextMessageRendererAuthorPhoto,.XEjrof,.Z7Lmsc{height:1.25rem;width:1.25rem;left:.125rem;margin-top:.125rem}',
+  '.ytLrLiveChatPaidMessageRendererHasImage .ytLrLiveChatPaidMessageRendererHeader,.ytLrLiveChatPaidMessageRendererHasImage .ytLrLiveChatPaidMessageRendererBody,.g01YTe .LxxQOb,.g01YTe .a8Dqxe{padding-left:1.5rem}',
+  '.ytLrLiveChatTextMessageRendererContentHasImage,.LRs4Af{margin-left:1.5rem}'
 ].join('\n')
 const JSON_PREFIX = ')]}\'\n'
 
