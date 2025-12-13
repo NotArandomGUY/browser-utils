@@ -1,9 +1,10 @@
 import { YTSignalActionType } from '@ext/custom/youtube/api/endpoint'
 import { registerYTRendererPreProcessor, setYTServiceTrackingOverride, YTLoggingDirectivesSchema, YTRenderer, YTRendererData, YTRendererSchemaMap } from '@ext/custom/youtube/api/renderer'
 import { YTIconType } from '@ext/custom/youtube/api/types/icon'
-import { isYTLoggedIn } from '@ext/custom/youtube/module/core/bootstrap'
+import { isYTLoggedIn, YTPlayerWebPlayerContextConfig } from '@ext/custom/youtube/module/core/bootstrap'
 import { CONFIG_TEXT_DISABLE, CONFIG_TEXT_ENABLE, getYTConfigBool, getYTConfigInt, registerYTConfigMenuItem, setYTConfigInt, YTConfigMenuItemType } from '@ext/custom/youtube/module/core/config'
 import { registerYTInnertubeRequestProcessor } from '@ext/custom/youtube/module/core/network'
+import { YTPlayerContextConfigCallback } from '@ext/custom/youtube/module/player/bootstrap'
 import { assign, defineProperty, getOwnPropertyDescriptor, keys } from '@ext/global/object'
 import { Feature } from '@ext/lib/feature'
 import { preventDispatchEvent } from '@ext/lib/intercept/event'
@@ -13,8 +14,8 @@ import { addInterceptNetworkUrlFilter } from '@ext/lib/intercept/network/filter/
 import { buildPathnameRegexp } from '@ext/lib/regexp'
 
 const TRACKING_SWITCHES_KEY = 'tracking-switches'
-const SHARE_URL_ALLOW_PARAMS = ['fmt', 'hl', 'index', 'list', 'pp', 't', 'v']
-const STATS_API_BLOCK_PARAMS = ['cbr', 'cbrand', 'cbrver', 'cmodel', 'cos', 'cosver']
+const SHARE_URL_ALLOW_PARAMS = new Set(['fmt', 'hl', 'index', 'list', 'pp', 't', 'v'])
+const STATS_API_BLOCK_PARAMS = new Set(['cbr', 'cbrand', 'cbrver', 'cmodel', 'cos', 'cosver'])
 
 const HOST_REGEXP = /./
 const FORBID_PATH_REGEXP = buildPathnameRegexp([
@@ -45,6 +46,10 @@ const STATS_BLACKLIST_PATH_REGEXP = buildPathnameRegexp([
 const STATS_WHITELIST_PATH_REGEXP = buildPathnameRegexp([
   '/api/stats/(atr|playback|delayplay|watchtime)'
 ])
+const INJECT_ACCESS_TOKEN_PATH_REGEXP = buildPathnameRegexp([
+  '/api/stats',
+  '/youtubei/v\\d+/player'
+])
 
 const enum YTTrackingSwitchMask {
   GUEST_STATS = 0x01,
@@ -52,8 +57,20 @@ const enum YTTrackingSwitchMask {
   SHARE_ID = 0x04
 }
 
+let accessTokenCacheKey: string | null = null
+
 export const isYTTrackingSwitchEnabled = (mask: YTTrackingSwitchMask): boolean => {
   return getYTConfigBool(TRACKING_SWITCHES_KEY, false, mask)
+}
+
+const getCachedAccessToken = (): string | null => {
+  try {
+    const { data } = JSON.parse(localStorage.getItem('yt.leanback.default::cached-access-tokens') ?? 'null')
+    const accessToken = data[accessTokenCacheKey!].accessToken
+    return typeof accessToken === 'string' ? accessToken : null
+  } catch {
+    return null
+  }
 }
 
 const sanitizeShareUrl = (url: string | URL): string => {
@@ -63,7 +80,7 @@ const sanitizeShareUrl = (url: string | URL): string => {
     const { searchParams } = url
 
     if (['youtu.be', 'youtube.com', 'youtube-nocookie.com'].includes(url.hostname)) {
-      searchParams.forEach((_, key) => SHARE_URL_ALLOW_PARAMS.includes(key) || searchParams.delete(key))
+      searchParams.forEach((_, key) => SHARE_URL_ALLOW_PARAMS.has(key) || searchParams.delete(key))
     } else {
       searchParams.forEach((value, key) => searchParams.set(key, sanitizeShareUrl(value)))
     }
@@ -74,6 +91,13 @@ const sanitizeShareUrl = (url: string | URL): string => {
   }
 }
 
+const processPlayerContextConfig = (config: YTPlayerWebPlayerContextConfig): void => {
+  const obfuscatedGaiaId = config.datasyncId?.replace(/\|/g, '')
+  if (obfuscatedGaiaId == null) return
+
+  accessTokenCacheKey = `${obfuscatedGaiaId}||${obfuscatedGaiaId}`
+}
+
 const processRequest = async (ctx: NetworkRequestContext): Promise<void> => {
   const { url, request } = ctx
   const { pathname, search, searchParams } = url
@@ -81,19 +105,26 @@ const processRequest = async (ctx: NetworkRequestContext): Promise<void> => {
   // Remove visitor id from everything
   request.headers.delete('x-goog-visitor-id')
 
-  // Ignore non stats requests
   const path = pathname + search
+
+  // Inject access token for some requests
+  if (INJECT_ACCESS_TOKEN_PATH_REGEXP.test(path)) {
+    const accessToken = getCachedAccessToken()
+    if (accessToken != null) request.headers.set('authorization', `Bearer ${accessToken}`)
+  }
+
+  // Ignore non stats requests
   if (!STATS_BLACKLIST_PATH_REGEXP.test(path)) return
 
   // Block stats requests unless switch is enabled
-  const isLoggedIn = isYTLoggedIn() || (searchParams.has('cttype') && searchParams.has('ctt'))
+  const isLoggedIn = isYTLoggedIn() || (searchParams.has('cttype') && searchParams.has('ctt')) || request.headers.has('authorization')
   if (!isYTTrackingSwitchEnabled(isLoggedIn ? YTTrackingSwitchMask.LOGIN_STATS : YTTrackingSwitchMask.GUEST_STATS) || !STATS_WHITELIST_PATH_REGEXP.test(path)) {
     assign<NetworkContext, NetworkContextState>(ctx, { state: NetworkState.FAILED, error: new Error('Failed') })
     return
   }
 
   // Sanitize stats requests params
-  searchParams.forEach((_, key) => STATS_API_BLOCK_PARAMS.includes(key) && searchParams.delete(key))
+  searchParams.forEach((_, key) => STATS_API_BLOCK_PARAMS.has(key) && searchParams.delete(key))
 
   await replaceRequest(ctx, { url })
 }
@@ -170,6 +201,8 @@ export default class YTMiscsTrackingModule extends Feature {
   }
 
   protected activate(): boolean {
+    YTPlayerContextConfigCallback.registerCallback(processPlayerContextConfig)
+
     setYTServiceTrackingOverride('CSI', 'yt_ad', '0')
     setYTServiceTrackingOverride('CSI', 'yt_red', '1')
 
