@@ -3,7 +3,7 @@ import { bufferToString } from '@ext/lib/buffer'
 import { Feature } from '@ext/lib/feature'
 import Logger from '@ext/lib/logger'
 import { ScriptRunAt, ScriptWorld } from '@ext/proto/script/config'
-import { getPackageScriptEntry, getPackageScriptIDs, parseOptionalConfig, registerPackageLoadCallback, reloadScriptPackage, unregisterPackageLoadCallback } from '@ext/worker/module/package'
+import { getPackageScriptEntry, getPackageScriptIDs, PackageLoadCallback, parseOptionalConfig, reloadScriptPackage } from '@ext/worker/module/package'
 
 import CS = chrome.scripting
 import US = chrome.userScripts
@@ -171,7 +171,7 @@ const onActionIconClick = async (): Promise<void> => {
 
 export default class WorkerInjectorModule extends Feature {
   protected activate(): boolean {
-    registerPackageLoadCallback(updateUserScripts)
+    PackageLoadCallback.registerCallback(updateUserScripts)
 
     chrome.action.onClicked.addListener(onActionIconClick)
     chrome.runtime.onInstalled.addListener(updateContentScripts)
@@ -180,7 +180,7 @@ export default class WorkerInjectorModule extends Feature {
   }
 
   protected deactivate(): boolean {
-    unregisterPackageLoadCallback(updateUserScripts)
+    PackageLoadCallback.unregisterCallback(updateUserScripts)
 
     chrome.action.onClicked.removeListener(onActionIconClick)
     chrome.runtime.onInstalled.removeListener(updateContentScripts)

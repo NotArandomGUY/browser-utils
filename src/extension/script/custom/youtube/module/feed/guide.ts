@@ -1,6 +1,6 @@
 import { YTSignalActionType } from '@ext/custom/youtube/api/endpoint'
 import { registerYTRendererPreProcessor, removeYTRendererPre, YTRenderer, YTRendererData, YTRendererSchemaMap } from '@ext/custom/youtube/api/renderer'
-import { isYTLoggedIn, registerYTPolymerCreateCallback } from '@ext/custom/youtube/module/core/bootstrap'
+import { isYTLoggedIn, YTPolymerCreateCallback } from '@ext/custom/youtube/module/core/bootstrap'
 import { registerYTSignalActionHandler } from '@ext/custom/youtube/module/core/event'
 import { isYTFeedFilterEnable, YTFeedFilterMask } from '@ext/custom/youtube/module/feed/filter'
 import { floor, max, min } from '@ext/global/math'
@@ -75,15 +75,16 @@ export default class YTFeedGuideModule extends Feature {
   }
 
   protected activate(): boolean {
-    registerYTRendererPreProcessor(YTRendererSchemaMap['guideResponse'], updateGuideResponse)
-    removeYTRendererPre(YTRendererSchemaMap['guideEntryRenderer'], filterGuideEntry)
-    removeYTRendererPre(YTRendererSchemaMap['guideSigninPromoRenderer'])
-
-    registerYTPolymerCreateCallback(instance => {
+    YTPolymerCreateCallback.registerCallback(instance => {
       if (!('initializeGuideData' in instance)) return
 
       guidePolymer = instance as YTGuidePolymer
     })
+
+    registerYTRendererPreProcessor(YTRendererSchemaMap['guideResponse'], updateGuideResponse)
+    removeYTRendererPre(YTRendererSchemaMap['guideEntryRenderer'], filterGuideEntry)
+    removeYTRendererPre(YTRendererSchemaMap['guideSigninPromoRenderer'])
+
     registerYTSignalActionHandler(YTSignalActionType.SOFT_RELOAD_PAGE, reloadYTGuide)
 
     return true

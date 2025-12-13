@@ -67,15 +67,15 @@ export default class YTMiscsFixupModule extends Feature {
       return HookResult.EXECUTION_IGNORE
     })
 
-    window.addEventListener('mousedown', stopControlEvent, true)
-    window.addEventListener('keydown', stopControlEvent, true)
-    window.addEventListener('scroll', stopControlEvent, true)
+    addEventListener('mousedown', stopControlEvent, true)
+    addEventListener('keydown', stopControlEvent, true)
+    addEventListener('scroll', stopControlEvent, true)
 
     document.addEventListener('DOMContentLoaded', () => {
       const foreignScripts = document.querySelectorAll('script:not([nonce])')
       if (foreignScripts.length === 0) return
 
-      foreignScripts.forEach(script => script.parentNode?.removeChild(script))
+      foreignScripts.forEach(script => script.remove())
       logger.debug(`removed ${foreignScripts.length} foreign scripts`)
     })
 

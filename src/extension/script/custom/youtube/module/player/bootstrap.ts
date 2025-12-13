@@ -1,12 +1,32 @@
-import { registerYTPlayerCreateCallback } from '@ext/custom/youtube/module/core/bootstrap'
-import { defineProperty, getOwnPropertyNames, getPrototypeOf, keys, values } from '@ext/global/object'
+import { YTConfigInitCallback, YTPlayerCreateCallback, YTPlayerWebPlayerContextConfig } from '@ext/custom/youtube/module/core/bootstrap'
+import { URLSearchParams } from '@ext/global/network'
+import { defineProperty, fromEntries, getOwnPropertyNames, getPrototypeOf, keys, values } from '@ext/global/object'
+import Callback from '@ext/lib/callback'
 import { Feature } from '@ext/lib/feature'
 import InterceptDOM from '@ext/lib/intercept/dom'
 import Hook, { HookResult } from '@ext/lib/intercept/hook'
+import { addInterceptNetworkCallback, NetworkContext, NetworkState } from '@ext/lib/intercept/network'
 import Logger from '@ext/lib/logger'
+
+const logger = new Logger('YTPLAYER-BOOTSTRAP')
 
 const LOGGER_OVERRIDE_ID = `logovr-${Date.now()}`
 
+const PLAYER_EXPERIMENT_FLAGS: [key: string, value?: string][] = [
+  // unlock higher quality formats
+  ['html5_force_hfr_support'],
+  ['html5_tv_ignore_capable_constraint'],
+
+  // sabr usually have a smoother buffer, but prevent csdai seeking in some cases
+  ['html5_enable_sabr_csdai', 'false'],
+  ['html5_remove_client_sabr_determination', 'true'],
+
+  // try to avoid dropping resolution with sabr live
+  ['html5_disable_bandwidth_cofactors_for_sabr_live'],
+  ['html5_live_quality_cap', '0'],
+  ['html5_sabr_live_timing'],
+  ['html5_streaming_resilience']
+]
 const STYLE_SHEET = [
   // FIX: leanback animated overlay virtual list bug
   '.app-quality-root .ytLrAnimatedOverlayHiding .ytLrAnimatedOverlayContainer,.app-quality-root .frHKed .AmQJbe{opacity:0!important;display:block!important}',
@@ -33,6 +53,7 @@ const STYLE_SHEET = [
   '.ytLrLiveChatPaidMessageRendererHasImage .ytLrLiveChatPaidMessageRendererHeader,.ytLrLiveChatPaidMessageRendererHasImage .ytLrLiveChatPaidMessageRendererBody{padding-left:1.5rem}',
   '.ytLrLiveChatTextMessageRendererContentHasImage{margin-left:1.5rem}'
 ].join('\n')
+const JSON_PREFIX = ')]}\'\n'
 
 const STAT_METHOD_MAP = {
   bandwidth: 'getBandWidth',
@@ -109,6 +130,8 @@ const instances = {
   [YTPInstanceType.APP]: new Set<WeakRef<YTPAppInstance>>(),
   [YTPInstanceType.VIDEO_PLAYER]: new Set<WeakRef<YTPVideoPlayerInstance>>()
 }
+
+export const YTPlayerContextConfigCallback = new Callback<[config: YTPlayerWebPlayerContextConfig]>()
 
 type YTPInstanceOf<T extends YTPInstanceType> = typeof instances[T] extends Set<WeakRef<infer I>> ? I : never
 
@@ -205,16 +228,16 @@ const onCreateVideoPlayerInstance = (instance?: YTPVideoPlayerInstance): void =>
 const onCreateInstance = (instance: object): boolean => {
   defineProperty(instance, 'logger', {
     configurable: true,
-    set(logger) {
+    set(value) {
       defineProperty(instance, 'logger', {
         configurable: true,
         writable: true,
-        value: logger
+        value
       })
 
-      if (!onCreateLogger(logger)) return
+      if (!onCreateLogger(value)) return
 
-      switch (logger?.tag) {
+      switch (value?.tag) {
         case 'App':
           onCreateAppInstance(instance as YTPAppInstance)
           break
@@ -258,6 +281,49 @@ const onCreateYTPlayer = (container: HTMLElement): void => {
   }).call
 }
 
+const processPlayerContextConfig = (webPlayerContextConfig: Record<string, YTPlayerWebPlayerContextConfig>): void => {
+  if (webPlayerContextConfig == null) return
+
+  for (const id in webPlayerContextConfig) {
+    const config = webPlayerContextConfig[id]
+    if (config == null) continue
+
+    const { serializedExperimentFlags } = config
+
+    const flags = new URLSearchParams(serializedExperimentFlags)
+    PLAYER_EXPERIMENT_FLAGS.forEach(([k, v]) => flags.set(k, v ?? 'true'))
+    config.serializedExperimentFlags = flags.toString()
+
+    YTPlayerContextConfigCallback.invoke(config)
+  }
+}
+
+const processResponse = async (ctx: NetworkContext<unknown, NetworkState.SUCCESS>): Promise<void> => {
+  const { url, response } = ctx
+  const { pathname, searchParams } = url
+
+  if (pathname !== '/tv_config') return
+
+  try {
+    const data = await response.clone().text()
+    const isPrefixed = data.startsWith(JSON_PREFIX)
+    const config = JSON.parse(isPrefixed ? data.slice(JSON_PREFIX.length) : data)
+
+    if (searchParams.has('action_get_config')) {
+      const { webPlayerContextConfig } = config
+
+      processPlayerContextConfig(webPlayerContextConfig)
+    }
+
+    ctx.response = new Response(`${isPrefixed ? JSON_PREFIX : ''}${JSON.stringify(data)}`, {
+      status: response.status,
+      headers: fromEntries(response.headers.entries())
+    })
+  } catch (error) {
+    logger.warn('process tv config error:', error)
+  }
+}
+
 export const getAllYTPInstance = <T extends YTPInstanceType>(type: T): YTPInstanceOf<T>[] => {
   return Array.from(instances[type]?.values() as SetIterator<WeakRef<YTPInstanceOf<T>>> ?? []).map(ref => ref.deref()).filter(value => value != null)
 }
@@ -272,9 +338,14 @@ export default class YTPlayerBootstrapModule extends Feature {
   }
 
   protected activate(): boolean {
-    registerYTPlayerCreateCallback(onCreateYTPlayer)
+    YTConfigInitCallback.registerCallback(ytcfg => processPlayerContextConfig(ytcfg.get('WEB_PLAYER_CONTEXT_CONFIGS')))
+    YTPlayerCreateCallback.registerCallback(onCreateYTPlayer)
 
-    window.addEventListener('DOMContentLoaded', () => {
+    addInterceptNetworkCallback(async ctx => {
+      if (ctx.state === NetworkState.SUCCESS) await processResponse(ctx)
+    })
+
+    addEventListener('DOMContentLoaded', () => {
       const style = document.createElement('style')
       style.textContent = STYLE_SHEET
       document.body.appendChild(style)

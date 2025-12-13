@@ -1,5 +1,6 @@
 import { defineProperty } from '@ext/global/object'
 import { Mutex } from '@ext/lib/async'
+import Callback from '@ext/lib/callback'
 import { compress, decompress } from '@ext/lib/compression'
 import { Feature } from '@ext/lib/feature'
 import IndexedKV from '@ext/lib/ikv'
@@ -28,10 +29,11 @@ interface IDBPackageEntry {
 
 const fetchMutex = new Mutex()
 const loadMutex = new Mutex()
-const loadCallbacks = new Array<() => void>()
 
 const db = new IndexedKV('package', [{ name: 'spk', params: { keyPath: 'version' } }])
 const cache = new ScriptPackage({})
+
+export const PackageLoadCallback = new Callback()
 
 const parseVersion = (version: string): number[] => {
   return version.match(/\d+(?=\.|$)/g)?.map(v => parseInt(v)) ?? []
@@ -156,7 +158,7 @@ const onStartup = async (): Promise<void> => {
   chrome.alarms.clear(ALARM_NAME)
   chrome.alarms.create(ALARM_NAME, { when: Date.now() + (isOpen ? 10e3 : 0), periodInMinutes: AUTO_UPDATE_INTERVAL })
 
-  if (isOpen) loadCallbacks.forEach(callback => callback())
+  if (isOpen) PackageLoadCallback.invoke()
 }
 
 const onAlarm = (alarm: chrome.alarms.Alarm): void => {
@@ -215,7 +217,7 @@ export const updateScriptPackage = async (): Promise<boolean> => {
     closeScriptPackage()
     if (!await openScriptPackage()) return false
 
-    loadCallbacks.forEach(callback => callback())
+    PackageLoadCallback.invoke()
     return true
   } catch (error) {
     setPackageUpdateStatus(`fetch package error: ${error instanceof Error ? error.message : String(error)}`)
@@ -228,7 +230,7 @@ export const updateScriptPackage = async (): Promise<boolean> => {
 
 export const reloadScriptPackage = async (): Promise<void> => {
   closeScriptPackage()
-  if (await openScriptPackage()) loadCallbacks.forEach(callback => callback())
+  if (await openScriptPackage()) PackageLoadCallback.invoke()
 }
 
 export const getPackageMessageKey = async (): Promise<Uint8Array | null> => {
@@ -248,15 +250,6 @@ export const getPackageScriptEntry = async (id: string): Promise<IScriptEntry | 
 
 export const parseOptionalConfig = <T extends object>(data: T): { [K in keyof T as T[K] extends Function ? never : K]?: NonNullable<T[K]> } => {
   return Object.fromEntries(Object.entries(data).filter(e => e[1] != null && typeof e[1] !== 'function')) as ReturnType<typeof parseOptionalConfig<T>>
-}
-
-export const registerPackageLoadCallback = (callback: () => void): void => {
-  if (!loadCallbacks.includes(callback)) loadCallbacks.push(callback)
-}
-
-export const unregisterPackageLoadCallback = (callback: () => void): void => {
-  const index = loadCallbacks.indexOf(callback)
-  if (index >= 0) loadCallbacks.splice(index, 1)
 }
 
 export default class WorkerPackageModule extends Feature {

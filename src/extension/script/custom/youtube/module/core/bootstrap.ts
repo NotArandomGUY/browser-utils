@@ -5,6 +5,7 @@ import { YTRenderer, YTRendererData } from '@ext/custom/youtube/api/renderer'
 import { ytv_enp, YTValueData, YTValueType } from '@ext/custom/youtube/api/types/common'
 import YTDevicePage from '@ext/custom/youtube/pages/device'
 import { assign, defineProperties, defineProperty } from '@ext/global/object'
+import Callback from '@ext/lib/callback'
 import { Feature } from '@ext/lib/feature'
 import Hook, { HookResult } from '@ext/lib/intercept/hook'
 import Logger from '@ext/lib/logger'
@@ -161,9 +162,9 @@ const APP_ELEMENT_PAGE_MAP: Record<string, YTInitDataResponse['page'] | false> =
   'yt-live-chat-app': 'live_chat'
 }
 
-const configInitCallbacks: ((ytcfg: YTConfig) => void)[] = []
-const createPlayerCallbacks: ((container: HTMLElement) => void)[] = []
-const createPolymerCallbacks: ((instance: object) => void)[] = []
+export const YTConfigInitCallback = new Callback<[ytcfg: YTConfig]>()
+export const YTPlayerCreateCallback = new Callback<[container: HTMLElement]>()
+export const YTPolymerCreateCallback = new Callback<[instance: object]>()
 
 let environment: YTEnvironment
 let ytcfg: YTConfig
@@ -249,7 +250,7 @@ const createPlayer = async (create: (...args: unknown[]) => void, container: HTM
   logger.debug('create player:', container, config, webPlayerContextConfig)
 
   try {
-    createPlayerCallbacks.forEach(callback => callback(container))
+    YTPlayerCreateCallback.invoke(container)
   } catch (error) {
     logger.warn('create player callback error:', error)
   }
@@ -261,7 +262,7 @@ const createPolymer = (instance: object): void => {
   if (instance == null) return
 
   try {
-    createPolymerCallbacks.forEach(callback => callback(instance))
+    YTPolymerCreateCallback.invoke(instance)
   } catch (error) {
     logger.warn('create polymer callback error:', error)
   }
@@ -273,18 +274,6 @@ export const getYTAppElement = (): HTMLElement | null => {
 
 export const isYTLoggedIn = (): boolean => {
   return ytcfg?.get('LOGGED_IN', false) ?? false
-}
-
-export const registerYTConfigInitCallback = (callback: (ytcfg: YTConfig) => void): void => {
-  configInitCallbacks.push(callback)
-}
-
-export const registerYTPlayerCreateCallback = (callback: (container: HTMLElement) => void): void => {
-  createPlayerCallbacks.push(callback)
-}
-
-export const registerYTPolymerCreateCallback = (callback: (instance: object) => void): void => {
-  createPolymerCallbacks.push(callback)
 }
 
 export default class YTCoreBootstrapModule extends Feature {
@@ -342,7 +331,7 @@ export default class YTCoreBootstrapModule extends Feature {
             ytcfg['init_'] = true
 
             try {
-              configInitCallbacks.forEach(callback => callback(ytcfg))
+              YTConfigInitCallback.invoke(ytcfg)
             } catch (error) {
               logger.warn('config init callback error:', error)
             }

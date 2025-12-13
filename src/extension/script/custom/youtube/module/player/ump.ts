@@ -1,6 +1,7 @@
 import { processYTRenderer } from '@ext/custom/youtube/api/processor'
-import { registerYTConfigInitCallback, type YTPlayerWebPlayerContextConfig } from '@ext/custom/youtube/module/core/bootstrap'
+import { YTPlayerWebPlayerContextConfig } from '@ext/custom/youtube/module/core/bootstrap'
 import { dispatchYTOpenPopupAction } from '@ext/custom/youtube/module/core/event'
+import { YTPlayerContextConfigCallback } from '@ext/custom/youtube/module/player/bootstrap'
 import { OnesieHeaderType, OnesieProxyStatus, SabrContextScope, UMPSliceType } from '@ext/custom/youtube/proto/gvs/common/enum'
 import HttpHeader from '@ext/custom/youtube/proto/gvs/common/http-header'
 import OnesieEncryptedInnertubeRequest from '@ext/custom/youtube/proto/gvs/onesie/encrypted-innertube-request'
@@ -21,7 +22,6 @@ import UMPSnackbarMessage from '@ext/custom/youtube/proto/gvs/ump/snackbar-messa
 import { decryptOnesie, encryptOnesie } from '@ext/custom/youtube/utils/crypto'
 import { UMPContextManager, UMPSliceFlags } from '@ext/custom/youtube/utils/ump'
 import { ceil } from '@ext/global/math'
-import { URLSearchParams } from '@ext/global/network'
 import { assign, fromEntries } from '@ext/global/object'
 import { bufferFromString, bufferToString } from '@ext/lib/buffer'
 import { Feature } from '@ext/lib/feature'
@@ -30,23 +30,7 @@ import Logger from '@ext/lib/logger'
 
 const logger = new Logger('YTPLAYER-UMP')
 
-const PLAYER_EXPERIMENT_FLAGS: [key: string, value?: string][] = [
-  // unlock higher quality formats
-  ['html5_force_hfr_support'],
-  ['html5_tv_ignore_capable_constraint'],
-
-  // sabr usually have a smoother buffer, but prevent csdai seeking in some cases
-  ['html5_enable_sabr_csdai', 'false'],
-  ['html5_remove_client_sabr_determination', 'true'],
-
-  // try to avoid dropping resolution with sabr live
-  ['html5_disable_bandwidth_cofactors_for_sabr_live'],
-  ['html5_live_quality_cap', '0'],
-  ['html5_sabr_live_timing'],
-  ['html5_streaming_resilience']
-]
 const UMP_PATHNAME_REGEXP = /^\/(init|video)playback$/
-const JSON_PREFIX_REGEXP = /^\)]}'\n/
 
 let isFirstInterrupt = true
 let onesieClientKeys: Uint8Array[] = []
@@ -165,25 +149,12 @@ const manager = new UMPContextManager({
   }
 })
 
-const loadPlayerContextConfig = (webPlayerContextConfig: Record<string, YTPlayerWebPlayerContextConfig>): void => {
-  if (webPlayerContextConfig == null) return
+const processPlayerContextConfig = (config: YTPlayerWebPlayerContextConfig): void => {
+  const clientKey = config.onesieHotConfig?.clientKey
+  if (clientKey == null) return
 
-  for (const id in webPlayerContextConfig) {
-    const config = webPlayerContextConfig[id]
-    if (config == null) continue
-
-    const { serializedExperimentFlags, onesieHotConfig } = config
-
-    const flags = new URLSearchParams(serializedExperimentFlags)
-    PLAYER_EXPERIMENT_FLAGS.forEach(([k, v]) => flags.set(k, v ?? 'true'))
-    config.serializedExperimentFlags = flags.toString()
-
-    const clientKey = onesieHotConfig?.clientKey
-    if (clientKey == null) continue
-
-    onesieClientKeys.push(bufferFromString(atob(clientKey), 'latin1'))
-    logger.debug('load onesie client key:', onesieClientKeys, 'config:', webPlayerContextConfig)
-  }
+  onesieClientKeys.push(bufferFromString(atob(clientKey), 'latin1'))
+  logger.debug('load onesie client key:', onesieClientKeys)
 }
 
 const processOnesieInnertubeRequest = async (innertubeRequest: InstanceType<typeof OnesieEncryptedInnertubeRequest> | null): Promise<void> => {
@@ -297,40 +268,18 @@ const processResponse = async (ctx: NetworkContext<unknown, NetworkState.SUCCESS
   })
 }
 
-const processTVConfig = async (ctx: NetworkContext<unknown, NetworkState.SUCCESS>): Promise<void> => {
-  const { url, response } = ctx
-  const { searchParams } = url
-
-  try {
-    const data = await response.clone().text()
-    const isPrefixed = JSON_PREFIX_REGEXP.test(data)
-    const config = JSON.parse(data.replace(JSON_PREFIX_REGEXP, ''))
-
-    if (searchParams.has('action_get_config')) {
-      const { webPlayerContextConfig } = config
-
-      loadPlayerContextConfig(webPlayerContextConfig)
-    }
-
-    ctx.response = new Response(`${isPrefixed ? ')]}\'\n' : ''}${JSON.stringify(data)}`, { status: response.status, headers: fromEntries(response.headers.entries()) })
-  } catch (error) {
-    logger.warn('process tv config error:', error)
-  }
-}
-
 export default class YTPlayerUMPModule extends Feature {
   public constructor() {
     super('ump')
   }
 
   protected activate(): boolean {
+    YTPlayerContextConfigCallback.registerCallback(processPlayerContextConfig)
+
     addInterceptNetworkCallback(async ctx => {
       const { url } = ctx
 
-      if (url.hostname.startsWith('redirector.') || !UMP_PATHNAME_REGEXP.test(url.pathname)) {
-        if (ctx.state === NetworkState.SUCCESS && url.pathname === '/tv_config') await processTVConfig(ctx)
-        return
-      }
+      if (url.hostname.startsWith('redirector.') || !UMP_PATHNAME_REGEXP.test(url.pathname)) return
 
       switch (ctx.state) {
         case NetworkState.UNSENT:
@@ -341,8 +290,6 @@ export default class YTPlayerUMPModule extends Feature {
           break
       }
     })
-
-    registerYTConfigInitCallback(ytcfg => loadPlayerContextConfig(ytcfg.get('WEB_PLAYER_CONTEXT_CONFIGS')))
 
     return true
   }

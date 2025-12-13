@@ -1,7 +1,7 @@
 import { registerOverlayPage } from '@ext/common/preload/overlay'
 import { registerYTEndpointPreProcessor, YTEndpoint, YTEndpointSchemaMap } from '@ext/custom/youtube/api/endpoint'
 import { YTEndpointData } from '@ext/custom/youtube/api/types/common'
-import { registerYTConfigInitCallback } from '@ext/custom/youtube/module/core/bootstrap'
+import { YTConfigInitCallback } from '@ext/custom/youtube/module/core/bootstrap'
 import YTOfflinePage from '@ext/custom/youtube/pages/offline'
 import { updateYTReduxStoreLocalEntities } from '@ext/custom/youtube/utils/redux'
 import { Feature } from '@ext/lib/feature'
@@ -27,9 +27,9 @@ export default class YTPlayerOfflineModule extends Feature {
   }
 
   protected activate(): boolean {
-    registerYTEndpointPreProcessor(YTEndpointSchemaMap['entityUpdateCommand'], updateEntityUpdateCommand)
+    YTConfigInitCallback.registerCallback(() => updateYTReduxStoreLocalEntities())
 
-    registerYTConfigInitCallback(() => updateYTReduxStoreLocalEntities())
+    registerYTEndpointPreProcessor(YTEndpointSchemaMap['entityUpdateCommand'], updateEntityUpdateCommand)
 
     registerOverlayPage('Downloads', YTOfflinePage)
 

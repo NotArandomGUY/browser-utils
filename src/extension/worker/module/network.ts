@@ -10,7 +10,7 @@ import ScriptNetRule from '@ext/proto/script/net/rule'
 import ScriptNetRuleAction, { ScriptNetRuleActionType } from '@ext/proto/script/net/rule-action'
 import ScriptNetRuleCondition, { ScriptNetDomainType, ScriptNetRequestMethod, ScriptNetResourceType } from '@ext/proto/script/net/rule-condition'
 import ScriptNetURLTransform from '@ext/proto/script/net/url-transform'
-import { getPackageScriptEntry, getPackageScriptIDs, parseOptionalConfig, registerPackageLoadCallback, unregisterPackageLoadCallback } from '@ext/worker/module/package'
+import { getPackageScriptEntry, getPackageScriptIDs, PackageLoadCallback, parseOptionalConfig } from '@ext/worker/module/package'
 
 import DNR = chrome.declarativeNetRequest
 
@@ -251,13 +251,13 @@ export const updateNetworkRuleFilter = async (scriptId: string, includeDomain: s
 
 export default class WorkerNetworkModule extends Feature {
   protected activate(): boolean {
-    registerPackageLoadCallback(updateRules)
+    PackageLoadCallback.registerCallback(updateRules)
 
     return true
   }
 
   protected deactivate(): boolean {
-    unregisterPackageLoadCallback(updateRules)
+    PackageLoadCallback.unregisterCallback(updateRules)
 
     DNR.getDynamicRules().then(rules => DNR.updateDynamicRules({ removeRuleIds: rules.map(rule => rule.id) }))
 
