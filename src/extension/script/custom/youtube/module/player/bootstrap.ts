@@ -9,9 +9,9 @@ const LOGGER_OVERRIDE_ID = `logovr-${Date.now()}`
 
 const STYLE_SHEET = [
   // FIX: leanback animated overlay virtual list bug
-  '.app-quality-root .ytLrAnimatedOverlayHiding .ytLrAnimatedOverlayContainer{opacity:0!important;display:block!important}',
+  '.app-quality-root .ytLrAnimatedOverlayHiding .ytLrAnimatedOverlayContainer,.app-quality-root .frHKed .AmQJbe{opacity:0!important;display:block!important}',
   // player stats
-  ':root .ytp-sfn{margin:0;background:rgba(28,28,28,.5);border-radius:4px;color:#fff;position:absolute;left:1em;top:1em;z-index:64;min-width:26em;font-size:11px}',
+  ':root .ytp-sfn{margin:0;background:rgba(28,28,28,.5);border-radius:4px;color:#fff;position:absolute;left:initial;right:1em;top:1em;z-index:64;min-width:26em;font-size:11px}',
   ':root .ytp-sfn .ytp-sfn-content{padding:5px}',
   ':root .ytp-sfn .ytp-sfn-content>div>div{display:inline-block;font-weight:500;padding:0 .5em;text-align:right;width:10em}',
   ':root .ytp-sfn .ytp-sfn-cpn{font-family:Consolas,Monaco,monospace;font-size:12px}',
