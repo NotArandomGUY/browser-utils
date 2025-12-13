@@ -211,12 +211,20 @@ const processInnertubeRequest = async (endpoint: string, request?: YTInnertubeRe
   return new Response(stringify(response), { status: 200, headers: { 'content-type': 'application/json' } })
 }
 
-const processInnertubeResponse = async (endpoint: string, response: Response): Promise<Response> => {
-  let data = null
+const processInnertubeResponse = async (endpoint: string, request: Request, response: Response): Promise<Response> => {
+  let data: YTRendererData<YTResponseRenderer> | null = null
   try {
     data = await response.clone().json()
   } catch {
     return response
+  }
+
+  if (request.headers.has('authorization')) {
+    const serviceTrackingParams = data?.responseContext?.serviceTrackingParams ?? []
+    for (const tracking of serviceTrackingParams) {
+      const loggedIn = tracking.params?.find(p => p.key === 'logged_in')?.value
+      if (loggedIn != null) ytcfg?.set('LOGGED_IN', Number(loggedIn) !== 0)
+    }
   }
 
   const renderer = `${endpoint.replace(/[/_][a-z]/g, s => s[1].toUpperCase())}Response` as keyof typeof YTRendererSchemaMap
@@ -277,12 +285,12 @@ const processRequest = async (ctx: NetworkRequestContext): Promise<void> => {
 }
 
 const processResponse = async (ctx: NetworkContext<unknown, NetworkState.SUCCESS>): Promise<void> => {
-  const { url, response } = ctx
+  const { url, request, response } = ctx
 
   const innertubeEndpoint = INNERTUBE_API_REGEXP.exec(url.pathname)?.[0]
   if (innertubeEndpoint == null) return
 
-  ctx.response = await processInnertubeResponse(innertubeEndpoint, response)
+  ctx.response = await processInnertubeResponse(innertubeEndpoint, request, response)
 }
 
 export const registerYTInnertubeRequestProcessor = <E extends YTInnertubeRequestEndpoint>(endpoint: E, processor: YTInnertubeRequestProcessor<E>): void => {
