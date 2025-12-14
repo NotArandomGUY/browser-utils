@@ -159,6 +159,7 @@ const logger = new Logger('YTCORE-BOOTSTRAP')
 
 const APP_ELEMENT_PAGE_MAP: Record<string, YTInitDataResponse['page'] | false> = {
   'ytd-app': false,
+  'ytlr-app': false,
   'yt-live-chat-app': 'live_chat'
 }
 

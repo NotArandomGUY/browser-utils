@@ -82,7 +82,7 @@ export default class YTCoreEventModule extends Feature {
   }
 
   protected activate(): boolean {
-    window.addEventListener('load', () => {
+    addEventListener('load', () => {
       const yttv = window._yttv
       if (yttv != null) {
         for (const key in yttv) {
@@ -115,7 +115,6 @@ export default class YTCoreEventModule extends Feature {
       if (appElement == null) return
 
       appElement.addEventListener('yt-action', event => {
-        getYTAppElement()
         const { detail } = event as CustomEvent<YTActionEvent>
         actionHandlerMap[detail.actionName]?.(detail)
       })
