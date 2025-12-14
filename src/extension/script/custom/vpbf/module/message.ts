@@ -40,6 +40,10 @@ const onMessage = ({ data }: MessageEvent): void => {
   }
 }
 
+const onPopState = (): void => {
+  parent.postMessage({ type: 'popstate', href: location.href })
+}
+
 export default class VPBFMessage extends Feature {
   public constructor() {
     super('message')
@@ -47,6 +51,7 @@ export default class VPBFMessage extends Feature {
 
   protected activate(): boolean {
     addEventListener('message', onMessage)
+    addEventListener('popstate', onPopState)
 
     const parentProxy = new ProxyChain({
       target: parent,
