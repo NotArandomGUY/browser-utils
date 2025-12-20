@@ -31,6 +31,11 @@ export default {
             header: 'access-control-allow-credentials',
             value: 'true',
             operation: ScriptNetHeaderOperation.SET
+          }),
+          new ScriptNetModifyHeaderInfo({
+            header: 'permissions-policy',
+            value: 'autoplay=*,ch-ua-arch=*,ch-ua-bitness=*,ch-ua-full-version=*,ch-ua-full-version-list=*,ch-ua-model=*,ch-ua-wow64=*,ch-ua-form-factors=*,ch-ua-platform=*,ch-ua-platform-version=*',
+            operation: ScriptNetHeaderOperation.SET
           })
         ]
       }),
