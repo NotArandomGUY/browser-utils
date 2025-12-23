@@ -215,9 +215,9 @@ export default class YTMiscsTrackingModule extends Feature {
     registerYTRendererPreProcessor(YTRendererSchemaMap['sharingEmbedRenderer'], updateSharingEmbedRenderer)
 
     registerYTInnertubeRequestProcessor('*', ({ context }) => {
-      delete context.adSignalsInfo
-      delete context.clickTracking
-      delete context.clientScreenNonce
+      delete context?.adSignalsInfo
+      delete context?.clickTracking
+      delete context?.clientScreenNonce
     })
 
     registerYTInnertubeRequestProcessor('player', ({ params, playbackContext, playlistId, playlistIndex, videoId }) => {
@@ -246,7 +246,9 @@ export default class YTMiscsTrackingModule extends Feature {
       contentPlaybackContext.currentUrl = `/watch?${searchParams.toString()}`
     })
     registerYTInnertubeRequestProcessor('search', request => {
-      request.context.client.visitorData = ''
+      const { context } = request
+
+      if (context != null) context.client.visitorData = ''
 
       delete request.suggestionSearchParams
       delete request.webSearchboxStatsUrl

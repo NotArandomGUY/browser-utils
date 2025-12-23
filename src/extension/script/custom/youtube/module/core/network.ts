@@ -81,7 +81,7 @@ export interface YTInnertubeRequestPlaybackContext {
 }
 
 type YTInnertubeRequestBase = {
-  context: YTInnertubeRequestContext
+  context?: YTInnertubeRequestContext
 }
 
 type YTInnertubeRequestMap = {
