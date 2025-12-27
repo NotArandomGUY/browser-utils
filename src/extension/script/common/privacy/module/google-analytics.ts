@@ -1,8 +1,16 @@
 import { Feature } from '@ext/lib/feature'
-import ProxyChain from '@ext/lib/proxy/chain'
+import ProxyChain, { ProxyChainOptions } from '@ext/lib/proxy/chain'
 
-const PROXY_KEYS = ['ga', 'gtag', 'googletag']
-const PROXY_CHAIN_OPTIONS = { trace: ['PRIVACY'] }
+const PROXY_KEYS = ['ga', 'gtag', 'googletag'] as const
+const SHARED_PROXY_CHAIN_OPTIONS = {
+  trace: ['PRIVACY']
+} satisfies ProxyChainOptions
+const CUSTOM_PROXY_CHAIN_OPTIONS = {
+  'googletag': {
+    target: { cmd: [] },
+    ignoreProperties: ['cmd']
+  }
+} as Partial<Record<typeof PROXY_KEYS[number], ProxyChainOptions<Record<string, unknown>>>>
 
 export default class PrivacyGoogleAnalyticsModule extends Feature {
   public constructor() {
@@ -10,7 +18,10 @@ export default class PrivacyGoogleAnalyticsModule extends Feature {
   }
 
   protected activate(): boolean {
-    PROXY_KEYS.forEach(key => ProxyChain.assign(window, key, PROXY_CHAIN_OPTIONS))
+    PROXY_KEYS.forEach(key => ProxyChain.assign(window, key, {
+      ...SHARED_PROXY_CHAIN_OPTIONS,
+      ...CUSTOM_PROXY_CHAIN_OPTIONS[key]
+    }))
 
     return true
   }
