@@ -180,22 +180,20 @@ const observePropertyChain = <T extends object>(parent: unknown, chain: string[]
 }
 
 const onCreateAppInstance = (instance: YTPAppInstance): void => {
-  const player = getYTPInstance(YTPInstanceType.VIDEO_PLAYER)
-  if (player == null) {
-    logger.warn('failed to obtain player instance')
+  const playerInstances = getAllYTPInstance(YTPInstanceType.VIDEO_PLAYER)
+
+  for (const playerInstance of playerInstances) {
+    const chain = findPropertyChain(instance, playerInstance, 3, ['mediaElement'])
+    if (chain == null) continue
+
+    observePropertyChain(instance, chain, (playerInstance: YTPVideoPlayerInstance) => {
+      logger.debug('player instance changed')
+      instance.playerRef = new WeakRef(playerInstance)
+    })
     return
   }
 
-  const chain = findPropertyChain(instance, player, 3, ['mediaElement'])
-  if (chain == null) {
-    logger.warn('failed to locate player instance')
-    return
-  }
-
-  observePropertyChain(instance, chain, (playerInstance: YTPVideoPlayerInstance) => {
-    logger.debug('player instance changed')
-    instance.playerRef = new WeakRef(playerInstance)
-  })
+  logger.warn('failed to locate player instance')
 }
 
 const onCreateVideoPlayerInstance = (instance: YTPVideoPlayerInstance): void => {
@@ -216,17 +214,19 @@ const onCreateVideoPlayerInstance = (instance: YTPVideoPlayerInstance): void => 
 }
 
 const onCreateInstanceType = (type: YTPInstanceType, instance: YTPDisposableInstance): YTPDisposableInstance => {
-  switch (type) {
-    case YTPInstanceType.APP:
-      onCreateAppInstance(instance as YTPAppInstance)
-      break
-    case YTPInstanceType.VIDEO_PLAYER:
-      onCreateVideoPlayerInstance(instance as YTPVideoPlayerInstance)
-      break
-    default:
-      logger.warn('invalid type')
-      return instance
-  }
+  setTimeout(() => {
+    switch (type) {
+      case YTPInstanceType.APP:
+        onCreateAppInstance(instance as YTPAppInstance)
+        break
+      case YTPInstanceType.VIDEO_PLAYER:
+        onCreateVideoPlayerInstance(instance as YTPVideoPlayerInstance)
+        break
+      default:
+        logger.warn('invalid type')
+        break
+    }
+  }, 1)
 
   if (instance.dispose != null) {
     const instances = instancesByType[type] as Set<WeakRef<YTPDisposableInstance>>
