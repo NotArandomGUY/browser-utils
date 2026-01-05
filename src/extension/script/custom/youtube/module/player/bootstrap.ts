@@ -1,6 +1,6 @@
 import { YTConfigInitCallback, YTPlayerCreateCallback, YTPlayerWebPlayerContextConfig } from '@ext/custom/youtube/module/core/bootstrap'
 import { URLSearchParams } from '@ext/global/network'
-import { defineProperty, fromEntries, getOwnPropertyNames, getPrototypeOf, keys, values } from '@ext/global/object'
+import { defineProperty, entries, fromEntries, keys, values } from '@ext/global/object'
 import Callback from '@ext/lib/callback'
 import { Feature } from '@ext/lib/feature'
 import InterceptDOM from '@ext/lib/intercept/dom'
@@ -9,8 +9,6 @@ import { addInterceptNetworkCallback, NetworkContext, NetworkState } from '@ext/
 import Logger from '@ext/lib/logger'
 
 const logger = new Logger('YTPLAYER-BOOTSTRAP')
-
-const LOGGER_OVERRIDE_ID = `logovr-${Date.now()}`
 
 const PLAYER_EXPERIMENT_FLAGS: [key: string, value?: string][] = [
   // unlock higher quality formats
@@ -54,6 +52,11 @@ const STYLE_SHEET = [
   '.ytLrLiveChatTextMessageRendererContentHasImage,.LRs4Af{margin-left:1.5rem}'
 ].join('\n')
 const JSON_PREFIX = ')]}\'\n'
+
+const CTOR_REGEXP_LIST = [
+  [YTPInstanceType.APP, /(logger[A-Za-z("'._=\s]+App)|(publish\(["']applicationInitialized)/],
+  [YTPInstanceType.VIDEO_PLAYER, /(logger[A-Za-z("'._=\s]+VideoPlayer)|(new\s+Map.*?bufferhealth)/]
+] satisfies [YTPInstanceType, RegExp][]
 
 const STAT_METHOD_MAP = {
   bandwidth: 'getBandWidth',
@@ -124,125 +127,135 @@ export interface YTPVideoPlayerInstance extends YTPDisposableInstance {
   stopVideo?(): void
 }
 
-let ctor: string | null = null
-
-const instances = {
+const instancesByType = {
   [YTPInstanceType.APP]: new Set<WeakRef<YTPAppInstance>>(),
   [YTPInstanceType.VIDEO_PLAYER]: new Set<WeakRef<YTPVideoPlayerInstance>>()
 }
 
+let baseCtor: string | null = null
+
 export const YTPlayerContextConfigCallback = new Callback<[config: YTPlayerWebPlayerContextConfig]>()
 
-type YTPInstanceOf<T extends YTPInstanceType> = typeof instances[T] extends Set<WeakRef<infer I>> ? I : never
+type YTPInstanceOf<T extends YTPInstanceType> = typeof instancesByType[T] extends Set<WeakRef<infer I>> ? I : never
 
-const flatObjectValues = (obj: object, depth = 1): unknown[] => {
-  let values = Object.values(obj)
-  if (depth > 1) {
-    values = values.concat(values.filter(v => v != null && typeof v === 'object').flatMap(v => flatObjectValues(v, depth - 1)))
+const findPropertyChain = (parent: unknown, child: unknown, depth: number, excludes: string[] = []): string[] | null => {
+  if (parent == null || typeof parent !== 'object' || depth < 1) return null
+
+  for (const [key, value] of entries(parent)) {
+    if (excludes.includes(key)) continue
+
+    if (value === child) return [key]
+
+    const chain = findPropertyChain(value, child, depth - 1, excludes)
+    if (chain != null) return [key, ...chain]
   }
-  return values
+
+  return null
 }
 
-const cleanWeakRefSet = <T extends WeakKey>(refSet: Set<WeakRef<T>>, targetValue?: T): void => {
-  for (const ref of refSet) {
-    const value = ref.deref()
-    if (value == null || value === targetValue) refSet.delete(ref)
+const observePropertyChain = <T extends object>(parent: unknown, chain: string[], callback: (value: T) => void): void => {
+  if (parent == null || typeof parent !== 'object') return
+
+  const key = chain[0]
+  if (key == null) return
+
+  let value: unknown
+
+  const get = (): unknown => value
+  const set = (v: unknown): void => {
+    value = v
+    observePropertyChain(value, chain.slice(1), callback)
+  }
+
+  set(parent[key as keyof typeof parent])
+  defineProperty(parent, key, { configurable: true, enumerable: true, get, set })
+
+  if (chain.length > 1) return
+
+  try {
+    callback(value as T)
+  } catch (error) {
+    logger.warn('property callback error:', error)
   }
 }
 
-const onCreateLogger = (instance: object): boolean => {
-  if (instance == null || 'logger' in instance) return false
+const onCreateAppInstance = (instance: YTPAppInstance): void => {
+  const player = getYTPInstance(YTPInstanceType.VIDEO_PLAYER)
+  if (player == null) {
+    logger.warn('failed to obtain player instance')
+    return
+  }
 
-  const proto = getPrototypeOf(instance)
+  const chain = findPropertyChain(instance, player, 3, ['mediaElement'])
+  if (chain == null) {
+    logger.warn('failed to locate player instance')
+    return
+  }
 
-  if (proto[LOGGER_OVERRIDE_ID]) return true
-  proto[LOGGER_OVERRIDE_ID] = true
+  observePropertyChain(instance, chain, (playerInstance: YTPVideoPlayerInstance) => {
+    logger.debug('player instance changed')
+    instance.playerRef = new WeakRef(playerInstance)
+  })
+}
 
-  // Override logger methods
-  getOwnPropertyNames(proto).forEach(m => {
-    if (m === 'constructor') return
+const onCreateVideoPlayerInstance = (instance: YTPVideoPlayerInstance): void => {
+  values(instance).forEach(prop => {
+    if (prop == null || typeof prop !== 'object') return
 
-    const method = Logger.prototype[m as keyof typeof Logger.prototype] ?? Logger.prototype.debug
-    proto[m] = function (...args: unknown[]): void {
-      let instance = this.instance
-      if (instance == null) {
-        instance = new Logger(`YTPLAYER-<${this.tag ?? 'unknown'}>`, true)
-        this.instance = instance
+    for (const key in prop) {
+      const value = prop[key]
+      if (value == null || !(value instanceof Map)) continue
+
+      for (const stat in STAT_METHOD_MAP) {
+        if (!value.has(stat)) continue
+
+        instance[STAT_METHOD_MAP[stat as keyof typeof STAT_METHOD_MAP]] = value.get(stat)
       }
-      method.apply(instance, args)
     }
   })
-
-  return true
 }
 
-const onCreateAppInstance = (instance?: YTPAppInstance): void => {
-  if (instance == null) return
-
-  instances[YTPInstanceType.APP].add(new WeakRef(instance))
-  if (instance.dispose != null) {
-    instance.dispose = new Hook(instance.dispose, false).install(ctx => {
-      cleanWeakRefSet(instances[YTPInstanceType.APP], ctx.self as typeof instance)
-      return HookResult.EXECUTION_IGNORE
-    }).call
-  }
-}
-
-const onCreateVideoPlayerInstance = (instance?: YTPVideoPlayerInstance): void => {
-  if (instance == null) return
-
-  instances[YTPInstanceType.VIDEO_PLAYER].add(new WeakRef(instance))
-  if (instance.dispose != null) {
-    instance.dispose = new Hook(instance.dispose, false).install(ctx => {
-      cleanWeakRefSet(instances[YTPInstanceType.VIDEO_PLAYER], ctx.self as typeof instance)
-      return HookResult.EXECUTION_IGNORE
-    }).call
+const onCreateInstanceType = (type: YTPInstanceType, instance: YTPDisposableInstance): YTPDisposableInstance => {
+  switch (type) {
+    case YTPInstanceType.APP:
+      onCreateAppInstance(instance as YTPAppInstance)
+      break
+    case YTPInstanceType.VIDEO_PLAYER:
+      onCreateVideoPlayerInstance(instance as YTPVideoPlayerInstance)
+      break
+    default:
+      logger.warn('invalid type')
+      return instance
   }
 
-  setTimeout(() => {
-    values(instance).forEach(prop => {
-      if (prop == null || typeof prop !== 'object') return
+  if (instance.dispose != null) {
+    const instances = instancesByType[type] as Set<WeakRef<YTPDisposableInstance>>
 
-      for (const key in prop) {
-        const value = prop[key]
-        if (value == null || !(value instanceof Map)) continue
-
-        for (const stat in STAT_METHOD_MAP) {
-          if (!value.has(stat)) continue
-
-          instance[STAT_METHOD_MAP[stat as keyof typeof STAT_METHOD_MAP]] = value.get(stat)
-        }
+    instance.dispose = new Hook(instance.dispose, false).install(ctx => {
+      for (const ref of instances) {
+        const value = ref.deref()
+        if (value == null || value === instance) instances.delete(ref)
       }
-    })
+      return HookResult.EXECUTION_IGNORE
+    }).call
 
-    const apps = getAllYTPInstance(YTPInstanceType.APP)
-    for (const app of apps) {
-      if (flatObjectValues(app, 3).find(v => v === instance) != null) {
-        app.playerRef = new WeakRef(instance)
-        break
-      }
-    }
-  }, 1)
+    instances.add(new WeakRef(instance))
+  }
+
+  return instance
 }
 
-const onCreateInstance = (instance: object): boolean => {
+const onCreateInstanceGeneric = (instance: object): boolean => {
   defineProperty(instance, 'logger', {
     configurable: true,
     set(value) {
-      defineProperty(instance, 'logger', {
-        configurable: true,
-        writable: true,
-        value
-      })
-
-      if (!onCreateLogger(value)) return
-
+      defineProperty(instance, 'logger', { configurable: true, writable: true, value })
       switch (value?.tag) {
         case 'App':
-          onCreateAppInstance(instance as YTPAppInstance)
+          onCreateInstanceType(YTPInstanceType.APP, instance)
           break
         case 'VideoPlayer':
-          onCreateVideoPlayerInstance(instance as YTPVideoPlayerInstance)
+          onCreateInstanceType(YTPInstanceType.VIDEO_PLAYER, instance)
           break
       }
     }
@@ -251,7 +264,28 @@ const onCreateInstance = (instance: object): boolean => {
   return true
 }
 
+const onCreateYTPlayerWithGlobal = (playerGlobal: Record<string, Function>): void => {
+  for (const key in playerGlobal) {
+    const value = playerGlobal[key]
+    if (typeof value !== 'function') continue
+
+    for (const [type, regexp] of CTOR_REGEXP_LIST) {
+      if (!regexp.test(value.toString())) continue
+
+      playerGlobal[key] = new Proxy(value, {
+        construct(target, argArray, newTarget) {
+          return onCreateInstanceType(type, Reflect.construct(target, argArray, newTarget))
+        }
+      })
+      break
+    }
+  }
+}
+
 const onCreateYTPlayer = (container: HTMLElement): void => {
+  const playerGlobal = window._yt_player
+  if (playerGlobal != null) return onCreateYTPlayerWithGlobal(playerGlobal)
+
   Object.prototype.hasOwnProperty = new Hook(Object.prototype.hasOwnProperty).install(ctx => { // NOSONAR
     if (ctx.self === container) {
       Function.prototype.call = new Hook(Function.prototype.call).install(ctx => { // NOSONAR
@@ -259,18 +293,18 @@ const onCreateYTPlayer = (container: HTMLElement): void => {
         const instance = ctx.args[0]
 
         let result = HookResult.EXECUTION_IGNORE
-        if (ctor == null) {
+        if (baseCtor == null) {
           const oldKeys = keys(instance).length
           ctx.returnValue = ctx.origin.apply(ctx.self, ctx.args)
           const newKeys = keys(instance).length
 
           if (oldKeys === newKeys) return HookResult.EXECUTION_CONTINUE
 
-          ctor = fn
+          baseCtor = fn
           result = HookResult.EXECUTION_CONTINUE
         }
 
-        if (fn !== ctor || onCreateInstance(instance)) return result
+        if (fn !== baseCtor || onCreateInstanceGeneric(instance)) return result
 
         Function.prototype.call = ctx.origin // NOSONAR
         return HookResult.ACTION_UNINSTALL | result
@@ -325,11 +359,11 @@ const processResponse = async (ctx: NetworkContext<unknown, NetworkState.SUCCESS
 }
 
 export const getAllYTPInstance = <T extends YTPInstanceType>(type: T): YTPInstanceOf<T>[] => {
-  return Array.from(instances[type]?.values() as SetIterator<WeakRef<YTPInstanceOf<T>>> ?? []).map(ref => ref.deref()).filter(value => value != null)
+  return Array.from(instancesByType[type]?.values() as SetIterator<WeakRef<YTPInstanceOf<T>>> ?? []).map(ref => ref.deref()).filter(value => value != null)
 }
 
 export const getYTPInstance = <T extends YTPInstanceType>(type: T): YTPInstanceOf<T> | null => {
-  return instances[type]?.values().next().value?.deref() as YTPInstanceOf<T> ?? null
+  return instancesByType[type]?.values().next().value?.deref() as YTPInstanceOf<T> ?? null
 }
 
 export default class YTPlayerBootstrapModule extends Feature {

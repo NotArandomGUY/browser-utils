@@ -164,7 +164,7 @@ const APP_ELEMENT_PAGE_MAP: Record<string, YTInitDataResponse['page'] | false> =
 }
 
 export const YTConfigInitCallback = new Callback<[ytcfg: YTConfig]>()
-export const YTPlayerCreateCallback = new Callback<[container: HTMLElement]>()
+export const YTPlayerCreateCallback = new Callback<[container: HTMLElement, config?: YTPlayerConfig, webPlayerContextConfig?: YTPlayerWebPlayerContextConfig]>()
 export const YTPolymerCreateCallback = new Callback<[instance: object]>()
 
 let environment: YTEnvironment
@@ -251,7 +251,7 @@ const createPlayer = async (create: (...args: unknown[]) => void, container: HTM
   logger.debug('create player:', container, config, webPlayerContextConfig)
 
   try {
-    YTPlayerCreateCallback.invoke(container)
+    YTPlayerCreateCallback.invoke(container, config, webPlayerContextConfig)
   } catch (error) {
     logger.warn('create player callback error:', error)
   }

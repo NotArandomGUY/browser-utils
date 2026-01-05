@@ -51,6 +51,7 @@ declare interface YTGlobal {
 declare var _lact: number
 declare var _fact: number
 declare var _yttv: Record<string, Function>
+declare var _yt_player: Record<string, Function>
 declare var getInitialCommand: () => object
 declare var getInitialData: () => object
 declare var loadInitialCommand: (command: object) => void
