@@ -87,7 +87,7 @@ export class IndexedDBObjectStore extends IndexedDBIndex<IDBObjectStore> {
 }
 
 export class IndexedDBTransaction<const S extends string[] = string[]> {
-  private transaction: IDBTransaction
+  private readonly transaction: IDBTransaction
 
   public constructor(transaction: IDBTransaction) {
     this.transaction = transaction
@@ -108,8 +108,8 @@ export class IndexedDBTransaction<const S extends string[] = string[]> {
 }
 
 export default class IndexedDB<const Stores extends IndexedDBStoreDefinition[] = IndexedDBStoreDefinition[]> {
-  private name: string
-  private stores: IndexedDBStoreDefinition[]
+  private readonly name: string
+  private readonly stores: IndexedDBStoreDefinition[]
   private db: IDBDatabase | null
 
   public constructor(name: string, stores: Stores) {

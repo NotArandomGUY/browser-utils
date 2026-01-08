@@ -25,6 +25,14 @@ export type YTLocalEntityData = {
     downloadState: 'DOWNLOAD_STATE_PENDING_DOWNLOAD' | 'DOWNLOAD_STATE_DOWNLOAD_IN_PROGRESS' | 'DOWNLOAD_STATE_PAUSED' | 'DOWNLOAD_STATE_RETRYABLE_FAILURE' | 'DOWNLOAD_STATE_FAILED' | 'DOWNLOAD_STATE_COMPLETE' | 'DOWNLOAD_STATE_USER_DELETED'
     key: string
   }
+  [EntityType.mainDownloadsListEntity]: {
+    downloads: {
+      videoItem: string // ->mainVideoEntity
+    }[]
+    downloadsListVersion: string
+    id: string
+    refresh: string
+  }
   [EntityType.mainVideoDownloadStateEntity]: {
     addedTimestampMillis: string
     downloadStatusEntity: YTLocalEntityData[EntityType.downloadStatusEntity]

@@ -54,10 +54,10 @@ class YTOfflinePageLifecycle extends Lifecycle<void> {
     return Lifecycle.create({}, YTOfflinePageLifecycle.ID) as YTOfflinePageLifecycle
   }
 
-  private fileInput_: HTMLInputElement
-  private mainVideoEntities_: State<YTMainVideoEntity[]>
-  private password_: State<string>
-  private status_: State<string>
+  private readonly fileInput_: HTMLInputElement
+  private readonly mainVideoEntities_: State<YTMainVideoEntity[]>
+  private readonly password_: State<string>
+  private readonly status_: State<string>
   private refreshTimer_: ReturnType<typeof setInterval> | null
 
   public constructor() {
