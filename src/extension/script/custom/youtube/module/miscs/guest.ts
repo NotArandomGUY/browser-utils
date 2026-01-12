@@ -1,20 +1,21 @@
-import { registerYTRendererPreProcessor, removeYTRendererPre, YTRenderer, YTRendererData, YTRendererSchemaMap } from '@ext/custom/youtube/api/renderer'
+import { registerYTValueFilter, registerYTValueProcessor } from '@ext/custom/youtube/api/processor'
+import { YTRenderer, YTValueData } from '@ext/custom/youtube/api/schema'
 import { isYTLoggedIn } from '@ext/custom/youtube/module/core/bootstrap'
 import { Feature } from '@ext/lib/feature'
 
-const updateChannelRenderer = (data: YTRendererData<YTRenderer<'channelRenderer' | 'gridChannelRenderer'>>): boolean => {
+const updateChannelRenderer = (data: YTValueData<YTRenderer.Mapped<'channelRenderer' | 'gridChannelRenderer'>>): boolean => {
   if (!isYTLoggedIn()) delete data.subscribeButton
 
   return true
 }
 
-const updateVideoOwnerRenderer = (data: YTRendererData<YTRenderer<'videoOwnerRenderer'>>): boolean => {
+const updateVideoOwnerRenderer = (data: YTValueData<YTRenderer.Mapped<'videoOwnerRenderer'>>): boolean => {
   if (!isYTLoggedIn()) delete data.membershipButton
 
   return true
 }
 
-const filterMenuFlexibleItem = (data: YTRendererData<YTRenderer<'menuFlexibleItemRenderer'>>): boolean => {
+const filterMenuFlexibleItem = (data: YTValueData<YTRenderer.Mapped<'menuFlexibleItemRenderer'>>): boolean => {
   return isYTLoggedIn() || !['PLAYLIST_ADD'].includes(data.menuItem?.menuServiceItemRenderer?.icon?.iconType ?? '')
 }
 
@@ -24,15 +25,14 @@ export default class YTMiscsGuestModule extends Feature {
   }
 
   protected activate(): boolean {
-    registerYTRendererPreProcessor(YTRendererSchemaMap['channelRenderer'], updateChannelRenderer)
-    registerYTRendererPreProcessor(YTRendererSchemaMap['gridChannelRenderer'], updateChannelRenderer)
-    registerYTRendererPreProcessor(YTRendererSchemaMap['videoOwnerRenderer'], updateVideoOwnerRenderer)
-
-    removeYTRendererPre(YTRendererSchemaMap['commentSimpleboxRenderer'], isYTLoggedIn)
-    removeYTRendererPre(YTRendererSchemaMap['menuFlexibleItemRenderer'], filterMenuFlexibleItem)
-    removeYTRendererPre(YTRendererSchemaMap['segmentedLikeDislikeButtonViewModel'], isYTLoggedIn)
-    removeYTRendererPre(YTRendererSchemaMap['subscribeButtonRenderer'], isYTLoggedIn)
-    removeYTRendererPre(YTRendererSchemaMap['subscribeButtonViewModel'], isYTLoggedIn)
+    registerYTValueFilter(YTRenderer.mapped.commentSimpleboxRenderer, isYTLoggedIn)
+    registerYTValueFilter(YTRenderer.mapped.menuFlexibleItemRenderer, filterMenuFlexibleItem)
+    registerYTValueFilter(YTRenderer.mapped.segmentedLikeDislikeButtonViewModel, isYTLoggedIn)
+    registerYTValueFilter(YTRenderer.mapped.subscribeButtonRenderer, isYTLoggedIn)
+    registerYTValueFilter(YTRenderer.mapped.subscribeButtonViewModel, isYTLoggedIn)
+    registerYTValueProcessor(YTRenderer.mapped.channelRenderer, updateChannelRenderer)
+    registerYTValueProcessor(YTRenderer.mapped.gridChannelRenderer, updateChannelRenderer)
+    registerYTValueProcessor(YTRenderer.mapped.videoOwnerRenderer, updateVideoOwnerRenderer)
 
     return true
   }

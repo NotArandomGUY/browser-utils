@@ -1,5 +1,5 @@
-import { YTSignalActionType } from '@ext/custom/youtube/api/endpoint'
-import { registerYTRendererPreProcessor, removeYTRendererPre, YTRenderer, YTRendererData, YTRendererSchemaMap } from '@ext/custom/youtube/api/renderer'
+import { registerYTValueFilter, registerYTValueProcessor } from '@ext/custom/youtube/api/processor'
+import { YTEndpoint, YTRenderer, YTResponse, YTValueData } from '@ext/custom/youtube/api/schema'
 import { isYTLoggedIn, YTPolymerCreateCallback } from '@ext/custom/youtube/module/core/bootstrap'
 import { registerYTSignalActionHandler } from '@ext/custom/youtube/module/core/event'
 import { isYTFeedFilterEnable, YTFeedFilterMask } from '@ext/custom/youtube/module/feed/filter'
@@ -22,7 +22,7 @@ interface YTGuidePolymer {
 let guidePolymer: YTGuidePolymer | null = null
 let refreshTimer: ReturnType<typeof setTimeout> | null = null
 
-const filterGuideEntry = (data: YTRendererData<YTRenderer<'guideEntryRenderer'>>): boolean => {
+const filterGuideEntry = (data: YTValueData<YTRenderer.Mapped<'guideEntryRenderer'>>): boolean => {
   const browseId = data.navigationEndpoint?.browseEndpoint?.browseId ?? ''
 
   // Remove premium promotion
@@ -35,7 +35,7 @@ const filterGuideEntry = (data: YTRendererData<YTRenderer<'guideEntryRenderer'>>
   return isYTLoggedIn() || !['FEhistory', 'FElibrary', 'FEsubscriptions', 'SPaccount_overview', 'SPreport_history'].includes(browseId)
 }
 
-const updateGuideResponse = (data: YTRendererData<YTRenderer<'guideResponse'>>): boolean => {
+const updateGuideResponse = (data: YTValueData<YTResponse.Mapped<'guide'>>): boolean => {
   const { responseContext } = data
 
   if (isYTLoggedIn()) {
@@ -81,11 +81,11 @@ export default class YTFeedGuideModule extends Feature {
       guidePolymer = instance as YTGuidePolymer
     })
 
-    registerYTRendererPreProcessor(YTRendererSchemaMap['guideResponse'], updateGuideResponse)
-    removeYTRendererPre(YTRendererSchemaMap['guideEntryRenderer'], filterGuideEntry)
-    removeYTRendererPre(YTRendererSchemaMap['guideSigninPromoRenderer'])
+    registerYTValueFilter(YTRenderer.mapped.guideEntryRenderer, filterGuideEntry)
+    registerYTValueFilter(YTRenderer.mapped.guideSigninPromoRenderer)
+    registerYTValueProcessor(YTResponse.mapped.guide, updateGuideResponse)
 
-    registerYTSignalActionHandler(YTSignalActionType.SOFT_RELOAD_PAGE, reloadYTGuide)
+    registerYTSignalActionHandler(YTEndpoint.enums.SignalActionType.SOFT_RELOAD_PAGE, reloadYTGuide)
 
     return true
   }

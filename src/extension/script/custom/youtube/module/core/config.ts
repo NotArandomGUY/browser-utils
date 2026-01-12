@@ -1,8 +1,5 @@
-import { YTSignalActionType } from '@ext/custom/youtube/api/endpoint'
-import { registerYTRendererPostProcessor, YTRenderer, YTRendererData, YTRendererSchemaMap } from '@ext/custom/youtube/api/renderer'
-import { YTValueData, YTValueType } from '@ext/custom/youtube/api/types/common'
-import { YTIconType } from '@ext/custom/youtube/api/types/icon'
-import { YTSizeType } from '@ext/custom/youtube/api/types/size'
+import { registerYTValueProcessor, YTValueProcessorType } from '@ext/custom/youtube/api/processor'
+import { YTEndpoint, YTRenderer, YTValueData, YTValueType } from '@ext/custom/youtube/api/schema'
 import { registerYTSignalActionHandler } from '@ext/custom/youtube/module/core/event'
 import { Feature } from '@ext/lib/feature'
 
@@ -23,18 +20,18 @@ interface YTConfigMenuItemBase<T extends YTConfigMenuItemType> {
 
 interface YTConfigMenuActionItemBase<T extends YTConfigMenuItemType> extends YTConfigMenuItemBase<T> {
   commands?: YTValueData<{ type: YTValueType.ENDPOINT }>[]
-  signals?: YTSignalActionType[]
+  signals?: YTEndpoint.enums.SignalActionType[]
 }
 
 interface YTConfigMenuButtonItem extends YTConfigMenuActionItemBase<YTConfigMenuItemType.BUTTON> {
-  icon: YTIconType
+  icon: YTRenderer.enums.IconType
   text: string
 }
 
 interface YTConfigMenuToggleItem extends YTConfigMenuActionItemBase<YTConfigMenuItemType.TOGGLE> {
-  disabledIcon: YTIconType
+  disabledIcon: YTRenderer.enums.IconType
   disabledText: string
-  enabledIcon: YTIconType
+  enabledIcon: YTRenderer.enums.IconType
   enabledText: string
   defaultValue?: boolean
   mask?: number
@@ -50,14 +47,14 @@ const configMenuItems: YTConfigMenuItem[] = [
   {
     type: YTConfigMenuItemType.BUTTON,
     key: 'soft-reload',
-    icon: YTIconType.REFRESH,
+    icon: YTRenderer.enums.IconType.REFRESH,
     text: 'Soft reload',
-    commands: [{ signalAction: { signal: YTSignalActionType.SOFT_RELOAD_PAGE } }]
+    commands: [{ signalAction: { signal: YTEndpoint.enums.SignalActionType.SOFT_RELOAD_PAGE } }]
   }
 ]
 
-const getSetterSignalActionType = (key: string, value: unknown): YTSignalActionType => {
-  return [YTSignalActionType.CONFIG_VALUE_SET, key, String(value)].join(':') as YTSignalActionType
+const getSetterSignalActionType = (key: string, value: unknown): YTEndpoint.enums.SignalActionType => {
+  return [YTEndpoint.enums.SignalActionType.CONFIG_VALUE_SET, key, String(value)].join(':') as YTEndpoint.enums.SignalActionType
 }
 
 const buildActionItemCommand = (item: Pick<YTConfigMenuActionItemBase<YTConfigMenuItemType>, 'commands' | 'signals'>): YTValueData<{ type: YTValueType.ENDPOINT }> => {
@@ -120,8 +117,8 @@ const renderConfigPopupButton = (isTV: boolean): YTValueData<{ type: YTValueType
   return {
     buttonRenderer: {
       style: 'STYLE_DEFAULT',
-      size: YTSizeType.SIZE_DEFAULT,
-      icon: { iconType: isTV ? YTIconType.YOUTUBE_TV : YTIconType.TROPHY_STAR },
+      size: YTRenderer.enums.SizeType.SIZE_DEFAULT,
+      icon: { iconType: isTV ? YTRenderer.enums.IconType.YOUTUBE_TV : YTRenderer.enums.IconType.TROPHY_STAR },
       text: isTV ? { simpleText: CONFIG_MENU_TITLE } : undefined,
       accessibility: { label: CONFIG_MENU_TITLE },
       accessibilityData: { accessibilityData: { label: CONFIG_MENU_TITLE } },
@@ -132,7 +129,7 @@ const renderConfigPopupButton = (isTV: boolean): YTValueData<{ type: YTValueType
           popup: isTV ? {
             overlaySectionRenderer: {
               dismissalCommand: {
-                signalAction: { signal: YTSignalActionType.POPUP_BACK }
+                signalAction: { signal: YTEndpoint.enums.SignalActionType.POPUP_BACK }
               },
               overlay: {
                 overlayTwoPanelRenderer: {
@@ -157,14 +154,14 @@ const renderConfigPopupButton = (isTV: boolean): YTValueData<{ type: YTValueType
   }
 }
 
-const updateDesktopTopbarRenderer = (data: YTRendererData<YTRenderer<'desktopTopbarRenderer'>>): boolean => {
+const updateDesktopTopbarRenderer = (data: YTValueData<YTRenderer.Mapped<'desktopTopbarRenderer'>>): boolean => {
   data.topbarButtons ??= []
   data.topbarButtons.unshift(renderConfigPopupButton(false))
 
   return true
 }
 
-const updateTvSurfaceContentRenderer = (data: YTRendererData<YTRenderer<'tvSurfaceContentRenderer'>>): boolean => {
+const updateTvSurfaceContentRenderer = (data: YTValueData<YTRenderer.Mapped<'tvSurfaceContentRenderer'>>): boolean => {
   data.content?.sectionListRenderer?.contents?.unshift({
     itemSectionRenderer: { contents: [renderConfigPopupButton(true)] }
   })
@@ -197,7 +194,7 @@ export const setYTConfigInt = (key: string, value: number): void => {
 }
 
 export const registerYTConfigMenuItem = (item: YTConfigMenuItem): void => {
-  if (configMenuItems.find(i => i.key === item.key && (i as YTConfigMenuToggleItem).mask === (item as YTConfigMenuToggleItem).mask) != null) return
+  if (configMenuItems.some(i => i.key === item.key && (i as YTConfigMenuToggleItem).mask === (item as YTConfigMenuToggleItem).mask)) return
 
   if (item.type === YTConfigMenuItemType.TOGGLE) {
     const mask = item.mask ?? 1
@@ -215,8 +212,8 @@ export default class YTCoreConfigModule extends Feature {
   }
 
   protected activate(): boolean {
-    registerYTRendererPostProcessor(YTRendererSchemaMap['tvSurfaceContentRenderer'], updateTvSurfaceContentRenderer)
-    registerYTRendererPostProcessor(YTRendererSchemaMap['desktopTopbarRenderer'], updateDesktopTopbarRenderer)
+    registerYTValueProcessor(YTRenderer.mapped.tvSurfaceContentRenderer, updateTvSurfaceContentRenderer, YTValueProcessorType.POST)
+    registerYTValueProcessor(YTRenderer.mapped.desktopTopbarRenderer, updateDesktopTopbarRenderer, YTValueProcessorType.POST)
 
     return true
   }

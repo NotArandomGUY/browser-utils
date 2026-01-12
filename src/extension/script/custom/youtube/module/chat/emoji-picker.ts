@@ -1,7 +1,8 @@
-import { registerYTRendererPreProcessor, YTRenderer, YTRendererData, YTRendererSchemaMap } from '@ext/custom/youtube/api/renderer'
+import { registerYTValueProcessor } from '@ext/custom/youtube/api/processor'
+import { YTRenderer, YTValueData } from '@ext/custom/youtube/api/schema'
 import { Feature } from '@ext/lib/feature'
 
-const updateEmojiPickerRenderer = (data: YTRendererData<YTRenderer<'emojiPickerRenderer'>>): boolean => {
+const updateEmojiPickerRenderer = (data: YTValueData<YTRenderer.Mapped<'emojiPickerRenderer'>>): boolean => {
   // Replace upsell categories with noraml categories
   data.categories?.forEach(c => {
     if (c.emojiPickerUpsellCategoryRenderer == null) return
@@ -25,7 +26,7 @@ export default class YTChatEmojiPickerModule extends Feature {
   }
 
   protected activate(): boolean {
-    registerYTRendererPreProcessor(YTRendererSchemaMap['emojiPickerRenderer'], updateEmojiPickerRenderer)
+    registerYTValueProcessor(YTRenderer.mapped.emojiPickerRenderer, updateEmojiPickerRenderer)
 
     return true
   }

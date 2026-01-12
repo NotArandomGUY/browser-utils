@@ -1,6 +1,5 @@
-import { processYTRenderer } from '@ext/custom/youtube/api/processor'
-import { YTRenderer, YTRendererSchemaMap, YTResponseRenderer } from '@ext/custom/youtube/api/renderer'
-import { YTRendererData } from '@ext/custom/youtube/api/types/common'
+import { processYTResponse } from '@ext/custom/youtube/api/processor'
+import { YTResponse, YTValueData } from '@ext/custom/youtube/api/schema'
 import { YTInnertubeContext } from '@ext/custom/youtube/module/core/bootstrap'
 import PlayerParams from '@ext/custom/youtube/proto/player-params'
 import { assign, defineProperty, fromEntries } from '@ext/global/object'
@@ -138,7 +137,7 @@ type YTInnertubeRequestMap = {
 export type YTInnertubeRequestEndpoint = keyof YTInnertubeRequestMap
 export type YTInnertubeRequest<E extends YTInnertubeRequestEndpoint = YTInnertubeRequestEndpoint> = YTInnertubeRequestBase & YTInnertubeRequestMap[E]
 
-export type YTInnertubeRequestProcessor<E extends YTInnertubeRequestEndpoint = YTInnertubeRequestEndpoint> = (request: YTInnertubeRequest<E>) => Promise<YTRendererData<YTResponseRenderer> | void> | YTRendererData<YTRenderer> | void
+export type YTInnertubeRequestProcessor<E extends YTInnertubeRequestEndpoint = YTInnertubeRequestEndpoint> = (request: YTInnertubeRequest<E>) => Promise<YTValueData<YTResponse.Mapped> | void> | YTValueData<YTResponse.Mapped> | void
 
 const innertubeRequestProcessorMap: { [endpoint: string]: Set<YTInnertubeRequestProcessor> } = {}
 
@@ -155,8 +154,8 @@ const protoBase64UrlEncode = <D extends MessageDefinition>(message: Message<D>):
   return encodeURIComponent(btoa(bufferToString(data, 'latin1')).replace(/\+/g, '-').replace(/\//g, '_'))
 }
 
-const invokeProcessors = async (request: YTInnertubeRequest, processors?: Set<YTInnertubeRequestProcessor>): Promise<YTRendererData<YTResponseRenderer> | null> => {
-  let response: YTRendererData<YTResponseRenderer> | null = null
+const invokeProcessors = async (request: YTInnertubeRequest, processors?: Set<YTInnertubeRequestProcessor>): Promise<YTValueData<YTResponse.Mapped> | null> => {
+  let response: YTValueData<YTResponse.Mapped> | null = null
   if (processors == null) return response
 
   for (const processor of processors) {
@@ -212,7 +211,7 @@ const processInnertubeRequest = async (endpoint: string, request?: YTInnertubeRe
 }
 
 const processInnertubeResponse = async (endpoint: string, request: Request, response: Response): Promise<Response> => {
-  let data: YTRendererData<YTResponseRenderer> | null = null
+  let data: YTValueData<YTResponse.Mapped> | null = null
   try {
     data = await response.clone().json()
   } catch {
@@ -227,8 +226,8 @@ const processInnertubeResponse = async (endpoint: string, request: Request, resp
     }
   }
 
-  const renderer = `${endpoint.replace(/[/_][a-z]/g, s => s[1].toUpperCase())}Response` as keyof typeof YTRendererSchemaMap
-  await processYTRenderer(renderer, data)
+  const key = endpoint.replace(/[/_][a-z]/g, s => s[1].toUpperCase()) as YTResponse.MappedKey
+  await processYTResponse(key, data)
 
   logger.debug('innertube response:', endpoint, data)
 

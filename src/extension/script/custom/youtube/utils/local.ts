@@ -1,5 +1,4 @@
-import { YTEntityMutationPayloadSchema, YTOfflineFormatType } from '@ext/custom/youtube/api/endpoint'
-import { YTObjectData, YTTextSchema, YTThumbnailSchema, YTValueData } from '@ext/custom/youtube/api/types/common'
+import { YTCommon, YTEndpoint, YTRenderer, YTValueData } from '@ext/custom/youtube/api/schema'
 import { EntityType } from '@ext/custom/youtube/proto/entity-key'
 import { decryptAesCtr, decryptEntityData, encryptAesCtr, encryptEntityData, getNonce } from '@ext/custom/youtube/utils/crypto'
 import { PromiseWithProgress } from '@ext/lib/async'
@@ -40,7 +39,7 @@ export type YTLocalEntityData = {
   }
   [EntityType.mainVideoEntity]: {
     downloadState: string // ->mainVideoDownloadStateEntity
-    formattedDescription: YTObjectData<typeof YTTextSchema>
+    formattedDescription: YTValueData<YTRenderer.Component<'text'>>
     key: string
     lengthSeconds: number
     localizedStrings: {
@@ -48,14 +47,14 @@ export type YTLocalEntityData = {
     }
     owner: string // ->ytMainChannelEntity
     publishedTimestampMillis: string
-    thumbnail: YTObjectData<typeof YTThumbnailSchema>
+    thumbnail: YTValueData<YTRenderer.Component<'thumbnail'>>
     title: string
     userState?: {
       playbackPosition: string // ->videoPlaybackPositionEntity
     }
     videoId: string
   }
-  [EntityType.offlineVideoPolicy]: YTValueData<typeof YTEntityMutationPayloadSchema['offlineVideoPolicy']>
+  [EntityType.offlineVideoPolicy]: NonNullable<YTValueData<YTEndpoint.Component<'entityMutationPayload'>>['offlineVideoPolicy']>
   [EntityType.offlineVideoStreams]: {
     key: string
     streamsProgress: {
@@ -66,7 +65,7 @@ export type YTLocalEntityData = {
       streamType: 'STREAM_TYPE_UNKNOWN' | 'STREAM_TYPE_AUDIO' | 'STREAM_TYPE_VIDEO' | 'STREAM_TYPE_AUDIO_AND_VIDEO'
     }[]
   }
-  [EntityType.playbackData]: YTValueData<typeof YTEntityMutationPayloadSchema['playbackData']>
+  [EntityType.playbackData]: NonNullable<YTValueData<YTEndpoint.Component<'entityMutationPayload'>>['playbackData']>
   [EntityType.transfer]: {
     cotn: string
     enqueuedTimestampMs: string
@@ -74,7 +73,7 @@ export type YTLocalEntityData = {
     isRefresh: boolean
     key: string
     lastProgressTimeMs: string
-    maximumDownloadQuality: YTOfflineFormatType
+    maximumDownloadQuality: YTCommon.enums.OfflineFormatType
     offlineVideoStreams: string[] // ->offlineVideoStreams
     transferRetryCount: number
     transferState: 'TRANSFER_STATE_TRANSFER_IN_QUEUE' | 'TRANSFER_STATE_TRANSFERRING' | 'TRANSFER_STATE_PAUSED_BY_USER' | 'TRANSFER_STATE_FAILED' | 'TRANSFER_STATE_COMPLETE' | 'TRANSFER_STATE_WAITING_FOR_PLAYER_RESPONSE_REFRESH'
@@ -90,7 +89,7 @@ export type YTLocalEntityData = {
     videoId: string
   }
   [EntityType.ytMainChannelEntity]: {
-    avatar: YTObjectData<typeof YTThumbnailSchema>
+    avatar: YTValueData<YTRenderer.Component<'thumbnail'>>
     channelId: string
     channelVersion?: string
     id: string
@@ -449,13 +448,13 @@ export const putYTLocalMediaStream = (index: YTLocalMediaIndex, chunks: Uint8Arr
     params.set('civ', bufferToString(chunkIv))
     index.format.url = url.toString()
 
-    db.transaction(
+    await db.transaction(
       'index',
       trans => trans.objectStore('index').put({ fmts: index.fmts, format: index.format }, `${videoId}|${['a', 'v'][index.type]}`)
     )
 
     complete = 0
-    db.transaction(
+    await db.transaction(
       'media',
       trans => {
         const store = trans.objectStore('media')

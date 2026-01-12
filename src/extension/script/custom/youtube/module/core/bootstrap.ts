@@ -1,8 +1,6 @@
 import { registerOverlayPage } from '@ext/common/preload/overlay'
-import { YTEndpoint } from '@ext/custom/youtube/api/endpoint'
-import { processYTRenderer, processYTValueSchema } from '@ext/custom/youtube/api/processor'
-import { YTRenderer, YTRendererData } from '@ext/custom/youtube/api/renderer'
-import { ytv_enp, YTValueData, YTValueType } from '@ext/custom/youtube/api/types/common'
+import { processYTResponse, processYTValue } from '@ext/custom/youtube/api/processor'
+import { YTResponse, ytv_enp, YTValueData, YTValueType } from '@ext/custom/youtube/api/schema'
 import YTDevicePage from '@ext/custom/youtube/pages/device'
 import { assign, defineProperties, defineProperty } from '@ext/global/object'
 import Callback from '@ext/lib/callback'
@@ -12,24 +10,24 @@ import Logger from '@ext/lib/logger'
 
 type YTInitDataResponse = {
   page: 'browse' | 'channel'
-  response: YTRendererData<YTRenderer<'browseResponse'>>
+  response: YTValueData<YTResponse.Mapped<'browse'>>
 } | {
   page: 'search'
-  response: YTRendererData<YTRenderer<'searchResponse'>>
+  response: YTValueData<YTResponse.Mapped<'search'>>
 } | {
   page: 'shorts',
-  response: YTRendererData<YTRenderer<'reelReelItemWatchResponse'>>
+  response: YTValueData<YTResponse.Mapped<'reelReelItemWatch'>>
 } | {
   page: 'watch'
-  response: YTRendererData<YTRenderer<'nextResponse'>>
+  response: YTValueData<YTResponse.Mapped<'next'>>
 } | {
   page: 'live_chat'
-  response: YTRendererData<YTRenderer<'liveChatGetLiveChatResponse'>>
+  response: YTValueData<YTResponse.Mapped<'liveChatGetLiveChat'>>
 }
 
 type YTInitData = YTInitDataResponse & Partial<{
-  endpoint: YTEndpoint
-  playerResponse: YTRendererData<YTRenderer<'playerResponse'>>
+  endpoint: YTValueData<{ type: YTValueType.ENDPOINT }>
+  playerResponse: YTValueData<YTResponse.Mapped<'player'>>
   reelWatchSequenceResponse: object
   url: string
   previousCsn: string
@@ -77,7 +75,7 @@ export interface YTPlayerConfig {
   args?: Partial<{
     author: string
     length_seconds: string
-    raw_player_response: YTRendererData<YTRenderer<'playerResponse'>>
+    raw_player_response: YTValueData<YTResponse.Mapped<'player'>>
     title: string
     ucid: string
     video_id: string
@@ -134,7 +132,7 @@ export interface YTPlayerWebPlayerContextConfig {
 export interface YTPlayerGlobal {
   bootstrapPlayerContainer: HTMLElement
   bootstrapWebPlayerContextConfig: YTPlayerWebPlayerContextConfig
-  bootstrapPlayerResponse: YTRendererData<YTRenderer<'playerResponse'>>
+  bootstrapPlayerResponse: YTValueData<YTResponse.Mapped<'player'>>
   config: YTPlayerConfig
 }
 
@@ -206,8 +204,7 @@ const getDeviceLabel = (): string => {
 }
 
 const getProcessedInitialCommand = async (initCommand: YTValueData<{ type: YTValueType.ENDPOINT }>): Promise<YTValueData<{ type: YTValueType.ENDPOINT }>> => {
-  await processYTValueSchema(ytv_enp(), initCommand, null)
-
+  await processYTValue(ytv_enp(), initCommand, null)
   logger.debug('initial command:', initCommand)
 
   return initCommand
@@ -217,25 +214,24 @@ const getProcessedInitialData = async (initData: YTInitData): Promise<YTInitData
   switch (initData.page) {
     case 'browse':
     case 'channel':
-      await processYTRenderer('browseResponse', initData.response)
+      await processYTResponse('browse', initData.response)
       break
     case 'search':
-      await processYTRenderer('searchResponse', initData.response)
+      await processYTResponse('search', initData.response)
       break
     case 'shorts':
-      await processYTRenderer('reelReelItemWatchResponse', initData.response)
+      await processYTResponse('reelReelItemWatch', initData.response)
       break
     case 'watch':
-      await processYTRenderer('nextResponse', initData.response)
+      await processYTResponse('next', initData.response)
       break
     case 'live_chat':
-      await processYTRenderer('liveChatGetLiveChatResponse', initData.response)
+      await processYTResponse('liveChatGetLiveChat', initData.response)
       break
     default:
       logger.warn('unhandled page type', initData)
       break
   }
-
   logger.debug('initial data:', initData)
 
   return initData
@@ -246,8 +242,7 @@ const createPlayer = async (create: (...args: unknown[]) => void, container: HTM
     webPlayerContextConfig.enableCsiLogging = false
   }
 
-  await processYTRenderer('playerResponse', config?.args?.raw_player_response)
-
+  await processYTResponse('player', config?.args?.raw_player_response)
   logger.debug('create player:', container, config, webPlayerContextConfig)
 
   try {

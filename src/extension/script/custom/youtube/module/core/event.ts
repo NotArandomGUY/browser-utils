@@ -1,5 +1,4 @@
-import { YTEndpoint, YTSignalActionType } from '@ext/custom/youtube/api/endpoint'
-import { YTEndpointData, YTValueData, YTValueType } from '@ext/custom/youtube/api/types/common'
+import { YTEndpoint, YTValueData, YTValueType } from '@ext/custom/youtube/api/schema'
 import { getYTAppElement } from '@ext/custom/youtube/module/core/bootstrap'
 import { Feature } from '@ext/lib/feature'
 import Hook, { HookResult } from '@ext/lib/intercept/hook'
@@ -26,7 +25,7 @@ const getFunctionProp = <T extends object, K extends keyof T>(obj: T, key: K): T
   return (typeof value === 'function' ? value : null) as ReturnType<typeof getFunctionProp>
 }
 
-const getSignalActionName = (signal: YTSignalActionType): string => {
+const getSignalActionName = (signal: YTEndpoint.enums.SignalActionType): string => {
   return `yt-signal-action-${signal.toLowerCase().replace(/_/g, '-')}`
 }
 
@@ -52,7 +51,7 @@ export const dispatchYTNavigate = (endpoint: YTValueData<{ type: YTValueType.END
   appElement.dispatchEvent(new CustomEvent('yt-navigate', { detail: { endpoint } }))
 }
 
-export const dispatchYTOpenPopupAction = (data: YTEndpointData<YTEndpoint<'openPopupAction'>>): void => {
+export const dispatchYTOpenPopupAction = (data: YTValueData<YTEndpoint.Mapped<'openPopupAction'>>): void => {
   if (resolveCommand != null) return resolveCommand({ openPopupAction: data })
 
   dispatchYTAction({
@@ -62,7 +61,7 @@ export const dispatchYTOpenPopupAction = (data: YTEndpointData<YTEndpoint<'openP
   })
 }
 
-export const dispatchYTSignalAction = (signal: YTSignalActionType): void => {
+export const dispatchYTSignalAction = (signal: YTEndpoint.enums.SignalActionType): void => {
   if (resolveCommand != null) return resolveCommand({ signalServiceEndpoint: { signal: 'CLIENT_SIGNAL', actions: [{ signalAction: { signal } }] } })
 
   dispatchYTAction({ actionName: getSignalActionName(signal), optionalAction: true, args: [], returnValue: [] })
@@ -72,7 +71,7 @@ export const registerYTActionHandler = (actionName: string, handler: YTActionHan
   actionHandlerMap[actionName] = handler
 }
 
-export const registerYTSignalActionHandler = (signal: YTSignalActionType, handler: YTActionHandler): void => {
+export const registerYTSignalActionHandler = (signal: YTEndpoint.enums.SignalActionType, handler: YTActionHandler): void => {
   registerYTActionHandler(getSignalActionName(signal), handler)
 }
 
@@ -101,7 +100,7 @@ export default class YTCoreEventModule extends Feature {
 
             const signal = command?.signalAction?.signal
             if (signal != null) {
-              const actionName = getSignalActionName(signal as YTSignalActionType)
+              const actionName = getSignalActionName(signal as YTEndpoint.enums.SignalActionType)
               actionHandlerMap[actionName]?.({ actionName })
             }
 

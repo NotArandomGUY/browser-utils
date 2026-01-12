@@ -1,4 +1,4 @@
-import { YTMediaFormatSchema, YTRenderer, YTRendererData } from '@ext/custom/youtube/api/renderer'
+import { YTRenderer, YTResponse, YTValueData } from '@ext/custom/youtube/api/schema'
 import { decodeEntityKey, encodeEntityKey, EntityType } from '@ext/custom/youtube/proto/entity-key'
 import FormatRange from '@ext/custom/youtube/proto/gvs/common/format-range'
 import YTOfflineMediaCaption from '@ext/custom/youtube/proto/ytom/caption'
@@ -43,7 +43,7 @@ const downloadBlob = (blob: Blob, id: string, type?: string): void => {
   URL.revokeObjectURL(link.href)
 }
 
-const sanitizeMediaFormat = (data: YTRendererData<typeof YTMediaFormatSchema>): YTRendererData<typeof YTMediaFormatSchema> => {
+const sanitizeMediaFormat = (data: YTValueData<YTRenderer.Component<'mediaFormat'>>): YTValueData<YTRenderer.Component<'mediaFormat'>> => {
   delete data.signatureCipher
   delete data.url
 
@@ -64,7 +64,7 @@ const sanitizeEntity = <T extends keyof YTLocalEntityData>(entity: YTLocalEntity
       })
       break
     case 'playbackData': {
-      const playerResponse: YTRendererData<YTRenderer<'playerResponse'>> = JSON.parse(entity.data.playerResponseJson ?? '{}')
+      const playerResponse: YTValueData<YTResponse.Mapped<'player'>> = JSON.parse(entity.data.playerResponseJson ?? '{}')
 
       delete playerResponse.playerConfig?.mediaCommonConfig?.mediaUstreamerRequestConfig
 

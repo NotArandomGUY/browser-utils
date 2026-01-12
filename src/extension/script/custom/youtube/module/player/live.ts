@@ -1,6 +1,5 @@
-import { YTSignalActionType } from '@ext/custom/youtube/api/endpoint'
-import { registerYTRendererPreProcessor, YTRenderer, YTRendererData, YTRendererSchemaMap } from '@ext/custom/youtube/api/renderer'
-import { YTIconType } from '@ext/custom/youtube/api/types/icon'
+import { registerYTValueProcessor } from '@ext/custom/youtube/api/processor'
+import { YTEndpoint, YTRenderer, YTResponse, YTValueData } from '@ext/custom/youtube/api/schema'
 import { CONFIG_TEXT_DISABLE, CONFIG_TEXT_ENABLE, getYTConfigBool, registerYTConfigMenuItem, YTConfigMenuItemType } from '@ext/custom/youtube/module/core/config'
 import { getYTPInstance, YTPInstanceType } from '@ext/custom/youtube/module/player/bootstrap'
 import { abs, max, min, round } from '@ext/global/math'
@@ -124,7 +123,7 @@ const stopLiveHeadUpdate = (): void => {
   player.setPlaybackRate?.(1)
 }
 
-const updatePlayerResponse = (data: YTRendererData<YTRenderer<'playerResponse'>>): boolean => {
+const updatePlayerResponse = (data: YTValueData<YTResponse.Mapped<'player'>>): boolean => {
   const playerConfig = data.playerConfig
   const videoDetails = data.videoDetails
 
@@ -164,29 +163,29 @@ export default class YTPlayerLiveModule extends Feature {
   }
 
   protected activate(): boolean {
-    registerYTRendererPreProcessor(YTRendererSchemaMap['playerResponse'], updatePlayerResponse)
+    registerYTValueProcessor(YTResponse.mapped.player, updatePlayerResponse)
 
     registerYTConfigMenuItem({
       type: YTConfigMenuItemType.TOGGLE,
       key: LIVE_BEHAVIOUR_KEY,
-      disabledIcon: YTIconType.CLOCK,
+      disabledIcon: YTRenderer.enums.IconType.CLOCK,
       disabledText: `Live Low Latency: ${CONFIG_TEXT_DISABLE}`,
-      enabledIcon: YTIconType.CLOCK,
+      enabledIcon: YTRenderer.enums.IconType.CLOCK,
       enabledText: `Live Low Latency: ${CONFIG_TEXT_ENABLE}`,
       defaultValue: false,
       mask: YTLiveBehaviourMask.LOW_LATENCY,
-      signals: [YTSignalActionType.POPUP_BACK, YTSignalActionType.SOFT_RELOAD_PAGE]
+      signals: [YTEndpoint.enums.SignalActionType.POPUP_BACK, YTEndpoint.enums.SignalActionType.SOFT_RELOAD_PAGE]
     })
     registerYTConfigMenuItem({
       type: YTConfigMenuItemType.TOGGLE,
       key: LIVE_BEHAVIOUR_KEY,
-      disabledIcon: YTIconType.CLOCK,
+      disabledIcon: YTRenderer.enums.IconType.CLOCK,
       disabledText: `Live DVR: ${CONFIG_TEXT_DISABLE}`,
-      enabledIcon: YTIconType.CLOCK,
+      enabledIcon: YTRenderer.enums.IconType.CLOCK,
       enabledText: `Live DVR: ${CONFIG_TEXT_ENABLE}`,
       defaultValue: false,
       mask: YTLiveBehaviourMask.FORCE_DVR,
-      signals: [YTSignalActionType.POPUP_BACK, YTSignalActionType.SOFT_RELOAD_PAGE]
+      signals: [YTEndpoint.enums.SignalActionType.POPUP_BACK, YTEndpoint.enums.SignalActionType.SOFT_RELOAD_PAGE]
     })
 
     return true

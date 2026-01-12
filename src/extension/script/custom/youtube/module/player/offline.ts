@@ -1,6 +1,6 @@
 import { registerOverlayPage } from '@ext/common/preload/overlay'
-import { registerYTEndpointPreProcessor, YTEndpoint, YTEndpointSchemaMap } from '@ext/custom/youtube/api/endpoint'
-import { YTEndpointData } from '@ext/custom/youtube/api/types/common'
+import { registerYTValueProcessor } from '@ext/custom/youtube/api/processor'
+import { YTEndpoint, YTValueData } from '@ext/custom/youtube/api/schema'
 import { YTConfigInitCallback } from '@ext/custom/youtube/module/core/bootstrap'
 import YTOfflinePage from '@ext/custom/youtube/pages/offline'
 import { decodeEntityKey, EntityType } from '@ext/custom/youtube/proto/entity-key'
@@ -8,7 +8,7 @@ import { getYTLocalEntitiesByType, getYTLocalEntityByType, putYTLocalEntity } fr
 import { updateYTReduxStoreLocalEntities } from '@ext/custom/youtube/utils/redux'
 import { Feature } from '@ext/lib/feature'
 
-const updateEntityUpdateCommand = (data: YTEndpointData<YTEndpoint<'entityUpdateCommand'>>): boolean => {
+const updateEntityUpdateCommand = (data: YTValueData<YTEndpoint.Mapped<'entityUpdateCommand'>>): boolean => {
   const mutations = data.entityBatchUpdate?.mutations
   if (!Array.isArray(mutations)) return true
 
@@ -57,7 +57,7 @@ export default class YTPlayerOfflineModule extends Feature {
       }
     })
 
-    registerYTEndpointPreProcessor(YTEndpointSchemaMap['entityUpdateCommand'], updateEntityUpdateCommand)
+    registerYTValueProcessor(YTEndpoint.mapped.entityUpdateCommand, updateEntityUpdateCommand)
 
     registerOverlayPage('Downloads', YTOfflinePage)
 

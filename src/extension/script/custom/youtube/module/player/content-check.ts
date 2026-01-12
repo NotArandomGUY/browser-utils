@@ -1,6 +1,5 @@
-import { YTSignalActionType } from '@ext/custom/youtube/api/endpoint'
-import { registerYTRendererPreProcessor, YTRenderer, YTRendererData, YTRendererSchemaMap } from '@ext/custom/youtube/api/renderer'
-import { YTIconType } from '@ext/custom/youtube/api/types/icon'
+import { registerYTValueProcessor } from '@ext/custom/youtube/api/processor'
+import { YTEndpoint, YTRenderer, YTResponse, YTValueData } from '@ext/custom/youtube/api/schema'
 import { getYTConfigBool, registerYTConfigMenuItem, YTConfigMenuItemType } from '@ext/custom/youtube/module/core/config'
 import { dispatchYTSignalAction, registerYTSignalActionHandler } from '@ext/custom/youtube/module/core/event'
 import { registerYTInnertubeRequestProcessor } from '@ext/custom/youtube/module/core/network'
@@ -8,13 +7,13 @@ import { Feature } from '@ext/lib/feature'
 
 const CONTENT_CHECK_KEY = 'content-check'
 
-const playerActionsQueue: NonNullable<YTRendererData<YTRenderer<'playerResponse'>>['actions']>[] = []
+const playerActionsQueue: NonNullable<YTValueData<YTResponse.Mapped<'player'>>['actions']>[] = []
 
 const isHideContentCheck = (): boolean => {
   return getYTConfigBool(CONTENT_CHECK_KEY, false)
 }
 
-const updatePlayerResponse = (data: YTRendererData<YTRenderer<'playerResponse'>>): boolean => {
+const updatePlayerResponse = (data: YTValueData<YTResponse.Mapped<'player'>>): boolean => {
   const { errorScreen, status } = data.playabilityStatus ?? {}
 
   switch (status) {
@@ -54,7 +53,7 @@ const updatePlayerResponse = (data: YTRendererData<YTRenderer<'playerResponse'>>
             signalServiceEndpoint: {
               signal: 'CLIENT_SIGNAL',
               actions: [
-                { signalAction: { signal: YTSignalActionType.CONTENT_CHECK_COMPLETE } }
+                { signalAction: { signal: YTEndpoint.enums.SignalActionType.CONTENT_CHECK_COMPLETE } }
               ]
             }
           }
@@ -79,7 +78,7 @@ export default class YTPlayerContentCheckModule extends Feature {
   }
 
   protected activate(): boolean {
-    registerYTRendererPreProcessor(YTRendererSchemaMap['playerResponse'], updatePlayerResponse)
+    registerYTValueProcessor(YTResponse.mapped.player, updatePlayerResponse)
 
     registerYTInnertubeRequestProcessor('player', request => {
       if (!isHideContentCheck()) return
@@ -88,19 +87,19 @@ export default class YTPlayerContentCheckModule extends Feature {
       request.racyCheckOk = true
     })
 
-    registerYTSignalActionHandler(YTSignalActionType.CONTENT_CHECK_COMPLETE, () => {
+    registerYTSignalActionHandler(YTEndpoint.enums.SignalActionType.CONTENT_CHECK_COMPLETE, () => {
       // TODO: improve reliability by hooking into player internal events
-      setTimeout(() => dispatchYTSignalAction(YTSignalActionType.PLAY_PLAYER), 1e3)
+      setTimeout(() => dispatchYTSignalAction(YTEndpoint.enums.SignalActionType.PLAY_PLAYER), 1e3)
     })
 
     registerYTConfigMenuItem({
       type: YTConfigMenuItemType.TOGGLE,
       key: CONTENT_CHECK_KEY,
-      disabledIcon: YTIconType.WARNING,
+      disabledIcon: YTRenderer.enums.IconType.WARNING,
       disabledText: 'Content Check: Default',
-      enabledIcon: YTIconType.WARNING,
+      enabledIcon: YTRenderer.enums.IconType.WARNING,
       enabledText: 'Content Check: Hide',
-      signals: [YTSignalActionType.POPUP_BACK, YTSignalActionType.SOFT_RELOAD_PAGE]
+      signals: [YTEndpoint.enums.SignalActionType.POPUP_BACK, YTEndpoint.enums.SignalActionType.SOFT_RELOAD_PAGE]
     })
 
     return true

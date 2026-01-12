@@ -1,7 +1,8 @@
-import { registerYTRendererPreProcessor, removeYTRendererPre, YTRenderer, YTRendererData, YTRendererSchemaMap } from '@ext/custom/youtube/api/renderer'
+import { registerYTValueFilter, registerYTValueProcessor } from '@ext/custom/youtube/api/processor'
+import { YTRenderer, YTResponse, YTValueData } from '@ext/custom/youtube/api/schema'
 import { Feature } from '@ext/lib/feature'
 
-const updateNextResponse = (data: YTRendererData<YTRenderer<'nextResponse'>>): boolean => {
+const updateNextResponse = (data: YTValueData<YTResponse.Mapped<'next'>>): boolean => {
   delete data.survey
 
   return true
@@ -13,9 +14,8 @@ export default class YTMiscsPopupModule extends Feature {
   }
 
   protected activate(): boolean {
-    registerYTRendererPreProcessor(YTRendererSchemaMap['nextResponse'], updateNextResponse)
-
-    removeYTRendererPre(YTRendererSchemaMap['mealbarPromoRenderer'])
+    registerYTValueFilter(YTRenderer.mapped.mealbarPromoRenderer)
+    registerYTValueProcessor(YTResponse.mapped.next, updateNextResponse)
 
     return true
   }

@@ -1,4 +1,5 @@
-import { registerYTRendererPreProcessor, YTRendererSchemaMap } from '@ext/custom/youtube/api/renderer'
+import { registerYTValueProcessor } from '@ext/custom/youtube/api/processor'
+import { YTRenderer, YTResponse } from '@ext/custom/youtube/api/schema'
 import { dispatchYTOpenPopupAction } from '@ext/custom/youtube/module/core/event'
 import { getYTPInstance, YTPInstanceType, YTPVideoPlayerInstance } from '@ext/custom/youtube/module/player/bootstrap'
 import { floor, random } from '@ext/global/math'
@@ -85,15 +86,7 @@ class MainAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, Cha
       }
     }
 
-    registerYTRendererPreProcessor(YTRendererSchemaMap['playerResponse'], data => {
-      const videoId = data.videoDetails?.videoId ?? null
-      if (videoId !== this.liveChatVideoId_) onPlayerUnload()
-
-      this.videoId_ = videoId
-
-      return true
-    })
-    registerYTRendererPreProcessor(YTRendererSchemaMap['liveChatRenderer'], data => {
+    registerYTValueProcessor(YTRenderer.mapped.liveChatRenderer, data => {
       const { videoId_, liveChatVideoId_, lastIdlePopoutAnnounce_ } = this
       const { continuations, isReplay } = data
 
@@ -115,6 +108,14 @@ class MainAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, Cha
           this.send(ChatPopoutMessageType.PLAYER_LOAD_LIVE_CHAT_REPLAY, { videoId: videoId_, continuation })
         }
       }
+      registerYTValueProcessor(YTResponse.mapped.player, data => {
+        const videoId = data.videoDetails?.videoId ?? null
+        if (videoId !== this.liveChatVideoId_) onPlayerUnload()
+
+        this.videoId_ = videoId
+
+        return true
+      })
 
       // Collapse chat if popout window is available
       data.initialDisplayState = (Date.now() - lastIdlePopoutAnnounce_) <= COLLAPSED_CHAT_TIMEOUT ? 'LIVE_CHAT_DISPLAY_STATE_COLLAPSED' : 'LIVE_CHAT_DISPLAY_STATE_EXPANDED'
@@ -237,7 +238,7 @@ class ChatAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, Cha
     this.lastUpdate_ = 0
     this.isLoaded_ = false
 
-    registerYTRendererPreProcessor(YTRendererSchemaMap['liveChatGetLiveChatResponse'], data => {
+    registerYTValueProcessor(YTResponse.mapped.liveChatGetLiveChat, data => {
       const { videoId_, state_ } = this
 
       if (state_ & ChatPopoutState.MASK_LOCK) {

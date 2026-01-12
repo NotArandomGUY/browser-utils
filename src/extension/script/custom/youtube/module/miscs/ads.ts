@@ -1,5 +1,5 @@
-import { removeYTEndpointPre, YTEndpoint, YTEndpointData, YTEndpointSchemaMap } from '@ext/custom/youtube/api/endpoint'
-import { registerYTRendererPreProcessor, removeYTRendererPost, removeYTRendererPre, YTRenderer, YTRendererData, YTRendererSchemaMap } from '@ext/custom/youtube/api/renderer'
+import { registerYTValueFilter, registerYTValueProcessor, YTValueProcessorType } from '@ext/custom/youtube/api/processor'
+import { YTEndpoint, YTRenderer, YTResponse, YTValueData } from '@ext/custom/youtube/api/schema'
 import { registerYTInnertubeRequestProcessor } from '@ext/custom/youtube/module/core/network'
 import { defineProperty } from '@ext/global/object'
 import { Feature } from '@ext/lib/feature'
@@ -9,13 +9,13 @@ import Logger from '@ext/lib/logger'
 
 const logger = new Logger('YTMISCS-ADS')
 
-const updateNextResponse = (data: YTRendererData<YTRenderer<'nextResponse'>>): boolean => {
+const updateNextResponse = (data: YTValueData<YTResponse.Mapped<'next'>>): boolean => {
   delete data.adEngagementPanels
 
   return true
 }
 
-const filterReel = (data: YTEndpointData<YTEndpoint<'reelWatchEndpoint'>>): boolean => {
+const filterReel = (data: YTValueData<YTEndpoint.Mapped<'reelWatchEndpoint'>>): boolean => {
   return data.adClientParams == null
 }
 
@@ -25,16 +25,15 @@ export default class YTMiscsAdsModule extends Feature {
   }
 
   protected activate(): boolean {
-    registerYTRendererPreProcessor(YTRendererSchemaMap['nextResponse'], updateNextResponse)
-
-    removeYTEndpointPre(YTEndpointSchemaMap['adsControlFlowOpportunityReceivedCommand'])
-    removeYTEndpointPre(YTEndpointSchemaMap['reelWatchEndpoint'], filterReel)
-    removeYTRendererPre(YTRendererSchemaMap['adPlacementRenderer'])
-    removeYTRendererPre(YTRendererSchemaMap['bkaEnforcementMessageViewModel'])
-    removeYTRendererPre(YTRendererSchemaMap['playerLegacyDesktopWatchAdsRenderer'])
-    removeYTRendererPost(YTRendererSchemaMap['adPlayerOverlayRenderer'])
-    removeYTRendererPost(YTRendererSchemaMap['adSlotRenderer'])
-    removeYTRendererPost(YTRendererSchemaMap['topBannerImageTextIconButtonedLayoutViewModel'])
+    registerYTValueFilter(YTEndpoint.mapped.adsControlFlowOpportunityReceivedCommand)
+    registerYTValueFilter(YTEndpoint.mapped.reelWatchEndpoint, filterReel)
+    registerYTValueFilter(YTRenderer.mapped.adPlacementRenderer)
+    registerYTValueFilter(YTRenderer.mapped.bkaEnforcementMessageViewModel)
+    registerYTValueFilter(YTRenderer.mapped.playerLegacyDesktopWatchAdsRenderer)
+    registerYTValueFilter(YTRenderer.mapped.adPlayerOverlayRenderer, null, YTValueProcessorType.POST)
+    registerYTValueFilter(YTRenderer.mapped.adSlotRenderer, null, YTValueProcessorType.POST)
+    registerYTValueFilter(YTRenderer.mapped.topBannerImageTextIconButtonedLayoutViewModel, null, YTValueProcessorType.POST)
+    registerYTValueProcessor(YTResponse.mapped.next, updateNextResponse)
 
     registerYTInnertubeRequestProcessor('player', ({ params, playbackContext }) => {
       if (params.isInlinePlayback || playbackContext?.contentPlaybackContext?.currentUrl?.startsWith('/shorts/')) return

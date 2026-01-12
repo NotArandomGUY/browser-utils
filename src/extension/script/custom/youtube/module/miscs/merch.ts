@@ -1,4 +1,5 @@
-import { removeYTRendererPre, YTRendererSchemaMap } from '@ext/custom/youtube/api/renderer'
+import { registerYTValueFilter } from '@ext/custom/youtube/api/processor'
+import { YTRenderer } from '@ext/custom/youtube/api/schema'
 import { Feature } from '@ext/lib/feature'
 
 export default class YTMiscsMerchModule extends Feature {
@@ -7,9 +8,9 @@ export default class YTMiscsMerchModule extends Feature {
   }
 
   protected activate(): boolean {
-    removeYTRendererPre(YTRendererSchemaMap['merchandiseShelfRenderer'])
-    removeYTRendererPre(YTRendererSchemaMap['productListHeaderRenderer'])
-    removeYTRendererPre(YTRendererSchemaMap['productListItemRenderer'])
+    registerYTValueFilter(YTRenderer.mapped.merchandiseShelfRenderer)
+    registerYTValueFilter(YTRenderer.mapped.productListHeaderRenderer)
+    registerYTValueFilter(YTRenderer.mapped.productListItemRenderer)
 
     return true
   }

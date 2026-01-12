@@ -1,4 +1,4 @@
-import { processYTRenderer } from '@ext/custom/youtube/api/processor'
+import { processYTResponse } from '@ext/custom/youtube/api/processor'
 import { YTPlayerWebPlayerContextConfig } from '@ext/custom/youtube/module/core/bootstrap'
 import { dispatchYTOpenPopupAction } from '@ext/custom/youtube/module/core/event'
 import { YTPlayerContextConfigCallback } from '@ext/custom/youtube/module/player/bootstrap'
@@ -60,7 +60,7 @@ const manager = new UMPContextManager({
         let body: object | null = null
         if (message.onesiePorxyStatus === OnesieProxyStatus.OK && message.body != null) {
           body = JSON.parse(bufferToString(message.body))
-          await processYTRenderer('playerResponse', body)
+          await processYTResponse('player', body)
           message.body = bufferFromString(JSON.stringify(body))
         }
         logger.debug('onesie player response:', message, body)

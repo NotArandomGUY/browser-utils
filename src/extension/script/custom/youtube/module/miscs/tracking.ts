@@ -1,11 +1,11 @@
-import { YTSignalActionType } from '@ext/custom/youtube/api/endpoint'
-import { registerYTRendererPreProcessor, setYTServiceTrackingOverride, YTLoggingDirectivesSchema, YTRenderer, YTRendererData, YTRendererSchemaMap } from '@ext/custom/youtube/api/renderer'
-import { YTIconType } from '@ext/custom/youtube/api/types/icon'
+import { registerYTValueProcessor } from '@ext/custom/youtube/api/processor'
+import { YTEndpoint, YTRenderer, YTResponse, ytv_enp, ytv_ren, YTValueData, YTValueType } from '@ext/custom/youtube/api/schema'
 import { isYTLoggedIn, YTPlayerWebPlayerContextConfig } from '@ext/custom/youtube/module/core/bootstrap'
 import { CONFIG_TEXT_DISABLE, CONFIG_TEXT_ENABLE, getYTConfigBool, getYTConfigInt, registerYTConfigMenuItem, setYTConfigInt, YTConfigMenuItemType } from '@ext/custom/youtube/module/core/config'
 import { registerYTInnertubeRequestProcessor } from '@ext/custom/youtube/module/core/network'
 import { YTPlayerContextConfigCallback } from '@ext/custom/youtube/module/player/bootstrap'
-import { assign, defineProperty, getOwnPropertyDescriptor, keys } from '@ext/global/object'
+import { encodeTrackingParam } from '@ext/custom/youtube/utils/crypto'
+import { assign, defineProperty, getOwnPropertyDescriptor, keys, values } from '@ext/global/object'
 import { Feature } from '@ext/lib/feature'
 import { preventDispatchEvent } from '@ext/lib/intercept/event'
 import InterceptImage from '@ext/lib/intercept/image'
@@ -16,6 +16,7 @@ import { buildPathnameRegexp } from '@ext/lib/regexp'
 const TRACKING_SWITCHES_KEY = 'tracking-switches'
 const SHARE_URL_ALLOW_PARAMS = new Set(['fmt', 'hl', 'index', 'list', 'pp', 't', 'v'])
 const STATS_API_BLOCK_PARAMS = new Set(['cbr', 'cbrand', 'cbrver', 'cmodel', 'cos', 'cosver'])
+const OVERRIDE_TRACKING_PARAMS = 'CAAQACIMCAAVAAAAAB0AAAAA'
 
 const HOST_REGEXP = /./
 const FORBID_PATH_REGEXP = buildPathnameRegexp([
@@ -129,29 +130,36 @@ const processRequest = async (ctx: NetworkRequestContext): Promise<void> => {
   await replaceRequest(ctx, { url })
 }
 
-const updateLoggingDirectives = (data: YTRendererData<typeof YTLoggingDirectivesSchema>): boolean => {
+const updateEndpoint = (data: YTValueData<{ type: YTValueType.ENDPOINT }>): boolean => {
+  if (data?.clickTrackingParams != null) data.clickTrackingParams = OVERRIDE_TRACKING_PARAMS
+
+  return true
+}
+
+const updateRendererInner = (data: YTValueData<YTRenderer.Mapped | YTResponse.Mapped>): boolean => {
+  if (data.clickTrackingParams != null) data.clickTrackingParams = OVERRIDE_TRACKING_PARAMS
+  if (data.trackingParams != null) data.trackingParams = OVERRIDE_TRACKING_PARAMS
+
+  return true
+}
+
+const updateRenderer = (data: YTValueData<{ type: YTValueType.RENDERER }>): boolean => {
+  for (const key in data) {
+    const child = data[key as keyof typeof data]
+    if (child != null) updateRendererInner(child)
+  }
+
+  return true
+}
+
+const updateLoggingDirectives = (data: YTValueData<YTRenderer.Component<'loggingDirectives'>>): boolean => {
   delete data.clientVeSpec
   delete data.visibility
 
   return true
 }
 
-const updatePlayerResponse = (data: YTRendererData<YTRenderer<'playerResponse'>>): boolean => {
-  delete data.playbackTracking?.ptrackingUrl
-  delete data.playbackTracking?.qoeUrl
-  delete data.playbackTracking?.googleRemarketingUrl
-  delete data.playbackTracking?.youtubeRemarketingUrl
-
-  return true
-}
-
-const updateSearchResponse = (data: YTRendererData<YTRenderer<'searchResponse'>>): boolean => {
-  delete data.responseContext?.visitorData
-
-  return true
-}
-
-const updateCopyLinkRenderer = (data: YTRendererData<YTRenderer<'copyLinkRenderer'>>): boolean => {
+const updateCopyLinkRenderer = (data: YTValueData<YTRenderer.Mapped<'copyLinkRenderer'>>): boolean => {
   const { shortUrl } = data
 
   if (!isYTTrackingSwitchEnabled(YTTrackingSwitchMask.SHARE_ID) && shortUrl != null) {
@@ -161,7 +169,7 @@ const updateCopyLinkRenderer = (data: YTRendererData<YTRenderer<'copyLinkRendere
   return true
 }
 
-const updateFeedNudgeRenderer = (data: YTRendererData<YTRenderer<'feedNudgeRenderer'>>): boolean => {
+const updateFeedNudgeRenderer = (data: YTValueData<YTRenderer.Mapped<'feedNudgeRenderer'>>): boolean => {
   if (!isYTTrackingSwitchEnabled(isYTLoggedIn() ? YTTrackingSwitchMask.LOGIN_STATS : YTTrackingSwitchMask.GUEST_STATS)) {
     data.title = { simpleText: 'Oh hi!' }
     data.subtitle = {
@@ -175,7 +183,7 @@ const updateFeedNudgeRenderer = (data: YTRendererData<YTRenderer<'feedNudgeRende
   return true
 }
 
-const updateShareTargetRenderer = (data: YTRendererData<YTRenderer<'shareTargetRenderer'>>): boolean => {
+const updateShareTargetRenderer = (data: YTValueData<YTRenderer.Mapped<'shareTargetRenderer'>>): boolean => {
   const { navigationEndpoint } = data
 
   if (!isYTTrackingSwitchEnabled(YTTrackingSwitchMask.SHARE_ID) && navigationEndpoint != null) {
@@ -189,8 +197,34 @@ const updateShareTargetRenderer = (data: YTRendererData<YTRenderer<'shareTargetR
   return true
 }
 
-const updateSharingEmbedRenderer = (data: YTRendererData<YTRenderer<'sharingEmbedRenderer'>>): boolean => {
+const updateSharingEmbedRenderer = (data: YTValueData<YTRenderer.Mapped<'sharingEmbedRenderer'>>): boolean => {
   if (!isYTTrackingSwitchEnabled(YTTrackingSwitchMask.SHARE_ID)) delete data.attributionId
+
+  return true
+}
+
+const updateResponseContext = (data: YTValueData<YTResponse.Component<'responseContext'>>): boolean => {
+  const { mainAppWebResponseContext, serviceTrackingParams } = data
+
+  if (mainAppWebResponseContext != null) {
+    mainAppWebResponseContext.trackingParam = encodeTrackingParam('CioKDnRyYWNraW5nUGFyYW1zEhhDQUFRQUNJTUNBQVZBQUFBQUIwQUFBQUE')
+  }
+  serviceTrackingParams?.splice(0)
+
+  return true
+}
+
+const updatePlayerResponse = (data: YTValueData<YTResponse.Mapped<'player'>>): boolean => {
+  delete data.playbackTracking?.ptrackingUrl
+  delete data.playbackTracking?.qoeUrl
+  delete data.playbackTracking?.googleRemarketingUrl
+  delete data.playbackTracking?.youtubeRemarketingUrl
+
+  return true
+}
+
+const updateSearchResponse = (data: YTValueData<YTResponse.Mapped<'search'>>): boolean => {
+  delete data.responseContext?.visitorData
 
   return true
 }
@@ -203,16 +237,17 @@ export default class YTMiscsTrackingModule extends Feature {
   protected activate(): boolean {
     YTPlayerContextConfigCallback.registerCallback(processPlayerContextConfig)
 
-    setYTServiceTrackingOverride('CSI', 'yt_ad', '0')
-    setYTServiceTrackingOverride('CSI', 'yt_red', '1')
-
-    registerYTRendererPreProcessor(YTLoggingDirectivesSchema, updateLoggingDirectives)
-    registerYTRendererPreProcessor(YTRendererSchemaMap['playerResponse'], updatePlayerResponse)
-    registerYTRendererPreProcessor(YTRendererSchemaMap['searchResponse'], updateSearchResponse)
-    registerYTRendererPreProcessor(YTRendererSchemaMap['copyLinkRenderer'], updateCopyLinkRenderer)
-    registerYTRendererPreProcessor(YTRendererSchemaMap['feedNudgeRenderer'], updateFeedNudgeRenderer)
-    registerYTRendererPreProcessor(YTRendererSchemaMap['shareTargetRenderer'], updateShareTargetRenderer)
-    registerYTRendererPreProcessor(YTRendererSchemaMap['sharingEmbedRenderer'], updateSharingEmbedRenderer)
+    values(YTResponse.mapped).forEach(schema => registerYTValueProcessor(schema, updateRendererInner))
+    registerYTValueProcessor(ytv_enp(), updateEndpoint)
+    registerYTValueProcessor(ytv_ren(), updateRenderer)
+    registerYTValueProcessor(YTRenderer.components.loggingDirectives, updateLoggingDirectives)
+    registerYTValueProcessor(YTRenderer.mapped.copyLinkRenderer, updateCopyLinkRenderer)
+    registerYTValueProcessor(YTRenderer.mapped.feedNudgeRenderer, updateFeedNudgeRenderer)
+    registerYTValueProcessor(YTRenderer.mapped.shareTargetRenderer, updateShareTargetRenderer)
+    registerYTValueProcessor(YTRenderer.mapped.sharingEmbedRenderer, updateSharingEmbedRenderer)
+    registerYTValueProcessor(YTResponse.components.responseContext, updateResponseContext)
+    registerYTValueProcessor(YTResponse.mapped.player, updatePlayerResponse)
+    registerYTValueProcessor(YTResponse.mapped.search, updateSearchResponse)
 
     registerYTInnertubeRequestProcessor('*', ({ context }) => {
       delete context?.adSignalsInfo
@@ -283,32 +318,32 @@ export default class YTMiscsTrackingModule extends Feature {
     registerYTConfigMenuItem({
       type: YTConfigMenuItemType.TOGGLE,
       key: TRACKING_SWITCHES_KEY,
-      disabledIcon: YTIconType.PRIVACY_PRIVATE,
+      disabledIcon: YTRenderer.enums.IconType.PRIVACY_PRIVATE,
       disabledText: `Guest Watch History: ${CONFIG_TEXT_DISABLE}`,
-      enabledIcon: YTIconType.PRIVACY_PUBLIC,
+      enabledIcon: YTRenderer.enums.IconType.PRIVACY_PUBLIC,
       enabledText: `Guest Watch History: ${CONFIG_TEXT_ENABLE}`,
       mask: YTTrackingSwitchMask.GUEST_STATS,
-      signals: [YTSignalActionType.POPUP_BACK, YTSignalActionType.SOFT_RELOAD_PAGE]
+      signals: [YTEndpoint.enums.SignalActionType.POPUP_BACK, YTEndpoint.enums.SignalActionType.SOFT_RELOAD_PAGE]
     })
     registerYTConfigMenuItem({
       type: YTConfigMenuItemType.TOGGLE,
       key: TRACKING_SWITCHES_KEY,
-      disabledIcon: YTIconType.PRIVACY_PRIVATE,
+      disabledIcon: YTRenderer.enums.IconType.PRIVACY_PRIVATE,
       disabledText: `Login Watch History: ${CONFIG_TEXT_DISABLE}`,
-      enabledIcon: YTIconType.PRIVACY_PUBLIC,
+      enabledIcon: YTRenderer.enums.IconType.PRIVACY_PUBLIC,
       enabledText: `Login Watch History: ${CONFIG_TEXT_ENABLE}`,
       mask: YTTrackingSwitchMask.LOGIN_STATS,
-      signals: [YTSignalActionType.POPUP_BACK, YTSignalActionType.SOFT_RELOAD_PAGE]
+      signals: [YTEndpoint.enums.SignalActionType.POPUP_BACK, YTEndpoint.enums.SignalActionType.SOFT_RELOAD_PAGE]
     })
     registerYTConfigMenuItem({
       type: YTConfigMenuItemType.TOGGLE,
       key: TRACKING_SWITCHES_KEY,
-      disabledIcon: YTIconType.PRIVACY_PRIVATE,
+      disabledIcon: YTRenderer.enums.IconType.PRIVACY_PRIVATE,
       disabledText: `Share ID: ${CONFIG_TEXT_DISABLE}`,
-      enabledIcon: YTIconType.PRIVACY_PUBLIC,
+      enabledIcon: YTRenderer.enums.IconType.PRIVACY_PUBLIC,
       enabledText: `Share ID: ${CONFIG_TEXT_ENABLE}`,
       mask: YTTrackingSwitchMask.SHARE_ID,
-      signals: [YTSignalActionType.POPUP_BACK, YTSignalActionType.SOFT_RELOAD_PAGE]
+      signals: [YTEndpoint.enums.SignalActionType.POPUP_BACK, YTEndpoint.enums.SignalActionType.SOFT_RELOAD_PAGE]
     })
 
     // Default only enable login stats

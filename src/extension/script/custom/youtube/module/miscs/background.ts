@@ -1,4 +1,5 @@
-import { removeYTRendererPre, YTRendererSchemaMap } from '@ext/custom/youtube/api/renderer'
+import { registerYTValueFilter } from '@ext/custom/youtube/api/processor'
+import { YTRenderer } from '@ext/custom/youtube/api/schema'
 import { random } from '@ext/global/math'
 import { defineProperties } from '@ext/global/object'
 import { Feature } from '@ext/lib/feature'
@@ -22,7 +23,7 @@ export default class YTMiscsBackgroundModule extends Feature {
   }
 
   protected activate(): boolean {
-    removeYTRendererPre(YTRendererSchemaMap['youThereRenderer'])
+    registerYTValueFilter(YTRenderer.mapped.youThereRenderer)
 
     defineProperties(document, {
       hidden: {
