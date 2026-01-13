@@ -1,6 +1,6 @@
 import { YTConfigInitCallback, YTPlayerCreateCallback, YTPlayerWebPlayerContextConfig } from '@ext/custom/youtube/module/core/bootstrap'
 import { URLSearchParams } from '@ext/global/network'
-import { defineProperty, entries, fromEntries, keys, values } from '@ext/global/object'
+import { defineProperty, entries, fromEntries, getOwnPropertyNames, getPrototypeOf, keys, values } from '@ext/global/object'
 import Callback from '@ext/lib/callback'
 import { Feature } from '@ext/lib/feature'
 import InterceptDOM from '@ext/lib/intercept/dom'
@@ -76,6 +76,8 @@ export interface YTPDisposableInstance {
 }
 
 export interface YTPVideoDataInstance extends YTPDisposableInstance {
+  cotn: string | undefined
+
   isAd?(): boolean
   isDaiEnabled?(): boolean
   isEmbedsShortsMode?(): boolean
@@ -210,6 +212,28 @@ const onCreateVideoPlayerInstance = (instance: YTPVideoPlayerInstance): void => 
         instance[STAT_METHOD_MAP[stat as keyof typeof STAT_METHOD_MAP]] = value.get(stat)
       }
     }
+  })
+
+  const prototype = getPrototypeOf(instance.videoData)
+  if (prototype == null) return
+
+  getOwnPropertyNames(prototype).forEach(key => {
+    const value = prototype[key as keyof YTPVideoDataInstance]
+    if (typeof value !== 'function' || !value.toString().includes('.storyboards')) return
+
+    defineProperty(prototype, key, {
+      configurable: true,
+      value: new Hook(value as (this: YTPVideoDataInstance, ...args: unknown[]) => unknown).install(ctx => {
+        const { self, args } = ctx
+
+        const cotn = self.cotn
+        self.cotn = undefined
+        ctx.returnValue = ctx.origin.apply(self, args)
+        self.cotn = cotn
+
+        return HookResult.EXECUTION_RETURN
+      }).call
+    })
   })
 }
 
