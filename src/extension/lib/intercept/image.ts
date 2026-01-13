@@ -107,23 +107,28 @@ const IMAGE_EVENTS = [
 export default class InterceptImage extends Image {
   /// Public ///
 
-  public static setCallback(cb?: ((this: InterceptImage, type: keyof HTMLMediaElementEventMap, evt: Event) => void) | null): void {
-    InterceptImage.callback = cb ?? null
+  public static setCallback(callback: (this: InterceptImage, type: keyof HTMLMediaElementEventMap, evt: Event) => void): void {
+    const { callbacks } = InterceptImage
 
-    if (cb == null) {
-      if (this.original == null) return
+    const index = callbacks.indexOf(callback)
+    if (index < 0) {
+      callbacks.push(callback)
 
-      window.Image = this.original
-      this.original = null
-
-      logger.debug('image hook deactivated')
-    } else {
       if (this.original != null) return
 
       this.original = window.Image
       window.Image = this
 
       logger.debug('image hook activated')
+    } else {
+      callbacks.splice(index, 1)
+
+      if (callbacks.length > 0 || this.original == null) return
+
+      window.Image = this.original
+      this.original = null
+
+      logger.debug('image hook deactivated')
     }
   }
 
@@ -164,13 +169,18 @@ export default class InterceptImage extends Image {
   /// Private ///
 
   private static original: (typeof Image) | null = null
-  private static callback: ((this: InterceptImage, type: keyof HTMLMediaElementEventMap, evt: Event) => void) | null = null
+  private static readonly callbacks: Array<(this: InterceptImage, type: keyof HTMLMediaElementEventMap, evt: Event) => void> = []
 
   private readonly eventTarget: InterceptEventTargetAdapter<GlobalEventHandlers, HTMLMediaElementEventMap>
   private overrideSrc: string | null = null
 
   private onEvent(type: keyof HTMLMediaElementEventMap, evt: Event): void {
-    InterceptImage.callback?.call(this, type, evt)
+    const { callbacks } = InterceptImage
+
+    for (const callback of callbacks) {
+      callback.call(this, type, evt)
+      if (evt.defaultPrevented) break
+    }
   }
 
   private onSrcChange(evt: CustomEvent<string>): void {
