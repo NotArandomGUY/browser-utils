@@ -65,7 +65,7 @@ export default class VPBFMessage extends Feature {
               message.type = `${MESSAGE_NAMESPACE}-${message.type}`
               ctx.args[1] = parentOrigin
             }
-            return HookResult.EXECUTION_IGNORE
+            return HookResult.EXECUTION_PASSTHROUGH
           }).call
         }
       }

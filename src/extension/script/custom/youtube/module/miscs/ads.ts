@@ -46,7 +46,7 @@ export default class YTMiscsAdsModule extends Feature {
       const node = ctx.args[0]
 
       if (node instanceof HTMLScriptElement) {
-        if (!node.src.includes('doubleclick.net')) return HookResult.EXECUTION_IGNORE
+        if (!node.src.includes('doubleclick.net')) return HookResult.EXECUTION_PASSTHROUGH
 
         logger.debug('intercepted script element from append', node)
 
@@ -56,7 +56,7 @@ export default class YTMiscsAdsModule extends Feature {
         return HookResult.EXECUTION_CONTINUE
       }
 
-      return HookResult.EXECUTION_IGNORE
+      return HookResult.EXECUTION_PASSTHROUGH
     })
     defineProperty(window, 'google_ad_status', { configurable: true, enumerable: true, value: null })
 

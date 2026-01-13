@@ -43,7 +43,7 @@ export default class YTCoreSandboxModule extends Feature {
 
       const definePropertiesHook = new Hook(defineProperties).install(ctx => {
         const [object, props] = ctx.args
-        if (object == null || props == null || typeof props !== 'object') return HookResult.EXECUTION_IGNORE
+        if (object == null || props == null || typeof props !== 'object') return HookResult.EXECUTION_PASSTHROUGH
 
         for (const prop in props) {
           try {
@@ -58,7 +58,7 @@ export default class YTCoreSandboxModule extends Feature {
           return HookResult.EXECUTION_CONTINUE
         }
 
-        return HookResult.EXECUTION_IGNORE
+        return HookResult.EXECUTION_PASSTHROUGH
       }).call
       const definePropertyHook = new Hook(defineProperty).install(ctx => {
         const [object, prop, attributes] = ctx.args

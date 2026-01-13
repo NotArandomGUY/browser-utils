@@ -50,14 +50,14 @@ export default class ViuAdblockModule extends Feature {
           node.src.includes('/_next/static') ||
           node.type === 'application/ld+json' ||
           node.dataset['webpack']
-        ) return HookResult.EXECUTION_IGNORE
+        ) return HookResult.EXECUTION_PASSTHROUGH
 
         logger.debug('intercepted script element from append', node)
         node.dispatchEvent(new Event('load'))
         return HookResult.EXECUTION_CONTINUE
       }
 
-      return HookResult.EXECUTION_IGNORE
+      return HookResult.EXECUTION_PASSTHROUGH
     })
 
     monitorSelector<HTMLVideoElement>('video[title="Advertisement"]', (element) => {

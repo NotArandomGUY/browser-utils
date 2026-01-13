@@ -517,13 +517,12 @@ export default class YTCoreBootstrapModule extends Feature {
 
     // Process initial data for app element
     customElements.define = new Hook(customElements.define).install(ctx => {
-      const customElement = ctx.args[1]
-      if (customElement == null) return HookResult.EXECUTION_IGNORE
-
-      const { connectedCallback } = customElement.prototype ?? {}
-
       const page = APP_ELEMENT_PAGE_MAP[ctx.args[0].toLowerCase()]
-      if (page == null || typeof connectedCallback !== 'function') return HookResult.EXECUTION_IGNORE
+      const customElement = ctx.args[1]
+      if (page == null || customElement == null) return HookResult.EXECUTION_PASSTHROUGH
+
+      const connectedCallback = customElement.prototype?.connectedCallback
+      if (typeof connectedCallback !== 'function') return HookResult.EXECUTION_PASSTHROUGH
 
       customElement.prototype.connectedCallback = new Hook(connectedCallback).install(ctx => {
         if (ctx.self instanceof HTMLElement) {
@@ -531,10 +530,10 @@ export default class YTCoreBootstrapModule extends Feature {
           logger.debug('app element connected', customElement, appElement)
         } else {
           logger.warn('invalid app element type', ctx.self)
-          return HookResult.EXECUTION_IGNORE
+          return HookResult.EXECUTION_PASSTHROUGH
         }
 
-        if (!page) return HookResult.EXECUTION_IGNORE
+        if (!page) return HookResult.EXECUTION_PASSTHROUGH
 
         getProcessedInitialData({ page, response: window.ytInitialData } as YTInitData)
           .catch(error => logger.warn('process initial data error:', error))
@@ -543,9 +542,7 @@ export default class YTCoreBootstrapModule extends Feature {
         return HookResult.EXECUTION_CONTINUE
       }).call
 
-      customElements.define = ctx.origin
-
-      return HookResult.EXECUTION_IGNORE | HookResult.ACTION_UNINSTALL
+      return HookResult.EXECUTION_PASSTHROUGH | HookResult.ACTION_UNINSTALL
     }).call
 
     registerOverlayPage('Device', YTDevicePage)

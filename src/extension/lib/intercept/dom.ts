@@ -70,7 +70,7 @@ export default class InterceptDOM {
     childs.forEach(child => {
       InterceptDOM.onCreateNode(child)
 
-      let result: HookResult = HookResult.EXECUTION_IGNORE
+      let result: HookResult = HookResult.EXECUTION_PASSTHROUGH
 
       const ctx: CallContext<Node, Node[], Node> = {
         origin: (...node: Node[]) => {
@@ -93,9 +93,7 @@ export default class InterceptDOM {
         if (result === HookResult.EXECUTION_RETURN) break
       }
 
-      if (result === HookResult.EXECUTION_IGNORE) return
-
-      child.parentNode?.removeChild(child)
+      if (result !== HookResult.EXECUTION_PASSTHROUGH) child.remove()
     })
   }
 }

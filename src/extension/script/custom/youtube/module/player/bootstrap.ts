@@ -236,7 +236,7 @@ const onCreateInstanceType = (type: YTPInstanceType, instance: YTPDisposableInst
         const value = ref.deref()
         if (value == null || value === instance) instances.delete(ref)
       }
-      return HookResult.EXECUTION_IGNORE
+      return HookResult.EXECUTION_PASSTHROUGH
     }).call
 
     instances.add(new WeakRef(instance))
@@ -292,7 +292,7 @@ const onCreateYTPlayer = (container: HTMLElement): void => {
         const fn = ctx.self.toString()
         const instance = ctx.args[0]
 
-        let result = HookResult.EXECUTION_IGNORE
+        let result = HookResult.EXECUTION_PASSTHROUGH
         if (baseCtor == null) {
           const oldKeys = keys(instance).length
           ctx.returnValue = ctx.origin.apply(ctx.self, ctx.args)
@@ -311,7 +311,7 @@ const onCreateYTPlayer = (container: HTMLElement): void => {
       }).call
     }
 
-    return HookResult.EXECUTION_IGNORE
+    return HookResult.EXECUTION_PASSTHROUGH
   }).call
 }
 
@@ -391,7 +391,7 @@ export default class YTPlayerBootstrapModule extends Feature {
       // Remove player pause overlay
       if (node instanceof HTMLDivElement && node.classList.contains('ytp-pause-overlay')) return HookResult.EXECUTION_CONTINUE
 
-      return HookResult.EXECUTION_IGNORE
+      return HookResult.EXECUTION_PASSTHROUGH
     })
 
     return true

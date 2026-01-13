@@ -1,13 +1,13 @@
 import { assign, defineProperty } from '@ext/global/object'
 
 export const enum HookType {
-  PRE,
-  MAIN,
-  POST
+  PRE = 0,
+  MAIN = 1,
+  POST = 2
 }
 
 export const enum HookResult {
-  EXECUTION_IGNORE = 0x01,
+  EXECUTION_PASSTHROUGH = 0x01,
   EXECUTION_CONTINUE = 0x02,
   EXECUTION_RETURN = 0x04,
   EXECUTION_THROW = 0x08,
@@ -30,7 +30,7 @@ export interface CallContext<T, A extends unknown[], R, U = unknown> {
 
 export const BoundTargetSymbol = Symbol()
 
-const activeHookMap = new Map<OriginFn, { [K in HookType]: HookFnSet<any, any[], any, any> }>()
+const activeHookMap = new Map<OriginFn, [pre: HookFnSet<any, any[], any, any>, main: HookFnSet<any, any[], any, any>, post: HookFnSet<any, any[], any, any>]>()
 
 const invokeHooks = <T, A extends unknown[], R, U = unknown>(ctx: CallContext<T, A, R, U>, hooks: HookFnSet<T, A, R, U>, result: HookResult): HookResult => {
   if (hooks.size === 0 || (result & 0x0F) === HookResult.EXECUTION_THROW) return result
@@ -61,15 +61,13 @@ const invokeHooks = <T, A extends unknown[], R, U = unknown>(ctx: CallContext<T,
 }
 
 export default class Hook<T, A extends unknown[], R, U = unknown> {
-  /// Public ///
-
   public readonly origin!: OriginFn<T, A, R>
-  public readonly hooks!: { [K in HookType]: HookFnSet<T, A, R, U> }
+  public readonly hooks!: [pre: HookFnSet<T, A, R, U>, main: HookFnSet<T, A, R, U>, post: HookFnSet<T, A, R, U>]
 
   public constructor(origin: OriginFn<T, A, R>, isShared = true) {
     let hooks = isShared ? activeHookMap.get(origin as OriginFn) : null
     if (hooks == null) {
-      hooks = { [HookType.PRE]: new Set(), [HookType.MAIN]: new Set(), [HookType.POST]: new Set() }
+      hooks = [new Set(), new Set(), new Set()]
       if (isShared) activeHookMap.set(origin as OriginFn, hooks)
     }
 
@@ -89,12 +87,9 @@ export default class Hook<T, A extends unknown[], R, U = unknown> {
             returnValue: undefined as R,
             userData: undefined
           }
-
-          let result = invokeHooks(ctx, hooks[HookType.PRE], HookResult.EXECUTION_IGNORE)
-          result = invokeHooks(ctx, hooks[HookType.MAIN], result)
-          result = invokeHooks(ctx, hooks[HookType.POST], result)
-
-          return result === HookResult.EXECUTION_IGNORE ? origin.apply(ctx.self, ctx.args) : ctx.returnValue
+          return hooks.reduce((result, set) => invokeHooks(ctx, set, result), HookResult.EXECUTION_PASSTHROUGH) === HookResult.EXECUTION_PASSTHROUGH
+            ? origin.apply(ctx.self, ctx.args)
+            : ctx.returnValue
         }
       })
     })

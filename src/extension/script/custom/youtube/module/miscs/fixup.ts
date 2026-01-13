@@ -62,7 +62,7 @@ export default class YTMiscsFixupModule extends Feature {
         logger.debug('patched iframe element', node, getOwnPropertyDescriptors(node))
       }
 
-      return HookResult.EXECUTION_IGNORE
+      return HookResult.EXECUTION_PASSTHROUGH
     })
 
     addEventListener('mousedown', stopControlEvent, true)

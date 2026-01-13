@@ -104,7 +104,7 @@ export default class YTCoreEventModule extends Feature {
               actionHandlerMap[actionName]?.({ actionName })
             }
 
-            return HookResult.EXECUTION_IGNORE
+            return HookResult.EXECUTION_PASSTHROUGH
           }).call
           break
         }

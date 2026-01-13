@@ -56,15 +56,15 @@ function init(plugin: typeof vjs.Plugin): void {
 
 Object.assign = new Hook(Object.assign).install(ctx => {
   const [target] = ctx.args
-  if (!('player' in target)) return HookResult.EXECUTION_IGNORE
+  if (!('player' in target)) return HookResult.EXECUTION_PASSTHROUGH
 
   const ctor = getPrototypeOf(getPrototypeOf(target)).constructor
-  if (!('BASE_PLUGIN_NAME' in ctor)) return HookResult.EXECUTION_IGNORE
+  if (!('BASE_PLUGIN_NAME' in ctor)) return HookResult.EXECUTION_PASSTHROUGH
 
   init(ctor)
   Object.assign = ctx.origin
 
-  return HookResult.ACTION_UNINSTALL | HookResult.EXECUTION_IGNORE
+  return HookResult.ACTION_UNINSTALL | HookResult.EXECUTION_PASSTHROUGH
 }).call
 
 logger.info('initialized')

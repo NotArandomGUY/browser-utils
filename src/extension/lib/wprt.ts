@@ -1052,10 +1052,10 @@ export const interruptWebpackRuntime = (filter: (chunkLoadingGlobal: string) => 
             [INTERRUPT_ID]: { value: true },
             forEach: {
               value: new Hook(value.forEach).install(() => {
-                if (value.hasOwnProperty(BYPASS_ID)) return HookResult.EXECUTION_IGNORE
+                if (value.hasOwnProperty(BYPASS_ID)) return HookResult.EXECUTION_PASSTHROUGH
                 if (filter(prop)) {
                   defineProperty(value, BYPASS_ID, { configurable: true, value: true })
-                  return HookResult.EXECUTION_IGNORE
+                  return HookResult.EXECUTION_PASSTHROUGH
                 }
 
                 debug(`interrupted default webpack runtime for ${String(prop)}`)
