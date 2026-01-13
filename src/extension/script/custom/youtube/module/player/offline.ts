@@ -1,10 +1,12 @@
 import { registerOverlayPage } from '@ext/common/preload/overlay'
 import { registerYTValueProcessor } from '@ext/custom/youtube/api/processor'
-import { YTEndpoint, YTValueData } from '@ext/custom/youtube/api/schema'
+import { YTEndpoint, YTResponse, YTValueData } from '@ext/custom/youtube/api/schema'
 import { YTConfigInitCallback } from '@ext/custom/youtube/module/core/bootstrap'
 import YTOfflinePage from '@ext/custom/youtube/pages/offline'
 import { decodeEntityKey, EntityType } from '@ext/custom/youtube/proto/entity-key'
-import { getYTLocalEntitiesByType, getYTLocalEntityByType, putYTLocalEntity } from '@ext/custom/youtube/utils/local'
+import { YTOfflineMediaStreamQuality } from '@ext/custom/youtube/proto/ytom/stream'
+import { getNonce } from '@ext/custom/youtube/utils/crypto'
+import { getYTLocalEntitiesByType, getYTLocalEntityByType, getYTLocalMediaIndex, putYTLocalEntity, YTLocalMediaType } from '@ext/custom/youtube/utils/local'
 import { updateYTReduxStoreLocalEntities } from '@ext/custom/youtube/utils/redux'
 import { Feature } from '@ext/lib/feature'
 
@@ -19,6 +21,17 @@ const updateEntityUpdateCommand = (data: YTValueData<YTEndpoint.Mapped<'entityUp
     policy.expirationTimestamp = 'Infinity'
     policy.lastUpdatedTimestampSeconds = 'Infinity'
   }
+
+  return true
+}
+
+const updatePlayerResponse = async (data: YTValueData<YTResponse.Mapped<'player'>>): Promise<boolean> => {
+  const videoId = data.videoDetails?.videoId
+  if (videoId == null) return true
+
+  const index = await getYTLocalMediaIndex(videoId, YTLocalMediaType.VIDEO)
+  const quality = YTOfflineMediaStreamQuality[index?.format?.quality as keyof typeof YTOfflineMediaStreamQuality]
+  if (quality != null && quality > YTOfflineMediaStreamQuality.large) data.cotn = getNonce(16)
 
   return true
 }
@@ -58,6 +71,7 @@ export default class YTPlayerOfflineModule extends Feature {
     })
 
     registerYTValueProcessor(YTEndpoint.mapped.entityUpdateCommand, updateEntityUpdateCommand)
+    registerYTValueProcessor(YTResponse.mapped.player, updatePlayerResponse)
 
     registerOverlayPage('Downloads', YTOfflinePage)
 

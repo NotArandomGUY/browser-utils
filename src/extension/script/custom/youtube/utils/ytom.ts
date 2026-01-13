@@ -34,11 +34,11 @@ const downloadBlob = (blob: Blob, id: string, type?: string): void => {
   const link = document.createElement('a')
 
   link.href = URL.createObjectURL(blob)
-  link.download = `youtube.${id}.${type ?? blob.type.match(/(?<=^(audio|video)\/)[A-Za-z0-9]+/)?.[0] ?? 'bin'}`
+  link.download = `youtube.${id}.${type ?? /(?<=^(audio|video)\/)[A-Za-z0-9]+/.exec(blob.type)?.[0] ?? 'bin'}`
 
   body.appendChild(link)
   link.click()
-  body.removeChild(link)
+  link.remove()
 
   URL.revokeObjectURL(link.href)
 }
@@ -311,7 +311,7 @@ export const importYTOfflineMediaBundle = (file: File, password: string) => new 
       metadataBuffer = await decryptAesCtr(await deriveAesCtrKey(password, metadataHash.slice(0, 16)), metadataHash.slice(8, 24), metadataBuffer)
     }
 
-    const isHashMismatch = (await digestSHA256(metadataBuffer, 24)).find((b, i) => metadataHash[i] !== b) != null
+    const isHashMismatch = (await digestSHA256(metadataBuffer, 24)).some((b, i) => metadataHash[i] !== b)
     if (isHashMismatch) throw new Error('file corrupted or wrong password')
 
     const { version, id, entities, streams, captions } = new YTOfflineMediaMetadata().deserialize(await decompress(metadataBuffer, 'deflate'), false)

@@ -184,10 +184,14 @@ export const paygatedQualityDetail = ytv_ren({
   paygatedIndicatorText: ytv_str()
 })
 export const paygatedQualitiesMetadata = ytv_ren({
+  qualityDetails: ytv_obj(ytv_str(), paygatedQualityDetail)
+  // TODO: support union type
+  /*
   qualityDetails: ytv_arr(ytv_sch({
     key: ytv_str(),
     value: paygatedQualityDetail
   }))
+  */
 })
 export const playerConfig = ytv_ren({
   audioConfig: ytv_sch({

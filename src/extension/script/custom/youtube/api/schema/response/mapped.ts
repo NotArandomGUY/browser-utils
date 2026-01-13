@@ -103,6 +103,7 @@ export const player = ytv_rsp(() => ({
   }),
   captions: ytv_ren(),
   cards: ytv_ren(),
+  cotn: ytv_str(),
   endscreen: ytv_ren(),
   heartbeatParams: ytv_sch({
     drmSessionId: ytv_str(),
