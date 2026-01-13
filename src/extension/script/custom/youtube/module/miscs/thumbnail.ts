@@ -75,7 +75,7 @@ export default class YTMiscsThumbnailModule extends Feature {
         set(cssText) {
           if (typeof cssText !== 'string') return setCssText.call(this, cssText)
 
-          const originalUrl = /(?<=url\(.).*?(?=.\))/.exec(cssText)?.[0]
+          const originalUrl = /(?:url\(['"]?)(.*?)(?:['"]?\))/.exec(cssText)?.[1]
           if (originalUrl == null || !THUMBNAIL_URL_REGEXP.test(originalUrl)) return setCssText.call(this, cssText)
 
           const maxresUrl = getMaxResUrl(originalUrl)
