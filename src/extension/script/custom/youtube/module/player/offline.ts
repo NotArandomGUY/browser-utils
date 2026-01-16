@@ -7,8 +7,17 @@ import { decodeEntityKey, EntityType } from '@ext/custom/youtube/proto/entity-ke
 import { YTOfflineMediaStreamQuality } from '@ext/custom/youtube/proto/ytom/stream'
 import { getNonce } from '@ext/custom/youtube/utils/crypto'
 import { getYTLocalEntitiesByType, getYTLocalEntityByType, getYTLocalMediaIndex, putYTLocalEntity, YTLocalMediaType } from '@ext/custom/youtube/utils/local'
-import { updateYTReduxStoreLocalEntities } from '@ext/custom/youtube/utils/redux'
+import { getYTReduxMethodEntry, updateYTReduxStoreLocalEntities, YTReduxMethodType } from '@ext/custom/youtube/utils/redux'
+import { keys } from '@ext/global/object'
 import { Feature } from '@ext/lib/feature'
+import Hook, { HookResult } from '@ext/lib/intercept/hook'
+import Logger from '@ext/lib/logger'
+
+const DOWNLOAD_METHODS = [YTReduxMethodType.GetManualDownloads, YTReduxMethodType.GetSmartDownloads] as const
+
+const logger = new Logger('YTPLAYER-OFFLINE')
+
+const downloadsCache: Array<[string, object[]] | null> = DOWNLOAD_METHODS.map(() => null)
 
 const updateEntityUpdateCommand = (data: YTValueData<YTEndpoint.Mapped<'entityUpdateCommand'>>): boolean => {
   const mutations = data.entityBatchUpdate?.mutations
@@ -52,7 +61,7 @@ export default class YTPlayerOfflineModule extends Feature {
         const downloads = mainDownloadsListEntity.data.downloads
         if (!Array.isArray(downloads)) return
 
-        let isAllValid = true
+        let hasInvalid = false
         for (const download of downloads) {
           const entityId = decodeEntityKey(download.videoItem).entityId
 
@@ -60,14 +69,32 @@ export default class YTPlayerOfflineModule extends Feature {
           if (downloadContextEntity?.data.offlineModeType === 'OFFLINE_MODE_TYPE_AUTO_OFFLINE') continue
 
           downloads.splice(downloads.indexOf(download), 1)
-          isAllValid = false
+          hasInvalid = true
         }
-        if (isAllValid) return
-
-        await putYTLocalEntity<EntityType.mainDownloadsListEntity>(mainDownloadsListEntity, true)
-      } finally {
-        await updateYTReduxStoreLocalEntities()
+        if (hasInvalid) await putYTLocalEntity<EntityType.mainDownloadsListEntity>(mainDownloadsListEntity, true)
+      } catch (error) {
+        logger.warn('process entities error:', error)
       }
+
+      await updateYTReduxStoreLocalEntities()
+
+      DOWNLOAD_METHODS.forEach((type, idx) => {
+        const entry = getYTReduxMethodEntry(type)
+        if (entry == null) return
+
+        default_kevlar_base[entry[0]] = new Hook(entry[1] as (entities: Record<string, Record<string, object>>) => object[]).install(ctx => {
+          const cacheKey = keys(ctx.args[0]?.mainVideoDownloadStateEntity ?? {}).join()
+
+          let cacheEntry = downloadsCache[idx]
+          if (cacheEntry?.[0] !== cacheKey) {
+            cacheEntry = [cacheKey, ctx.origin.apply(ctx.self, ctx.args)]
+            downloadsCache[idx] = cacheEntry
+          }
+
+          ctx.returnValue = cacheEntry[1]
+          return HookResult.EXECUTION_CONTINUE
+        }).call
+      })
     })
 
     registerYTValueProcessor(YTEndpoint.mapped.entityUpdateCommand, updateEntityUpdateCommand)
