@@ -55,7 +55,7 @@ class YTOfflinePageLifecycle extends Lifecycle<void> {
   }
 
   private readonly fileInput_: HTMLInputElement
-  private readonly mainVideoEntities_: State<YTMainVideoEntity[]>
+  private readonly mainVideoEntities_: State<YTMainVideoEntity[] | null>
   private readonly password_: State<string>
   private readonly status_: State<string>
   private refreshTimer_: ReturnType<typeof setInterval> | null
@@ -64,7 +64,7 @@ class YTOfflinePageLifecycle extends Lifecycle<void> {
     super()
 
     this.fileInput_ = input({ style: 'display:none', type: 'file', accept: '.ytom' })
-    this.mainVideoEntities_ = van.state([])
+    this.mainVideoEntities_ = van.state(null)
     this.password_ = van.state('')
     this.status_ = van.state('-')
     this.refreshTimer_ = null
@@ -108,7 +108,7 @@ class YTOfflinePageLifecycle extends Lifecycle<void> {
           mainVideoEntities_.val = entities.filter(entity => entity.addedTimestamp >= 0).sort((l, r) => (
             l.isAutoDownload === r.isAutoDownload ?
               (r.addedTimestamp - l.addedTimestamp) :
-              (l.isAutoDownload ? 1 : -1)
+              (l.isAutoDownload ? 1 : -1) // NOSONAR
           ))
         })
         .catch(error => status_.val = error instanceof Error ? error.message : String(error))
@@ -182,11 +182,14 @@ class YTOfflinePageLifecycle extends Lifecycle<void> {
       ),
       table(
         thead(tr(th('ID'), th('Title'), th('Added On'), th('Export As'), th('Action'))),
-        () => tbody(
-          mainVideoEntities_.val.length > 0 ?
-            mainVideoEntities_.val.map(YTMainVideoEntityTableItem.bind(null, handleWatch, handleExport, handleDelete)) :
-            tr(td({ colSpan: 5 }, 'Videos you download will appear here'))
-        )
+        () => {
+          const entities = mainVideoEntities_.val
+          return tbody(
+            entities?.length ?
+              entities.map(YTMainVideoEntityTableItem.bind(null, handleWatch, handleExport, handleDelete)) :
+              tr(td({ colSpan: 5 }, entities == null ? 'Loading...' : 'Videos you download will appear here')) // NOSONAR
+          )
+        }
       ),
       fileInput_
     )
