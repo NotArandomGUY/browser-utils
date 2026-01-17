@@ -45,6 +45,8 @@ declare interface YTEnvironment {
 }
 
 declare interface YTGlobal {
+  idbToken_: object
+
   ytUtilActivityCallback_: () => void
 }
 

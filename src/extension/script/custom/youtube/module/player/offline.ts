@@ -102,6 +102,9 @@ export default class YTPlayerOfflineModule extends Feature {
 
     registerOverlayPage('Downloads', YTOfflinePage)
 
+    window.ytglobal = window.ytglobal ?? {} as typeof ytglobal
+    ytglobal!['idbToken_'] = {}
+
     return true
   }
 
