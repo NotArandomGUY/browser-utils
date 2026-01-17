@@ -56,6 +56,7 @@ export default class VPBFMessage extends Feature {
     const parentProxy = new ProxyChain({
       target: parent,
       readonly: true,
+      fixedProperties: true,
       properties: {
         postMessage: {
           invoke: new Hook(parent.postMessage).install(ctx => {
