@@ -40,6 +40,9 @@ const isRawProperty = <T, P extends keyof ToObjectType<T>>(options: ProxyChainOp
   // do not proxy if ignored
   if (options.ignoreProperties?.includes(p)) return true
 
+  // do not proxy if fixed property is enabled and property options does not exists
+  if (options.fixedProperties && options.properties?.[p] == null) return true
+
   if (v != null) {
     // avoid proxy for toPrimitive
     if (p === Symbol.toPrimitive) return true
@@ -47,9 +50,6 @@ const isRawProperty = <T, P extends keyof ToObjectType<T>>(options: ProxyChainOp
     // proxy existing property
     return false
   }
-
-  // do not proxy if fixed property is enabled and property options does not exists
-  if (options.fixedProperties && options.properties?.[p] == null) return true
 
   // hack for promise resolve
   if (p === 'then') return true
