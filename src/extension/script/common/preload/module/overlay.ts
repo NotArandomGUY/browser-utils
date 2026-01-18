@@ -16,19 +16,19 @@ const createOverlay = (): void => {
       updateStatus: packageUpdateStatusOverlayState,
       onUpdateClick() { sendMessageToWorker(ExtensionMessageType.PACKAGE_UPDATE, {}) }
     },
-    onClose() { overlay?.parentNode?.removeChild(overlay) }
+    onClose() { overlay?.remove() }
   })
 }
 
 const destroyOverlay = (): void => {
-  overlay?.parentNode?.removeChild(overlay)
+  overlay?.remove()
   overlay = null
 }
 
 export const openOverlay = (): void => {
   if (overlay == null || overlay.parentNode === document.body) return
 
-  overlay.parentNode?.removeChild(overlay)
+  overlay.remove()
   van.add(document.body, overlay)
 }
 

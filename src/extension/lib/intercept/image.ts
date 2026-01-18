@@ -135,7 +135,7 @@ export default class InterceptImage extends Image {
   public constructor(width?: number, height?: number) {
     super(width, height)
 
-    this.eventTarget = new InterceptEventTargetAdapter(this)
+    this.eventTarget = new InterceptEventTargetAdapter(this, true)
 
     const { eventTarget, onEvent, onSrcChange } = this
 
@@ -163,7 +163,7 @@ export default class InterceptImage extends Image {
 
   public set src(src: string) {
     this.overrideSrc = src
-    this.eventTarget.dispatchEvent('srcchange', new CustomEvent('srcchange', { cancelable: true, detail: src }))
+    this.eventTarget.dispatchEvent(new CustomEvent('srcchange', { cancelable: true, detail: src }))
   }
 
   /// Private ///

@@ -1,5 +1,9 @@
-import { defineProperties } from '@ext/global/object'
+import { assign, defineProperties } from '@ext/global/object'
 import Logger from '@ext/lib/logger'
+
+interface InterceptEventTarget<TTarget, TMap> extends EventTarget {
+  [EventTargetAdapterSymbol]: InterceptEventTargetAdapter<TTarget, TMap>
+}
 
 interface InterceptListenerEntry {
   listener: Function
@@ -8,57 +12,71 @@ interface InterceptListenerEntry {
 
 const logger = new Logger('INTERCEPT-EVENT')
 
-const PreventDispatchEventSymbol = Symbol()
+const EventTargetAdapterSymbol = Symbol()
+const EventPreventDispatchSymbol = Symbol()
 
-const { addEventListener, removeEventListener } = EventTarget.prototype
+const { addEventListener, dispatchEvent, removeEventListener } = EventTarget.prototype
 
-export const preventDispatchEvent = (evt: Event): void => {
-  if (PreventDispatchEventSymbol in evt && typeof evt[PreventDispatchEventSymbol] === 'function') evt[PreventDispatchEventSymbol]()
+const getAdapter = <TTarget, TMap>(instance: unknown): InterceptEventTargetAdapter<TTarget, TMap> | null => {
+  if (instance instanceof EventTarget) instance = (instance as InterceptEventTarget<TTarget, TMap>)[EventTargetAdapterSymbol]
+  if (instance instanceof InterceptEventTargetAdapter) return instance
+  return null
+}
+
+export const preventDispatchEvent = (event: Event): void => {
+  if (EventPreventDispatchSymbol in event && typeof event[EventPreventDispatchSymbol] === 'function') event[EventPreventDispatchSymbol]()
 }
 
 export default class InterceptEventTargetAdapter<TTarget, TMap> {
   /// Public ///
 
-  public constructor(eventTarget: EventTarget) {
-    this.target = eventTarget
-    this.eventHandlerMap = {}
-    this.eventListenerMap = {}
-    this.setterListenerMap = {}
-    this.blockedEventMap = {}
+  public constructor(eventTarget: EventTarget, forward: boolean) {
+    this.target_ = eventTarget as InterceptEventTarget<TTarget, TMap>
+    this.forward_ = forward
+    this.eventFowarderSet_ = new Set()
+    this.eventListenerMap_ = {}
+    this.setterListenerMap_ = {}
 
-    this.internalAddEventListener = addEventListener.bind(eventTarget)
-    this.internalRemoveEventListener = removeEventListener.bind(eventTarget)
-
-    eventTarget.addEventListener = <EventTarget['addEventListener']>this.addEventListener.bind(this)
-    eventTarget.removeEventListener = <EventTarget['removeEventListener']>this.removeEventListener.bind(this)
+    assign(eventTarget, {
+      [EventTargetAdapterSymbol]: this,
+      dispatchEvent: this.dispatchEvent,
+      addEventListener: this.addEventListener,
+      removeEventListener: this.removeEventListener
+    })
   }
 
-  public addEventListener<KM extends keyof TMap>(type: KM, listener: (evt: TMap[KM]) => Promise<void> | void, options?: AddEventListenerOptions): void {
-    this.getListenerList(type).push({ listener, options })
-    this.activateEvent(type)
+  public addEventListener<KM extends keyof TMap>(type: KM, listener: (event: TMap[KM]) => Promise<void> | void, options?: AddEventListenerOptions): void {
+    const adapter = getAdapter<TTarget, TMap>(this)
+    if (adapter == null) return addEventListener.call(this, type as string, listener as EventListener, options)
+
+    adapter.getListenerList_(type).push({ listener, options })
+    adapter.activateEvent_(type)
   }
 
-  public removeEventListener<KM extends keyof TMap>(type: KM, listener: (evt: TMap[KM]) => Promise<void> | void): void {
-    const listenerList = this.eventListenerMap[type]
+  public removeEventListener<KM extends keyof TMap>(type: KM, listener: (event: TMap[KM]) => Promise<void> | void): void {
+    const adapter = getAdapter<TTarget, TMap>(this)
+    if (adapter == null) return removeEventListener.call(this, type as string, listener as EventListener)
+
+    const listenerList = adapter.eventListenerMap_[type]
     if (listenerList == null) return
 
-    const entry = listenerList.find(l => l.listener === listener)
+    const entry = listenerList.find(entry => entry.listener === listener)
     if (entry == null) return
 
     listenerList.splice(listenerList.indexOf(entry), 1)
-    this.deactivateEvent(type)
+    adapter.deactivateEvent_(type)
   }
 
   public removeAllEventListener<KM extends keyof TMap>(type: KM): void {
-    const listenerList = this.eventListenerMap[type]
+    const listenerList = this.eventListenerMap_[type]
     if (listenerList == null) return
 
     listenerList.splice(0)
-    this.deactivateEvent(type)
+    this.deactivateEvent_(type)
   }
 
   public getEventListener<KT extends keyof TTarget>(prop: KT): TTarget[KT] | null {
-    return <TTarget[KT]>this.setterListenerMap[prop] ?? null
+    return <TTarget[KT]>this.setterListenerMap_[prop] ?? null
   }
 
   public setEventListener<KT extends keyof TTarget, KM extends keyof TMap>(prop: KT, type: KM, listener: TTarget[KT] | null): void {
@@ -67,41 +85,74 @@ export default class InterceptEventTargetAdapter<TTarget, TMap> {
       return
     }
 
-    this.addEventListener(type, <(evt: TMap[KM]) => void>listener)
-    this.setterListenerMap[prop] = <Function><unknown>listener
+    this.addEventListener(type, <(event: TMap[KM]) => void>listener)
+    this.setterListenerMap_[prop] = <Function><unknown>listener
   }
 
   public deleteEventListener<KT extends keyof TTarget, KM extends keyof TMap>(prop: KT, type: KM): void {
-    const listener = this.setterListenerMap[prop]
+    const listener = this.setterListenerMap_[prop]
     if (listener == null) return
 
-    this.removeEventListener(type, <(evt: TMap[KM]) => void>listener)
-    delete this.setterListenerMap[prop]
+    this.removeEventListener(type, <(event: TMap[KM]) => void>listener)
+    delete this.setterListenerMap_[prop]
   }
 
-  public blockEvent<KM extends keyof TMap>(type: KM): void {
-    this.blockedEventMap[type] = true
+  public dispatchEvent(event: Event): boolean {
+    const adapter = getAdapter(this)
+    if (adapter == null) return dispatchEvent.call(this, event)
+
+    adapter.dispatchAdapterEvent_(event)
+    return !event.defaultPrevented
   }
 
-  public unblockEvent<KM extends keyof TMap>(type: KM): void {
-    delete this.blockedEventMap[type]
+  /// Private ///
+
+  private readonly target_: InterceptEventTarget<TTarget, TMap>
+  private readonly forward_: boolean
+  private readonly eventFowarderSet_: Set<keyof TMap>
+  private readonly eventListenerMap_: { [type in keyof TMap]?: InterceptListenerEntry[] }
+  private readonly setterListenerMap_: { [prop in keyof TTarget]?: Function }
+
+  private getListenerList_<KM extends keyof TMap>(type: KM): InterceptListenerEntry[] {
+    const { eventListenerMap_ } = this
+
+    let listenerList = eventListenerMap_[type]
+    if (listenerList == null) {
+      listenerList = []
+      eventListenerMap_[type] = listenerList
+    }
+
+    return listenerList
   }
 
-  public async dispatchEvent<KM extends keyof TMap>(type: KM, evt: Event, targetOverride?: EventTarget): Promise<void> {
-    const listenerList = this.eventListenerMap[type]
+  private activateEvent_<KM extends keyof TMap>(type: KM): void {
+    const { target_, forward_, eventFowarderSet_, dispatchEvent } = this
+
+    if (forward_ && !eventFowarderSet_.has(type)) {
+      addEventListener.call(target_, type as string, dispatchEvent)
+      eventFowarderSet_.add(type)
+    }
+  }
+
+  private deactivateEvent_<KM extends keyof TMap>(type: KM): void {
+    const { target_, eventFowarderSet_, eventListenerMap_, dispatchEvent } = this
+
+    if (eventFowarderSet_.delete(type)) removeEventListener.call(target_, type as string, dispatchEvent)
+    if (eventListenerMap_[type]?.length === 0) delete eventListenerMap_[type]
+  }
+
+  private async dispatchAdapterEvent_(event: Event): Promise<void> {
+    const { target_, eventListenerMap_ } = this
+    const { type } = event
+
+    const listenerList = eventListenerMap_[type as keyof TMap]
     if (listenerList == null) return
-
-    logger.trace('intercepted event:', type, listenerList)
-
-    const isBlocked = this.blockedEventMap[type] === true
-    if (isBlocked) return
 
     let isPreventDispatch = false
 
-    const target = targetOverride ?? this.target
-    defineProperties(evt, {
-      target: { configurable: true, writable: false, value: target },
-      [PreventDispatchEventSymbol]: { configurable: true, enumerable: false, value() { isPreventDispatch = true } }
+    defineProperties(event, {
+      target: { configurable: true, writable: false, value: target_ },
+      [EventPreventDispatchSymbol]: { configurable: true, enumerable: false, value() { isPreventDispatch = true } }
     })
 
     for (const { listener, options } of listenerList) {
@@ -112,53 +163,16 @@ export default class InterceptEventTargetAdapter<TTarget, TMap> {
 
       if (!aborted) {
         try {
-          await listener.call(target, evt)
+          await listener.call(target_, event)
         } catch (error) {
           logger.error('event listener error:', error)
         }
       }
 
-      if (once || aborted) this.removeEventListener(type, <(evt: TMap[KM]) => void>listener)
+      if (once || aborted) this.removeEventListener(type as keyof TMap, <(event: TMap[keyof TMap]) => void>listener)
       if (isPreventDispatch) break
     }
 
-    delete evt[PreventDispatchEventSymbol as unknown as keyof typeof evt]
-  }
-
-  /// Private ///
-
-  private target: EventTarget
-  private eventHandlerMap: { [type in keyof TMap]?: (evt: Event) => void }
-  private eventListenerMap: { [type in keyof TMap]?: InterceptListenerEntry[] }
-  private setterListenerMap: { [prop in keyof TTarget]?: Function }
-  private blockedEventMap: { [type in keyof TMap]?: boolean }
-  private readonly internalAddEventListener: (type: string, listener: EventListener) => void
-  private readonly internalRemoveEventListener: (type: string, listener: EventListener) => void
-
-  private getListenerList<KM extends keyof TMap>(type: KM): InterceptListenerEntry[] {
-    let listenerList = this.eventListenerMap[type]
-    if (listenerList == null) {
-      listenerList = []
-      this.eventListenerMap[type] = listenerList
-    }
-
-    return listenerList
-  }
-
-  private activateEvent<KM extends keyof TMap>(type: KM): void {
-    if (this.eventHandlerMap[type] != null || this.eventListenerMap[type] == null) return
-
-    const handler = this.dispatchEvent.bind(this, type)
-
-    this.internalAddEventListener(<string>type, handler)
-    this.eventHandlerMap[type] = handler
-  }
-
-  private deactivateEvent<KM extends keyof TMap>(type: KM): void {
-    const handler = this.eventHandlerMap[type]
-    if (handler == null || this.eventListenerMap[type]?.length !== 0) return
-
-    this.internalRemoveEventListener(<string>type, handler)
-    delete this.eventListenerMap[type]
+    delete event[EventPreventDispatchSymbol as unknown as keyof typeof event]
   }
 }
