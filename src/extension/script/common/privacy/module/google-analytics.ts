@@ -1,14 +1,14 @@
 import { Feature } from '@ext/lib/feature'
 import ProxyChain, { ProxyChainOptions } from '@ext/lib/proxy/chain'
 
-const PROXY_KEYS = ['ga', 'gtag', 'googletag'] as const
+const PROXY_KEYS = ['ga', 'googletag'] as const
 const SHARED_PROXY_CHAIN_OPTIONS = {
   trace: ['PRIVACY']
 } satisfies ProxyChainOptions
 const CUSTOM_PROXY_CHAIN_OPTIONS = {
   'googletag': {
-    target: { cmd: [] },
-    ignoreProperties: ['cmd']
+    target: { cmd: [], queryIds: [] },
+    ignoreProperties: ['cmd', 'queryIds']
   }
 } as Partial<Record<typeof PROXY_KEYS[number], ProxyChainOptions<Record<string, unknown>>>>
 
