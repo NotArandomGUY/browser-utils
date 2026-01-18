@@ -19,6 +19,31 @@ const logger = new Logger('YTPLAYER-OFFLINE')
 
 const downloadsCache: Array<[string, object[]] | null> = DOWNLOAD_METHODS.map(() => null)
 
+const cleanupMainDownloadsList = async (): Promise<void> => {
+  try {
+    const mainDownloadsListEntity = await getYTLocalEntityByType(EntityType.mainDownloadsListEntity, true)
+    const videoDownloadContextEntities = await getYTLocalEntitiesByType(EntityType.videoDownloadContextEntity, true)
+    if (mainDownloadsListEntity == null || videoDownloadContextEntities.length === 0) return
+
+    const downloads = mainDownloadsListEntity.data.downloads
+    if (!Array.isArray(downloads)) return
+
+    let hasInvalid = false
+    for (const download of downloads) {
+      const entityId = decodeEntityKey(download.videoItem).entityId
+
+      const downloadContextEntity = videoDownloadContextEntities.find(entity => decodeEntityKey(entity.key).entityId === entityId)
+      if (downloadContextEntity?.data.offlineModeType === 'OFFLINE_MODE_TYPE_AUTO_OFFLINE') continue
+
+      downloads.splice(downloads.indexOf(download), 1)
+      hasInvalid = true
+    }
+    if (hasInvalid) await putYTLocalEntity<EntityType.mainDownloadsListEntity>(mainDownloadsListEntity, true)
+  } catch (error) {
+    logger.warn('process entities error:', error)
+  }
+}
+
 const updateEntityUpdateCommand = (data: YTValueData<YTEndpoint.Mapped<'entityUpdateCommand'>>): boolean => {
   const mutations = data.entityBatchUpdate?.mutations
   if (!Array.isArray(mutations)) return true
@@ -52,30 +77,7 @@ export default class YTPlayerOfflineModule extends Feature {
 
   protected activate(): boolean {
     YTConfigInitCallback.registerCallback(async () => {
-      try {
-        // Remove manual downloads from main downloads list
-        const mainDownloadsListEntity = await getYTLocalEntityByType(EntityType.mainDownloadsListEntity, true)
-        const videoDownloadContextEntities = await getYTLocalEntitiesByType(EntityType.videoDownloadContextEntity, true)
-        if (mainDownloadsListEntity == null || videoDownloadContextEntities.length === 0) return
-
-        const downloads = mainDownloadsListEntity.data.downloads
-        if (!Array.isArray(downloads)) return
-
-        let hasInvalid = false
-        for (const download of downloads) {
-          const entityId = decodeEntityKey(download.videoItem).entityId
-
-          const downloadContextEntity = videoDownloadContextEntities.find(entity => decodeEntityKey(entity.key).entityId === entityId)
-          if (downloadContextEntity?.data.offlineModeType === 'OFFLINE_MODE_TYPE_AUTO_OFFLINE') continue
-
-          downloads.splice(downloads.indexOf(download), 1)
-          hasInvalid = true
-        }
-        if (hasInvalid) await putYTLocalEntity<EntityType.mainDownloadsListEntity>(mainDownloadsListEntity, true)
-      } catch (error) {
-        logger.warn('process entities error:', error)
-      }
-
+      await cleanupMainDownloadsList()
       await updateYTReduxStoreLocalEntities()
 
       DOWNLOAD_METHODS.forEach((type, idx) => {
