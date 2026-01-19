@@ -36,6 +36,10 @@ function copyEventTarget(event: Event): void {
   if (target instanceof HTMLElement) navigator.clipboard?.writeText(target.innerText)
 }
 
+const validSource = (source: string | null | undefined, index: number): boolean => {
+  return index > 0 && !!source?.trim()
+}
+
 const YTMainVideoEntityTableItem = (
   filter: string,
   onWatch: (id: string) => void,
@@ -87,7 +91,7 @@ class YTOfflinePageLifecycle extends Lifecycle<void> {
   private readonly mainVideoEntities_: State<YTMainVideoEntity[] | null>
   private readonly password_: State<string>
   private readonly status_: State<string>
-  private readonly queueVideoId_: State<string>
+  private readonly downloadSource_: State<string>
   private readonly filter_: State<string>
   private refreshTimer_: ReturnType<typeof setInterval> | null
 
@@ -98,13 +102,13 @@ class YTOfflinePageLifecycle extends Lifecycle<void> {
     this.mainVideoEntities_ = van.state(null)
     this.password_ = van.state('')
     this.status_ = van.state('-')
-    this.queueVideoId_ = van.state('')
+    this.downloadSource_ = van.state('')
     this.filter_ = van.state('')
     this.refreshTimer_ = null
   }
 
   protected override onCreate(): void {
-    const { classList, fileInput_, mainVideoEntities_, password_, status_, queueVideoId_, filter_ } = this
+    const { classList, fileInput_, mainVideoEntities_, password_, status_, downloadSource_, filter_ } = this
 
     const className = buildClass(['bu-overlay', 'page'])
     classList.add(className)
@@ -201,21 +205,66 @@ class YTOfflinePageLifecycle extends Lifecycle<void> {
     }
 
     const handleQueueDownload = (): void => {
-      const videoId = queueVideoId_.val.trim()
-      if (videoId.length === 0) return
+      const sources: [input: string, video?: string | null, playlist?: string | null] = [downloadSource_.val]
+      try {
+        const { host, pathname, searchParams } = new URL(sources[0])
+        switch (host) {
+          case 'youtu.be':
+            sources[1] = pathname.split('/')[1]
+            break
+          case 'youtube.com':
+          case 'www.youtube.com':
+            if (pathname.startsWith('/live/')) {
+              sources[1] = pathname.split('/')[2]
+            } else {
+              sources[1] = searchParams.get('v')
+              sources[2] = searchParams.get('list')
+            }
+            break
+        }
+      } catch {
+        sources[2] = sources[1] = sources[0]
+      }
+      if (!sources.some(validSource)) return
 
-      dispatchYTAction({
-        actionName: 'yt-offline-video-endpoint',
-        args: [{
-          offlineVideoEndpoint: {
-            action: 'ACTION_ADD',
-            actionParams: { formatType: 'HD_1080', settingsAction: 'DOWNLOAD_QUALITY_SETTINGS_ACTION_DONT_SAVE' },
-            videoId
-          }
-        }],
-        returnValue: []
-      })
-      queueVideoId_.val = ''
+      let idx = sources.filter(validSource).length === 1 ? sources.findIndex(validSource) : -1
+      while (idx < 0) {
+        idx = Number(prompt('Download type: 1=Video 2=Playlist', '0'))
+        if (!sources[idx]?.trim()) idx = 0
+      }
+
+      const source = sources[idx]?.trim()
+      if (idx <= 0 || !source) return
+
+      switch (idx) {
+        case 1:
+          dispatchYTAction({
+            actionName: 'yt-offline-video-endpoint',
+            args: [{
+              offlineVideoEndpoint: {
+                action: 'ACTION_ADD',
+                actionParams: { formatType: 'HD_1080', settingsAction: 'DOWNLOAD_QUALITY_SETTINGS_ACTION_DONT_SAVE' },
+                videoId: source
+              }
+            }],
+            returnValue: []
+          })
+          break
+        case 2:
+          dispatchYTAction({
+            actionName: 'yt-offline-playlist-endpoint',
+            args: [{
+              offlinePlaylistEndpoint: {
+                action: 'ACTION_ADD',
+                actionParams: { formatType: 'HD_1080', settingsAction: 'DOWNLOAD_QUALITY_SETTINGS_ACTION_DONT_SAVE' },
+                playlistId: source
+              }
+            }],
+            returnValue: []
+          })
+          break
+      }
+      downloadSource_.val = ''
     }
 
     this.refreshTimer_ = setInterval(refreshTable, 60e3)
@@ -246,7 +295,7 @@ class YTOfflinePageLifecycle extends Lifecycle<void> {
       h1('Download (Premium Only)'),
       div(
         { style: STYLE_FLEX_CONTAINER },
-        input({ placeholder: 'Video ID', value: queueVideoId_, oninput: e => queueVideoId_.val = e.target.value }),
+        input({ placeholder: 'URL/ID', value: downloadSource_, oninput: e => downloadSource_.val = e.target.value }),
         button({ onclick: handleQueueDownload }, 'Queue Download')
       ),
       h1('Available Videos'),

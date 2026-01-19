@@ -3032,9 +3032,13 @@ export const descriptionPreviewViewModel = ytv_ren(() => ({
   rendererContext: components.rendererContext,
   truncationText: textViewModel
 }))
+export const dialogHeaderViewModel = ytv_ren(() => ({
+  headline: textViewModel
+}))
 export const dialogViewModel = ytv_ren(() => ({
   content: ytv_ren(),
-  footer: ytv_ren()
+  footer: ytv_ren(),
+  header: ytv_ren()
 }))
 export const dislikeButtonViewModel = ytv_ren(() => ({
   dislikeEntityKey: ytv_str(),

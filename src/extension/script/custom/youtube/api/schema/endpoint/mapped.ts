@@ -432,6 +432,15 @@ export const modalEndpoint = ytv_enp(() => ({
 export const modifyChannelNotificationPreferenceEndpoint = ytv_enp(() => ({
   params: ytv_str()
 }))
+export const offlinePlaylistEndpoint = ytv_enp(() => ({
+  action: ytv_str(['ACTION_ADD']),
+  actionParams: ytv_sch({
+    formatType: ytv_str(common.enums.OfflineFormatType),
+    settingsAction: ytv_str(['DOWNLOAD_QUALITY_SETTINGS_ACTION_ALREADY_SAVED', 'DOWNLOAD_QUALITY_SETTINGS_ACTION_DONT_SAVE', 'DOWNLOAD_QUALITY_SETTINGS_ACTION_EXPIRING_SAVE', 'DOWNLOAD_QUALITY_SETTINGS_ACTION_SAVE'])
+  }),
+  onAddCommand: ytv_enp(),
+  playlistId: ytv_str()
+}))
 export const offlineVideoEndpoint = ytv_enp(() => ({
   action: ytv_str(['ACTION_ADD']),
   actionParams: ytv_sch({
