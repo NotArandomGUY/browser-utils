@@ -9,6 +9,8 @@ import van, { ChildDom, State } from 'vanjs-core'
 
 const { button, div, h1, h4, input, p, table, tbody, td, th, thead, tr } = van.tags
 
+const ENTITY_PROCESS_INIT_BATCH_SIZE = 5
+const ENTITY_PROCESS_CONT_BATCH_SIZE = 50
 const COPY_TEXT_TOOLTIP = 'Click to Copy'
 const STYLE_FLEX_CONTAINER = 'display:flex;flex-direction:row;gap:0.5em'
 const STYLE_FLEX_ITEM_GROW = 'flex-grow:1'
@@ -25,7 +27,7 @@ const enum ExportFormat {
   VIDEO_STREAM
 }
 
-type YTMainVideoEntity = Partial<YTLocalEntity<EntityType.mainVideoEntity>['data']> & {
+type VideoEntity = Partial<YTLocalEntity<EntityType.mainVideoEntity>['data']> & {
   addedTimestamp: number
   isAutoDownload: boolean
 }
@@ -40,12 +42,12 @@ const validSource = (source: string | null | undefined, index: number): boolean 
   return index > 0 && !!source?.trim()
 }
 
-const YTMainVideoEntityTableItem = (
+const VideoEntityTableItem = (
   filter: string,
   onWatch: (id: string) => void,
   onExport: (id: string, format: ExportFormat) => void,
   onDelete: (id: string) => void,
-  { owner, title, videoId, addedTimestamp, isAutoDownload }: YTMainVideoEntity
+  { owner, title, videoId, addedTimestamp, isAutoDownload }: VideoEntity
 ): ChildDom[] => {
   const type = isAutoDownload ? 'Auto' : 'Manual'
   const timestamp = new Date(addedTimestamp).toLocaleString()
@@ -88,7 +90,9 @@ class YTOfflinePageLifecycle extends Lifecycle<void> {
   }
 
   private readonly fileInput_: HTMLInputElement
-  private readonly mainVideoEntities_: State<YTMainVideoEntity[] | null>
+  private readonly queuedTasks_: Array<() => Promise<void>>
+  private readonly videoEntities_: State<VideoEntity[]>
+  private readonly isLoading_: State<boolean>
   private readonly password_: State<string>
   private readonly status_: State<string>
   private readonly downloadSource_: State<string>
@@ -99,7 +103,9 @@ class YTOfflinePageLifecycle extends Lifecycle<void> {
     super()
 
     this.fileInput_ = input({ style: 'display:none', type: 'file', accept: '.ytom' })
-    this.mainVideoEntities_ = van.state(null)
+    this.queuedTasks_ = []
+    this.videoEntities_ = van.state([])
+    this.isLoading_ = van.state(false)
     this.password_ = van.state('')
     this.status_ = van.state('-')
     this.downloadSource_ = van.state('')
@@ -108,7 +114,7 @@ class YTOfflinePageLifecycle extends Lifecycle<void> {
   }
 
   protected override onCreate(): void {
-    const { classList, fileInput_, mainVideoEntities_, password_, status_, downloadSource_, filter_ } = this
+    const { classList, fileInput_, queuedTasks_, videoEntities_, isLoading_, password_, status_, downloadSource_, filter_ } = this
 
     const className = buildClass(['bu-overlay', 'page'])
     classList.add(className)
@@ -121,38 +127,59 @@ class YTOfflinePageLifecycle extends Lifecycle<void> {
       })
     }
 
-    const refreshTable = (): void => {
-      getYTLocalEntitiesByType(EntityType.mainVideoEntity, true)
-        .then(entities => Promise.all(entities.map(async ({ data }) => {
-          const channel = await getYTLocalEntityByKey<EntityType.ytMainChannelEntity>(data.owner, true)
-          const downloadContext = await getYTLocalEntityByKey<EntityType.videoDownloadContextEntity>(encodeEntityKey({
-            entityId: data.videoId,
-            entityType: EntityType.videoDownloadContextEntity,
-            isPersistent: true
-          }), true)
-          const downloadState = await getYTLocalEntityByKey<EntityType.mainVideoDownloadStateEntity>(data.downloadState ?? encodeEntityKey({
-            entityId: data.videoId,
-            entityType: EntityType.mainVideoDownloadStateEntity,
-            isPersistent: true
-          }), true)
+    const refreshTable = async (): Promise<void> => {
+      if (isLoading_.val) return
 
-          return {
-            ...data,
-            owner: channel?.data.title,
-            addedTimestamp: downloadState?.data.downloadStatusEntity.downloadState === 'DOWNLOAD_STATE_COMPLETE' ? Number(downloadState.data.addedTimestampMillis) : -1,
-            isAutoDownload: downloadContext?.data.offlineModeType === 'OFFLINE_MODE_TYPE_AUTO_OFFLINE'
-          }
-        })))
-        .then(entities => {
-          mainVideoEntities_.val = entities
-            .filter(entity => entity.addedTimestamp >= 0)
-            .sort((l, r) => (
-              l.isAutoDownload === r.isAutoDownload ?
-                (r.addedTimestamp - l.addedTimestamp) :
-                (l.isAutoDownload ? 1 : -1) // NOSONAR
-            ))
-        })
-        .catch(error => status_.val = error instanceof Error ? error.message : String(error))
+      try {
+        isLoading_.val = true
+
+        const mainVideoEntities = await getYTLocalEntitiesByType(EntityType.mainVideoEntity, true)
+
+        while (mainVideoEntities.length > 0) {
+          const batchSize = queuedTasks_.length === 0 ? ENTITY_PROCESS_INIT_BATCH_SIZE : ENTITY_PROCESS_CONT_BATCH_SIZE
+          const batch = mainVideoEntities.splice(0, batchSize).filter(({ data }) => !videoEntities_.val.some(entity => data.videoId === entity.videoId))
+          if (batch.length === 0) continue
+
+          queuedTasks_.push(async () => {
+            const videoEntities = await Promise.all<VideoEntity>(batch.map(async ({ data }) => {
+              const channel = await getYTLocalEntityByKey<EntityType.ytMainChannelEntity>(data.owner, true)
+              const downloadContext = await getYTLocalEntityByKey<EntityType.videoDownloadContextEntity>(encodeEntityKey({
+                entityId: data.videoId,
+                entityType: EntityType.videoDownloadContextEntity,
+                isPersistent: true
+              }), true)
+              const downloadState = await getYTLocalEntityByKey<EntityType.mainVideoDownloadStateEntity>(data.downloadState ?? encodeEntityKey({
+                entityId: data.videoId,
+                entityType: EntityType.mainVideoDownloadStateEntity,
+                isPersistent: true
+              }), true)
+
+              return {
+                ...data,
+                owner: channel?.data.title,
+                addedTimestamp: downloadState?.data.downloadStatusEntity.downloadState === 'DOWNLOAD_STATE_COMPLETE' ? Number(downloadState.data.addedTimestampMillis) : -1,
+                isAutoDownload: downloadContext?.data.offlineModeType === 'OFFLINE_MODE_TYPE_AUTO_OFFLINE'
+              }
+            }))
+
+            videoEntities_.val = videoEntities.concat(videoEntities_.val)
+              .filter(entity => entity.addedTimestamp >= 0)
+              .sort((l, r) => (
+                l.isAutoDownload === r.isAutoDownload ?
+                  (r.addedTimestamp - l.addedTimestamp) :
+                  (l.isAutoDownload ? 1 : -1) // NOSONAR
+              ))
+          })
+        }
+
+        let task: (() => Promise<void>) | undefined
+        while (task = queuedTasks_.shift()) await task()
+      } catch (error) {
+        status_.val = error instanceof Error ? error.message : String(error)
+      } finally {
+        queuedTasks_.splice(0)
+        isLoading_.val = false
+      }
     }
 
     const handleWatch = (id: string): void => {
@@ -308,15 +335,15 @@ class YTOfflinePageLifecycle extends Lifecycle<void> {
         thead(tr(
           th(COLUMN_PROPS_INFO_HEAD, 'Title / ID / Channel / [Type] Added On'),
           th(COLUMN_PROPS_ACTION_HEAD, 'Export As'),
-          th(COLUMN_PROPS_ACTION_HEAD, button({ onclick: refreshTable }, 'Refresh'))
+          th(COLUMN_PROPS_ACTION_HEAD, button({ disabled: () => isLoading_.val, onclick: () => void refreshTable() }, 'Refresh'))
         )),
         () => {
-          const entities = mainVideoEntities_.val
+          const entities = videoEntities_.val
           const filter = filter_.val.trim().toLowerCase()
           return tbody(
-            entities?.length ?
-              entities.flatMap(YTMainVideoEntityTableItem.bind(null, filter, handleWatch, handleExport, handleDelete)) :
-              tr(td({ colSpan: 5 }, entities == null ? 'Loading...' : 'Videos you download will appear here')) // NOSONAR
+            entities.length ?
+              entities.flatMap(VideoEntityTableItem.bind(null, filter, handleWatch, handleExport, handleDelete)) :
+              tr(td({ colSpan: 5 }, 'Videos you download will appear here'))
           )
         }
       ),
