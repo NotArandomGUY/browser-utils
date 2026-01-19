@@ -146,7 +146,11 @@ class YTOfflinePageLifecycle extends Lifecycle<void> {
         .then(entities => {
           mainVideoEntities_.val = entities
             .filter(entity => entity.addedTimestamp >= 0)
-            .sort((l, r) => (r.addedTimestamp - l.addedTimestamp) * ((Number(l.isAutoDownload) - Number(r.isAutoDownload)) || 1))
+            .sort((l, r) => (
+              l.isAutoDownload === r.isAutoDownload ?
+                (r.addedTimestamp - l.addedTimestamp) :
+                (l.isAutoDownload ? 1 : -1) // NOSONAR
+            ))
         })
         .catch(error => status_.val = error instanceof Error ? error.message : String(error))
     }
