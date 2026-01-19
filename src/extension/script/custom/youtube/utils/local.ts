@@ -32,6 +32,35 @@ export type YTLocalEntityData = {
     id: string
     refresh: string
   }
+  [EntityType.mainPlaylistDownloadStateEntity]: {
+    addedTimestampMillis: string
+    key: string
+    lastSyncedTimestampMillis: string
+  }
+  [EntityType.mainPlaylistEntity]: {
+    channelOwner: string // ->ytMainChannelEntity
+    downloadState: string // ->mainPlaylistDownloadStateEntity
+    entityMetadata: {
+      offlineLastModifiedTimestampSeconds: string
+    }
+    key: string
+    playlistId: string
+    title: string
+    videos: string[] // ->mainPlaylistVideoEntity{"videoId":"...","playlistId":"..."}
+    thumbnailStyleData: {
+      key: null
+      value: {
+        collageThumbnail: {
+          coverThumbnail: YTValueData<YTRenderer.Component<'thumbnail'>>
+        }
+      }
+    }[]
+    visibility: 'PLAYLIST_VISIBILITY_PUBLIC'
+  }
+  [EntityType.mainPlaylistVideoEntity]: {
+    id: string // ->mainPlaylistVideoEntity{"videoId":"...","playlistId":"..."}
+    video: string // ->mainVideoEntity
+  }
   [EntityType.mainVideoDownloadStateEntity]: {
     addedTimestampMillis: string
     downloadStatusEntity: YTLocalEntityData[EntityType.downloadStatusEntity]

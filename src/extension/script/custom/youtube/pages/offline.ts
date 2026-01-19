@@ -1,7 +1,7 @@
 import Lifecycle from '@ext/common/preload/overlay/components/lifecycle'
 import { buildClass } from '@ext/common/preload/overlay/style/class'
 import { dispatchYTAction, dispatchYTNavigate } from '@ext/custom/youtube/module/core/event'
-import { encodeEntityKey, EntityType } from '@ext/custom/youtube/proto/entity-key'
+import { decodeEntityKey, encodeEntityKey, EntityType } from '@ext/custom/youtube/proto/entity-key'
 import { getYTLocalEntitiesByType, getYTLocalEntityByKey, YTLocalEntity, YTLocalMediaType } from '@ext/custom/youtube/utils/local'
 import { deleteYTOfflineMedia, exportYTOfflineMediaBundle, exportYTOfflineMediaStream, importYTOfflineMediaBundle } from '@ext/custom/youtube/utils/ytom'
 import { PromiseWithProgress } from '@ext/lib/async'
@@ -12,14 +12,15 @@ const { button, div, h1, h4, input, p, table, tbody, td, th, thead, tr } = van.t
 const ENTITY_PROCESS_INIT_BATCH_SIZE = 5
 const ENTITY_PROCESS_CONT_BATCH_SIZE = 50
 const COPY_TEXT_TOOLTIP = 'Click to Copy'
+const COLUMN_TITLES = ['Title', 'ID', 'Channel', 'Playlist', 'Added On'] as const
 const STYLE_FLEX_CONTAINER = 'display:flex;flex-direction:row;gap:0.5em'
 const STYLE_FLEX_ITEM_GROW = 'flex-grow:1'
 const STYLE_TEXT_SHRINK = 'width:.1%;white-space:nowrap'
 const COLUMN_PROPS_ACTION_HEAD = { style: STYLE_TEXT_SHRINK }
 const COLUMN_PROPS_ACTION_BODY = { style: STYLE_TEXT_SHRINK, rowSpan: 2 }
-const COLUMN_PROPS_INFO_HEAD = { colSpan: 3 }
-const COLUMN_PROPS_INFO_TITLE = { style: 'cursor:pointer', colSpan: 3, title: COPY_TEXT_TOOLTIP, onclick: copyEventTarget }
-const COLUMN_PROPS_INFO_SMALL = { style: 'cursor:pointer;width:25%;white-space:nowrap', title: COPY_TEXT_TOOLTIP, onclick: copyEventTarget }
+const COLUMN_PROPS_INFO_HEAD = { colSpan: 4 }
+const COLUMN_PROPS_INFO_TITLE = { style: 'cursor:pointer', colSpan: 4, title: COPY_TEXT_TOOLTIP, onclick: copyEventTarget }
+const COLUMN_PROPS_INFO_SMALL = { style: 'cursor:pointer;width:18.75%;white-space:nowrap', title: COPY_TEXT_TOOLTIP, onclick: copyEventTarget }
 
 const enum ExportFormat {
   BUNDLE,
@@ -28,8 +29,10 @@ const enum ExportFormat {
 }
 
 type VideoEntity = Partial<YTLocalEntity<EntityType.mainVideoEntity>['data']> & {
-  addedTimestamp: number
-  isAutoDownload: boolean
+  playlistId?: string
+  playlistTitle?: string
+  timestamp: number
+  auto: boolean
 }
 
 function copyEventTarget(event: Event): void {
@@ -44,16 +47,17 @@ const validSource = (source: string | null | undefined, index: number): boolean 
 
 const VideoEntityTableItem = (
   filter: string,
-  onWatch: (id: string) => void,
+  onWatch: (videoId: string, playlistId: string) => void,
   onExport: (id: string, format: ExportFormat) => void,
   onDelete: (id: string) => void,
-  { owner, title, videoId, addedTimestamp, isAutoDownload }: VideoEntity
+  { owner, title, videoId, playlistId, playlistTitle, timestamp, auto }: VideoEntity
 ): ChildDom[] => {
-  const type = isAutoDownload ? 'Auto' : 'Manual'
-  const timestamp = new Date(addedTimestamp).toLocaleString()
-  const search = [owner, title, videoId, type, timestamp]
+  const time = new Date(timestamp).toLocaleString()
+  playlistId ??= 'PPSV'
+  playlistTitle ??= auto ? 'Smart Downloads' : 'Your Downloads'
 
-  if (videoId == null || (filter && !search.some(part => `"${part}"`.toLowerCase().includes(filter)))) return []
+  const search = [title, videoId, owner, playlistTitle, time, playlistId]
+  if (videoId == null || (filter && !search.some((value, i) => `${COLUMN_TITLES[i] ?? ''}:"${value}"`.toLowerCase().includes(filter)))) return []
 
   return [
     tr(
@@ -66,14 +70,15 @@ const VideoEntityTableItem = (
       ),
       td(
         COLUMN_PROPS_ACTION_BODY,
-        button({ onclick: onWatch.bind(null, videoId) }, 'Watch'),
+        button({ onclick: onWatch.bind(null, videoId, playlistId) }, 'Watch'),
         button({ onclick: onDelete.bind(null, videoId) }, 'Delete')
       )
     ),
     tr(
       td(COLUMN_PROPS_INFO_SMALL, videoId ?? '-'),
       td(COLUMN_PROPS_INFO_SMALL, owner ?? '-'),
-      td(COLUMN_PROPS_INFO_SMALL, `[${type}] ${timestamp}`)
+      td(COLUMN_PROPS_INFO_SMALL, playlistTitle),
+      td(COLUMN_PROPS_INFO_SMALL, time)
     )
   ]
 }
@@ -133,7 +138,13 @@ class YTOfflinePageLifecycle extends Lifecycle<void> {
       try {
         isLoading_.val = true
 
+        const mainPlaylistEntities = (await getYTLocalEntitiesByType(EntityType.mainPlaylistEntity, true))
         const mainVideoEntities = await getYTLocalEntitiesByType(EntityType.mainVideoEntity, true)
+
+        const playlistMap = new Map(mainPlaylistEntities.flatMap(({ data }) => Array.from(data.videos ?? []).map(key => [
+          String(JSON.parse(decodeEntityKey(key).entityId ?? 'null')?.videoId),
+          data
+        ])))
 
         while (mainVideoEntities.length > 0) {
           const batchSize = queuedTasks_.length === 0 ? ENTITY_PROCESS_INIT_BATCH_SIZE : ENTITY_PROCESS_CONT_BATCH_SIZE
@@ -153,21 +164,24 @@ class YTOfflinePageLifecycle extends Lifecycle<void> {
                 entityType: EntityType.mainVideoDownloadStateEntity,
                 isPersistent: true
               }), true)
+              const playlist = playlistMap.get(data.videoId)
 
               return {
                 ...data,
                 owner: channel?.data.title,
-                addedTimestamp: downloadState?.data.downloadStatusEntity.downloadState === 'DOWNLOAD_STATE_COMPLETE' ? Number(downloadState.data.addedTimestampMillis) : -1,
-                isAutoDownload: downloadContext?.data.offlineModeType === 'OFFLINE_MODE_TYPE_AUTO_OFFLINE'
+                playlistId: playlist?.playlistId,
+                playlistTitle: playlist?.title,
+                timestamp: downloadState?.data.downloadStatusEntity.downloadState === 'DOWNLOAD_STATE_COMPLETE' ? Number(downloadState.data.addedTimestampMillis) : -1,
+                auto: downloadContext?.data.offlineModeType === 'OFFLINE_MODE_TYPE_AUTO_OFFLINE'
               }
             }))
 
             videoEntities_.val = videoEntities.concat(videoEntities_.val)
-              .filter(entity => entity.addedTimestamp >= 0)
+              .filter(entity => entity.timestamp >= 0)
               .sort((l, r) => (
-                l.isAutoDownload === r.isAutoDownload ?
-                  (r.addedTimestamp - l.addedTimestamp) :
-                  (l.isAutoDownload ? 1 : -1) // NOSONAR
+                l.auto === r.auto ?
+                  (r.timestamp - l.timestamp) :
+                  (l.auto ? 1 : -1) // NOSONAR
               ))
           })
         }
@@ -182,18 +196,18 @@ class YTOfflinePageLifecycle extends Lifecycle<void> {
       }
     }
 
-    const handleWatch = (id: string): void => {
+    const handleWatch = (videoId: string, playlistId: string): void => {
       dispatchYTNavigate({
         commandMetadata: {
           webCommandMetadata: {
-            url: `/watch?v=${id}&list=PPSV`,
+            url: `/watch?v=${videoId}&list=${playlistId}`,
             rootVe: 3832,
             webPageType: 'WEB_PAGE_TYPE_WATCH'
           }
         },
         watchEndpoint: {
-          videoId: id,
-          playlistId: 'PPSV'
+          videoId,
+          playlistId
         }
       })
     }
@@ -333,7 +347,7 @@ class YTOfflinePageLifecycle extends Lifecycle<void> {
       input({ placeholder: 'Filter', value: filter_, oninput: e => filter_.val = e.target.value }),
       table(
         thead(tr(
-          th(COLUMN_PROPS_INFO_HEAD, 'Title / ID / Channel / [Type] Added On'),
+          th(COLUMN_PROPS_INFO_HEAD, COLUMN_TITLES.join(' / ')),
           th(COLUMN_PROPS_ACTION_HEAD, 'Export As'),
           th(COLUMN_PROPS_ACTION_HEAD, button({ disabled: () => isLoading_.val, onclick: () => void refreshTable() }, 'Refresh'))
         )),
@@ -343,7 +357,7 @@ class YTOfflinePageLifecycle extends Lifecycle<void> {
           return tbody(
             entities.length ?
               entities.flatMap(VideoEntityTableItem.bind(null, filter, handleWatch, handleExport, handleDelete)) :
-              tr(td({ colSpan: 5 }, 'Videos you download will appear here'))
+              tr(td({ colSpan: 6 }, () => isLoading_.val ? 'Loading...' : 'Videos you download/import will appear here'))
           )
         }
       ),
