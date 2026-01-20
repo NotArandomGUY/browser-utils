@@ -276,7 +276,8 @@ class InterceptXMLHttpRequest extends XMLHttpRequest {
       [kiRequestBody]: null,
       [kiResponseStatus]: null,
       [kiResponseHeaders]: null,
-      [kiResponseBody]: null
+      [kiResponseBody]: null,
+      [kiResponseObject]: null
     })
 
     this[kmChangeReadyState](1)
@@ -408,6 +409,7 @@ class InterceptXMLHttpRequest extends XMLHttpRequest {
         this[kiResponseStatus] = response.status
         this[kiResponseHeaders] = [...Array.from(response.headers.entries()).map(e => `${e[0]}: ${e[1]}`), ''].join('\r\n')
         this[kiResponseBody] = await response.arrayBuffer()
+        this[kiResponseObject] = null
         break
       }
       case NetworkState.FAILED:
