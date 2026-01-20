@@ -6,20 +6,28 @@ import YTOfflinePage from '@ext/custom/youtube/pages/offline'
 import { decodeEntityKey, EntityType } from '@ext/custom/youtube/proto/entity-key'
 import { YTOfflineMediaStreamQuality } from '@ext/custom/youtube/proto/ytom/stream'
 import { getNonce } from '@ext/custom/youtube/utils/crypto'
-import { getYTLocalEntitiesByType, getYTLocalEntityByType, getYTLocalMediaIndex, putYTLocalEntity, YTLocalMediaType } from '@ext/custom/youtube/utils/local'
+import { getYTLocalEntitiesByType, getYTLocalEntityByKey, getYTLocalEntityByType, getYTLocalMediaIndex, putYTLocalEntity, YTLocalEntity, YTLocalMediaType } from '@ext/custom/youtube/utils/local'
 import { getYTReduxMethodEntry, updateYTReduxStoreLocalEntities, YTReduxMethodType } from '@ext/custom/youtube/utils/redux'
+import { ytuiShowToast } from '@ext/custom/youtube/utils/ytui'
 import { keys } from '@ext/global/object'
 import { Feature } from '@ext/lib/feature'
 import Hook, { HookResult } from '@ext/lib/intercept/hook'
 import Logger from '@ext/lib/logger'
 
 const DOWNLOAD_METHODS = [YTReduxMethodType.GetManualDownloads, YTReduxMethodType.GetSmartDownloads] as const
+const TRANSFER_DOWNLOAD_STATE_MAP = {
+  'TRANSFER_STATE_COMPLETE': 'DOWNLOAD_STATE_COMPLETE',
+  'TRANSFER_STATE_FAILED': 'DOWNLOAD_STATE_FAILED',
+  'TRANSFER_STATE_PAUSED_BY_USER': 'DOWNLOAD_STATE_PAUSED',
+  'TRANSFER_STATE_TRANSFER_IN_QUEUE': 'DOWNLOAD_STATE_PENDING_DOWNLOAD',
+  'TRANSFER_STATE_TRANSFERRING': 'DOWNLOAD_STATE_DOWNLOAD_IN_PROGRESS'
+} satisfies Partial<Record<YTLocalEntity<EntityType.transfer>['data']['transferState'], YTLocalEntity<EntityType.downloadStatusEntity>['data']['downloadState']>>
 
 const logger = new Logger('YTPLAYER-OFFLINE')
 
 const downloadsCache: Array<[string, object[]] | null> = DOWNLOAD_METHODS.map(() => null)
 
-const cleanupMainDownloadsList = async (): Promise<void> => {
+const syncDownloadsListEntity = async (): Promise<void> => {
   try {
     const mainDownloadsListEntity = await getYTLocalEntityByType(EntityType.mainDownloadsListEntity, true)
     const videoDownloadContextEntities = await getYTLocalEntitiesByType(EntityType.videoDownloadContextEntity, true)
@@ -39,6 +47,49 @@ const cleanupMainDownloadsList = async (): Promise<void> => {
       hasInvalid = true
     }
     if (hasInvalid) await putYTLocalEntity<EntityType.mainDownloadsListEntity>(mainDownloadsListEntity, true)
+  } catch (error) {
+    logger.warn('process entities error:', error)
+  }
+}
+
+const syncVideoEntities = async (): Promise<void> => {
+  try {
+    const mainVideoEntities = await getYTLocalEntitiesByType(EntityType.mainVideoEntity, true)
+    if (mainVideoEntities.length === 0) return
+
+    await Promise.all(mainVideoEntities.map(async ({ data }) => {
+      const downloadState = await getYTLocalEntityByKey<EntityType.mainVideoDownloadStateEntity>(data.downloadState, true)
+      if (downloadState == null) return
+
+      const [downloadStatus, playbackData] = await Promise.all([
+        getYTLocalEntityByKey<EntityType.downloadStatusEntity>(downloadState.data.downloadStatusEntity.key, true),
+        getYTLocalEntityByKey<EntityType.playbackData>(downloadState.data.playbackData, true)
+      ])
+      if (downloadStatus == null || playbackData == null) return
+
+      if (playbackData.data.transfer == null) {
+        downloadStatus.data.downloadState = 'DOWNLOAD_STATE_USER_DELETED'
+        await putYTLocalEntity<EntityType.downloadStatusEntity>(downloadStatus, true)
+
+        ytuiShowToast(`Deleted invalid download '${data.videoId}'`, 5e3)
+        return
+      }
+
+      const transfer = await getYTLocalEntityByKey<EntityType.transfer>(playbackData.data.transfer, true)
+      if (transfer == null) return
+
+      const mappedState = TRANSFER_DOWNLOAD_STATE_MAP[transfer.data.transferState as keyof typeof TRANSFER_DOWNLOAD_STATE_MAP]
+      if (mappedState == null) return
+
+      if (downloadState.data.downloadStatusEntity.downloadState !== mappedState) {
+        downloadState.data.downloadStatusEntity.downloadState = mappedState
+        await putYTLocalEntity<EntityType.mainVideoDownloadStateEntity>(downloadState, true)
+      }
+      if (downloadStatus.data.downloadState !== mappedState) {
+        downloadStatus.data.downloadState = mappedState
+        await putYTLocalEntity<EntityType.downloadStatusEntity>(downloadStatus, true)
+      }
+    }))
   } catch (error) {
     logger.warn('process entities error:', error)
   }
@@ -77,7 +128,6 @@ export default class YTPlayerOfflineModule extends Feature {
 
   protected activate(): boolean {
     YTConfigInitCallback.registerCallback(async () => {
-      await cleanupMainDownloadsList()
       await updateYTReduxStoreLocalEntities()
 
       DOWNLOAD_METHODS.forEach((type, idx) => {
@@ -97,6 +147,9 @@ export default class YTPlayerOfflineModule extends Feature {
           return HookResult.EXECUTION_CONTINUE
         }).call
       })
+
+      await Promise.all([syncDownloadsListEntity(), syncVideoEntities()])
+      await updateYTReduxStoreLocalEntities(0)
     })
 
     registerYTValueProcessor(YTEndpoint.mapped.entityUpdateCommand, updateEntityUpdateCommand)
