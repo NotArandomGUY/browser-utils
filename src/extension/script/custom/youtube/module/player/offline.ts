@@ -7,14 +7,14 @@ import { decodeEntityKey, EntityType } from '@ext/custom/youtube/proto/entity-ke
 import { YTOfflineMediaStreamQuality } from '@ext/custom/youtube/proto/ytom/stream'
 import { getNonce } from '@ext/custom/youtube/utils/crypto'
 import { getYTLocalEntitiesByType, getYTLocalEntityByKey, getYTLocalEntityByType, getYTLocalMediaIndex, putYTLocalEntity, YTLocalEntity, YTLocalMediaType } from '@ext/custom/youtube/utils/local'
-import { getYTReduxMethodEntry, updateYTReduxStoreLocalEntities, YTReduxMethodType } from '@ext/custom/youtube/utils/redux'
+import { getYTReduxMethodEntry, updateYTReduxStoreLocalEntities, YTReduxEntities, YTReduxMethodType } from '@ext/custom/youtube/utils/redux'
 import { ytuiShowToast } from '@ext/custom/youtube/utils/ytui'
-import { keys } from '@ext/global/object'
+import { entries } from '@ext/global/object'
 import { Feature } from '@ext/lib/feature'
 import Hook, { HookResult } from '@ext/lib/intercept/hook'
 import Logger from '@ext/lib/logger'
 
-const DOWNLOAD_METHODS = [YTReduxMethodType.GetManualDownloads, YTReduxMethodType.GetSmartDownloads] as const
+const DOWNLOAD_METHODS = [YTReduxMethodType.GetAllDownloads, YTReduxMethodType.GetManualDownloads, YTReduxMethodType.GetSmartDownloads] as const
 const TRANSFER_DOWNLOAD_STATE_MAP = {
   'TRANSFER_STATE_COMPLETE': 'DOWNLOAD_STATE_COMPLETE',
   'TRANSFER_STATE_FAILED': 'DOWNLOAD_STATE_FAILED',
@@ -25,7 +25,11 @@ const TRANSFER_DOWNLOAD_STATE_MAP = {
 
 const logger = new Logger('YTPLAYER-OFFLINE')
 
-const downloadsCache: Array<[string, object[]] | null> = DOWNLOAD_METHODS.map(() => null)
+const reduxCache: Array<[string, object[]] | null> = DOWNLOAD_METHODS.map(() => null)
+
+const getReduxCacheKey = (entities?: YTReduxEntities): string => {
+  return entries(entities?.mainVideoDownloadStateEntity ?? {}).map(([key, value]) => `${key}:${value.downloadStatusEntity.downloadState}`).join()
+}
 
 const syncDownloadsListEntity = async (): Promise<void> => {
   try {
@@ -36,11 +40,14 @@ const syncDownloadsListEntity = async (): Promise<void> => {
     const downloads = mainDownloadsListEntity.data.downloads
     if (!Array.isArray(downloads)) return
 
+    // Convert to entityId here to avoid doing it in each .find call
+    videoDownloadContextEntities.forEach(entity => entity.key = decodeEntityKey(entity.key).entityId ?? entity.key)
+
     let hasInvalid = false
     for (const download of downloads) {
       const entityId = decodeEntityKey(download.videoItem).entityId
 
-      const downloadContextEntity = videoDownloadContextEntities.find(entity => decodeEntityKey(entity.key).entityId === entityId)
+      const downloadContextEntity = videoDownloadContextEntities.find(entity => entity.key === entityId)
       if (downloadContextEntity?.data.offlineModeType === 'OFFLINE_MODE_TYPE_AUTO_OFFLINE') continue
 
       downloads.splice(downloads.indexOf(download), 1)
@@ -134,13 +141,13 @@ export default class YTPlayerOfflineModule extends Feature {
         const entry = getYTReduxMethodEntry(type)
         if (entry == null) return
 
-        default_kevlar_base[entry[0]] = new Hook(entry[1] as (entities: Record<string, Record<string, object>>) => object[]).install(ctx => {
-          const cacheKey = keys(ctx.args[0]?.mainVideoDownloadStateEntity ?? {}).join()
+        default_kevlar_base[entry[0]] = new Hook(entry[1]).install(ctx => {
+          const cacheKey = getReduxCacheKey(ctx.args[0])
 
-          let cacheEntry = downloadsCache[idx]
+          let cacheEntry = reduxCache[idx]
           if (cacheEntry?.[0] !== cacheKey) {
             cacheEntry = [cacheKey, ctx.origin.apply(ctx.self, ctx.args)]
-            downloadsCache[idx] = cacheEntry
+            reduxCache[idx] = cacheEntry
           }
 
           ctx.returnValue = cacheEntry[1]

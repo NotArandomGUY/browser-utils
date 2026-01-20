@@ -5,7 +5,7 @@ import { PromiseWithProgress } from '@ext/lib/async'
 import { bufferFromString, bufferToString } from '@ext/lib/buffer'
 import IndexedDB, { IndexedDBStoreDefinition } from '@ext/lib/idb'
 
-type ReverseEntityType = {
+export type ReverseEntityType = {
   [K in keyof typeof EntityType as typeof EntityType[K]]: K
 }
 

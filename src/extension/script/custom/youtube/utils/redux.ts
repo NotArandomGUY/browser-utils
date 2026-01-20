@@ -1,23 +1,30 @@
-import { getYTLocalEntities, YTLocalEntityData } from '@ext/custom/youtube/utils/local'
+import { getYTLocalEntities, ReverseEntityType, YTLocalEntityData } from '@ext/custom/youtube/utils/local'
 import { entries } from '@ext/global/object'
 import { waitTick } from '@ext/lib/async'
 
 export const enum YTReduxMethodType {
   GetStore,
+  GetAllDownloads,
   GetManualDownloads,
   GetSmartDownloads
 }
 
+export type YTReduxEntities = {
+  [T in keyof YTLocalEntityData as ReverseEntityType[T]]: Record<string, YTLocalEntityData[T]>
+}
+
 const ReduxMethodPatternMap: Record<YTReduxMethodType, [regexp: RegExp, filter?: (fn: Function) => boolean, cache?: [key: string, fn: Function] | null]> = {
   [YTReduxMethodType.GetStore]: [/[a-zA-Z_$][\w$]+\|\|\([a-zA-Z_$][\w$]+=[a-zA-Z_$][\w$]+\(\)\);return [a-zA-Z_$][\w$]+/s, fn => 'store' in fn()],
+  [YTReduxMethodType.GetAllDownloads]: [/playbackData.*?sort.*?streamDownloadTimestamp.*?map/s],
   [YTReduxMethodType.GetManualDownloads]: [/filter.*?downloadedVideoEntities.*?videoEntity.*?mainDownloadsListEntity.*?sort.*?addedTimestampMillis.*?map/s],
   [YTReduxMethodType.GetSmartDownloads]: [/sort.*?addedTimestampMillis.*?map.*?downloadedVideoEntities.*?filter.*?videoEntity/s]
 }
 
 interface YTReduxMethod {
   [YTReduxMethodType.GetStore]: <S extends object>() => YTReduxStore<S>
-  [YTReduxMethodType.GetManualDownloads]: () => object[]
-  [YTReduxMethodType.GetSmartDownloads]: () => object[]
+  [YTReduxMethodType.GetAllDownloads]: (entities: YTReduxEntities) => object[]
+  [YTReduxMethodType.GetManualDownloads]: (entities: YTReduxEntities) => object[]
+  [YTReduxMethodType.GetSmartDownloads]: (entities: YTReduxEntities) => object[]
 }
 
 interface YTReduxAction<T = unknown> {
