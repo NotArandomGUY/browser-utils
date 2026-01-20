@@ -7,6 +7,9 @@ const DMASK_STORAGE_KEY = 'bufeature-dmask'
 
 const logger = new Logger('FEATURE')
 
+const kiName = Symbol()
+const kiState = Symbol()
+
 export const enum FeatureState {
   DISABLED,
   INACTIVE,
@@ -14,20 +17,20 @@ export const enum FeatureState {
 }
 
 export abstract class Feature {
-  private readonly name_: string | null
-  private state_: FeatureState
+  private readonly [kiName]: string | null
+  private [kiState]: FeatureState
 
   public constructor(name?: string) {
-    this.name_ = name ?? null
-    this.state_ = FeatureState.INACTIVE
+    this[kiName] = name ?? null
+    this[kiState] = FeatureState.INACTIVE
   }
 
   public getName(): string | null {
-    return this.name_
+    return this[kiName]
   }
 
   public getState(): FeatureState {
-    return this.state_
+    return this[kiState]
   }
 
   public setState(state: FeatureState): boolean {
@@ -35,17 +38,17 @@ export abstract class Feature {
       switch (state) {
         case FeatureState.DISABLED:
         case FeatureState.INACTIVE:
-          if (this.state_ === FeatureState.ACTIVE && !this.deactivate()) return false
+          if (this[kiState] === FeatureState.ACTIVE && !this.deactivate()) return false
           break
         case FeatureState.ACTIVE:
-          if (this.state_ !== FeatureState.ACTIVE && !this.activate()) return false
+          if (this[kiState] !== FeatureState.ACTIVE && !this.activate()) return false
           break
       }
-      this.state_ = state
+      this[kiState] = state
       return true
     } catch (error) {
       logger.warn(`feature state ${state} error:`, error)
-      this.state_ = FeatureState.DISABLED
+      this[kiState] = FeatureState.DISABLED
       return false
     }
   }
