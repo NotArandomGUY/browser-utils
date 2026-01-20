@@ -1,6 +1,6 @@
 import { registerYTValueFilter, YTValueProcessorType } from '@ext/custom/youtube/api/processor'
 import { YTRenderer } from '@ext/custom/youtube/api/schema'
-import { defineProperty, getOwnPropertyDescriptor, getOwnPropertyDescriptors, getPrototypeOf, keys } from '@ext/global/object'
+import { defineProperty, getOwnPropertyDescriptor, getOwnPropertyDescriptors, getPropertyDescriptor, keys } from '@ext/global/object'
 import { Feature } from '@ext/lib/feature'
 import InterceptDOM from '@ext/lib/intercept/dom'
 import { HookResult } from '@ext/lib/intercept/hook'
@@ -50,7 +50,7 @@ export default class YTMiscsFixupModule extends Feature {
 
       if (node instanceof HTMLIFrameElement && getOwnPropertyDescriptor(node, 'contentDocument') == null) {
         // Make yt fallback to using src property instead
-        const { get } = getOwnPropertyDescriptor(getPrototypeOf(node), 'contentDocument') ?? {}
+        const { get } = getPropertyDescriptor(node, 'contentDocument') ?? {}
         defineProperty(node, 'contentDocument', {
           get() {
             const contentDocument: Document = get?.call(node)
@@ -64,7 +64,7 @@ export default class YTMiscsFixupModule extends Feature {
         logger.debug('patched iframe element', node, getOwnPropertyDescriptors(node))
       }
       if (node instanceof HTMLElement && self.nodeName === 'YTD-PAGE-MANAGER') {
-        const { get, set } = getOwnPropertyDescriptor(getPrototypeOf(node), 'hidden') ?? {}
+        const { get, set } = getPropertyDescriptor(node, 'hidden') ?? {}
         defineProperty(node, 'hidden', {
           configurable: true,
           get,
