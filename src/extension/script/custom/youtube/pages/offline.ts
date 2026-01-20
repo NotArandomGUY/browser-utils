@@ -166,7 +166,7 @@ class YTOfflinePageLifecycle extends Lifecycle<void> {
                 playlistId: playlist?.playlistId,
                 playlistTitle: playlist?.title,
                 timestamp: downloadState?.data.downloadStatusEntity.downloadState === 'DOWNLOAD_STATE_COMPLETE' ? Number(downloadState.data.addedTimestampMillis) : -1,
-                auto: !!mainDownloadsListEntity?.data.downloads.some(({ videoItem }) => videoItem === key)
+                auto: !!mainDownloadsListEntity?.data.downloads?.some(({ videoItem }) => videoItem === key)
               }
             }))
 

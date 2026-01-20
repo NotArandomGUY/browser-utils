@@ -25,7 +25,7 @@ export type YTLocalEntityData = {
     key: string
   }
   [EntityType.mainDownloadsListEntity]: {
-    downloads: {
+    downloads?: {
       videoItem: string // ->mainVideoEntity
     }[]
     downloadsListVersion: string
