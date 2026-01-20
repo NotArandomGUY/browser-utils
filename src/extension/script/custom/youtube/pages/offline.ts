@@ -1,8 +1,8 @@
 import Lifecycle from '@ext/common/preload/overlay/components/lifecycle'
 import { buildClass } from '@ext/common/preload/overlay/style/class'
-import { dispatchYTAction, dispatchYTNavigate } from '@ext/custom/youtube/module/core/event'
-import { decodeEntityKey, encodeEntityKey, EntityType } from '@ext/custom/youtube/proto/entity-key'
-import { getYTLocalEntitiesByType, getYTLocalEntityByKey, YTLocalEntity, YTLocalMediaType } from '@ext/custom/youtube/utils/local'
+import { executeYTCommand } from '@ext/custom/youtube/module/core/command'
+import { decodeEntityKey, EntityType } from '@ext/custom/youtube/proto/entity-key'
+import { getYTLocalEntitiesByType, getYTLocalEntityByKey, getYTLocalEntityByType, YTLocalEntity, YTLocalMediaType } from '@ext/custom/youtube/utils/local'
 import { deleteYTOfflineMedia, exportYTOfflineMediaBundle, exportYTOfflineMediaStream, importYTOfflineMediaBundle } from '@ext/custom/youtube/utils/ytom'
 import { PromiseWithProgress } from '@ext/lib/async'
 import van, { ChildDom, State } from 'vanjs-core'
@@ -138,6 +138,7 @@ class YTOfflinePageLifecycle extends Lifecycle<void> {
       try {
         isLoading_.val = true
 
+        const mainDownloadsListEntity = await getYTLocalEntityByType(EntityType.mainDownloadsListEntity, true)
         const mainPlaylistEntities = (await getYTLocalEntitiesByType(EntityType.mainPlaylistEntity, true))
         const mainVideoEntities = await getYTLocalEntitiesByType(EntityType.mainVideoEntity, true)
 
@@ -152,19 +153,12 @@ class YTOfflinePageLifecycle extends Lifecycle<void> {
           if (batch.length === 0) continue
 
           queuedTasks_.push(async () => {
-            const videoEntities = await Promise.all<VideoEntity>(batch.map(async ({ data }) => {
-              const channel = await getYTLocalEntityByKey<EntityType.ytMainChannelEntity>(data.owner, true)
-              const downloadContext = await getYTLocalEntityByKey<EntityType.videoDownloadContextEntity>(encodeEntityKey({
-                entityId: data.videoId,
-                entityType: EntityType.videoDownloadContextEntity,
-                isPersistent: true
-              }), true)
-              const downloadState = await getYTLocalEntityByKey<EntityType.mainVideoDownloadStateEntity>(data.downloadState ?? encodeEntityKey({
-                entityId: data.videoId,
-                entityType: EntityType.mainVideoDownloadStateEntity,
-                isPersistent: true
-              }), true)
+            const videoEntities = await Promise.all<VideoEntity>(batch.map(async ({ key, data }) => {
               const playlist = playlistMap.get(data.videoId)
+              const [channel, downloadState] = await Promise.all([
+                getYTLocalEntityByKey<EntityType.ytMainChannelEntity>(data.owner, true),
+                getYTLocalEntityByKey<EntityType.mainVideoDownloadStateEntity>(data.downloadState, true)
+              ])
 
               return {
                 ...data,
@@ -172,7 +166,7 @@ class YTOfflinePageLifecycle extends Lifecycle<void> {
                 playlistId: playlist?.playlistId,
                 playlistTitle: playlist?.title,
                 timestamp: downloadState?.data.downloadStatusEntity.downloadState === 'DOWNLOAD_STATE_COMPLETE' ? Number(downloadState.data.addedTimestampMillis) : -1,
-                auto: downloadContext?.data.offlineModeType === 'OFFLINE_MODE_TYPE_AUTO_OFFLINE'
+                auto: !!mainDownloadsListEntity?.data.downloads.some(({ videoItem }) => videoItem === key)
               }
             }))
 
@@ -197,7 +191,7 @@ class YTOfflinePageLifecycle extends Lifecycle<void> {
     }
 
     const handleWatch = (videoId: string, playlistId: string): void => {
-      dispatchYTNavigate({
+      executeYTCommand({
         commandMetadata: {
           webCommandMetadata: {
             url: `/watch?v=${videoId}&list=${playlistId}`,
@@ -283,29 +277,21 @@ class YTOfflinePageLifecycle extends Lifecycle<void> {
 
       switch (idx) {
         case 1:
-          dispatchYTAction({
-            actionName: 'yt-offline-video-endpoint',
-            args: [{
-              offlineVideoEndpoint: {
-                action: 'ACTION_ADD',
-                actionParams: { formatType: 'HD_1080', settingsAction: 'DOWNLOAD_QUALITY_SETTINGS_ACTION_DONT_SAVE' },
-                videoId: source
-              }
-            }],
-            returnValue: []
+          executeYTCommand({
+            offlineVideoEndpoint: {
+              action: 'ACTION_ADD',
+              actionParams: { formatType: 'HD_1080', settingsAction: 'DOWNLOAD_QUALITY_SETTINGS_ACTION_DONT_SAVE' },
+              videoId: source
+            }
           })
           break
         case 2:
-          dispatchYTAction({
-            actionName: 'yt-offline-playlist-endpoint',
-            args: [{
-              offlinePlaylistEndpoint: {
-                action: 'ACTION_ADD',
-                actionParams: { formatType: 'HD_1080', settingsAction: 'DOWNLOAD_QUALITY_SETTINGS_ACTION_DONT_SAVE' },
-                playlistId: source
-              }
-            }],
-            returnValue: []
+          executeYTCommand({
+            offlinePlaylistEndpoint: {
+              action: 'ACTION_ADD',
+              actionParams: { formatType: 'HD_1080', settingsAction: 'DOWNLOAD_QUALITY_SETTINGS_ACTION_DONT_SAVE' },
+              playlistId: source
+            }
           })
           break
       }

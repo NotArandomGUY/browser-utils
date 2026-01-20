@@ -1,8 +1,8 @@
 import YTChatEmojiPickerModule from '@ext/custom/youtube/module/chat/emoji-picker'
 import YTChatPopoutModule from '@ext/custom/youtube/module/chat/popout'
 import YTCoreBootstrapModule from '@ext/custom/youtube/module/core/bootstrap'
+import YTCoreCommandModule from '@ext/custom/youtube/module/core/command'
 import YTCoreConfigModule from '@ext/custom/youtube/module/core/config'
-import YTCoreEventModule from '@ext/custom/youtube/module/core/event'
 import YTCoreLoggingModule from '@ext/custom/youtube/module/core/logging'
 import YTCoreNetworkModule from '@ext/custom/youtube/module/core/network'
 import YTCoreSandboxModule from '@ext/custom/youtube/module/core/sandbox'
@@ -37,7 +37,7 @@ registerFeatureGroup(CORE_GROUP_ID, group => {
   registerFeature(group, YTCoreBootstrapModule)
   registerFeature(group, YTCoreLoggingModule)
   registerFeature(group, YTCoreNetworkModule)
-  registerFeature(group, YTCoreEventModule)
+  registerFeature(group, YTCoreCommandModule)
   registerFeature(group, YTCoreConfigModule)
 
   hideOwnWebpackRuntimeFromGlobal()

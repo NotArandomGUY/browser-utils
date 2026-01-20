@@ -1,7 +1,7 @@
 import { registerYTValueFilter, registerYTValueProcessor } from '@ext/custom/youtube/api/processor'
 import { YTEndpoint, YTRenderer, YTResponse, YTValueData } from '@ext/custom/youtube/api/schema'
 import { isYTLoggedIn, YTPolymerCreateCallback } from '@ext/custom/youtube/module/core/bootstrap'
-import { registerYTSignalActionHandler } from '@ext/custom/youtube/module/core/event'
+import { registerYTSignalActionHandler } from '@ext/custom/youtube/module/core/command'
 import { isYTFeedFilterEnable, YTFeedFilterMask } from '@ext/custom/youtube/module/feed/filter'
 import { floor, max, min } from '@ext/global/math'
 import { Feature } from '@ext/lib/feature'

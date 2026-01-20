@@ -1,6 +1,6 @@
 import { registerYTValueProcessor, YTValueProcessorType } from '@ext/custom/youtube/api/processor'
 import { YTEndpoint, YTRenderer, YTValueData, YTValueType } from '@ext/custom/youtube/api/schema'
-import { registerYTSignalActionHandler } from '@ext/custom/youtube/module/core/event'
+import { registerYTSignalActionHandler } from '@ext/custom/youtube/module/core/command'
 import { Feature } from '@ext/lib/feature'
 
 const CONFIG_MENU_TITLE = 'BU Menu'

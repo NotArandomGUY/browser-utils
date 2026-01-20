@@ -42,7 +42,7 @@ export const getYTReduxMethodEntry = <T extends YTReduxMethodType>(type: T): [ke
   const base = window.default_kevlar_base
   if (base == null) return null
 
-  const entry = entries(base).find(([_, v]) => typeof v === 'function' && regexp.test(String(v)) && (filter == null || filter(v))) as [string, Function] ?? null
+  const entry = entries(base).find(([_, v]) => regexp.test(String(v)) && (filter == null || filter(v))) ?? null
   pattern[2] = entry
 
   return entry as ReturnType<typeof getYTReduxMethodEntry<T>>

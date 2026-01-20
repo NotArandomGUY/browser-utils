@@ -1,4 +1,4 @@
-import { dispatchYTOpenPopupAction } from '@ext/custom/youtube/module/core/event'
+import { ytuiShowToast } from '@ext/custom/youtube/utils/ytui'
 import { defineProperty } from '@ext/global/object'
 import { Feature } from '@ext/lib/feature'
 import Logger from '@ext/lib/logger'
@@ -142,15 +142,7 @@ const handleBiscottiBasedDetection = (payload: YTLoggingImsPayloadVariants['bisc
   if (triggeredDetectionSources.size > 1) return
 
   setTimeout(() => {
-    dispatchYTOpenPopupAction({
-      durationHintMs: 10e3,
-      popup: {
-        notificationActionRenderer: {
-          responseText: { runs: [{ text: `You have triggered adblocker detection [${Array.from(triggeredDetectionSources.values()).join(',')}]` }] }
-        }
-      },
-      popupType: 'TOAST'
-    })
+    ytuiShowToast(`You have triggered adblocker detection [${Array.from(triggeredDetectionSources.values()).join(',')}]`, 10e3)
     triggeredDetectionSources.clear()
   }, 5e3)
 }

@@ -1,7 +1,7 @@
 import { registerYTValueProcessor } from '@ext/custom/youtube/api/processor'
 import { YTRenderer, YTResponse } from '@ext/custom/youtube/api/schema'
-import { dispatchYTOpenPopupAction } from '@ext/custom/youtube/module/core/event'
 import { getYTPInstance, YTPInstanceType, YTPVideoPlayerInstance } from '@ext/custom/youtube/module/player/bootstrap'
+import { ytuiShowToast } from '@ext/custom/youtube/utils/ytui'
 import { floor, random } from '@ext/global/math'
 import { URL } from '@ext/global/network'
 import { Feature } from '@ext/lib/feature'
@@ -150,18 +150,7 @@ class MainAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, Cha
         return
       }
       case ChatPopoutMessageType.TOAST_MESSAGE:
-        dispatchYTOpenPopupAction({
-          durationHintMs: 5e3,
-          popup: {
-            notificationActionRenderer: {
-              responseText: { simpleText: message.data.text }
-            },
-            overlayToastRenderer: {
-              title: { simpleText: message.data.text }
-            }
-          },
-          popupType: 'TOAST'
-        })
+        ytuiShowToast(message.data.text, 5e3)
         return
       default:
         logger.debug('invalid message:', message)

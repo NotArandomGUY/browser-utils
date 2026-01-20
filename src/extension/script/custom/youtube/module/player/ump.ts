@@ -1,6 +1,5 @@
 import { processYTResponse } from '@ext/custom/youtube/api/processor'
 import { YTPlayerWebPlayerContextConfig } from '@ext/custom/youtube/module/core/bootstrap'
-import { dispatchYTOpenPopupAction } from '@ext/custom/youtube/module/core/event'
 import { YTPlayerContextConfigCallback } from '@ext/custom/youtube/module/player/bootstrap'
 import { OnesieHeaderType, OnesieProxyStatus, SabrContextScope, UMPSliceType } from '@ext/custom/youtube/proto/gvs/common/enum'
 import HttpHeader from '@ext/custom/youtube/proto/gvs/common/http-header'
@@ -21,6 +20,7 @@ import UMPSabrError from '@ext/custom/youtube/proto/gvs/ump/sabr-error'
 import UMPSnackbarMessage from '@ext/custom/youtube/proto/gvs/ump/snackbar-message'
 import { decryptOnesie, encryptOnesie } from '@ext/custom/youtube/utils/crypto'
 import { UMPContextManager, UMPSliceFlags } from '@ext/custom/youtube/utils/ump'
+import { ytuiShowToast } from '@ext/custom/youtube/utils/ytui'
 import { ceil } from '@ext/global/math'
 import { assign, fromEntries } from '@ext/global/object'
 import { bufferFromString, bufferToString } from '@ext/lib/buffer'
@@ -130,15 +130,7 @@ const manager = new UMPContextManager({
         throw new Response(null, { status: 403 })
       }
 
-      dispatchYTOpenPopupAction({
-        durationHintMs: backoffTimeMs,
-        popup: {
-          notificationActionRenderer: {
-            responseText: { runs: [{ text: `Waiting for server ad delay (${ceil(backoffTimeMs / 1e3)}s)...` }] }
-          }
-        },
-        popupType: 'TOAST'
-      })
+      ytuiShowToast(`Waiting for server ad delay (${ceil(backoffTimeMs / 1e3)}s)...`, backoffTimeMs)
     }
   },
   [UMPSliceType.SNACKBAR_MESSAGE]: (data, slice) => {

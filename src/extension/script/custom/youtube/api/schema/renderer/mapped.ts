@@ -3158,6 +3158,7 @@ export const pageHeaderViewModel = ytv_ren(() => ({
 }))
 export const panelFooterViewModel = ytv_ren(() => ({
   primaryButton: ytv_ren(),
+  secondaryButton: ytv_ren(),
   shouldHideDivider: ytv_bol()
 }))
 export const pdgLikeViewModel = ytv_ren(() => ({

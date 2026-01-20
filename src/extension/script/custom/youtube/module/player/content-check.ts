@@ -1,7 +1,7 @@
 import { registerYTValueProcessor } from '@ext/custom/youtube/api/processor'
 import { YTEndpoint, YTRenderer, YTResponse, YTValueData } from '@ext/custom/youtube/api/schema'
+import { dispatchYTSignalAction, registerYTSignalActionHandler } from '@ext/custom/youtube/module/core/command'
 import { getYTConfigBool, registerYTConfigMenuItem, YTConfigMenuItemType } from '@ext/custom/youtube/module/core/config'
-import { dispatchYTSignalAction, registerYTSignalActionHandler } from '@ext/custom/youtube/module/core/event'
 import { registerYTInnertubeRequestProcessor } from '@ext/custom/youtube/module/core/network'
 import { Feature } from '@ext/lib/feature'
 
