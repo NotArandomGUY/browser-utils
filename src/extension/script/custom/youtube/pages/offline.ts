@@ -240,7 +240,16 @@ class YTOfflinePageLifecycle extends Lifecycle<void> {
     const handleDelete = (id: string): void => {
       if (!confirm(`Confirm delete video '${id}'?`)) return
 
-      promiseStatus(deleteYTOfflineMedia(id)).finally(refreshTable)
+      isLoading_.val = true
+      promiseStatus(deleteYTOfflineMedia(id)).then(() => {
+        const entities = videoEntities_.val
+        const index = entities.findIndex(entity => entity.videoId === id)
+        if (index >= 0) videoEntities_.val = entities.slice(0, index).concat(entities.slice(index + 1))
+      }).catch(error => {
+        status_.val = error instanceof Error ? error.message : String(error)
+      }).finally(() => {
+        isLoading_.val = false
+      })
     }
 
     const handleQueueDownload = (): void => {
