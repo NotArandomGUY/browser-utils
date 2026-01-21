@@ -34,7 +34,7 @@ const removeSlice = (stream: CodedStream, begin: number, end: number): void => {
   const newBuffer = new Uint8Array(oldBuffer.length - (end - begin))
 
   newBuffer.set(oldBuffer.subarray(0, begin), 0)
-  newBuffer.set(oldBuffer.subarray(begin + end), begin)
+  newBuffer.set(oldBuffer.subarray(end), begin)
 
   stream.setBuffer(newBuffer, begin)
 }

@@ -141,6 +141,10 @@ const manager = new UMPContextManager({
   }
 })
 
+const getPlaybackRequestId = (params: URLSearchParams): string => {
+  return `${params.get('id')}/${params.get('rn')}/${params.get('fallback_count')}`
+}
+
 const processPlayerContextConfig = (config: YTPlayerWebPlayerContextConfig): void => {
   const clientKey = config.onesieHotConfig?.clientKey
   if (clientKey == null) return
@@ -184,10 +188,10 @@ const processOnesieInnertubeRequest = async (innertubeRequest: InstanceType<type
 }
 
 const processRequest = async (ctx: NetworkRequestContext): Promise<void> => {
-  const { url, request } = ctx
+  const { url: { pathname, searchParams }, request } = ctx
 
-  if (url.searchParams.has('expire')) {
-    const ttl = Number(url.searchParams.get('expire')) - (Date.now() / 1e3)
+  if (searchParams.has('expire')) {
+    const ttl = Number(searchParams.get('expire')) - (Date.now() / 1e3)
     if (isNaN(ttl) || ttl < 0 || ttl > 604800) {
       logger.debug('blocked invalid ump request from sending')
       assign<NetworkContext, NetworkContextState>(ctx, { state: NetworkState.SUCCESS, response: new Response(undefined, { status: 403 }) })
@@ -198,11 +202,11 @@ const processRequest = async (ctx: NetworkRequestContext): Promise<void> => {
   try {
     let body = new Uint8Array(await request.arrayBuffer())
 
-    switch (url.pathname) {
+    switch (pathname) {
       case '/initplayback': {
         const initPlaybackRequest = new InitPlaybackRequest().deserialize(body)
 
-        logger.debug('init playback request:', initPlaybackRequest)
+        logger.debug(`init playback request(${getPlaybackRequestId(searchParams)}):`, initPlaybackRequest)
 
         await processOnesieInnertubeRequest(initPlaybackRequest.innertubeRequest)
 
@@ -212,7 +216,7 @@ const processRequest = async (ctx: NetworkRequestContext): Promise<void> => {
       case '/videoplayback': {
         const videoPlaybackRequest = new VideoPlaybackRequest().deserialize(body)
 
-        logger.debug('video playback request:', videoPlaybackRequest)
+        logger.debug(`video playback request(${getPlaybackRequestId(searchParams)}):`, videoPlaybackRequest)
 
         body = videoPlaybackRequest.serialize()
         break
@@ -239,6 +243,7 @@ const processResponse = async (ctx: NetworkContext<unknown, NetworkState.SUCCESS
     ctx.response = new Response(
       new ReadableStream({
         start(controller) {
+          logger.debug(`playback response(${getPlaybackRequestId(searchParams)})`)
           manager.grab(searchParams).feed(body).progress(chunk => {
             if (resolve != null) {
               resolve()
