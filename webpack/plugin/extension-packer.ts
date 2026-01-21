@@ -11,9 +11,11 @@ import { createCipheriv, createHash, createPrivateKey, createPublicKey, generate
 import { readdirSync, readFileSync, statSync } from 'fs'
 import { join } from 'path'
 import { cwd } from 'process'
+import TerserPlugin from 'terser-webpack-plugin'
 import { Compilation, Compiler, EntryNormalized, sources } from 'webpack'
 import VirtualModulesPlugin from 'webpack-virtual-modules'
 import { deflateSync, inflateSync } from 'zlib'
+import { TERSER_OPTIONS } from '../options/terser'
 
 interface IBranchConfigEntry {
   id: string
@@ -21,6 +23,7 @@ interface IBranchConfigEntry {
   scripts: string[] | null
   encrypt: boolean
   enabled: boolean
+  logging: boolean
 }
 
 interface IBranchConfig {
@@ -36,8 +39,10 @@ const DEFAULT_BRANCH_CONFIG = {
   url: null,
   scripts: null,
   encrypt: false,
-  enabled: true
+  enabled: true,
+  logging: true
 } satisfies IBranchConfigEntry
+const PACKAGE_CACHE_REGEXP = /package\/cache\//i
 
 function toHex(buffer: Uint8Array): string {
   return Array.from(buffer).map(b => b.toString(16).padStart(2, '0')).join('')
@@ -61,7 +66,8 @@ function getBranchConfig(): IBranchConfig {
       url: String(entry.url ?? '') || null,
       scripts: Array.isArray(entry.scripts) ? entry.scripts : null,
       encrypt: !!entry.encrypt,
-      enabled: !!entry.enabled
+      enabled: !!entry.enabled,
+      logging: !!entry.logging
     }))
 
     const entry = config.branches.find(entry => entry.id === config.selected) ?? config.branches[0]
@@ -109,14 +115,16 @@ function buildVirtualModules(modules: Record<string, string | object>): Record<s
 }
 
 export default class ExtensionPackerPlugin {
-  private rpk: InstanceType<typeof RemotePackage>
-  private spk: InstanceType<typeof ScriptPackage>
-  private branch: InstanceType<typeof RemoteBranch>
-  private key: KeyObject
-  private virtualModules: VirtualModulesPlugin
+  private readonly rpk: InstanceType<typeof RemotePackage>
+  private readonly spk: InstanceType<typeof ScriptPackage>
+  private readonly branch: InstanceType<typeof RemoteBranch>
+  private readonly loggingEnabledBranchIds: Set<string>
+  private readonly key: KeyObject
+  private readonly virtualModules: VirtualModulesPlugin
 
   public constructor(version: string, virtualModules: Record<string, string | object> = {}) {
     const branchConfig = getBranchConfig()
+    const loggingEnabledBranchIds = new Set<string>()
 
     // Create/Load remote package
     const rpk = new RemotePackage({})
@@ -138,7 +146,9 @@ export default class ExtensionPackerPlugin {
     rpk.branches ??= []
 
     // Update remote package branches by config
-    for (const { id, url, scripts, encrypt, enabled } of branchConfig.branches) {
+    for (const { id, url, scripts, encrypt, enabled, logging } of branchConfig.branches) {
+      if (logging) loggingEnabledBranchIds.add(id)
+
       let branch = rpk.branches.find(branch => branch.id === id)
       if (branch == null) {
         branch = new RemoteBranch({ id })
@@ -165,11 +175,11 @@ export default class ExtensionPackerPlugin {
       if (branch.publicKey == null) {
         console.log(`[${PLUGIN_NAME}]`, `extracting public key for branch '${id}'...`)
 
-        if (privateKey == null) privateKey = createPrivateKey({ key: Buffer.from(branch.privateKey), type: 'pkcs8', format: 'der' })
+        privateKey ??= createPrivateKey({ key: Buffer.from(branch.privateKey), type: 'pkcs8', format: 'der' })
         branch.publicKey = new Uint8Array(createPublicKey(privateKey).export({ type: 'spki', format: 'der' }))
       }
     }
-    rpk.branches = rpk.branches.filter(branch => branchConfig.branches.find(entry => entry.id === branch.id) != null)
+    rpk.branches = rpk.branches.filter(branch => branchConfig.branches.some(entry => entry.id === branch.id))
 
     // Find selected branch
     const branch = rpk.branches.find(branch => branch.id === branchConfig.selected) ?? null
@@ -190,12 +200,13 @@ export default class ExtensionPackerPlugin {
     this.rpk = rpk
     this.spk = spk
     this.branch = branch
+    this.loggingEnabledBranchIds = loggingEnabledBranchIds
     this.key = key
     this.virtualModules = new VirtualModulesPlugin(buildVirtualModules(virtualModules))
   }
 
   public apply(compiler: Compiler) {
-    const { rpk, spk, branch, key, virtualModules } = this
+    const { rpk, spk, branch, loggingEnabledBranchIds, key, virtualModules } = this
 
     compiler.hooks.environment.tap(PLUGIN_NAME, () => {
       const entryPoints: EntryNormalized = {}
@@ -223,8 +234,8 @@ export default class ExtensionPackerPlugin {
 
           const scriptId = getScriptId(scriptName)
 
-          entryPoints[`package/cache/${scriptId}`] = {
-            runtime: `package/cache/${spk.entries![0].id}`, // runtime
+          entryPoints[`package/cache/${branch.id}/${scriptId}`] = {
+            runtime: `package/cache/${branch.id}/${spk.entries![0].id}`, // runtime
             import: [`extension/script/${prefix}/${entry}/entry`]
           }
 
@@ -237,14 +248,34 @@ export default class ExtensionPackerPlugin {
 
       console.log(`[${PLUGIN_NAME}]`, `found ${keys(entryPoints).length} script entries`)
 
+      const isLoggingEnabled = loggingEnabledBranchIds.has(branch.id!)
+
       // Inject compiler options for package
       assign(compiler.options.entry, entryPoints)
+      compiler.options.optimization.minimizer = [
+        new TerserPlugin({
+          exclude: PACKAGE_CACHE_REGEXP,
+          terserOptions: TERSER_OPTIONS
+        }),
+        new TerserPlugin({
+          include: PACKAGE_CACHE_REGEXP,
+          terserOptions: {
+            ...TERSER_OPTIONS,
+            compress: {
+              ...TERSER_OPTIONS.compress,
+              pure_funcs: isLoggingEnabled ? undefined : ((node: any) => {
+                return !/logger\.(info|debug|trace)$/.test(node.expression.print_to_string())
+              }) as unknown as string[],
+              pure_new: true
+            }
+          }
+        })
+      ]
       compiler.options.optimization.splitChunks = {
-        automaticNameDelimiter: '-',
         cacheGroups: {
           default: false,
           defaultVendors: {
-            name: `package/cache/${spk.entries![1].id}`, // vendor
+            name: `package/cache/${branch.id}/${spk.entries![1].id}`, // vendor
             minChunks: 2,
             chunks(chunk) {
               for (let group of chunk.groupsIterable) {
@@ -293,10 +324,12 @@ export default class ExtensionPackerPlugin {
 
       // Build package after compilation & optimize complete
       compilation.hooks.processAssets.tap({ name: PLUGIN_NAME, stage: Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_TRANSFER }, () => {
+        const branchId = branch.id ?? DEFAULT_BRANCH_CONFIG.id
+
         console.log(`[${PLUGIN_NAME}]`, 'building package...')
 
-        spk.entries!.map(entry => {
-          const source = compilation.getAsset(`package/cache/${entry.id}.js`)?.source
+        spk.entries!.forEach(entry => {
+          const source = compilation.getAsset(`package/cache/${branchId}/${entry.id}.js`)?.source
           if (source == null) {
             console.warn(`[${PLUGIN_NAME}]`, `missing source for script '${entry.id}'`)
             return
@@ -311,7 +344,6 @@ export default class ExtensionPackerPlugin {
 
         compilation.emitAsset('package/cache/config.rpk', new sources.RawSource(deflateSync(rpk.serialize())))
 
-        const branchId = branch.id ?? DEFAULT_BRANCH_CONFIG.id
         compilation.emitAsset('package/branch.json', new sources.RawSource(JSON.stringify({
           selected: branchId,
           branches: rpk.branches?.map(b => ({
@@ -319,7 +351,8 @@ export default class ExtensionPackerPlugin {
             url: b.url,
             scripts: b.scripts,
             encrypt: b.encryptKey != null,
-            enabled: b.publicKey != null
+            enabled: b.publicKey != null,
+            logging: loggingEnabledBranchIds.has(b.id!)
           })) ?? []
         } as IBranchConfig, null, 2)))
 

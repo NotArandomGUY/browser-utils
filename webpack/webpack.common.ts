@@ -5,6 +5,7 @@ import TerserPlugin from 'terser-webpack-plugin'
 import TsconfigPathsPlugin from 'tsconfig-paths-webpack-plugin'
 import { Configuration, EntryObject, ProvidePlugin } from 'webpack'
 import merge from 'webpack-merge'
+import { TERSER_OPTIONS } from './options/terser'
 import ExtensionPackerPlugin from './plugin/extension-packer'
 
 const { version } = require('../package.json')
@@ -31,27 +32,7 @@ function createConfig(prefix: string, config: Configuration): Configuration {
     },
     optimization: {
       chunkIds: 'total-size',
-      mangleExports: 'size',
-      minimizer: [
-        new TerserPlugin({
-          parallel: true,
-          terserOptions: {
-            compress: {
-              passes: 2
-            },
-            mangle: {
-              module: true,
-              properties: {
-                keep_quoted: true,
-                regex: /[A-Za-z0-9]+_$/
-              }
-            },
-            format: {
-              comments: false
-            }
-          }
-        })
-      ]
+      mangleExports: 'size'
     },
     module: {
       rules: [
@@ -103,6 +84,13 @@ export default [
     entry: generateEntries(['main'], 'webapp', ''),
     output: {
       chunkFormat: false
+    },
+    optimization: {
+      minimizer: [
+        new TerserPlugin({
+          terserOptions: TERSER_OPTIONS
+        })
+      ]
     },
     plugins: [
       new CopyPlugin({ patterns: [{ from: '.', to: '.', context: `public/webapp` }] }),
