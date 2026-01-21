@@ -24,6 +24,7 @@ import { ytuiShowToast } from '@ext/custom/youtube/utils/ytui'
 import { ceil } from '@ext/global/math'
 import { assign, fromEntries } from '@ext/global/object'
 import { bufferFromString, bufferToString } from '@ext/lib/buffer'
+import Callback from '@ext/lib/callback'
 import { Feature } from '@ext/lib/feature'
 import { addInterceptNetworkCallback, NetworkContext, NetworkContextState, NetworkRequestContext, NetworkState, onInterceptNetworkRequest, replaceRequest } from '@ext/lib/intercept/network'
 import Logger from '@ext/lib/logger'
@@ -32,9 +33,10 @@ const logger = new Logger('YTPLAYER-UMP')
 
 const UMP_PATHNAME_REGEXP = /^\/(init|video)playback$/
 
-let isFirstInterrupt = true
 let onesieClientKeys: Uint8Array[] = []
 let onesieHeader: InstanceType<typeof UMPOnesieHeader> | null = null
+
+export const YTServerAdDelayCallback = new Callback<[delayMs: number]>()
 
 const manager = new UMPContextManager({
   [UMPSliceType.UNKNOWN]: (data, slice) => {
@@ -128,14 +130,10 @@ const manager = new UMPContextManager({
     if (message.type === 5 && message.scope === SabrContextScope.SABR_CONTEXT_SCOPE_CONTENT_ADS) {
       const context = new UMPSabrContextContentAds().deserialize(content)
 
-      const backoffTimeMs = context.backoffTimeMs ?? 0
-      if (backoffTimeMs <= 0) return
+      const backoffTimeMs = context.backoffTimeMs
+      if (!backoffTimeMs) return
 
-      if (isFirstInterrupt) {
-        isFirstInterrupt = false
-        throw new Response(null, { status: 403 })
-      }
-
+      YTServerAdDelayCallback.invoke(backoffTimeMs)
       ytuiShowToast(`Waiting for server ad delay (${ceil(backoffTimeMs / 1e3)}s)...`, backoffTimeMs)
     }
   },
@@ -262,7 +260,7 @@ const processResponse = async (ctx: NetworkContext<unknown, NetworkState.SUCCESS
           }).catch(error => {
             if (error instanceof Response) ctx.response = error
             resolve?.()
-            controller.error(error instanceof Error ? error : new Error())
+            controller.error(error instanceof Error ? error : new Error('unknown error'))
           })
         }
       }),

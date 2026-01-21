@@ -1,6 +1,7 @@
 import { registerYTValueFilter, registerYTValueProcessor, YTValueProcessorType } from '@ext/custom/youtube/api/processor'
 import { YTEndpoint, YTRenderer, YTResponse, YTValueData } from '@ext/custom/youtube/api/schema'
 import { registerYTInnertubeRequestProcessor } from '@ext/custom/youtube/module/core/network'
+import { YTServerAdDelayCallback } from '@ext/custom/youtube/module/player/ump'
 import { defineProperty } from '@ext/global/object'
 import { Feature } from '@ext/lib/feature'
 import InterceptDOM from '@ext/lib/intercept/dom'
@@ -8,6 +9,8 @@ import { HookResult } from '@ext/lib/intercept/hook'
 import Logger from '@ext/lib/logger'
 
 const logger = new Logger('YTMISCS-ADS')
+
+let isFetchApiAds = false
 
 const updateNextResponse = (data: YTValueData<YTResponse.Mapped<'next'>>): boolean => {
   delete data.adEngagementPanels
@@ -25,6 +28,13 @@ export default class YTMiscsAdsModule extends Feature {
   }
 
   protected activate(): boolean {
+    YTServerAdDelayCallback.registerCallback(() => {
+      if (isFetchApiAds) return
+
+      isFetchApiAds = true
+      throw new Response(null, { status: 403 })
+    })
+
     registerYTValueFilter(YTEndpoint.mapped.adsControlFlowOpportunityReceivedCommand)
     registerYTValueFilter(YTEndpoint.mapped.reelWatchEndpoint, filterReel)
     registerYTValueFilter(YTRenderer.mapped.adPlacementRenderer)
@@ -40,6 +50,12 @@ export default class YTMiscsAdsModule extends Feature {
 
       params.isInlinePlaybackMuted = false
       params.isInlinePlayback = true
+      // NOTE: some flags that might be useless, but kept for reference later
+      /*
+      params.b78 = false
+      params.b79 = false
+      params.sign = null
+      */
     })
 
     InterceptDOM.setAppendChildCallback(ctx => {
