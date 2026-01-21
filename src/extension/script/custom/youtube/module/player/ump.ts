@@ -37,7 +37,9 @@ let onesieClientKeys: Uint8Array[] = []
 let onesieHeader: InstanceType<typeof UMPOnesieHeader> | null = null
 
 const manager = new UMPContextManager({
-  [UMPSliceType.UNKNOWN]: (data, slice) => logger.trace('slice type:', slice.getType(), data),
+  [UMPSliceType.UNKNOWN]: (data, slice) => {
+    logger.trace('slice type:', slice.getType(), data)
+  },
   [UMPSliceType.ONESIE_HEADER]: (data) => {
     onesieHeader = new UMPOnesieHeader().deserialize(data)
 
@@ -84,8 +86,12 @@ const manager = new UMPContextManager({
 
     logger.trace('media header:', message)
   },
-  [UMPSliceType.MEDIA]: () => { },//(data) => logger.trace('media size:', data.length),
-  [UMPSliceType.MEDIA_END]: (data) => logger.trace('media end:', data),
+  [UMPSliceType.MEDIA]: (data) => {
+    logger.trace('media size:', data.length)
+  },
+  [UMPSliceType.MEDIA_END]: (data) => {
+    logger.trace('media end:', data)
+  },
   [UMPSliceType.NEXT_REQUEST_POLICY]: (data) => {
     const message = new UMPNextRequestPolicy().deserialize(data)
 
@@ -206,7 +212,7 @@ const processRequest = async (ctx: NetworkRequestContext): Promise<void> => {
       case '/initplayback': {
         const initPlaybackRequest = new InitPlaybackRequest().deserialize(body)
 
-        logger.debug(`init playback request(${getPlaybackRequestId(searchParams)}):`, initPlaybackRequest)
+        logger.debug(`init playback request(${/*@__PURE__*/getPlaybackRequestId(searchParams)}):`, initPlaybackRequest)
 
         await processOnesieInnertubeRequest(initPlaybackRequest.innertubeRequest)
 
@@ -216,7 +222,7 @@ const processRequest = async (ctx: NetworkRequestContext): Promise<void> => {
       case '/videoplayback': {
         const videoPlaybackRequest = new VideoPlaybackRequest().deserialize(body)
 
-        logger.debug(`video playback request(${getPlaybackRequestId(searchParams)}):`, videoPlaybackRequest)
+        logger.debug(`video playback request(${/*@__PURE__*/getPlaybackRequestId(searchParams)}):`, videoPlaybackRequest)
 
         body = videoPlaybackRequest.serialize()
         break
@@ -243,7 +249,7 @@ const processResponse = async (ctx: NetworkContext<unknown, NetworkState.SUCCESS
     ctx.response = new Response(
       new ReadableStream({
         start(controller) {
-          logger.debug(`playback response(${getPlaybackRequestId(searchParams)})`)
+          logger.debug(`playback response(${/*@__PURE__*/getPlaybackRequestId(searchParams)})`)
           manager.grab(searchParams).feed(body).progress(chunk => {
             if (resolve != null) {
               resolve()
