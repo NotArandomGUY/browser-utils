@@ -8,8 +8,6 @@ import Logger from '@ext/lib/logger'
 
 const logger = new Logger('YTMISCS-FIXUP')
 
-let currentPage: HTMLElement | null = null
-
 const stopControlEvent = (event: Event): void => {
   const { target } = event
 
@@ -62,22 +60,6 @@ export default class YTMiscsFixupModule extends Feature {
         if (node.sandbox.length > 0) node.sandbox.add('allow-same-origin', 'allow-scripts')
 
         logger.debug('patched iframe element', node, getOwnPropertyDescriptors(node))
-      }
-      if (node instanceof HTMLElement && self.nodeName === 'YTD-PAGE-MANAGER') {
-        const { get, set } = getPropertyDescriptor(node, 'hidden') ?? {}
-        defineProperty(node, 'hidden', {
-          configurable: true,
-          get,
-          set(hidden) {
-            if (!hidden) {
-              if (node !== currentPage) currentPage?.remove()
-              if (node.parentNode !== self) self.appendChild(node)
-              currentPage = node
-            }
-            set?.call(node, hidden)
-          }
-        })
-        currentPage = node
       }
 
       return HookResult.EXECUTION_PASSTHROUGH
