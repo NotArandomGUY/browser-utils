@@ -2,11 +2,13 @@ import { registerOverlayPage } from '@ext/common/preload/overlay'
 import { processYTResponse, processYTValue } from '@ext/custom/youtube/api/processor'
 import { YTResponse, ytv_enp, YTValueData, YTValueType } from '@ext/custom/youtube/api/schema'
 import YTDevicePage from '@ext/custom/youtube/pages/device'
-import { assign, defineProperties, defineProperty } from '@ext/global/object'
+import { assign, defineProperties, defineProperty, fromEntries } from '@ext/global/object'
 import Callback from '@ext/lib/callback'
 import { Feature } from '@ext/lib/feature'
 import Hook, { HookResult } from '@ext/lib/intercept/hook'
 import Logger from '@ext/lib/logger'
+
+const logger = new Logger('YTCORE-BOOTSTRAP')
 
 type YTInitDataResponse = {
   page: 'browse' | 'channel'
@@ -153,8 +155,6 @@ export interface YTSearchboxSettings {
   HIDE_REMOVE_LINK: false
 }
 
-const logger = new Logger('YTCORE-BOOTSTRAP')
-
 const APP_ELEMENT_PAGE_MAP: Record<string, YTInitDataResponse['page'] | false> = {
   'ytd-app': false,
   'ytlr-app': false,
@@ -162,6 +162,7 @@ const APP_ELEMENT_PAGE_MAP: Record<string, YTInitDataResponse['page'] | false> =
 }
 
 export const YTConfigInitCallback = new Callback<[ytcfg: YTConfig]>()
+export const YTKevlarMethodDefineCallback = new Callback<[kevlar: Record<string, unknown>, name: string, fn: Function]>()
 export const YTPlayerCreateCallback = new Callback<[container: HTMLElement, config?: YTPlayerConfig, webPlayerContextConfig?: YTPlayerWebPlayerContextConfig]>()
 export const YTPolymerCreateCallback = new Callback<[instance: object]>()
 
@@ -203,40 +204,6 @@ const getDeviceLabel = (): string => {
   return `YouTube on ${browserName}`
 }
 
-const getProcessedInitialCommand = async (initCommand: YTValueData<{ type: YTValueType.ENDPOINT }>): Promise<YTValueData<{ type: YTValueType.ENDPOINT }>> => {
-  await processYTValue(ytv_enp(), initCommand, null)
-  logger.debug('initial command:', initCommand)
-
-  return initCommand
-}
-
-const getProcessedInitialData = async (initData: YTInitData): Promise<YTInitData> => {
-  switch (initData.page) {
-    case 'browse':
-    case 'channel':
-      await processYTResponse('browse', initData.response)
-      break
-    case 'search':
-      await processYTResponse('search', initData.response)
-      break
-    case 'shorts':
-      await processYTResponse('reelReelItemWatch', initData.response)
-      break
-    case 'watch':
-      await processYTResponse('next', initData.response)
-      break
-    case 'live_chat':
-      await processYTResponse('liveChatGetLiveChat', initData.response)
-      break
-    default:
-      logger.warn('unhandled page type', initData)
-      break
-  }
-  logger.debug('initial data:', initData)
-
-  return initData
-}
-
 const createPlayer = async (create: (...args: unknown[]) => void, container: HTMLElement, config?: YTPlayerConfig, webPlayerContextConfig?: YTPlayerWebPlayerContextConfig): Promise<void> => {
   if (webPlayerContextConfig != null) {
     webPlayerContextConfig.enableCsiLogging = false
@@ -264,6 +231,71 @@ const createPolymer = (instance: object): void => {
   }
 }
 
+const processInitialCommand = async (initCommand: YTValueData<{ type: YTValueType.ENDPOINT }>): Promise<void> => {
+  await processYTValue(ytv_enp(), initCommand, null)
+  logger.debug('initial command:', initCommand)
+}
+
+const processInitialData = async (initData: YTInitData): Promise<void> => {
+  switch (initData.page) {
+    case 'browse':
+    case 'channel':
+      await processYTResponse('browse', initData.response)
+      break
+    case 'search':
+      await processYTResponse('search', initData.response)
+      break
+    case 'shorts':
+      await processYTResponse('reelReelItemWatch', initData.response)
+      break
+    case 'watch':
+      await processYTResponse('next', initData.response)
+      break
+    case 'live_chat':
+      await processYTResponse('liveChatGetLiveChat', initData.response)
+      break
+    default:
+      logger.warn('unhandled page type', initData)
+      break
+  }
+  logger.debug('initial data:', initData)
+}
+
+const overrideBootstrapLoader = <T>(type: string, processor: (data: T) => Promise<void>): void => {
+  const suffix = type.replace(/^[a-z]/, c => c.toUpperCase())
+
+  let onBootstrapLoaded: (data: T) => void
+
+  defineProperties(window, {
+    [`loadInitial${suffix}`]: {
+      configurable: true,
+      set(fn) { onBootstrapLoaded = fn }
+    },
+    [`getInitial${suffix}`]: {
+      configurable: true,
+      set(fn) {
+        if (typeof fn !== 'function') {
+          logger.warn('invalid bootstrap getter function:', fn)
+          return
+        }
+
+        const data = fn() as T
+        processor(data)
+          .catch(error => logger.warn('process bootstrap data error:', error))
+          .finally(() => {
+            defineProperty(window, `getInitial${suffix}`, {
+              configurable: true,
+              writable: true,
+              value: () => data
+            })
+
+            if (typeof onBootstrapLoaded === 'function') onBootstrapLoaded(data)
+          })
+      }
+    }
+  })
+}
+
 export const getYTAppElement = (): HTMLElement | null => {
   return appElement
 }
@@ -278,33 +310,6 @@ export default class YTCoreBootstrapModule extends Feature {
   }
 
   protected activate(): boolean {
-    // Override environment
-    defineProperty(window, 'environment', {
-      configurable: true,
-      get() {
-        return environment
-      },
-      set(v) {
-        environment = v
-
-        const { feature_switches, flags } = environment
-
-        const deviceLabel = getDeviceLabel()
-
-        document.title = deviceLabel
-
-        assign(feature_switches ?? {}, {
-          mdx_device_label: deviceLabel,
-          supports_video_pause_on_blur: false
-        })
-        assign(flags ?? {}, {
-          force_memory_saving_mode: false,
-          watch_cap_group: 'none'
-        })
-      }
-    })
-
-    // Override config
     ytcfg = assign(window.ytcfg ?? {}, {
       'init_': false,
       d() {
@@ -385,27 +390,7 @@ export default class YTCoreBootstrapModule extends Feature {
         ytcfg.d()[key] = value
       }
     } as YTConfig)
-    defineProperty(window, 'ytcfg', { configurable: false, writable: false, value: ytcfg })
 
-    // Override player application create
-    defineProperty(window, 'yt', {
-      configurable: true,
-      writable: true,
-      value: {
-        player: {
-          Application: new Proxy({}, {
-            set(target, p, newValue, receiver) {
-              if (String(p).startsWith('create') && typeof newValue === 'function') {
-                newValue = createPlayer.bind(target, newValue)
-              }
-              return Reflect.set(target, p, newValue, receiver)
-            }
-          })
-        }
-      }
-    })
-
-    // Override polymer class create
     let PolymerFakeBaseClass: ((this: object) => void) | null = null
     let PolymerFakeBaseClassWithoutHtml: ((this: object) => void) | null = null
 
@@ -416,6 +401,55 @@ export default class YTCoreBootstrapModule extends Feature {
         writable: true,
         value: undefined
       },
+
+      // Override environment features/flags
+      environment: {
+        configurable: true,
+        get() {
+          return environment
+        },
+        set(v) {
+          environment = v
+
+          const { feature_switches, flags } = environment
+
+          const deviceLabel = getDeviceLabel()
+
+          document.title = deviceLabel
+
+          assign(feature_switches ?? {}, {
+            mdx_device_label: deviceLabel,
+            supports_video_pause_on_blur: false
+          })
+          assign(flags ?? {}, {
+            force_memory_saving_mode: false,
+            watch_cap_group: 'none'
+          })
+        }
+      },
+
+      // Override config
+      ytcfg: { configurable: false, writable: false, value: ytcfg },
+
+      // Override player application create
+      yt: {
+        configurable: true,
+        writable: true,
+        value: {
+          player: {
+            Application: new Proxy({}, {
+              set(target, p, newValue, receiver) {
+                if (String(p).startsWith('create') && typeof newValue === 'function') {
+                  newValue = createPlayer.bind(target, newValue)
+                }
+                return Reflect.set(target, p, newValue, receiver)
+              }
+            })
+          }
+        }
+      },
+
+      // Override polymer class create
       PolymerFakeBaseClass: {
         configurable: true,
         get() {
@@ -445,83 +479,31 @@ export default class YTCoreBootstrapModule extends Feature {
           }
           PolymerFakeBaseClassWithoutHtml.prototype = fn.prototype
         }
-      }
+      },
+
+      // Override kevlar global
+      ...fromEntries(['default_kevlar_base', '_yttv'].map(key => [key, {
+        configurable: true,
+        set(value) {
+          defineProperty(window, key, {
+            configurable: true,
+            enumerable: true,
+            value: new Proxy(value, {
+              set(target, p, newValue, receiver) {
+                if (typeof p === 'string' && typeof newValue === 'function') {
+                  YTKevlarMethodDefineCallback.invoke(target, p, newValue)
+                }
+                return Reflect.set(target, p, newValue, receiver)
+              }
+            })
+          })
+        }
+      }]))
     })
 
-    // Process initial data for get initial global
-    let bootstrapLoadInitialCommand: ((data: object) => void) | null = null
-    let bootstrapLoadInitialData: ((data: object) => void) | null = null
-
-    defineProperties(window, {
-      loadInitialCommand: {
-        configurable: true,
-        get() {
-          return undefined
-        },
-        set(fn) {
-          bootstrapLoadInitialCommand = fn
-        }
-      },
-      loadInitialData: {
-        configurable: true,
-        get() {
-          return undefined
-        },
-        set(fn) {
-          bootstrapLoadInitialData = fn
-        }
-      },
-      getInitialCommand: {
-        configurable: true,
-        get() {
-          return undefined
-        },
-        set(getInitialCommand) {
-          if (typeof getInitialCommand !== 'function') {
-            logger.warn('invalid get initial command function:', getInitialCommand)
-            return
-          }
-
-          const initialCommand = getInitialCommand() as YTValueData<{ type: YTValueType.ENDPOINT }>
-          getProcessedInitialCommand(initialCommand)
-            .catch(error => logger.warn('process initial command error:', error))
-            .finally(() => {
-              defineProperty(window, 'getInitialCommand', {
-                configurable: true,
-                writable: true,
-                value: () => initialCommand
-              })
-
-              if (typeof bootstrapLoadInitialCommand === 'function') bootstrapLoadInitialCommand(initialCommand)
-            })
-        }
-      },
-      getInitialData: {
-        configurable: true,
-        get() {
-          return undefined
-        },
-        set(getInitialData) {
-          if (typeof getInitialData !== 'function') {
-            logger.warn('invalid get initial data function:', getInitialData)
-            return
-          }
-
-          const initialData = getInitialData() as YTInitData
-          getProcessedInitialData(initialData)
-            .catch(error => logger.warn('process initial data error:', error))
-            .finally(() => {
-              defineProperty(window, 'getInitialData', {
-                configurable: true,
-                writable: true,
-                value: () => initialData
-              })
-
-              if (typeof bootstrapLoadInitialData === 'function') bootstrapLoadInitialData(initialData)
-            })
-        }
-      }
-    })
+    // Override bootstrap loading functions
+    overrideBootstrapLoader('command', processInitialCommand)
+    overrideBootstrapLoader('data', processInitialData)
 
     // Process initial data for app element
     customElements.define = new Hook(customElements.define).install(ctx => {
@@ -543,7 +525,7 @@ export default class YTCoreBootstrapModule extends Feature {
 
         if (!page) return HookResult.EXECUTION_PASSTHROUGH
 
-        getProcessedInitialData({ page, response: window.ytInitialData } as YTInitData)
+        processInitialData({ page, response: window.ytInitialData } as YTInitData)
           .catch(error => logger.warn('process initial data error:', error))
           .finally(() => ctx.origin.apply(ctx.self, ctx.args))
 

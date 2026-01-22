@@ -288,7 +288,7 @@ export const deleteYTOfflineMedia = async (id: string): Promise<void> => {
     await putYTLocalEntity<EntityType.mainVideoDownloadStateEntity>(downloadStateEntity, true)
   }
 
-  await updateYTReduxStoreLocalEntities(0)
+  await updateYTReduxStoreLocalEntities()
 }
 
 export const importYTOfflineMediaBundle = (file: File, password: string) => new PromiseWithProgress<void, string>(async (resolve, reject, progress) => {
@@ -393,9 +393,9 @@ export const importYTOfflineMediaBundle = (file: File, password: string) => new 
       streamsEntity
     ], true)
     await putYTLocalEntityAssociation(associations)
-    await updateYTReduxStoreLocalEntities(0)
 
     setYTLocalMediaStorage({ ...getYTLocalMediaStorage(), [id!]: 1 })
+    await updateYTReduxStoreLocalEntities()
 
     progress(`imported '${id}' successfully`)
     resolve()
