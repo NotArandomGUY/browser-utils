@@ -108,17 +108,17 @@ class MainAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, Cha
           this.send(ChatPopoutMessageType.PLAYER_LOAD_LIVE_CHAT_REPLAY, { videoId: videoId_, continuation })
         }
       }
-      registerYTValueProcessor(YTResponse.mapped.player, data => {
-        const videoId = data.videoDetails?.videoId ?? null
-        if (videoId !== this.liveChatVideoId_) onPlayerUnload()
-
-        this.videoId_ = videoId
-
-        return true
-      })
 
       // Collapse chat if popout window is available
       data.initialDisplayState = (Date.now() - lastIdlePopoutAnnounce_) <= COLLAPSED_CHAT_TIMEOUT ? 'LIVE_CHAT_DISPLAY_STATE_COLLAPSED' : 'LIVE_CHAT_DISPLAY_STATE_EXPANDED'
+
+      return true
+    })
+    registerYTValueProcessor(YTResponse.mapped.player, data => {
+      const videoId = data.videoDetails?.videoId ?? null
+      if (videoId !== this.liveChatVideoId_) onPlayerUnload()
+
+      this.videoId_ = videoId
 
       return true
     })
