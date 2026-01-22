@@ -23,7 +23,11 @@ const PLAYER_EXPERIMENT_FLAGS: [key: string, value?: string][] = [
   ['html5_disable_bandwidth_cofactors_for_sabr_live'],
   ['html5_live_quality_cap', '0'],
   ['html5_sabr_live_timing'],
-  ['html5_streaming_resilience']
+  ['html5_streaming_resilience'],
+
+  // Enable miniplayer & pip context menu buttons
+  ['web_player_miniplayer_in_context_menu'],
+  ['web_watch_pip_context_menu_button']
 ]
 const STYLE_SHEET = [
   // FIX: leanback animated overlay virtual list bug

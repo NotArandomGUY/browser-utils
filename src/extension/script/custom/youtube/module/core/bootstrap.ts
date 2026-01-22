@@ -346,7 +346,8 @@ export default class YTCoreBootstrapModule extends Feature {
             assign(value as object, {
               html5_offline_playback_position_sync: !!ytcfg.get('LOGGED_IN'),
               json_condensed_response: location.pathname !== '/tv',
-              kevlar_remove_page_dom_on_switch: true
+              kevlar_remove_page_dom_on_switch: true,
+              web_watch_pip: true
             })
             break
           case 'INNERTUBE_CONTEXT':
@@ -409,6 +410,12 @@ export default class YTCoreBootstrapModule extends Feature {
     let PolymerFakeBaseClassWithoutHtml: ((this: object) => void) | null = null
 
     defineProperties(window, {
+      // FIXME: remove this when it's not broken
+      documentPictureInPicture: {
+        configurable: true,
+        writable: true,
+        value: undefined
+      },
       PolymerFakeBaseClass: {
         configurable: true,
         get() {
