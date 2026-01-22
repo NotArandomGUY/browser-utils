@@ -307,11 +307,11 @@ const fetchSegmentEntries = async (videoId: string | null): Promise<SkipSegmentE
 
     const data = Array.from<VideoSegmentInfo>(await response.json())
 
-    for (const info of data) {
-      if (segmentEntriesCacheMap.get(info.videoID)?.length === info.segments?.length) continue
+    for (const { videoID, segments } of data) {
+      if (!Array.isArray(segments) || segmentEntriesCacheMap.get(videoID)?.length === segments.length) continue
 
-      segmentEntriesCacheMap.set(info.videoID, info.segments?.map?.((s, i) => ({
-        videoId: info.videoID,
+      segmentEntriesCacheMap.set(videoID, segments.filter(segment => segment?.locked || Number(segment?.votes) >= 0).map((s, i) => ({
+        videoId: videoID,
         segmentId: SKIP_SEGMENT_BASE_ID + i,
         startTimeMs: s.segment[0] * 1e3,
         endTimeMs: s.segment[1] * 1e3,
