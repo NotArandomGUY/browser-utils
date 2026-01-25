@@ -361,8 +361,7 @@ const processPlayerContextConfig = (webPlayerContextConfig: Record<string, YTPla
 }
 
 const processResponse = async (ctx: NetworkContext<unknown, NetworkState.SUCCESS>): Promise<void> => {
-  const { url, response } = ctx
-  const { pathname, searchParams } = url
+  const { url: { pathname, searchParams }, response } = ctx
 
   if (pathname !== '/tv_config') return
 
