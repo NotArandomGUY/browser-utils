@@ -1,6 +1,6 @@
 import { abs, floor, LN2, log, pow } from '@ext/global/math'
 
-type Encoding = 'utf8' | 'ascii' | 'latin1'
+type Encoding = 'utf8' | 'ascii' | 'latin1' | 'base64' | 'base64url'
 
 const TextEncode = TextEncoder.prototype.encode.bind(new TextEncoder())
 const TextDecode = TextDecoder.prototype.decode.bind(new TextDecoder())
@@ -666,6 +666,10 @@ export const bufferWriteDoubleBE = (buffer: Uint8Array, value: number, offset: n
 
 export const bufferFromString = (input: string, encoding: Encoding = 'utf8'): Uint8Array<ArrayBuffer> => {
   switch (encoding) {
+    case 'base64':
+      return bufferFromString(atob(input), 'latin1')
+    case 'base64url':
+      return bufferFromString(input.replace(/-/g, '+').replace(/_/g, '/'), 'base64')
     case 'ascii':
     case 'latin1':
       return new Uint8Array(input.split('').map((_, i) => input.charCodeAt(i) & 0xFF))
@@ -677,6 +681,10 @@ export const bufferFromString = (input: string, encoding: Encoding = 'utf8'): Ui
 
 export const bufferToString = (input: Uint8Array | ArrayBuffer, encoding: Encoding = 'utf8'): string => {
   switch (encoding) {
+    case 'base64':
+      return btoa(bufferToString(input, 'latin1'))
+    case 'base64url':
+      return bufferToString(input, 'base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
     case 'latin1': {
       const buffer = ArrayBuffer.isView(input)
         ? new Uint8Array(input.buffer).subarray(input.byteOffset, input.byteOffset + input.byteLength)

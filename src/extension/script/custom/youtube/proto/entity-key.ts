@@ -100,11 +100,11 @@ const EntityKey = createMessage({
 })
 
 export const encodeEntityKey = (...args: ConstructorParameters<typeof EntityKey>): string => {
-  return encodeURIComponent(btoa(bufferToString(new EntityKey(...args).serialize(), 'latin1')))
+  return encodeURIComponent(bufferToString(new EntityKey(...args).serialize(), 'base64'))
 }
 
 export const decodeEntityKey = (entityKey: string): InstanceType<typeof EntityKey> => {
-  return new EntityKey().deserialize(bufferFromString(atob(decodeURIComponent(entityKey)), 'latin1'))
+  return new EntityKey().deserialize(bufferFromString(decodeURIComponent(entityKey), 'base64'))
 }
 
 export default EntityKey

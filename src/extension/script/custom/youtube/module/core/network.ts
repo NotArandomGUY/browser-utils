@@ -144,14 +144,14 @@ const innertubeRequestProcessorMap: { [endpoint: string]: Set<YTInnertubeRequest
 const protoBase64UrlDecode = <D extends MessageDefinition>(message: Message<D>, data?: string): Message<D> => {
   if (typeof data !== 'string') return message
 
-  return message.deserialize(bufferFromString(atob(decodeURIComponent(data).replace(/-/g, '+').replace(/_/g, '/')), 'latin1'))
+  return message.deserialize(bufferFromString(decodeURIComponent(data), 'base64url'))
 }
 
 const protoBase64UrlEncode = <D extends MessageDefinition>(message: Message<D>): string | undefined => {
   const data = message.serialize()
   if (data.length === 0) return undefined
 
-  return encodeURIComponent(btoa(bufferToString(data, 'latin1')).replace(/\+/g, '-').replace(/\//g, '_'))
+  return encodeURIComponent(bufferToString(data, 'base64url'))
 }
 
 const invokeProcessors = async (request: YTInnertubeRequest, processors?: Set<YTInnertubeRequestProcessor>): Promise<YTValueData<YTResponse.Mapped> | null> => {

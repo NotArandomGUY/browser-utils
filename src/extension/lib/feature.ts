@@ -129,7 +129,7 @@ export const getAllFeatureGroupDisableMask = (): Record<string, Uint8Array> => {
       disableMaskMap = new Map()
 
       for (const groupId in decoded) {
-        disableMaskMap.set(groupId, bufferFromString(atob(String(decoded[groupId]))))
+        disableMaskMap.set(groupId, bufferFromString(String(decoded[groupId]), 'base64'))
       }
     } catch {
       disableMaskMap = new Map()

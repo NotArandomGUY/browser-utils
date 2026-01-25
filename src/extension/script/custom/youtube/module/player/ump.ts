@@ -153,7 +153,7 @@ const processPlayerContextConfig = (config: YTPlayerWebPlayerContextConfig): voi
   const clientKey = config.onesieHotConfig?.clientKey
   if (clientKey == null) return
 
-  onesieClientKeys.push(bufferFromString(atob(clientKey), 'latin1'))
+  onesieClientKeys.push(bufferFromString(clientKey, 'base64'))
   logger.debug('load onesie client key:', onesieClientKeys)
 }
 

@@ -100,7 +100,7 @@ function buildVirtualModules(modules: Record<string, string | object>): Record<s
         'import { bufferFromString } from "@ext/lib/buffer"',
         ...entries(module).map(e => [
           `export const ${e[0]}`,
-          e[1] instanceof Uint8Array ? `bufferFromString(atob('${btoa(bufferToString(e[1], 'latin1'))}'), 'latin1')` : JSON.stringify(e[1])
+          e[1] instanceof Uint8Array ? `bufferFromString('${bufferToString(e[1], 'base64')}', 'base64')` : JSON.stringify(e[1])
         ].join('='))
       ].join(';')
     }
