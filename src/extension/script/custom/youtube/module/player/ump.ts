@@ -1,6 +1,7 @@
 import { processYTResponse } from '@ext/custom/youtube/api/processor'
 import { YTPlayerWebPlayerContextConfig } from '@ext/custom/youtube/module/core/bootstrap'
 import { YTPlayerContextConfigCallback } from '@ext/custom/youtube/module/player/bootstrap'
+import ClientAbrState from '@ext/custom/youtube/proto/gvs/common/client-abr-state'
 import { OnesieHeaderType, OnesieProxyStatus, SabrContextScope, UMPSliceType } from '@ext/custom/youtube/proto/gvs/common/enum'
 import HttpHeader from '@ext/custom/youtube/proto/gvs/common/http-header'
 import OnesieEncryptedInnertubeRequest from '@ext/custom/youtube/proto/gvs/onesie/encrypted-innertube-request'
@@ -33,6 +34,7 @@ import { varintDecode32 } from '@ext/lib/protobuf/varint'
 
 const logger = new Logger('YTPLAYER-UMP', true)
 
+const BANDWIDTH_ESTIMATE_DELAY_MS = 5e3
 const UMP_PATHNAME_REGEXP = /^\/(init|video)playback$/
 
 let onesieClientKeys: Uint8Array[] = []
@@ -145,6 +147,12 @@ const getPlaybackRequestId = (params: URLSearchParams): string => {
   return `${params.get('id')}/${params.get('itag')}/${params.get('rn')}/${params.get('fallback_count')}`
 }
 
+const processClientAbrState = (state: InstanceType<typeof ClientAbrState> | null): void => {
+  if (state == null) return
+
+  if (Number(state.elapsedWallTimeMs) < BANDWIDTH_ESTIMATE_DELAY_MS) state.bandwidthEstimate = null
+}
+
 const processPlayerContextConfig = (config: YTPlayerWebPlayerContextConfig): void => {
   const clientKey = config.onesieHotConfig?.clientKey
   if (clientKey == null) return
@@ -208,6 +216,7 @@ const processRequest = async (ctx: NetworkRequestContext): Promise<void> => {
 
         logger.debug(`init playback request(${/*@__PURE__*/getPlaybackRequestId(searchParams)}):`, initPlaybackRequest)
 
+        processClientAbrState(initPlaybackRequest.clientAbrState)
         await processOnesieInnertubeRequest(initPlaybackRequest.innertubeRequest)
 
         body = initPlaybackRequest.serialize()
@@ -217,6 +226,8 @@ const processRequest = async (ctx: NetworkRequestContext): Promise<void> => {
         const videoPlaybackRequest = new VideoPlaybackRequest().deserialize(body)
 
         logger.debug(`video playback request(${/*@__PURE__*/getPlaybackRequestId(searchParams)}):`, videoPlaybackRequest)
+
+        processClientAbrState(videoPlaybackRequest.clientAbrState)
 
         body = videoPlaybackRequest.serialize()
         break
