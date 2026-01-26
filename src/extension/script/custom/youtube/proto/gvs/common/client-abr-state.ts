@@ -1,3 +1,4 @@
+import ClientCapabilities from '@ext/custom/youtube/proto/gvs/common/client-capabilities'
 import MediaCapabilities from '@ext/custom/youtube/proto/gvs/common/media-capabilities'
 import PlaybackAuthorization from '@ext/custom/youtube/proto/gvs/common/playback-authorization'
 import { pbf_bin, pbf_bol, pbf_flt, pbf_i32, pbf_i64, pbf_msg, pbf_si32, pbf_str } from '@ext/lib/protobuf/field'
@@ -48,6 +49,8 @@ const ClientAbrState = createMessage({
   i67: pbf_i32(67),
   /*@__MANGLE_PROP__*/sabrForceMaxNetworkInterruptionDurationMs: pbf_i64(68),
   audioTrackId: pbf_str(69),
+  isSmooth: pbf_bol(71),
+  clientCapabilities: pbf_msg(72, ClientCapabilities),
   /*@__MANGLE_PROP__*/enableVoiceBoost: pbf_bol(76),
   /*@__MANGLE_PROP__*/playbackAuthorization: pbf_msg(79, PlaybackAuthorization)
 })

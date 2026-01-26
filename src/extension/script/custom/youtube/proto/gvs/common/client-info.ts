@@ -8,6 +8,7 @@ export const GLDeviceInfo = createMessage({
 })
 
 const ClientInfo = createMessage({
+  hl: pbf_str(1),
   deviceMake: pbf_str(12),
   deviceModel: pbf_str(13),
   clientName: pbf_i32(16),
