@@ -1,5 +1,6 @@
 import BufferedRange from '@ext/custom/youtube/proto/gvs/common/buffered-range'
 import ClientAbrState from '@ext/custom/youtube/proto/gvs/common/client-abr-state'
+import StreamerContext from '@ext/custom/youtube/proto/gvs/common/streamer-context'
 import OnesieEncryptedInnertubeRequest from '@ext/custom/youtube/proto/gvs/onesie/encrypted-innertube-request'
 import { pbf_bin, pbf_i32, pbf_i64, pbf_msg, pbf_repeat, pbf_str } from '@ext/lib/protobuf/field'
 import { createMessage } from '@ext/lib/protobuf/message'
@@ -23,8 +24,15 @@ export const VideoPlaybackRequest = createMessage({
   /*@__MANGLE_PROP__*/bufferedRanges: pbf_repeat(pbf_msg(3, BufferedRange)),
   /*@__MANGLE_PROP__*/playerTimeMs: pbf_i64(4),
   /*@__MANGLE_PROP__*/videoPlaybackUstreamerConfig: pbf_bin(5),
+  /*@__MANGLE_PROP__*/unknownSegments: pbf_repeat(pbf_bin(6)), // Message
   /*@__MANGLE_PROP__*/selectedAudioFormatIds: pbf_repeat(pbf_i32(16)),
   /*@__MANGLE_PROP__*/selectedVideoFormatIds: pbf_repeat(pbf_i32(17)),
   /*@__MANGLE_PROP__*/preferredSubtitleFormatIds: pbf_repeat(pbf_i32(18)),
-  /*@__MANGLE_PROP__*/streamerContext: pbf_bin(19)
+  /*@__MANGLE_PROP__*/streamerContext: pbf_msg(19, StreamerContext),
+  /*@__MANGLE_PROP__*/unknownSsdai: pbf_bin(21),
+  /*@__MANGLE_PROP__*/unknown22: pbf_i32(22),
+  /*@__MANGLE_PROP__*/unknown23: pbf_i32(23),
+  /*@__MANGLE_PROP__*/unknownSsdaiRepeated: pbf_repeat(pbf_bin(24)),
+  /*@__MANGLE_PROP__*/unknown25: pbf_bin(25),
+  /*@__MANGLE_PROP__*/unknownClips: pbf_repeat(pbf_bin(1000)) // Message
 })

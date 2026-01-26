@@ -1,3 +1,4 @@
+import FormatId from '@ext/custom/youtube/proto/gvs/common/format-id'
 import TimeRange from '@ext/custom/youtube/proto/gvs/common/time-range'
 import { pbf_bol, pbf_i32, pbf_i64, pbf_msg, pbf_str, pbf_u32, pbf_u64 } from '@ext/lib/protobuf/field'
 import { createMessage } from '@ext/lib/protobuf/message'
@@ -15,7 +16,7 @@ const UMPMediaHeader = createMessage({
   unknown10: pbf_i64(10),
   startMs: pbf_i64(11),
   durationMs: pbf_i64(12),
-  formatId: pbf_i32(13),
+  formatId: pbf_msg(13, FormatId),
   contentLength: pbf_i64(14),
   timeRange: pbf_msg(15, TimeRange),
   clipId: pbf_str(1000)
