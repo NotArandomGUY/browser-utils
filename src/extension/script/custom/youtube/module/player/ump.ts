@@ -18,6 +18,7 @@ import UMPSabrContextUpdate from '@ext/custom/youtube/proto/gvs/ump/sabr-context
 import UMPSabrContextContentAds from '@ext/custom/youtube/proto/gvs/ump/sabr-context/content-ads'
 import UMPSabrError from '@ext/custom/youtube/proto/gvs/ump/sabr-error'
 import UMPSnackbarMessage from '@ext/custom/youtube/proto/gvs/ump/snackbar-message'
+import UMPStreamProtectionStatus from '@ext/custom/youtube/proto/gvs/ump/stream-protection-status'
 import { decryptOnesie, encryptOnesie } from '@ext/custom/youtube/utils/crypto'
 import { UMPContextManager, UMPSliceFlags } from '@ext/custom/youtube/utils/ump'
 import { ytuiShowToast } from '@ext/custom/youtube/utils/ytui'
@@ -28,8 +29,9 @@ import Callback from '@ext/lib/callback'
 import { Feature } from '@ext/lib/feature'
 import { addInterceptNetworkCallback, NetworkContext, NetworkContextState, NetworkRequestContext, NetworkState, onInterceptNetworkRequest, replaceRequest } from '@ext/lib/intercept/network'
 import Logger from '@ext/lib/logger'
+import { varintDecode32 } from '@ext/lib/protobuf/varint'
 
-const logger = new Logger('YTPLAYER-UMP')
+const logger = new Logger('YTPLAYER-UMP', true)
 
 const UMP_PATHNAME_REGEXP = /^\/(init|video)playback$/
 
@@ -73,9 +75,7 @@ const manager = new UMPContextManager({
         return
       }
       case OnesieHeaderType.ENCRYPTED_INNERTUBE_RESPONSE_PART: {
-        const message = new OnesieEncryptedInnertubeResponse().deserialize(data)
-
-        logger.debug('onesie encrypted innertube response:', message)
+        logger.debug('onesie encrypted innertube response:', () => new OnesieEncryptedInnertubeResponse().deserialize(data))
         return
       }
       default:
@@ -84,40 +84,34 @@ const manager = new UMPContextManager({
     }
   },
   [UMPSliceType.MEDIA_HEADER]: (data) => {
-    const message = new UMPMediaHeader().deserialize(data)
-
-    logger.trace('media header:', message)
+    logger.trace('media header:', () => new UMPMediaHeader().deserialize(data))
   },
   [UMPSliceType.MEDIA]: (data) => {
-    logger.trace('media size:', data.length)
+    logger.trace('media content:', () => {
+      const [headerId, offset] = varintDecode32(data)
+      return { headerId, size: data.length - offset }
+    })
   },
   [UMPSliceType.MEDIA_END]: (data) => {
-    logger.trace('media end:', data)
+    logger.trace('media end:', () => {
+      const [headerId] = varintDecode32(data)
+      return { headerId }
+    })
   },
   [UMPSliceType.NEXT_REQUEST_POLICY]: (data) => {
-    const message = new UMPNextRequestPolicy().deserialize(data)
-
-    logger.trace('next request policy:', message)
+    logger.trace('next request policy:', () => new UMPNextRequestPolicy().deserialize(data))
   },
   [UMPSliceType.FORMAT_SELECTION_CONFIG]: (data) => {
-    const message = new UMPFormatSelectionConfig().deserialize(data)
-
-    logger.trace('format selection config:', message)
+    logger.trace('format selection config:', () => new UMPFormatSelectionConfig().deserialize(data))
   },
   [UMPSliceType.FORMAT_INITIALIZATION_METADATA]: (data) => {
-    const message = new UMPFormatInitializationMetadata().deserialize(data)
-
-    logger.trace('format initialization metadata:', message)
+    logger.trace('format initialization metadata:', () => new UMPFormatInitializationMetadata().deserialize(data))
   },
   [UMPSliceType.SABR_ERROR]: (data) => {
-    const message = new UMPSabrError().deserialize(data)
-
-    logger.warn('sabr error:', message)
+    logger.warn('sabr error:', () => new UMPSabrError().deserialize(data))
   },
   [UMPSliceType.PLAYBACK_START_POLICY]: (data) => {
-    const message = new UMPPlaybackStartPolicy().deserialize(data)
-
-    logger.trace('playback start policy:', message)
+    logger.trace('playback start policy:', () => new UMPPlaybackStartPolicy().deserialize(data))
   },
   [UMPSliceType.SABR_CONTEXT_UPDATE]: (data) => {
     const message = new UMPSabrContextUpdate().deserialize(data)
@@ -137,16 +131,18 @@ const manager = new UMPContextManager({
       ytuiShowToast(`Waiting for server ad delay (${ceil(backoffTimeMs / 1e3)}s)...`, backoffTimeMs)
     }
   },
+  [UMPSliceType.STREAM_PROTECTION_STATUS]: (data) => {
+    logger.trace('stream protection status:', () => new UMPStreamProtectionStatus().deserialize(data))
+  },
   [UMPSliceType.SNACKBAR_MESSAGE]: (data, slice) => {
-    const message = new UMPSnackbarMessage().deserialize(data)
+    logger.debug('snackbar message:', () => new UMPSnackbarMessage().deserialize(data))
 
-    logger.debug('snackbar message:', message)
     slice.setFlag(UMPSliceFlags.DROP)
   }
 })
 
 const getPlaybackRequestId = (params: URLSearchParams): string => {
-  return `${params.get('id')}/${params.get('rn')}/${params.get('fallback_count')}`
+  return `${params.get('id')}/${params.get('itag')}/${params.get('rn')}/${params.get('fallback_count')}`
 }
 
 const processPlayerContextConfig = (config: YTPlayerWebPlayerContextConfig): void => {
