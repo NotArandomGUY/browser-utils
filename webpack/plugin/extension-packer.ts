@@ -267,6 +267,10 @@ export default class ExtensionPackerPlugin {
                 return !/logger\.(info|debug|trace)$/.test(node.expression.print_to_string())
               }) as unknown as string[],
               pure_new: true
+            },
+            mangle: {
+              ...TERSER_OPTIONS.mangle,
+              properties: isLoggingEnabled ? false : TERSER_OPTIONS.mangle.properties
             }
           }
         })
