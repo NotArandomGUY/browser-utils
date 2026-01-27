@@ -90,14 +90,12 @@ const manager = new UMPContextManager({
   },
   [UMPSliceType.MEDIA]: (data) => {
     logger.trace('media content:', () => {
-      const [headerId, offset] = varintDecode32(data)
-      return { headerId, size: data.length - offset }
+      return { headerId: data[0], size: data.length - 1 }
     })
   },
   [UMPSliceType.MEDIA_END]: (data) => {
     logger.trace('media end:', () => {
-      const [headerId] = varintDecode32(data)
-      return { headerId }
+      return { headerId: data[0] }
     })
   },
   [UMPSliceType.NEXT_REQUEST_POLICY]: (data) => {
