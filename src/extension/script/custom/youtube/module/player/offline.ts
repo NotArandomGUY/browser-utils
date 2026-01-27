@@ -1,10 +1,9 @@
 import { registerOverlayPage } from '@ext/common/preload/overlay'
 import { registerYTValueProcessor } from '@ext/custom/youtube/api/processor'
-import { YTEndpoint, YTResponse, YTValueData } from '@ext/custom/youtube/api/schema'
+import { YTCommon, YTEndpoint, YTResponse, YTValueData } from '@ext/custom/youtube/api/schema'
 import { YTKevlarMethodDefineCallback, YTPlayerCreateCallback } from '@ext/custom/youtube/module/core/bootstrap'
 import YTOfflinePage from '@ext/custom/youtube/pages/offline'
 import { decodeEntityKey, EntityType } from '@ext/custom/youtube/proto/entity-key'
-import { YTOfflineMediaStreamQuality } from '@ext/custom/youtube/proto/ytom/stream'
 import { getNonce } from '@ext/custom/youtube/utils/crypto'
 import { getYTLocalEntitiesByType, getYTLocalEntityByKey, getYTLocalEntityByType, getYTLocalMediaIndex, putYTLocalEntity, YTLocalEntity, YTLocalMediaType } from '@ext/custom/youtube/utils/local'
 import { defineYTReduxMethod, updateYTReduxStoreLocalEntities, YTReduxEntities, YTReduxMethodType } from '@ext/custom/youtube/utils/redux'
@@ -160,8 +159,8 @@ const updatePlayerResponse = async (data: YTValueData<YTResponse.Mapped<'player'
   if (videoId == null) return true
 
   const index = await getYTLocalMediaIndex(videoId, YTLocalMediaType.VIDEO)
-  const quality = YTOfflineMediaStreamQuality[index?.format?.quality as keyof typeof YTOfflineMediaStreamQuality]
-  if (quality != null && quality > YTOfflineMediaStreamQuality.large) data.cotn = getNonce(16)
+  const quality = YTCommon.enums.MediaFormatVideoQuality[index?.format?.quality as keyof typeof YTCommon.enums.MediaFormatVideoQuality]
+  if (quality != null && quality > YTCommon.enums.MediaFormatVideoQuality.large) data.cotn = getNonce(16)
 
   return true
 }

@@ -18,9 +18,9 @@ export function ytv_bol(): { type: YTValueType.BOOLEAN } {
 export function ytv_num(): { type: YTValueType.NUMBER } {
   return YT_VALUE_NUMBER
 }
-export function ytv_str<const E extends string[] | Record<string, string>>(): { type: YTValueType.STRING }
-export function ytv_str<const E extends string[] | Record<string, string>>(e: E): { type: YTValueType.STRING, enum: E }
-export function ytv_str<const E extends string[] | Record<string, string>>(e?: E): { type: YTValueType.STRING, enum?: E } {
+export function ytv_str<const E extends string[] | Record<string, unknown>>(): { type: YTValueType.STRING }
+export function ytv_str<const E extends string[] | Record<string, unknown>>(e: E): { type: YTValueType.STRING, enum: E }
+export function ytv_str<const E extends string[] | Record<string, unknown>>(e?: E): { type: YTValueType.STRING, enum?: E } {
   return e == null ? YT_VALUE_STRING : { type: YTValueType.STRING, enum: e }
 }
 export function ytv_obj<const K extends YTValueSchema, const V extends YTValueSchema>(k: K, v: V): { type: YTValueType.OBJECT, key: K, value: V } {

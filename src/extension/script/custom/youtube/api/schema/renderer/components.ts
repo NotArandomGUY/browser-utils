@@ -140,7 +140,7 @@ export const mediaFormatRange = ytv_sch({
 export const mediaFormat = ytv_sch({
   approxDurationMs: ytv_str(),
   audioChannels: ytv_num(),
-  audioQuality: ytv_str(['AUDIO_QUALITY_LOW', 'AUDIO_QUALITY_MEDIUM']),
+  audioQuality: ytv_str(common.enums.MediaFormatAudioQuality),
   audioSampleRate: ytv_str(),
   audioTrack: ytv_sch({
     audioIsDefault: ytv_bol(),
@@ -167,7 +167,7 @@ export const mediaFormat = ytv_sch({
   maxDvrDurationSec: ytv_num(),
   mimeType: ytv_str(),
   projectionType: ytv_str(['RECTANGULAR']),
-  quality: ytv_str(['hd2160', 'hd1440', 'hd1080', 'hd720', 'large', 'medium', 'small', 'tiny']),
+  quality: ytv_str(common.enums.MediaFormatVideoQuality),
   qualityLabel: ytv_str(),
   qualityOrdinal: ytv_str(common.enums.MediaFormatQualityOrdinal),
   signatureCipher: ytv_str(),

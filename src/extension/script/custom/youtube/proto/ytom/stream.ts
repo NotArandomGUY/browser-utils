@@ -2,20 +2,6 @@ import FormatRange from '@ext/custom/youtube/proto/gvs/common/format-range'
 import { pbf_bin, pbf_i32, pbf_msg, pbf_str, pbf_u32, pbf_u64 } from '@ext/lib/protobuf/field'
 import { createMessage } from '@ext/lib/protobuf/message'
 
-export enum YTOfflineMediaStreamQuality {
-  auto = 0,
-  tiny = 144,
-  small = 240,
-  medium = 360,
-  large = 480,
-  hd720 = 720,
-  hd1080 = 1080,
-  hd1440 = 1440,
-  hd2160 = 2160,
-  hd2880 = 2880,
-  highres = 4320
-}
-
 const YTOfflineMediaStream = createMessage({
   // 1-9: stream format info
   type: pbf_i32(1),

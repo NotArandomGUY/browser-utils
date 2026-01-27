@@ -24,7 +24,7 @@ export type YTValueSchema =
   { type: YTValueType.UNKNOWN } |
   { type: YTValueType.BOOLEAN } |
   { type: YTValueType.NUMBER } |
-  { type: YTValueType.STRING, enum?: string[] | Record<string, string> } |
+  { type: YTValueType.STRING, enum?: string[] | Record<string, unknown> } |
   { type: YTValueType.OBJECT, key: YTValueSchemaOf<YTValueType.NUMBER | YTValueType.STRING>, value: YTValueSchema } |
   { type: YTValueType.SCHEMA, schema: YTObjectSchema } |
   { type: YTValueType.ARRAY, value: YTValueSchema } |
@@ -37,7 +37,7 @@ export type YTValueData<S extends YTValueSchema = YTValueSchema, RL extends numb
   S extends YTValueSchemaOf<YTValueType.UNKNOWN> ? unknown :
   S extends YTValueSchemaOf<YTValueType.BOOLEAN> ? boolean :
   S extends YTValueSchemaOf<YTValueType.NUMBER> ? number :
-  S extends YTValueSchemaOf<YTValueType.STRING> ? S['enum'] extends string[] ? S['enum'][number] : S['enum'] extends Record<string, string> ? keyof S['enum'] : string :
+  S extends YTValueSchemaOf<YTValueType.STRING> ? S['enum'] extends string[] ? S['enum'][number] : S['enum'] extends Record<string, unknown> ? keyof S['enum'] : string :
   S extends YTValueSchemaOf<YTValueType.OBJECT> ? Record<YTValueData<S['key'], TOpSub<RL, 1>>, YTValueData<S['value'], TOpSub<RL, 1>>> :
   S extends YTValueSchemaOf<YTValueType.SCHEMA> ? YTObjectData<S['schema'], TOpSub<RL, 1>> :
   S extends YTValueSchemaOf<YTValueType.ARRAY> ? YTValueData<S['value'], TOpSub<RL, 1>>[] :

@@ -1,10 +1,10 @@
-import { YTRenderer, YTResponse, YTValueData } from '@ext/custom/youtube/api/schema'
+import { YTCommon, YTRenderer, YTResponse, YTValueData } from '@ext/custom/youtube/api/schema'
 import { decodeEntityKey, encodeEntityKey, EntityType } from '@ext/custom/youtube/proto/entity-key'
 import FormatRange from '@ext/custom/youtube/proto/gvs/common/format-range'
 import YTOfflineMediaCaption from '@ext/custom/youtube/proto/ytom/caption'
 import YTOfflineMediaEntity from '@ext/custom/youtube/proto/ytom/entity'
 import YTOfflineMediaMetadata from '@ext/custom/youtube/proto/ytom/metadata'
-import YTOfflineMediaStream, { YTOfflineMediaStreamQuality } from '@ext/custom/youtube/proto/ytom/stream'
+import YTOfflineMediaStream from '@ext/custom/youtube/proto/ytom/stream'
 import { decryptAesCtr, deriveAesCtrKey, digestSHA256, encodeTrackingParam, encryptAesCtr, getNonce } from '@ext/custom/youtube/utils/crypto'
 import { getYTLocalEntityByKey, getYTLocalMediaCaptions, getYTLocalMediaChunks, getYTLocalMediaIndex, getYTLocalMediaStorage, putYTLocalEntities, putYTLocalEntity, putYTLocalEntityAssociation, putYTLocalMediaCaptions, putYTLocalMediaStream, setYTLocalMediaStorage, YTLocalEntity, YTLocalEntityAssociation, YTLocalEntityData, YTLocalMediaIndex, YTLocalMediaType } from '@ext/custom/youtube/utils/local'
 import { updateYTReduxStoreLocalEntities } from '@ext/custom/youtube/utils/redux'
@@ -200,7 +200,7 @@ const encodeYTOfflineMediaStream = (index: YTLocalMediaIndex): InstanceType<type
         fps,
         width,
         height,
-        quality: quality == null ? null : YTOfflineMediaStreamQuality[quality as keyof typeof YTOfflineMediaStreamQuality],
+        quality: quality == null ? null : YTCommon.enums.MediaFormatVideoQuality[quality as keyof typeof YTCommon.enums.MediaFormatVideoQuality],
         qualityLabel
       })
       break
@@ -251,7 +251,7 @@ const decodeYTOfflineMediaStream = (id: string, stream: InstanceType<typeof YTOf
         fps: fps!,
         width: width!,
         height: height!,
-        quality: YTOfflineMediaStreamQuality[quality!],
+        quality: YTCommon.enums.MediaFormatVideoQuality[quality!],
         qualityLabel: qualityLabel!
       })
       break
