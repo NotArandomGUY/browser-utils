@@ -72,7 +72,7 @@ const syncVideoEntities = async (): Promise<void> => {
       getYTLocalEntityByKey<EntityType.downloadStatusEntity>(downloadState.data.downloadStatusEntity.key, true),
       getYTLocalEntityByKey<EntityType.playbackData>(downloadState.data.playbackData, true)
     ])
-    if (downloadStatus == null || playbackData == null) return
+    if (downloadStatus == null || playbackData == null || downloadStatus.data.downloadState === 'DOWNLOAD_STATE_USER_DELETED') return
 
     if (playbackData.data.transfer == null) {
       downloadStatus.data.downloadState = 'DOWNLOAD_STATE_USER_DELETED'
