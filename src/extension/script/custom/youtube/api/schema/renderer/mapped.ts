@@ -182,6 +182,41 @@ export const twoColumnWatchNextResults = ytv_ren(() => ({
   secondaryResults: ytv_ren(),
 }))
 
+// Offline data
+export const offlineChannelData = ytv_ren({
+  channelId: ytv_str(),
+  isChannelOwner: ytv_bol(),
+  thumbnail: components.thumbnail,
+  title: ytv_str()
+})
+export const offlinePlaylistData = ytv_ren({
+  channel: ytv_ren(),
+  isPrivate: ytv_bol(),
+  lastModifiedTimestamp: ytv_str(),
+  offlinePlaylistToken: ytv_str(),
+  playlistId: ytv_str(),
+  privacy: ytv_str(),
+  shareUrl: ytv_str(),
+  thumbnail: components.thumbnail,
+  title: ytv_str(),
+  totalVideoCount: ytv_str(),
+  videos: ytv_arr(ytv_ren())
+})
+export const offlineVideoData = ytv_ren({
+  channel: ytv_ren(),
+  description: components.text,
+  lengthSeconds: ytv_str(),
+  lengthText: ytv_str(),
+  likesCount: ytv_str(),
+  publishedTimestamp: ytv_str(),
+  shareUrl: ytv_str(),
+  shortViewCountText: ytv_str(),
+  thumbnail: components.thumbnail,
+  title: ytv_str(),
+  videoId: ytv_str(),
+  viewCount: ytv_str()
+})
+
 // Renderer
 export const aboutThisAdRenderer = ytv_ren(() => ({
   url: ytv_sch({
@@ -1966,12 +2001,6 @@ export const playerOverlayVideoDetailsRenderer = ytv_ren(() => ({
   subtitle: components.text,
   title: components.text
 }))
-export const playlistPanelVideoWrapperRenderer = ytv_ren(() => ({
-  counterpart: ytv_arr(ytv_sch({
-    counterpartRenderer: ytv_ren()
-  })),
-  primaryRenderer: ytv_ren()
-}))
 export const playerStoryboardSpecRenderer = ytv_ren(() => ({
   highResolutionRecommendedLevel: ytv_num(),
   recommendedLevel: ytv_num(),
@@ -2013,6 +2042,53 @@ export const playlistPanelVideoRenderer = ytv_ren(() => ({
   thumbnailOverlays: ytv_arr(ytv_ren()),
   title: components.text,
   videoId: ytv_str()
+}))
+export const playlistPanelVideoWrapperRenderer = ytv_ren(() => ({
+  counterpart: ytv_arr(ytv_sch({
+    counterpartRenderer: ytv_ren()
+  })),
+  primaryRenderer: ytv_ren()
+}))
+export const playlistSidebarPrimaryInfoRenderer = ytv_ren(() => ({
+  description: components.text,
+  menu: ytv_ren(),
+  navigationEndpoint: ytv_enp(),
+  showMoreText: components.text,
+  stats: ytv_arr(components.text),
+  thumbnailOverlays: ytv_arr(ytv_ren()),
+  thumbnailRenderer: ytv_ren(),
+  title: components.text
+}))
+export const playlistSidebarRenderer = ytv_ren(() => ({
+  items: ytv_arr(ytv_ren())
+}))
+export const playlistSidebarSecondaryInfoRenderer = ytv_ren(() => ({
+  button: ytv_ren(),
+  videoOwner: ytv_ren()
+}))
+export const playlistVideoListRenderer = ytv_ren(() => ({
+  canReorder: ytv_bol(),
+  contents: ytv_arr(ytv_ren()),
+  isEditable: ytv_bol(),
+  playlistId: ytv_str(),
+  targetId: ytv_str()
+}))
+export const playlistVideoRenderer = ytv_ren(() => ({
+  index: components.text,
+  isPlayable: ytv_bol(),
+  lengthSeconds: ytv_str(),
+  lengthText: components.text,
+  menu: ytv_ren(),
+  navigationEndpoint: ytv_enp(),
+  shortBylineText: components.text,
+  thumbnail: components.thumbnail,
+  thumbnailOverlays: ytv_arr(ytv_ren()),
+  title: components.text,
+  videoId: ytv_str(),
+  videoInfo: components.text
+}))
+export const playlistVideoThumbnailRenderer = ytv_ren(() => ({
+  thumbnail: components.thumbnail
 }))
 export const pollHeaderRenderer = ytv_ren(() => ({
   contextMenuButton: ytv_ren(),
@@ -2479,6 +2555,10 @@ export const thumbnailOverlayNowPlayingRenderer = ytv_ren(() => ({
 }))
 export const thumbnailOverlayResumePlaybackRenderer = ytv_ren(() => ({
   percentDurationWatched: ytv_num()
+}))
+export const thumbnailOverlaySidePanelRenderer = ytv_ren(() => ({
+  icon: components.icon,
+  text: components.text
 }))
 export const thumbnailOverlayStackingEffectRenderer = ytv_ren(() => ({
   lowerStackColor: ytv_num(),

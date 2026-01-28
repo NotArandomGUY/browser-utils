@@ -10,6 +10,7 @@ import YTFeedFilterModule from '@ext/custom/youtube/module/feed/filter'
 import YTFeedGuideModule from '@ext/custom/youtube/module/feed/guide'
 import YTMiscsAdsModule from '@ext/custom/youtube/module/miscs/ads'
 import YTMiscsBackgroundModule from '@ext/custom/youtube/module/miscs/background'
+import YTMiscsDownloadModule from '@ext/custom/youtube/module/miscs/download'
 import YTMiscsFixupModule from '@ext/custom/youtube/module/miscs/fixup'
 import YTMiscsGuestModule from '@ext/custom/youtube/module/miscs/guest'
 import YTMiscsMerchModule from '@ext/custom/youtube/module/miscs/merch'
@@ -70,5 +71,6 @@ registerFeatureGroup(MISCS_GROUP_ID, group => {
   registerFeature(group, YTMiscsMerchModule)
   registerFeature(group, YTMiscsBackgroundModule)
   registerFeature(group, YTMiscsPopupModule)
+  registerFeature(group, YTMiscsDownloadModule)
   registerFeature(group, YTMiscsFixupModule)
 }, [CORE_GROUP_ID])

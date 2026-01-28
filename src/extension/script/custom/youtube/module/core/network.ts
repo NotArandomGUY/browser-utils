@@ -76,7 +76,7 @@ export interface YTInnertubeRequestPlaybackContext {
     supportXhr: boolean
     supportsVp9Encoding: boolean
   }>
-  prefetchPlaybackContext: {}
+  prefetchPlaybackContext?: {}
 }
 
 type YTInnertubeRequestBase = {
@@ -85,6 +85,10 @@ type YTInnertubeRequestBase = {
 
 type YTInnertubeRequestMap = {
   '*': {}
+  'browse': Partial<{
+    browseId: string
+    params: string // TODO: should be a protobuf message
+  }>
   'get_watch': {
     playerRequest: object
     watchNextRequest: object
@@ -93,6 +97,7 @@ type YTInnertubeRequestMap = {
     continuation: string
   }>
   'offline': Partial<{
+    playlistIds: string[]
     videoIds: string[]
   }>
   'offline/get_download_action': Partial<{
@@ -118,6 +123,7 @@ type YTInnertubeRequestMap = {
     }[]
   }>
   'player': Partial<{
+    attestationRequest: { omitBotguardData: boolean }
     contentCheckOk: boolean
     cpn: string
     racyCheckOk: boolean

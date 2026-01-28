@@ -332,7 +332,7 @@ class YTOfflinePageLifecycle extends Lifecycle<void> {
           input({ placeholder: 'Bundle Password (Optional)', value: password_, oninput: e => password_.val = e.target.value }),
         )
       ),
-      h1('Download (Premium Only)'),
+      h1('Download'),
       div(
         { style: STYLE_FLEX_CONTAINER },
         input({ placeholder: 'URL/ID', value: downloadSource_, oninput: e => downloadSource_.val = e.target.value }),

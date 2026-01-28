@@ -16,7 +16,7 @@ export type UMPSliceCallback = (data: Uint8Array<ArrayBuffer>, slice: UMPSlice) 
 const EMPTY_BUFFER = new Uint8Array(0)
 
 const replaceSlice = (stream: CodedStream, begin: number, end: number, slice: UMPSlice): void => {
-  const data = bufferConcat([varint32Encode(slice.getType())[0], varint32Encode(slice.getSize())[0], slice.getData()])
+  const data = slice.toBytes()
 
   const sizeDelta = data.length - (end - begin)
   const oldBuffer = stream.getBuffer()
@@ -58,10 +58,6 @@ export class UMPSlice {
     return this.sliceType_
   }
 
-  /*@__MANGLE_PROP__*/public getSize(): number {
-    return this.sliceData_.length
-  }
-
   /*@__MANGLE_PROP__*/public getData(): Uint8Array<ArrayBuffer> {
     return this.sliceData_
   }
@@ -78,6 +74,12 @@ export class UMPSlice {
   /*@__MANGLE_PROP__*/public setData(data: Uint8Array<ArrayBuffer>): void {
     this.sliceFlags_ |= UMPSliceFlags.DIRTY
     this.sliceData_ = data
+  }
+
+  /*@__MANGLE_PROP__*/public toBytes(): Uint8Array<ArrayBuffer> {
+    const { sliceType_, sliceData_ } = this
+
+    return bufferConcat([varint32Encode(sliceType_)[0], varint32Encode(sliceData_.length)[0], sliceData_])
   }
 }
 

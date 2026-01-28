@@ -11,6 +11,7 @@ export const browse = ytv_rsp(() => ({
   header: ytv_ren(),
   metadata: ytv_ren(),
   microformat: ytv_ren(),
+  sidebar: ytv_ren(),
   topbar: ytv_ren()
 }))
 export const browseEditPlaylist = ytv_rsp(() => ({
@@ -68,29 +69,8 @@ export const offlineGetPlaybackDataEntity = ytv_rsp(() => ({
   }))
 }))
 export const offline = ytv_rsp(() => ({
-  videos: ytv_arr(ytv_sch({
-    offlineVideoData: ytv_sch({
-      channel: ytv_sch({
-        offlineChannelData: ytv_sch({
-          channelId: ytv_str(),
-          isChannelOwner: ytv_bol(),
-          thumbnail: renderer.components.thumbnail,
-          title: ytv_str()
-        })
-      }),
-      description: renderer.components.text,
-      lengthSeconds: ytv_str(),
-      lengthText: ytv_str(),
-      likesCount: ytv_str(),
-      publishedTimestamp: ytv_str(),
-      shareUrl: ytv_str(),
-      shortViewCountText: ytv_str(),
-      thumbnail: renderer.components.thumbnail,
-      title: ytv_str(),
-      videoId: ytv_str(),
-      viewCount: ytv_str()
-    })
-  }))
+  playlists: ytv_arr(ytv_ren()),
+  videos: ytv_arr(ytv_ren())
 }))
 export const player = ytv_rsp(() => ({
   adBreakHeartbeatParams: ytv_str(),
