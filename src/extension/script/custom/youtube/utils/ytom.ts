@@ -10,10 +10,11 @@ import { getYTLocalEntityByKey, getYTLocalMediaCaptions, getYTLocalMediaChunks, 
 import { updateYTReduxStoreLocalEntities } from '@ext/custom/youtube/utils/redux'
 import { ceil } from '@ext/global/math'
 import { URLSearchParams } from '@ext/global/network'
-import { assign, entries, fromEntries } from '@ext/global/object'
+import { assign, entries, fromEntries, values } from '@ext/global/object'
 import { PromiseWithProgress } from '@ext/lib/async'
-import { bufferFromString, bufferReadUInt32LE, bufferToString, bufferWriteUInt32LE } from '@ext/lib/buffer'
+import { bufferConcat, bufferFromString, bufferReadUInt32LE, bufferToString, bufferWriteUInt32LE } from '@ext/lib/buffer'
 import { compress, decompress } from '@ext/lib/compression'
+import { execFFmpeg } from '@ext/lib/ffmpeg'
 
 const BUNDLE_MAGIC = 'YTOM'
 const BUNDLE_VERSION = 1
@@ -30,12 +31,16 @@ const EXPORTABLE_ENTITY_TYPES = [
 ] satisfies EntityType[]
 const MEDIA_STREAM_TYPES = [YTLocalMediaType.AUDIO, YTLocalMediaType.VIDEO]
 
+const mimeTypeToExt = (mimeType = ''): string => {
+  return /(?<=^(audio|video)\/)[A-Za-z0-9]+/.exec(mimeType)?.[0] ?? 'bin'
+}
+
 const downloadBlob = (blob: Blob, id: string, type?: string): void => {
   const body = document.body
   const link = document.createElement('a')
 
   link.href = URL.createObjectURL(blob)
-  link.download = `youtube.${id}.${type ?? /(?<=^(audio|video)\/)[A-Za-z0-9]+/.exec(blob.type)?.[0] ?? 'bin'}`
+  link.download = `youtube.${id}.${type ?? mimeTypeToExt(blob.type)}`
 
   body.appendChild(link)
   link.click()
@@ -469,14 +474,26 @@ export const exportYTOfflineMediaBundle = (id: string, password: string) => new 
   }
 })
 
-export const exportYTOfflineMediaStream = (id: string, type: YTLocalMediaType) => new PromiseWithProgress<void, string>(async (resolve, reject, progress) => {
+export const exportYTOfflineMediaStream = (id: string, type?: YTLocalMediaType) => new PromiseWithProgress<void, string>(async (resolve, reject, progress) => {
   try {
-    const index = await getYTLocalMediaIndex(id, type)
-    const chunks = await getYTLocalMediaChunks(index, true).progress(p => progress(`exporting '${id}' stream.${type} (${(p * 100).toFixed(1)}%)`))
-    const mimeType = index.format?.mimeType ?? 'application/octet-stream'
+    const types = type ? [type] : [YTLocalMediaType.AUDIO, YTLocalMediaType.VIDEO]
+    const indexes = await Promise.all(types.map(type => getYTLocalMediaIndex(id, type)))
+    const streams = await Promise.all(indexes.map((index, i) => getYTLocalMediaChunks(index, true).progress(p => progress(`exporting '${id}' stream.${types[i]} (${(p * 100).toFixed(1)}%)`))))
+
+    const mimeType = type ? (indexes[0]?.format?.mimeType ?? 'application/octet-stream') : 'video/mp4'
+    const chunks = type ? streams.flat() : [
+      (await execFFmpeg({
+        input: fromEntries(values(types).map((type, i) => {
+          const index = indexes[i]
+          const stream = streams[i]
+          return [`${type}.${mimeTypeToExt(index.format?.mimeType)}`, { data: bufferConcat(stream) }]
+        })),
+        output: { 'o.mp4': ['-c', 'copy', ...values(types).flatMap((type, i) => ['-map', `${i}:${['a', 'v'][type]}:0`])] }
+      }).progress(({ progress: p, time }) => progress(`merging streams (${(p * 100).toFixed(1)}%/${(time / 1000000).toFixed(3)}s)`)))['o.mp4']
+    ]
 
     progress('downloading file')
-    resolve(downloadBlob(new Blob(chunks, { type: mimeType }), `${id}.${type}`))
+    resolve(downloadBlob(new Blob(chunks, { type: mimeType }), `${id}.${types.join('+')}`))
   } catch (error) {
     reject(error)
   }

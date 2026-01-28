@@ -25,7 +25,8 @@ const COLUMN_PROPS_INFO_SMALL = { style: 'cursor:pointer;width:18.75%;white-spac
 const enum ExportFormat {
   BUNDLE,
   AUDIO_STREAM,
-  VIDEO_STREAM
+  VIDEO_STREAM,
+  MERGED
 }
 
 type VideoEntity = Partial<YTLocalEntity<EntityType.mainVideoEntity>['data']> & {
@@ -66,7 +67,8 @@ const VideoEntityTableItem = (
         COLUMN_PROPS_ACTION_BODY,
         button({ onclick: onExport.bind(null, videoId, ExportFormat.BUNDLE) }, 'Bundle'),
         button({ onclick: onExport.bind(null, videoId, ExportFormat.AUDIO_STREAM) }, 'Audio'),
-        button({ onclick: onExport.bind(null, videoId, ExportFormat.VIDEO_STREAM) }, 'Video')
+        button({ onclick: onExport.bind(null, videoId, ExportFormat.VIDEO_STREAM) }, 'Video'),
+        button({ onclick: onExport.bind(null, videoId, ExportFormat.MERGED) }, 'MP4')
       ),
       td(
         COLUMN_PROPS_ACTION_BODY,
@@ -230,6 +232,9 @@ class YTOfflinePageLifecycle extends Lifecycle<void> {
           break
         case ExportFormat.VIDEO_STREAM:
           promiseStatus(exportYTOfflineMediaStream(id, YTLocalMediaType.VIDEO))
+          break
+        case ExportFormat.MERGED:
+          promiseStatus(exportYTOfflineMediaStream(id))
           break
         default:
           status_.val = 'invalid export format'

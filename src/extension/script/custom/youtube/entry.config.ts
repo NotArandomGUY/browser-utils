@@ -24,6 +24,25 @@ export default {
             header: 'referer',
             operation: ScriptNetHeaderOperation.REMOVE
           })
+        ],
+        responseHeaders: [
+          new ScriptNetModifyHeaderInfo({
+            header: 'report-to',
+            operation: ScriptNetHeaderOperation.REMOVE
+          }),
+          new ScriptNetModifyHeaderInfo({
+            header: 'reporting-endpoints',
+            operation: ScriptNetHeaderOperation.REMOVE
+          }),
+          new ScriptNetModifyHeaderInfo({
+            header: 'content-security-policy-report-only',
+            operation: ScriptNetHeaderOperation.REMOVE
+          }),
+          new ScriptNetModifyHeaderInfo({
+            header: 'content-security-policy',
+            operation: ScriptNetHeaderOperation.SET,
+            value: `script-src 'unsafe-eval' 'self' 'unsafe-inline' blob: https://www.google.com https://apis.google.com https://ssl.gstatic.com https://www.gstatic.com https://*.youtube.com https://*.google.com https://*.gstatic.com https://youtube.com https://www.youtube.com https://google.com https://*.googleapis.com https://www.youtubekids.com https://www.youtube-nocookie.com https://www.youtubeeducation.com https://www-onepick-opensocial.googleusercontent.com, require-trusted-types-for 'script'`
+          })
         ]
       }),
       condition: new ScriptNetRuleCondition({
