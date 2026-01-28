@@ -1,6 +1,7 @@
 import Lifecycle from '@ext/common/preload/overlay/components/lifecycle'
 import { buildClass } from '@ext/common/preload/overlay/style/class'
 import { executeYTCommand } from '@ext/custom/youtube/module/core/command'
+import { markYTForceDownloadVideo } from '@ext/custom/youtube/module/miscs/download'
 import { decodeEntityKey, EntityType } from '@ext/custom/youtube/proto/entity-key'
 import { getYTLocalEntitiesByType, getYTLocalEntityByKey, getYTLocalEntityByType, YTLocalEntity, YTLocalMediaType } from '@ext/custom/youtube/utils/local'
 import { deleteYTOfflineMedia, exportYTOfflineMediaBundle, exportYTOfflineMediaStream, importYTOfflineMediaBundle } from '@ext/custom/youtube/utils/ytom'
@@ -260,7 +261,7 @@ class YTOfflinePageLifecycle extends Lifecycle<void> {
     const handleQueueDownload = (): void => {
       const sources: [input: string, video?: string | null, playlist?: string | null] = [downloadSource_.val]
       try {
-        const { host, pathname, searchParams } = new URL(sources[0])
+        const { protocol, host, pathname, searchParams } = new URL(sources[0])
         switch (host) {
           case 'youtu.be':
             sources[1] = pathname.split('/')[1]
@@ -273,6 +274,12 @@ class YTOfflinePageLifecycle extends Lifecycle<void> {
               sources[1] = searchParams.get('v')
               sources[2] = searchParams.get('list')
             }
+            break
+          default:
+            if (protocol !== 'ytdl:') break
+
+            sources[1] = pathname
+            markYTForceDownloadVideo(pathname)
             break
         }
       } catch {

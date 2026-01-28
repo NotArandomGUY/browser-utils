@@ -58,6 +58,7 @@ const INFO_CACHE_TTL = 300e3 // 5 min
 
 const feedInfoCache = new Map<string, InnertubeFeedInfo>()
 const videoInfoCache = new Map<string, InnertubeVideoInfo>()
+const forceDownloadVideoIds = new Set<string>()
 
 let downloaderId: string | null = null
 let downloader: SabrDownloader | null = null
@@ -258,7 +259,7 @@ const fetchOfflineVideoData = async (videoId: string, context?: YTInnertubeReque
 
 const batchFetchOfflinePlaylistData = async (playlistIds: string[], context?: YTInnertubeRequestContext): Promise<YTValueData<{ type: YTValueType.RENDERER }>[]> => {
   return (await Promise.allSettled(playlistIds.map(playlistId => {
-    return fetchOfflinePlaylistData(playlistId.replace(DOWNLOAD_ID_PREFIX, ''), context)
+    return fetchOfflinePlaylistData(playlistId, context)
   }))).filter(result => result.status === 'fulfilled').map(result => ({
     offlinePlaylistData: result.value
   }))
@@ -266,7 +267,7 @@ const batchFetchOfflinePlaylistData = async (playlistIds: string[], context?: YT
 
 const batchFetchOfflineVideoData = async (videoIds: string[], context?: YTInnertubeRequestContext): Promise<YTValueData<{ type: YTValueType.RENDERER }>[]> => {
   return (await Promise.allSettled(videoIds.map(videoId => {
-    return fetchOfflineVideoData(videoId.replace(DOWNLOAD_ID_PREFIX, ''), context)
+    return fetchOfflineVideoData(videoId, context)
   }))).filter(result => result.status === 'fulfilled').map(result => ({
     offlineVideoData: result.value
   }))
@@ -412,7 +413,10 @@ const updateVideoPrimaryInfoRenderer = (data: YTValueData<YTRenderer.Mapped<'vid
 const updatePlayerResponse = (data: YTValueData<YTResponse.Mapped<'player'>>): boolean => {
   const { frameworkUpdates, playabilityStatus, videoDetails } = data
 
-  downloadButtonContext = null
+  if (downloadButtonContext != null) {
+    forceDownloadVideoIds.delete(downloadButtonContext.videoId)
+    downloadButtonContext = null
+  }
 
   const videoId = videoDetails?.videoId
   if (playabilityStatus?.status !== 'OK' || videoId == null) return true
@@ -423,9 +427,10 @@ const updatePlayerResponse = (data: YTValueData<YTResponse.Mapped<'player'>>): b
     if (entity?.key == null || entity.offlineabilityRenderer != null) return true
 
     downloadButtonContext = {
-      videoId: `${DOWNLOAD_ID_PREFIX}${videoId}`,
+      videoId,
       entityKey: entity.key
     }
+    forceDownloadVideoIds.add(videoId)
 
     entity.addToOfflineButtonState = YTRenderer.enums.AddToOfflineButtonState.ADD_TO_OFFLINE_BUTTON_STATE_ENABLED
     entity.offlineable = true
@@ -435,6 +440,10 @@ const updatePlayerResponse = (data: YTValueData<YTResponse.Mapped<'player'>>): b
   }
 
   return true
+}
+
+export const markYTForceDownloadVideo = (videoId: string): void => {
+  forceDownloadVideoIds.add(videoId)
 }
 
 export default class YTMiscsDownloadModule extends Feature {
@@ -452,18 +461,18 @@ export default class YTMiscsDownloadModule extends Feature {
     registerYTInnertubeRequestProcessor('offline', async ({ context, playlistIds, videoIds }) => {
       if (!isPremium) setTimeout(updateYTReduxStoreLocalEntities, 1e3)
 
-      if (Array.isArray(playlistIds) && (!isPremium || playlistIds.some(id => id.startsWith(DOWNLOAD_ID_PREFIX)))) {
+      if (Array.isArray(playlistIds) && !isPremium) {
         return { playlists: await batchFetchOfflinePlaylistData(playlistIds, context) }
       }
 
-      if (Array.isArray(videoIds) && (!isPremium || videoIds.some(id => id.startsWith(DOWNLOAD_ID_PREFIX)))) {
+      if (Array.isArray(videoIds) && (!isPremium || videoIds.some(id => forceDownloadVideoIds.has(id)))) {
         return { videos: await batchFetchOfflineVideoData(videoIds, context) }
       }
 
       logger.debug('using premium offline request')
     })
     registerYTInnertubeRequestProcessor('offline/get_download_action', ({ preferredFormatType, videoId }) => {
-      if (isPremium && !videoId?.startsWith(DOWNLOAD_ID_PREFIX)) {
+      if (isPremium && !forceDownloadVideoIds.has(videoId!)) {
         logger.debug('using premium offline action request')
         return
       }
@@ -525,7 +534,7 @@ export default class YTMiscsDownloadModule extends Feature {
       }
     })
     registerYTInnertubeRequestProcessor('offline/get_playback_data_entity', async ({ context, videos }) => {
-      if (!Array.isArray(videos) || (isPremium && downloadButtonContext == null)) return
+      if (!Array.isArray(videos) || (isPremium && !videos.some(({ entityKey }) => forceDownloadVideoIds.has(decodeEntityKey(entityKey).entityId!)))) return
 
       const now = floor(Date.now() / 1e3)
       const offlineState = new OfflineState({
@@ -642,6 +651,7 @@ export default class YTMiscsDownloadModule extends Feature {
             }
           }
         )
+        forceDownloadVideoIds.delete(videoId)
       }))
 
       return {
@@ -655,6 +665,9 @@ export default class YTMiscsDownloadModule extends Feature {
       }
     })
     registerYTInnertubeRequestProcessor('offline/offline_video_playback_position_sync', () => {
+      if (!isPremium) return {}
+    })
+    registerYTInnertubeRequestProcessor('offline/playlist_sync_check', () => {
       if (!isPremium) return {}
     })
     registerYTInnertubeRequestProcessor('player', ({ playbackContext }) => {

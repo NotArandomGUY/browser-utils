@@ -122,6 +122,15 @@ type YTInnertubeRequestMap = {
       videoId: string
     }[]
   }>
+  'offline/playlist_sync_check': Partial<{
+    offlinePlaylistSyncChecks: Partial<{
+      autoSync: boolean
+      offlineDateAddedTimestamp: string
+      offlineLastModifiedTimestamp: string
+      playlistId: string
+      videoIds: string[]
+    }>[]
+  }>
   'player': Partial<{
     attestationRequest: { omitBotguardData: boolean }
     contentCheckOk: boolean
