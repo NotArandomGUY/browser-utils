@@ -8,7 +8,42 @@ that's all
 This extension is developed with the intension of using it only for educational
 purpose.
 
-## Features
+## Main features
+
+- YouTube
+   - Disable watch history & view count tracking
+   - Block most ads without getting detected
+   - Remove share tracking id from share link
+   - Jump ahead feature via [SponsorBlock API](https://sponsor.ajay.app/)
+   - Mostly works feed filter (hide shorts/live/video)
+   - Live DVR (enable seeking for livestream that doesn't have it enabled)
+   - Low latency live (adjust playback rate to get lowest possible latency while keeping barely enough buffer to play)
+   - Offline downloads export (custom bundle format/audio only/video only)
+   - Offline downloads import (custom bundle format)
+   - Force unlock offline downloads (experimental video downloader)
+   - Unlock TVHTML5 client (put `/tv` after the domain)
+
+Branch config at `<path-to-project-directory>/dist/extension/package/branch.json` for the features listed above
+```json
+{
+  "selected": "main",
+  "branches": [
+    {
+      "id": "main",
+      "url": null,
+      "scripts": [
+        "common/preload",
+        "custom/youtube"
+      ],
+      "encrypt": false,
+      "enabled": true,
+      "logging": false
+    }
+  ]
+}
+```
+
+## Other features
 
 NOTE: Features listed might not always work
 
@@ -24,13 +59,6 @@ NOTE: Features listed might not always work
   1. =========================
      - Hide video ad (fake buffering)
   2. =========================
-     - Disable home feed when signed out
-     - Hide most ads (might encounter fake buffering)
-     - Jump ahead feature via [SponsorBlock API](https://sponsor.ajay.app/)
-     - Maybe less tracking
-     - Mostly works feed filter (shorts, live, video)
-     - Live stream playback rate adjust for low latency
-  3. =========================
      - Hide most ads
      - P2P remote control/stream via web app
      - Unlock higher quality content
