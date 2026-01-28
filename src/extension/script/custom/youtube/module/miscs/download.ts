@@ -316,6 +316,8 @@ const processRequest = async (ctx: NetworkRequestContext): Promise<void> => {
 
     logger.trace(`downloaded range(${start}-${end}):`, formatId, buffer)
 
+    setTimeout(updateYTReduxStoreLocalEntities, 1e3)
+
     assign<NetworkContext, NetworkContextState>(ctx, {
       state: NetworkState.SUCCESS,
       response: new Response(bufferConcat([
@@ -459,8 +461,6 @@ export default class YTMiscsDownloadModule extends Feature {
     registerYTValueProcessor(YTResponse.mapped.player, updatePlayerResponse)
 
     registerYTInnertubeRequestProcessor('offline', async ({ context, playlistIds, videoIds }) => {
-      if (!isPremium) setTimeout(updateYTReduxStoreLocalEntities, 1e3)
-
       if (Array.isArray(playlistIds) && !isPremium) {
         return { playlists: await batchFetchOfflinePlaylistData(playlistIds, context) }
       }
