@@ -50,6 +50,22 @@ declare interface YTGlobal {
   ytUtilActivityCallback_: () => void
 }
 
+declare interface YTSignals {
+  getInstance(): YTSignalsInstance
+}
+
+declare interface YTSignalsInstance {
+  compoundSignals: Map<string, object>
+  inProgressSignals: Set<string>
+  parkedProcessors: Map<string, Function[]>
+  signals: string[]
+
+  onAny(signals: string[]): string
+  parkOrScheduleJob(job: Function, priority: number, signal: string, delay?: number, once?: boolean): void
+  addListener(signal: string, handler: Function, once?: boolean): void
+  processSignal(signal: string): void
+}
+
 declare var _lact: number
 declare var _fact: number
 declare var _yttv: Record<string, Function>
@@ -64,4 +80,5 @@ declare var yt: { config_: object, logging: object }
 declare var ytcfg: YTConfig | undefined
 declare var ytglobal: YTGlobal | undefined
 declare var ytplayer: object | undefined
+declare var ytsignals: YTSignals | undefined
 declare var ytInitialData: object | undefined
