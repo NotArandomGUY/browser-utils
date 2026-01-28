@@ -46,22 +46,24 @@ let requestNumber = 0
 
 class SegmentBuffer {
   public readonly index: number
-  /*@__MANGLE_PROP__*/public readonly timeStart: number
-  /*@__MANGLE_PROP__*/public readonly timeEnd: number
-  /*@__MANGLE_PROP__*/public readonly rangeStart: number
-  /*@__MANGLE_PROP__*/public readonly rangeEnd: number
   public readonly buffer: Uint8Array<ArrayBuffer>
+
+  public readonly time_s: number
+  public readonly time_e: number
+  public readonly range_s: number
+  public readonly range_e: number
 
   private position_: number
 
   public constructor(index: number, startMs: number, durationMs: number, startRange: number, size: number) {
     this.index = index
-    this.timeStart = startMs
-    this.timeEnd = startMs + durationMs
-    this.rangeStart = startRange
-    this.rangeEnd = startRange + size
-
     this.buffer = new Uint8Array(Number(size))
+
+    this.time_s = startMs
+    this.time_e = startMs + durationMs
+    this.range_s = startRange
+    this.range_e = startRange + size
+
     this.position_ = 0
   }
 
@@ -134,7 +136,7 @@ class FormatBuffer {
     for (const segment of segments) {
       if (segment.index <= 0) continue
 
-      const durationMs = segment.timeEnd - segment.timeStart
+      const durationMs = segment.time_e - segment.time_s
 
       let range = ranges.at(-1)
       if (range != null && (segment.index - range.endSegmentIndex!) === 1) {
@@ -145,7 +147,7 @@ class FormatBuffer {
 
       range = new BufferedRange({
         formatId: this.getFormatId(),
-        startTimeMs: BigInt(segment.timeStart),
+        startTimeMs: BigInt(segment.time_s),
         durationMs: BigInt(durationMs),
         startSegmentIndex: segment.index,
         endSegmentIndex: segment.index
@@ -157,14 +159,14 @@ class FormatBuffer {
   }
 
   /*@__MANGLE_PROP__*/public getBufferByRange(type: 'range' | 'time', start: number, end: number): Uint8Array<ArrayBuffer> | null {
-    const segments = this.segments.filter(s => !(s[`${type}Start`] > end || s[`${type}End`] < start))
+    const segments = this.segments.filter(s => !(s[`${type}_s`] > end || s[`${type}_e`] < start))
     const buffering = segments.length === 0 || segments.some((s, i) => s.buffering || (i > 0 && (s.index - segments[i - 1].index) !== 1))
-    if (buffering || start < segments.at(0)![`${type}Start`] || segments.at(-1)![`${type}End`] < end) return null
+    if (buffering || start < segments.at(0)![`${type}_s`] || segments.at(-1)![`${type}_e`] < end) return null
 
     let buffer = bufferConcat(segments.map(s => s.buffer))
     if (type === 'range') {
       const size = Number(end - start)
-      const begin = Number(start - segments[0].rangeStart)
+      const begin = Number(start - segments[0].range_s)
       buffer = buffer.subarray(begin, begin + size)
     }
 
