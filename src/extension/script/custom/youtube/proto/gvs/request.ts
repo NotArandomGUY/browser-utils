@@ -24,7 +24,7 @@ export const VideoPlaybackRequest = createMessage({
   /*@__MANGLE_PROP__*/selectedFormatIds: pbf_repeat(pbf_msg(2, FormatId)),
   /*@__MANGLE_PROP__*/bufferedRanges: pbf_repeat(pbf_msg(3, BufferedRange)),
   /*@__MANGLE_PROP__*/playerTimeMs: pbf_i64(4),
-  /*@__MANGLE_PROP__*/videoPlaybackUstreamerConfig: pbf_bin(5),
+  videoPlaybackUstreamerConfig: pbf_bin(5),
   /*@__MANGLE_PROP__*/unknownSegments: pbf_repeat(pbf_bin(6)), // Message
   /*@__MANGLE_PROP__*/preferredAudioFormatIds: pbf_repeat(pbf_msg(16, FormatId)),
   /*@__MANGLE_PROP__*/preferredVideoFormatIds: pbf_repeat(pbf_msg(17, FormatId)),

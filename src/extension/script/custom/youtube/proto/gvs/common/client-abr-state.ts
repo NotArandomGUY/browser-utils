@@ -49,8 +49,8 @@ const ClientAbrState = createMessage({
   i67: pbf_i32(67),
   /*@__MANGLE_PROP__*/sabrForceMaxNetworkInterruptionDurationMs: pbf_i64(68),
   audioTrackId: pbf_str(69),
-  isSmooth: pbf_bol(71),
-  clientCapabilities: pbf_msg(72, ClientCapabilities),
+  /*@__MANGLE_PROP__*/isSmooth: pbf_bol(71),
+  /*@__MANGLE_PROP__*/clientCapabilities: pbf_msg(72, ClientCapabilities),
   /*@__MANGLE_PROP__*/enableVoiceBoost: pbf_bol(76),
   /*@__MANGLE_PROP__*/playbackAuthorization: pbf_msg(79, PlaybackAuthorization)
 })

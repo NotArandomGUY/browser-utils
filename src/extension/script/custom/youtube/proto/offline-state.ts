@@ -7,10 +7,10 @@ export const enum OfflineStateAction {
 
 const OfflineState = createMessage({
   token: pbf_str(1),
-  refreshInSeconds: pbf_u32(2),
+  /*@__MANGLE_PROP__*/refreshInSeconds: pbf_u32(2),
   expiresInSeconds: pbf_u32(3),
   action: pbf_i32(5),
-  isOfflineSharingAllowed: pbf_bol(8)
+  /*@__MANGLE_PROP__*/isOfflineSharingAllowed: pbf_bol(8)
 })
 
 export default OfflineState
