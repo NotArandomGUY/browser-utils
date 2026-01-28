@@ -1,3 +1,4 @@
+import { defineProperty } from '@ext/global/object'
 import Hook, { HookResult } from '@ext/lib/intercept/hook'
 import { NetworkContext, NetworkRequestCallback, NetworkResponseCallback, NetworkResponseContext, NetworkState } from '@ext/lib/intercept/network'
 import Logger from '@ext/lib/logger'
@@ -52,7 +53,7 @@ export const registerInterceptNetworkFetchModule = (onRequest: NetworkRequestCal
     return HookResult.EXECUTION_CONTINUE
   })
 
-  Object.defineProperty(window, 'fetch', {
+  defineProperty(window, 'fetch', {
     configurable: true,
     enumerable: true,
     writable: true,
@@ -65,7 +66,7 @@ export const registerInterceptNetworkFetchModule = (onRequest: NetworkRequestCal
 export const unregisterInterceptNetworkFetchModule = (): void => {
   if (hook == null) return
 
-  Object.defineProperty(window, 'fetch', {
+  defineProperty(window, 'fetch', {
     configurable: true,
     enumerable: true,
     writable: true,
