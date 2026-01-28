@@ -1,3 +1,4 @@
+import { max } from '@ext/global/math'
 import { entries, fromEntries } from '@ext/global/object'
 import { bufferToString } from '@ext/lib/buffer'
 import { Feature } from '@ext/lib/feature'
@@ -80,7 +81,7 @@ const updateUserScripts = async (): Promise<void> => {
   const scripts: US.RegisteredUserScript[] = []
 
   const packageEntries = (await Promise.all((await getPackageScriptIDs()).map(getPackageScriptEntry))).filter(entry => entry != null)
-  const runtimeEntries = packageEntries.splice(0, Math.max(0, packageEntries.findIndex(entry => entry.config != null)))
+  const runtimeEntries = packageEntries.splice(0, max(0, packageEntries.findIndex(entry => entry.config != null)))
 
   if (runtimeEntries.length > 0) {
     scripts.push(

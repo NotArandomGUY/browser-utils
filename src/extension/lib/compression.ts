@@ -1,3 +1,4 @@
+import { ceil, min } from '@ext/global/math'
 import { bufferToString } from '@ext/lib/buffer'
 
 const { CompressionStream, DecompressionStream } = globalThis
@@ -106,7 +107,7 @@ function lzwDeflate(data: Uint8Array): Uint8Array<ArrayBuffer> { // NOSONAR
 function lzwInflate(data: Uint8Array, maxDeflateRatio: number): Uint8Array<ArrayBuffer> { // NOSONAR
   const dictionary = LZW_INFLATE_DICTIONARY.slice()
 
-  let uncompressed = new Uint8Array(Math.ceil(data.length * 1.5))
+  let uncompressed = new Uint8Array(ceil(data.length * 1.5))
   let codeIndex = 0
   let codeOffset = 0
   let bits = LZW_BYTE_SIZE
@@ -121,7 +122,7 @@ function lzwInflate(data: Uint8Array, maxDeflateRatio: number): Uint8Array<Array
     let code = 0
     let bitsDecoded = 0
     while (bitsDecoded < bits) {
-      const bitlen = Math.min(bits - bitsDecoded, LZW_BYTE_SIZE - codeOffset)
+      const bitlen = min(bits - bitsDecoded, LZW_BYTE_SIZE - codeOffset)
       const msbits = ((data[codeIndex] << codeOffset) & 0xFF) >>> (LZW_BYTE_SIZE - bitlen)
 
       bitsDecoded += bitlen
@@ -154,7 +155,7 @@ function lzwInflate(data: Uint8Array, maxDeflateRatio: number): Uint8Array<Array
     nextIndex = index + value.length
     if (nextIndex > maxDeflateRatio * data.length) throw new Error(`Deflate ratio ${maxDeflateRatio} exceeded. Aborting uncompression`)
     if (nextIndex >= uncompressed.length) {
-      const u = new Uint8Array(Math.ceil(nextIndex * 1.5))
+      const u = new Uint8Array(ceil(nextIndex * 1.5))
       u.set(uncompressed)
       uncompressed = u
     }

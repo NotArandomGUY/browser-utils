@@ -8,6 +8,7 @@ import YTOfflineMediaStream from '@ext/custom/youtube/proto/ytom/stream'
 import { decryptAesCtr, deriveAesCtrKey, digestSHA256, encodeTrackingParam, encryptAesCtr, getNonce } from '@ext/custom/youtube/utils/crypto'
 import { getYTLocalEntityByKey, getYTLocalMediaCaptions, getYTLocalMediaChunks, getYTLocalMediaIndex, getYTLocalMediaStorage, putYTLocalEntities, putYTLocalEntity, putYTLocalEntityAssociation, putYTLocalMediaCaptions, putYTLocalMediaStream, setYTLocalMediaStorage, YTLocalEntity, YTLocalEntityAssociation, YTLocalEntityData, YTLocalMediaIndex, YTLocalMediaType } from '@ext/custom/youtube/utils/local'
 import { updateYTReduxStoreLocalEntities } from '@ext/custom/youtube/utils/redux'
+import { ceil } from '@ext/global/math'
 import { URLSearchParams } from '@ext/global/network'
 import { assign, entries, fromEntries } from '@ext/global/object'
 import { PromiseWithProgress } from '@ext/lib/async'
@@ -350,7 +351,7 @@ export const importYTOfflineMediaBundle = (file: File, password: string) => new 
       const contentLength = Number(stream.contentLength)
       const chunkSize = Number(stream.chunkSize)
 
-      const chunkCount = Math.ceil(contentLength / chunkSize)
+      const chunkCount = ceil(contentLength / chunkSize)
       if (isNaN(chunkCount)) throw new Error('invalid chunk size')
 
       let complete = 0

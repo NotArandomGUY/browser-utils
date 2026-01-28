@@ -1,6 +1,7 @@
 import { YTCommon, YTEndpoint, YTRenderer, YTValueData } from '@ext/custom/youtube/api/schema'
 import { EntityType } from '@ext/custom/youtube/proto/entity-key'
 import { decryptAesCtr, decryptEntityData, encryptAesCtr, encryptEntityData, getNonce } from '@ext/custom/youtube/utils/crypto'
+import { ceil } from '@ext/global/math'
 import { PromiseWithProgress } from '@ext/lib/async'
 import { bufferFromString, bufferToString } from '@ext/lib/buffer'
 import IndexedDB, { IndexedDBStoreDefinition } from '@ext/lib/idb'
@@ -340,7 +341,7 @@ export const getYTLocalMediaChunks = (
     const lastModified = params.get('lmt') ?? '0'
     const contentLength = Number(params.get('clen'))
     const chunkSize = Number(params.get('csz'))
-    const chunkCount = Math.ceil(contentLength / chunkSize)
+    const chunkCount = ceil(contentLength / chunkSize)
     if (isNaN(chunkCount)) throw new Error('unknown media size')
 
     const chunkKey = bufferFromString(params.get('ck')?.padEnd(16, '\x00') ?? '')
@@ -440,7 +441,7 @@ export const putYTLocalMediaStream = (index: YTLocalMediaIndex, chunks: Uint8Arr
     const lastModified = params.get('lmt') ?? '0'
     const contentLength = Number(params.get('clen'))
     const chunkSize = Number(params.get('csz'))
-    const chunkCount = Math.ceil(contentLength / chunkSize)
+    const chunkCount = ceil(contentLength / chunkSize)
     if (chunkCount !== chunks.length) throw new Error('invalid chunk count')
 
     let chunkKey = bufferFromString(params.get('ck')?.padEnd(16, '\x00') ?? '')
