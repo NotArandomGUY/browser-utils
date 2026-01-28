@@ -38,6 +38,7 @@ export default class YTMiscsAdsModule extends Feature {
     registerYTValueFilter(YTEndpoint.mapped.adsControlFlowOpportunityReceivedCommand)
     registerYTValueFilter(YTEndpoint.mapped.reelWatchEndpoint, filterReel)
     registerYTValueFilter(YTRenderer.mapped.adPlacementRenderer)
+    registerYTValueFilter(YTRenderer.mapped.bannerPromoRenderer)
     registerYTValueFilter(YTRenderer.mapped.bkaEnforcementMessageViewModel)
     registerYTValueFilter(YTRenderer.mapped.playerLegacyDesktopWatchAdsRenderer)
     registerYTValueFilter(YTRenderer.mapped.adPlayerOverlayRenderer, null, YTValueProcessorType.POST)

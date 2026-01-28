@@ -346,6 +346,19 @@ export const backstageImageRenderer = ytv_ren(() => ({
   icon: components.icon,
   image: components.thumbnail
 }))
+export const bannerPromoRenderer = ytv_ren(() => ({
+  actionButton: ytv_ren(),
+  backgroundImage: components.thumbnail,
+  badgeText: textViewModel,
+  colorData: ytv_obj(ytv_str(), ytv_obj(ytv_str(), ytv_num())),
+  dismissButton: ytv_ren(),
+  impressionEndpoints: ytv_enp(),
+  isVisible: ytv_bol(),
+  overflowButton: ytv_ren(),
+  promoText: components.text,
+  style: components.style,
+  supplementalText: components.text
+}))
 export const browseFeedActionsRenderer = ytv_ren(() => ({
   contents: ytv_arr(ytv_ren())
 }))
