@@ -176,6 +176,8 @@ const fetchInnertubeVideo = async (videoId: string, context?: YTInnertubeRequest
         ...devicePlaybackCapabilities
       }
     },
+    contentCheckOk: true,
+    racyCheckOk: true,
     videoId
   })
   const { playabilityStatus } = response
