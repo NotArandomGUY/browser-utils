@@ -313,7 +313,7 @@ const processRequest = async (ctx: NetworkRequestContext): Promise<void> => {
     }
     if (pot != null) downloader.setPoToken(bufferFromString(pot, 'base64url'))
 
-    const [formatId, buffer] = await downloader.getChunk(Number(itag), start, end == null ? end : end + 1)
+    const [formatId, buffer] = await downloader.fetchChunk(Number(itag), start, end == null ? end : end + 1)
     const header = new Uint8Array([0])
 
     logger.trace(`downloaded range(${start}-${end}):`, formatId, buffer)

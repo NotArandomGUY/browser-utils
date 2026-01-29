@@ -17,6 +17,11 @@ import { floor, max, min } from '@ext/global/math'
 import { Mutex, waitTick } from '@ext/lib/async'
 import { bufferConcat, bufferFromString, bufferToString } from '@ext/lib/buffer'
 
+const enum PositionType {
+  TIME = 't',
+  BYTE = 'b'
+}
+
 export type SabrFormatInfo = {
   itag: number
   contentLength: string
@@ -48,21 +53,21 @@ class SegmentBuffer {
   public readonly index: number
   public readonly buffer: Uint8Array<ArrayBuffer>
 
-  public readonly time_s: number
-  public readonly time_e: number
-  public readonly range_s: number
-  public readonly range_e: number
+  public readonly t_s: number
+  public readonly t_e: number
+  public readonly b_s: number
+  public readonly b_e: number
 
   private position_: number
 
-  public constructor(index: number, startMs: number, durationMs: number, startRange: number, size: number) {
+  public constructor(index: number, startMs: number, durationMs: number, startRange: number, contentLength: number) {
     this.index = index
-    this.buffer = new Uint8Array(Number(size))
+    this.buffer = new Uint8Array(contentLength)
 
-    this.time_s = startMs
-    this.time_e = startMs + durationMs
-    this.range_s = startRange
-    this.range_e = startRange + size
+    this.t_s = startMs
+    this.t_e = startMs + durationMs
+    this.b_s = startRange
+    this.b_e = startRange + contentLength
 
     this.position_ = 0
   }
@@ -94,11 +99,7 @@ class FormatBuffer {
     this.segments = []
   }
 
-  /*@__MANGLE_PROP__*/public get hasInitSegment(): boolean {
-    return this.segments.length > 0
-  }
-
-  /*@__MANGLE_PROP__*/public getFormatId(): InstanceType<typeof FormatId> {
+  public getFormatId_(): InstanceType<typeof FormatId> {
     const { itag, lmt, xtags } = this
 
     return new FormatId({
@@ -108,7 +109,37 @@ class FormatBuffer {
     })
   }
 
-  /*@__MANGLE_PROP__*/public getSegment(header: InstanceType<typeof UMPMediaHeader>): SegmentBuffer {
+  public getBufferedRanges_(): InstanceType<typeof BufferedRange>[] {
+    const { segments } = this
+
+    const ranges: InstanceType<typeof BufferedRange>[] = []
+
+    for (const segment of segments) {
+      if (segment.index <= 0) continue
+
+      const durationMs = segment.t_e - segment.t_s
+
+      let range = ranges.at(-1)
+      if (range != null && (segment.index - range.endSegmentIndex!) === 1) {
+        range.durationMs! += BigInt(durationMs)
+        range.endSegmentIndex!++
+        continue
+      }
+
+      range = new BufferedRange({
+        formatId: this.getFormatId_(),
+        startTimeMs: BigInt(segment.t_s),
+        durationMs: BigInt(durationMs),
+        startSegmentIndex: segment.index,
+        endSegmentIndex: segment.index
+      })
+      ranges.push(range)
+    }
+
+    return ranges
+  }
+
+  public getMediaSegment_(header: InstanceType<typeof UMPMediaHeader>): SegmentBuffer {
     const { segments } = this
     const { sequenceNumber, startMs, durationMs, startRange, contentLength } = header
 
@@ -128,46 +159,23 @@ class FormatBuffer {
     return segment
   }
 
-  /*@__MANGLE_PROP__*/public getBufferedRanges(): InstanceType<typeof BufferedRange>[] {
-    const { segments } = this
-
-    const ranges: InstanceType<typeof BufferedRange>[] = []
-
-    for (const segment of segments) {
-      if (segment.index <= 0) continue
-
-      const durationMs = segment.time_e - segment.time_s
-
-      let range = ranges.at(-1)
-      if (range != null && (segment.index - range.endSegmentIndex!) === 1) {
-        range.durationMs! += BigInt(durationMs)
-        range.endSegmentIndex!++
-        continue
-      }
-
-      range = new BufferedRange({
-        formatId: this.getFormatId(),
-        startTimeMs: BigInt(segment.time_s),
-        durationMs: BigInt(durationMs),
-        startSegmentIndex: segment.index,
-        endSegmentIndex: segment.index
-      })
-      ranges.push(range)
-    }
-
-    return ranges
+  public getSegmentBeforeOrAt_(type: PositionType, pos: number): SegmentBuffer | null {
+    return this.segments.findLast(s => !s.buffering && s[`${type}_s`] <= pos) ?? null
   }
 
-  /*@__MANGLE_PROP__*/public getBufferByRange(type: 'range' | 'time', start: number, end: number): Uint8Array<ArrayBuffer> | null {
+  public getBufferAt_(type: PositionType, start: number, end: number): Uint8Array<ArrayBuffer> | null {
     const segments = this.segments.filter(s => !(s[`${type}_s`] > end || s[`${type}_e`] < start))
     const buffering = segments.length === 0 || segments.some((s, i) => s.buffering || (i > 0 && (s.index - segments[i - 1].index) !== 1))
-    if (buffering || start < segments.at(0)![`${type}_s`] || segments.at(-1)![`${type}_e`] < end) return null
+    if (buffering) return null
+
+    const first = segments.at(0)!
+    const last = segments.at(-1)!
+    if ((first.b_s > 0 && start < first[`${type}_s`]) || (last.b_e < this.clen && last[`${type}_e`] < end)) return null
 
     let buffer = bufferConcat(segments.map(s => s.buffer))
-    if (type === 'range') {
-      const size = Number(end - start)
-      const begin = Number(start - segments[0].range_s)
-      buffer = buffer.subarray(begin, begin + size)
+    if (type === PositionType.BYTE) {
+      const offset = start - segments[0].b_s
+      buffer = buffer.subarray(offset, offset + (end - start))
     }
 
     return buffer
@@ -237,7 +245,7 @@ export default class SabrDownloader {
         const header = new UMPMediaHeader().deserialize(data)
         if (header.headerId == null) return
 
-        const format = this.getFormat_(header)
+        const format = this.getMediaFormat_(header)
         if (format == null) return
 
         headerMap_.set(header.headerId, header)
@@ -246,19 +254,19 @@ export default class SabrDownloader {
         const header = headerMap_.get(data[0])
         if (header == null) return
 
-        const format = this.getFormat_(header)
+        const format = this.getMediaFormat_(header)
         if (format == null) return
 
-        format.getSegment(header).append(data.subarray(1))
+        format.getMediaSegment_(header).append(data.subarray(1))
       },
       [UMPSliceType.MEDIA_END]: (data) => {
         const header = headerMap_.get(data[0])
         if (header == null) return
 
-        const format = this.getFormat_(header)
+        const format = this.getMediaFormat_(header)
         if (format == null) return
 
-        const segment = format.getSegment(header)
+        const segment = format.getMediaSegment_(header)
         if (segment.buffering) format.segments.splice(format.segments.indexOf(segment), 1)
       },
       [UMPSliceType.NEXT_REQUEST_POLICY]: (data) => {
@@ -294,7 +302,7 @@ export default class SabrDownloader {
     return this.getPlayerTimeMs_() / 1e3
   }
 
-  /*@__MANGLE_PROP__*/public async getChunk(itag: number, start?: number, end?: number): Promise<[formatId: InstanceType<typeof FormatId>, buffer: Uint8Array<ArrayBuffer>]> {
+  /*@__MANGLE_PROP__*/public async fetchChunk(itag: number, start?: number, end?: number): Promise<[formatId: InstanceType<typeof FormatId>, buffer: Uint8Array<ArrayBuffer>]> {
     const { audioFormats_, videoFormats_, selectedFormats_ } = this
 
     const format = audioFormats_.find(f => f.itag === itag) ?? videoFormats_.find(f => f.itag === itag)
@@ -314,16 +322,16 @@ export default class SabrDownloader {
 
     let buffer: Uint8Array<ArrayBuffer> | null = null
     while (buffer == null) {
-      if (this.paused) {
-        this.seek(0, false)
-        this.play()
-      }
-
       await waitTick()
-      buffer = format.getBufferByRange('range', start, end)
+
+      buffer = format.getBufferAt_(PositionType.BYTE, start, end)
+      if (buffer != null || !this.paused) continue
+
+      this.seek(format.getSegmentBeforeOrAt_(PositionType.BYTE, start)?.t_e ?? 0, false)
+      this.play()
     }
 
-    return [format.getFormatId(), buffer]
+    return [format.getFormatId_(), buffer]
   }
 
   /*@__MANGLE_PROP__*/public setPoToken(poToken: Uint8Array<ArrayBuffer>): void {
@@ -346,10 +354,10 @@ export default class SabrDownloader {
   }
 
   public seek(time: number, relative: boolean): void {
-    const { durationMs_, playbackBase_, playbackTime_ } = this
+    const { durationMs_, playbackTime_ } = this
 
     this.playbackTime_ = max(0, min(durationMs_, relative ? (min(durationMs_, playbackTime_) + time) : time))
-    this.playbackBase_ = playbackBase_ < 0 ? -1 : performance.now()
+    this.playbackBase_ = -1
   }
 
   /// Private ///
@@ -379,7 +387,7 @@ export default class SabrDownloader {
     return floor(max(0, min(durationMs_, playbackTime_ + (playbackBase_ < 0 ? 0 : ((performance.now() - playbackBase_) * playbackRate_)))))
   }
 
-  private getFormat_(header: InstanceType<typeof UMPMediaHeader>): FormatBuffer | null {
+  private getMediaFormat_(header: InstanceType<typeof UMPMediaHeader>): FormatBuffer | null {
     const { audioFormats_, videoFormats_ } = this
     const { itag, lmt, xtags } = header
 
@@ -441,10 +449,10 @@ export default class SabrDownloader {
             ]
           })
         }),
-        selectedFormatIds: selectedFormats_.filter(f => f.hasInitSegment).map(f => f.getFormatId()),
-        bufferedRanges: selectedFormats_.flatMap(f => f.getBufferedRanges()),
-        preferredAudioFormatIds: audioFormats_.filter(f => selectedFormats_.includes(f)).map(f => f.getFormatId()),
-        preferredVideoFormatIds: videoFormats_.filter(f => selectedFormats_.includes(f)).map(f => f.getFormatId()),
+        selectedFormatIds: selectedFormats_.filter(f => f.segments.length > 0).map(f => f.getFormatId_()),
+        bufferedRanges: selectedFormats_.flatMap(f => f.getBufferedRanges_()),
+        preferredAudioFormatIds: audioFormats_.filter(f => selectedFormats_.includes(f)).map(f => f.getFormatId_()),
+        preferredVideoFormatIds: videoFormats_.filter(f => selectedFormats_.includes(f)).map(f => f.getFormatId_()),
         streamerContext: new StreamerContext({
           clientInfo: clientInfo_,
           playbackCookie: playbackCookie_,
@@ -468,10 +476,10 @@ export default class SabrDownloader {
 
     await mutex_.lock()
     try {
-      const bufferStartMs = floor(this.getPlayerTimeMs_() / 500) * 500
-      const bufferEndMs = floor(min(durationMs_, bufferStartMs + readaheadMs_) / 500) * 500
+      const bufferStartMs = this.getPlayerTimeMs_()
+      const bufferEndMs = bufferStartMs + readaheadMs_
 
-      const buffering = selectedFormats_.some(f => f.getBufferByRange('time', bufferStartMs, bufferEndMs) == null)
+      const buffering = selectedFormats_.some(f => f.getBufferAt_(PositionType.TIME, bufferStartMs, bufferEndMs) == null)
       this.setPlaybackState_(buffering)
 
       if (buffering) {
@@ -479,7 +487,7 @@ export default class SabrDownloader {
         return
       }
 
-      const ended = !selectedFormats_.some(f => f.getBufferByRange('range', f.clen, f.clen) == null)
+      const ended = !selectedFormats_.some(f => f.getBufferAt_(PositionType.BYTE, f.clen, f.clen) == null)
       if (!ended || this.getPlayerTimeMs_() < durationMs_) return
 
       this.pause()
