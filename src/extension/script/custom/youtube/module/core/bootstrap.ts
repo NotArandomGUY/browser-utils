@@ -488,6 +488,7 @@ export default class YTCoreBootstrapModule extends Feature {
           defineProperty(window, key, {
             configurable: true,
             enumerable: true,
+            writable: true,
             value: new Proxy(value, {
               set(target, p, newValue, receiver) {
                 if (typeof p === 'string' && typeof newValue === 'function') {
