@@ -30,7 +30,6 @@ import Callback from '@ext/lib/callback'
 import { Feature } from '@ext/lib/feature'
 import { addInterceptNetworkCallback, NetworkContext, NetworkContextState, NetworkRequestContext, NetworkState, onInterceptNetworkRequest, replaceRequest } from '@ext/lib/intercept/network'
 import Logger from '@ext/lib/logger'
-import { varintDecode32 } from '@ext/lib/protobuf/varint'
 
 const logger = new Logger('YTPLAYER-UMP', true)
 
@@ -142,7 +141,7 @@ const manager = new UMPContextManager({
 })
 
 const getPlaybackRequestId = (params: URLSearchParams): string => {
-  return `${params.get('id')}/${params.get('itag')}/${params.get('rn')}/${params.get('fallback_count')}`
+  return `${params.get('id')}/itag.${params.get('itag')}/rn.${params.get('rn')}/fc.${params.get('fallback_count')}/r.${params.get('range')}`
 }
 
 const processClientAbrState = (state: InstanceType<typeof ClientAbrState> | null): void => {
