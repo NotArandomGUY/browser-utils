@@ -291,7 +291,7 @@ export class FFmpeg {
     ) as Promise<OK>
   }
 
-  public mount(fsType: FFFSType, options: FFFSMountOptions, mountPoint: FFFSPath,): Promise<OK> {
+  public mount(fsType: FFFSType, options: FFFSMountOptions, mountPoint: FFFSPath): Promise<OK> {
     const trans: Transferable[] = []
     return this.#send(
       {

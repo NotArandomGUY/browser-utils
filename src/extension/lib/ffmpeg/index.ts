@@ -48,18 +48,24 @@ export const execFFmpeg = <I extends string, O extends string>({
     return
   }
 
+  const session = `/session_${Date.now()}`
   try {
     instance.on('progress', progress)
+    await instance.createDir(session)
 
-    await Promise.all(entries<FFmpegInput>(input).map(([name, { data }]) => instance.writeFile(name, data)))
+    await Promise.all(entries<FFmpegInput>(input).map(([name, { data }]) => instance.writeFile(`${session}/${name}`, data)))
     await instance.exec(options.concat(
-      entries<FFmpegInput>(input).flatMap(([name, { options = [] }]) => [...options, '-i', name]),
-      entries<string[]>(output).flatMap(([name, options]) => [...options, name])
+      entries<FFmpegInput>(input).flatMap(([name, { options = [] }]) => [...options, '-i', `${session}/${name}`]),
+      entries<string[]>(output).flatMap(([name, options]) => [...options, `${session}/${name}`])
     ))
-    resolve(fromEntries(await Promise.all(keys(output).map(async name => [name, await instance.readFile(name)]))))
+    resolve(fromEntries(await Promise.all(keys(output).map(async name => [name, await instance.readFile(`${session}/${name}`)]))))
   } catch (error) {
     reject(error)
   } finally {
+    instance.listDir(session)
+      .then(files => Promise.allSettled(files.map(file => instance.deleteFile(`${session}/${file.name}`))))
+      .then(() => instance.deleteDir(session))
+      .catch(error => logger.warn('cleanup files error:', error))
     instance.off('progress', progress)
     instances.push(instance)
   }
