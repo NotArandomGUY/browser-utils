@@ -12,7 +12,8 @@ export type ReverseEntityType = {
 
 export const enum YTLocalMediaType {
   AUDIO = 0,
-  VIDEO
+  VIDEO,
+  AUDIO_AND_VIDEO
 }
 
 export type YTLocalEntityAssociation = readonly [

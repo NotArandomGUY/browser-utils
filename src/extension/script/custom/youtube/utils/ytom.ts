@@ -6,7 +6,7 @@ import YTOfflineMediaEntity from '@ext/custom/youtube/proto/ytom/entity'
 import YTOfflineMediaMetadata from '@ext/custom/youtube/proto/ytom/metadata'
 import YTOfflineMediaStream from '@ext/custom/youtube/proto/ytom/stream'
 import { decryptAesCtr, deriveAesCtrKey, digestSHA256, encodeTrackingParam, encryptAesCtr, getNonce } from '@ext/custom/youtube/utils/crypto'
-import { getYTLocalEntityByKey, getYTLocalMediaCaptions, getYTLocalMediaChunks, getYTLocalMediaIndex, getYTLocalMediaStorage, putYTLocalEntities, putYTLocalEntity, putYTLocalEntityAssociation, putYTLocalMediaCaptions, putYTLocalMediaStream, setYTLocalMediaStorage, YTLocalEntity, YTLocalEntityAssociation, YTLocalEntityData, YTLocalMediaIndex, YTLocalMediaType } from '@ext/custom/youtube/utils/local'
+import { getYTLocalEntitiesByType, getYTLocalEntityByKey, getYTLocalMediaCaptions, getYTLocalMediaChunks, getYTLocalMediaIndex, getYTLocalMediaStorage, putYTLocalEntities, putYTLocalEntity, putYTLocalEntityAssociation, putYTLocalMediaCaptions, putYTLocalMediaStream, setYTLocalMediaStorage, YTLocalEntity, YTLocalEntityAssociation, YTLocalEntityData, YTLocalMediaIndex, YTLocalMediaType } from '@ext/custom/youtube/utils/local'
 import { updateYTReduxStoreLocalEntities } from '@ext/custom/youtube/utils/redux'
 import { ceil } from '@ext/global/math'
 import { URLSearchParams } from '@ext/global/network'
@@ -31,8 +31,13 @@ const EXPORTABLE_ENTITY_TYPES = [
 ] satisfies EntityType[]
 const MEDIA_STREAM_TYPES = [YTLocalMediaType.AUDIO, YTLocalMediaType.VIDEO]
 
+interface MediaMetadata {
+  thumbnail: readonly [string, { data: Uint8Array<ArrayBuffer>, options?: readonly string[] }] | null
+  extra: Record<string, string>
+}
+
 const mimeTypeToExt = (mimeType = ''): string => {
-  return /(?<=^(audio|video)\/)[A-Za-z0-9]+/.exec(mimeType)?.[0] ?? 'bin'
+  return /(?<=^(audio|image|video)\/)[A-Za-z0-9]+/.exec(mimeType)?.[0] ?? 'bin'
 }
 
 const downloadBlob = (blob: Blob, id: string, type?: string): void => {
@@ -273,6 +278,71 @@ const decodeYTOfflineMediaStream = (id: string, stream: InstanceType<typeof YTOf
   }
 }
 
+const getMediaMetadata = async (id: string): Promise<MediaMetadata> => {
+  const metadata: MediaMetadata = {
+    thumbnail: null,
+    extra: {}
+  }
+
+  const videoEntity = await getYTLocalEntityByKey<EntityType.mainVideoEntity>(encodeEntityKey({
+    entityId: id,
+    entityType: EntityType.mainVideoEntity,
+    isPersistent: true
+  }), true)
+  if (videoEntity == null) return metadata
+
+  const { formattedDescription, owner, publishedTimestampMillis, thumbnail: { thumbnails }, title } = videoEntity.data
+
+  // Thumbnail
+  const thumbnail = thumbnails?.[0]?.url
+  if (thumbnail != null) {
+    metadata.thumbnail = await fetch(thumbnail)
+      .then(async response => {
+        const ext = mimeTypeToExt(response.headers.get('content-type') ?? 'image/jpg')
+        if (ext === 'avif') throw new Error('not implemented')
+
+        return [
+          `v.${ext}`,
+          { data: new Uint8Array(await response.arrayBuffer()) }
+        ] as const
+      })
+      .catch(() => null)
+  }
+
+  // Video metadata
+  assign(metadata.extra, {
+    title,
+    description: formattedDescription?.runs?.map(({ emoji, text }) => text ?? emoji?.emojiId ?? '').join('\n') ?? formattedDescription?.simpleText,
+    date: new Date(Number(publishedTimestampMillis ?? Date.now())).toISOString().replace(/^(.*?)T.*$/, '$1'),
+    copyright: BUNDLE_MAGIC
+  })
+
+  // Video owner metadata
+  let channelEntity = owner ? await getYTLocalEntityByKey<EntityType.ytMainChannelEntity>(owner, true) : null
+  if (channelEntity != null) {
+    const { channelId, title: channelTitle } = channelEntity.data
+    metadata.extra.artist = `${channelTitle} [${channelId}]`
+  }
+
+  const playlistEntities = await getYTLocalEntitiesByType(EntityType.mainPlaylistEntity, true)
+  const playlistEntity = playlistEntities.find(({ data: { videos } }) => videos.some(key => JSON.parse(decodeEntityKey(key).entityId ?? 'null')?.videoId === id))
+  if (playlistEntity == null) return metadata
+
+  const { channelOwner, playlistId, title: playlistTitle } = playlistEntity.data
+
+  // Playlist metadata
+  metadata.extra.album = `${playlistTitle} [${playlistId}]`
+
+  // Playlist owner metadata
+  channelEntity = channelOwner ? await getYTLocalEntityByKey<EntityType.ytMainChannelEntity>(channelOwner, true) : null
+  if (channelEntity != null) {
+    const { channelId, title: channelTitle } = channelEntity.data
+    metadata.extra.album_artist = `${channelTitle} [${channelId}]`
+  }
+
+  return metadata
+}
+
 export const deleteYTOfflineMedia = async (id: string): Promise<void> => {
   const downloadStatusEntity = await getYTLocalEntityByKey<EntityType.downloadStatusEntity>(encodeEntityKey({
     entityId: id,
@@ -377,7 +447,7 @@ export const importYTOfflineMediaBundle = (file: File, password: string) => new 
         numBytesDownloaded: String(contentLength),
         numTotalBytes: String(contentLength),
         streamState: 'DOWNLOAD_STREAM_STATE_COMPLETE',
-        streamType: (['STREAM_TYPE_AUDIO', 'STREAM_TYPE_VIDEO'] as const)[index.type]
+        streamType: (['STREAM_TYPE_AUDIO', 'STREAM_TYPE_VIDEO', 'STREAM_TYPE_AUDIO_AND_VIDEO'] as const)[index.type]
       })
       await putYTLocalMediaStream(index, chunks).progress(p => progress(`importing '${id}' stream.${index.type} (${(p * 100).toFixed(1)}%)`))
 
@@ -474,23 +544,37 @@ export const exportYTOfflineMediaBundle = (id: string, password: string) => new 
   }
 })
 
-export const exportYTOfflineMediaStream = (id: string, type?: YTLocalMediaType) => new PromiseWithProgress<void, string>(async (resolve, reject, progress) => {
+export const exportYTOfflineMediaStream = (id: string, type: YTLocalMediaType) => new PromiseWithProgress<void, string>(async (resolve, reject, progress) => {
   try {
-    const types = type ? [type] : [YTLocalMediaType.AUDIO, YTLocalMediaType.VIDEO]
+    const mergeMetadata = type === YTLocalMediaType.AUDIO_AND_VIDEO ? await getMediaMetadata(id) : null
+    const types = mergeMetadata ? [YTLocalMediaType.AUDIO, YTLocalMediaType.VIDEO] : [type]
     const indexes = await Promise.all(types.map(type => getYTLocalMediaIndex(id, type)))
     const streams = await Promise.all(indexes.map((index, i) => getYTLocalMediaChunks(index, true).progress(p => progress(`exporting '${id}' stream.${types[i]} (${(p * 100).toFixed(1)}%)`))))
 
-    const mimeType = type ? (indexes[0]?.format?.mimeType ?? 'application/octet-stream') : 'video/mp4'
-    const chunks = type ? streams.flat() : [
+    progress('processing streams')
+
+    const mimeType = mergeMetadata ? 'video/mp4' : (indexes[0]?.format?.mimeType ?? 'application/octet-stream')
+    const chunks = mergeMetadata ? [
       (await execFFmpeg({
-        input: fromEntries(values(types).map((type, i) => {
-          const index = indexes[i]
-          const stream = streams[i]
-          return [`${type}.${mimeTypeToExt(index.format?.mimeType)}`, { data: bufferConcat(stream) }]
-        })),
-        output: { 'o.mp4': ['-c', 'copy', ...values(types).flatMap((type, i) => ['-map', `${i}:${['a', 'v'][type]}:0`])] }
+        input: [
+          ...values(types).map((type, i) => {
+            const index = indexes[i]
+            const stream = streams[i]
+            return [`${type}.${mimeTypeToExt(index.format?.mimeType)}`, { data: bufferConcat(stream) }] as const
+          }),
+          mergeMetadata.thumbnail
+        ].filter(e => e != null),
+        output: {
+          'o.mp4': [
+            ...values(types).map((type, i) => ['-map', `${i}:${['a', 'v'][type]}:0`]),
+            ['-c', 'copy'],
+            mergeMetadata.thumbnail ? ['-map', `${types.length}:v:0`, '-c:v:1', 'png', '-disposition:v:1', 'attached_pic'] : null,
+            ['-map_metadata', '-1'],
+            ...entries(mergeMetadata.extra).map(([key, value]) => ['-metadata', `${key}=${value}`])
+          ].filter(e => e != null).flat()
+        }
       }).progress(({ progress: p, time }) => progress(`merging streams (${(p * 100).toFixed(1)}%/${(time / 1000000).toFixed(3)}s)`)))['o.mp4']
-    ]
+    ] : streams.flat()
 
     progress('downloading file')
     resolve(downloadBlob(new Blob(chunks, { type: mimeType }), `${id}.${types.join('+')}`))

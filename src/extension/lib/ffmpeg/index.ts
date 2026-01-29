@@ -7,13 +7,13 @@ const logger = new Logger('FFMPEG')
 
 export interface FFmpegInput {
   data: Uint8Array<ArrayBuffer>
-  options?: string[]
+  options?: readonly string[]
 }
 
 export interface FFmpegOptions<I extends string, O extends string> {
   options?: string[]
-  input: Record<I, FFmpegInput>
-  output: Record<O, string[]>
+  input: Array<readonly [I, FFmpegInput]>
+  output: Record<O, readonly string[]>
 }
 
 const instances: FFmpeg[] = []
@@ -53,12 +53,17 @@ export const execFFmpeg = <I extends string, O extends string>({
     instance.on('progress', progress)
     await instance.createDir(session)
 
-    await Promise.all(entries<FFmpegInput>(input).map(([name, { data }]) => instance.writeFile(`${session}/${name}`, data)))
+    await Promise.all(input.map(([name, { data }]) => instance.writeFile(`${session}/${name}`, data)))
     await instance.exec(options.concat(
-      entries<FFmpegInput>(input).flatMap(([name, { options = [] }]) => [...options, '-i', `${session}/${name}`]),
-      entries<string[]>(output).flatMap(([name, options]) => [...options, `${session}/${name}`])
+      input.flatMap(([name, { options = [] }]) => [...options, '-i', `${session}/${name}`]),
+      entries<readonly string[]>(output).flatMap(([name, options]) => [...options, `${session}/${name}`])
     ))
-    resolve(fromEntries(await Promise.all(keys(output).map(async name => [name, await instance.readFile(`${session}/${name}`)]))))
+    resolve(fromEntries(await Promise.all(keys(output).map(async name => {
+      const data = await instance.readFile(`${session}/${name}`)
+      if (data.length === 0) throw new Error('invalid output')
+
+      return [name, data]
+    }))))
   } catch (error) {
     reject(error)
   } finally {

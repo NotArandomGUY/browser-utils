@@ -142,7 +142,7 @@ class YTOfflinePageLifecycle extends Lifecycle<void> {
         isLoading_.val = true
 
         const mainDownloadsListEntity = await getYTLocalEntityByType(EntityType.mainDownloadsListEntity, true)
-        const mainPlaylistEntities = (await getYTLocalEntitiesByType(EntityType.mainPlaylistEntity, true))
+        const mainPlaylistEntities = await getYTLocalEntitiesByType(EntityType.mainPlaylistEntity, true)
         const mainVideoEntities = await getYTLocalEntitiesByType(EntityType.mainVideoEntity, true)
 
         const playlistMap = new Map(mainPlaylistEntities.flatMap(({ data }) => Array.from(data.videos ?? []).map(key => [
@@ -235,7 +235,7 @@ class YTOfflinePageLifecycle extends Lifecycle<void> {
           promiseStatus(exportYTOfflineMediaStream(id, YTLocalMediaType.VIDEO))
           break
         case ExportFormat.MERGED:
-          promiseStatus(exportYTOfflineMediaStream(id))
+          promiseStatus(exportYTOfflineMediaStream(id, YTLocalMediaType.AUDIO_AND_VIDEO))
           break
         default:
           status_.val = 'invalid export format'
