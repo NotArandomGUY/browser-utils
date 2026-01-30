@@ -98,6 +98,7 @@ export const player = ytv_rsp(() => ({
   }),
   messages: ytv_arr(ytv_ren()),
   microformat: ytv_ren(),
+  offlineState: ytv_str(),
   paidContentOverlay: ytv_ren(),
   playabilityStatus: renderer.components.playerPlayabilityStatus,
   playbackTracking: renderer.components.playerPlaybackTracking,

@@ -80,9 +80,9 @@ const sanitizeEntity = <T extends keyof YTLocalEntityData>(entity: YTLocalEntity
       delete playerResponse.playerConfig?.mediaCommonConfig?.mediaUstreamerRequestConfig
 
       assign(entity.data, {
-        playerResponseJson: JSON.stringify(assign(playerResponse, {
-          adBreakHeartbeatParams: null,
-          offlineState: null,
+        playerResponseJson: JSON.stringify(assign<typeof playerResponse, typeof playerResponse>(playerResponse, {
+          adBreakHeartbeatParams: undefined,
+          offlineState: undefined,
           playbackTracking: {},
           responseContext: {
             mainAppWebResponseContext: {
@@ -91,7 +91,8 @@ const sanitizeEntity = <T extends keyof YTLocalEntityData>(entity: YTLocalEntity
           },
           streamingData: {
             adaptiveFormats: playerResponse.streamingData?.adaptiveFormats?.map(sanitizeMediaFormat),
-            formats: playerResponse.streamingData?.formats?.map(sanitizeMediaFormat)
+            formats: playerResponse.streamingData?.formats?.map(sanitizeMediaFormat),
+            serverAbrStreamingUrl: 'local://localhost/videoplayback'
           },
           trackingParams: 'CAAQACIMCAAVAAAAAB0AAAAA'
         })),
