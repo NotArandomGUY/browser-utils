@@ -253,6 +253,10 @@ const decodeYTLocalEntities = async <T extends keyof YTLocalEntityData | void>(e
   return Promise.all(entities.map(entity => decodeYTLocalEntity(entity, decrypt)))
 }
 
+export const openYTLocalImageCache = async (): Promise<Cache> => {
+  return caches.open(`yt-player-local-img:${getDataSyncId()}`)
+}
+
 export const getYTLocalMediaStorage = (): Record<string, number> => {
   try {
     const data = JSON.parse(localStorage.getItem(getPlayerLocalStorageKey(PLAYER_LMS_KEY)) ?? '{}')?.data

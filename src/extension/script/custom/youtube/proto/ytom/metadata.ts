@@ -1,3 +1,4 @@
+import YTOfflineMediaCache from '@ext/custom/youtube/proto/ytom/cache'
 import YTOfflineMediaCaption from '@ext/custom/youtube/proto/ytom/caption'
 import YTOfflineMediaEntity from '@ext/custom/youtube/proto/ytom/entity'
 import YTOfflineMediaStream from '@ext/custom/youtube/proto/ytom/stream'
@@ -9,7 +10,8 @@ const YTOfflineMediaMetadata = createMessage({
   id: pbf_str(2),
   entities: pbf_repeat(pbf_msg(10, YTOfflineMediaEntity)),
   streams: pbf_repeat(pbf_msg(11, YTOfflineMediaStream)),
-  captions: pbf_repeat(pbf_msg(12, YTOfflineMediaCaption))
+  captions: pbf_repeat(pbf_msg(12, YTOfflineMediaCaption)),
+  images: pbf_repeat(pbf_msg(13, YTOfflineMediaCache))
 })
 
 export default YTOfflineMediaMetadata

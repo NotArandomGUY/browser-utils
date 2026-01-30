@@ -1,12 +1,14 @@
 import { YTCommon, YTRenderer, YTResponse, YTValueData } from '@ext/custom/youtube/api/schema'
 import { decodeEntityKey, encodeEntityKey, EntityType } from '@ext/custom/youtube/proto/entity-key'
 import FormatRange from '@ext/custom/youtube/proto/gvs/common/format-range'
+import HttpHeader from '@ext/custom/youtube/proto/gvs/common/http-header'
+import YTOfflineMediaCache from '@ext/custom/youtube/proto/ytom/cache'
 import YTOfflineMediaCaption from '@ext/custom/youtube/proto/ytom/caption'
 import YTOfflineMediaEntity from '@ext/custom/youtube/proto/ytom/entity'
 import YTOfflineMediaMetadata from '@ext/custom/youtube/proto/ytom/metadata'
 import YTOfflineMediaStream from '@ext/custom/youtube/proto/ytom/stream'
 import { decryptAesCtr, deriveAesCtrKey, digestSHA256, encodeTrackingParam, encryptAesCtr, getNonce } from '@ext/custom/youtube/utils/crypto'
-import { getYTLocalEntitiesByType, getYTLocalEntityByKey, getYTLocalMediaCaptions, getYTLocalMediaChunks, getYTLocalMediaIndex, getYTLocalMediaStorage, putYTLocalEntities, putYTLocalEntity, putYTLocalEntityAssociation, putYTLocalMediaCaptions, putYTLocalMediaStream, setYTLocalMediaStorage, YTLocalEntity, YTLocalEntityAssociation, YTLocalEntityData, YTLocalMediaIndex, YTLocalMediaType } from '@ext/custom/youtube/utils/local'
+import { getYTLocalEntitiesByType, getYTLocalEntityByKey, getYTLocalMediaCaptions, getYTLocalMediaChunks, getYTLocalMediaIndex, getYTLocalMediaStorage, openYTLocalImageCache, putYTLocalEntities, putYTLocalEntity, putYTLocalEntityAssociation, putYTLocalMediaCaptions, putYTLocalMediaStream, ReverseEntityType, setYTLocalMediaStorage, YTLocalEntity, YTLocalEntityAssociation, YTLocalEntityData, YTLocalMediaIndex, YTLocalMediaType } from '@ext/custom/youtube/utils/local'
 import { updateYTReduxStoreLocalEntities } from '@ext/custom/youtube/utils/redux'
 import { ceil } from '@ext/global/math'
 import { URLSearchParams } from '@ext/global/network'
@@ -29,6 +31,10 @@ const EXPORTABLE_ENTITY_TYPES = [
   EntityType.transfer,
   EntityType.ytMainChannelEntity
 ] satisfies EntityType[]
+const IMAGE_ENTITIES = {
+  mainVideoEntity: 'thumbnail',
+  ytMainChannelEntity: 'avatar'
+} satisfies { [T in keyof YTLocalEntityData as ReverseEntityType[T]]?: keyof YTLocalEntityData[T] }
 const MEDIA_STREAM_TYPES = [YTLocalMediaType.AUDIO, YTLocalMediaType.VIDEO]
 
 interface MediaMetadata {
@@ -279,6 +285,27 @@ const decodeYTOfflineMediaStream = (id: string, stream: InstanceType<typeof YTOf
   }
 }
 
+const encodeYTOfflineMediaCache = async (url: string, response: Response): Promise<InstanceType<typeof YTOfflineMediaCache>> => {
+  return new YTOfflineMediaCache({
+    url,
+    headers: Array.from(response.headers.entries()).map(([name, value]) => new HttpHeader({ name, value })),
+    body: new Uint8Array(await response.arrayBuffer())
+  })
+}
+
+const decodeYTOfflineMediaCache = async (cache: InstanceType<typeof YTOfflineMediaCache>): Promise<[url: URL, response: Response]> => {
+  const { url, headers, body } = cache
+
+  if (url == null) throw new Error('invalid url')
+
+  return [
+    new URL(url, location.href),
+    new Response(body, {
+      headers: headers?.map(({ name, value }) => [name, value]).filter((e): e is [string, string] => e[0] != null && e[1] != null)
+    })
+  ]
+}
+
 const getMediaMetadata = async (id: string): Promise<MediaMetadata> => {
   const metadata: MediaMetadata = {
     thumbnail: null,
@@ -391,7 +418,7 @@ export const importYTOfflineMediaBundle = (file: File, password: string) => new 
     const isHashMismatch = (await digestSHA256(metadataBuffer, 24)).some((b, i) => metadataHash[i] !== b)
     if (isHashMismatch) throw new Error('file corrupted or wrong password')
 
-    const { version, id, entities, streams, captions } = new YTOfflineMediaMetadata().deserialize(await decompress(metadataBuffer, 'deflate'), false)
+    const { version, id, entities, streams, captions, images } = new YTOfflineMediaMetadata().deserialize(await decompress(metadataBuffer, 'deflate'), false)
     if (version !== BUNDLE_VERSION) throw new Error('version not supported')
 
     const totalChunkSize = streams?.reduce((p, c) => p + Number(c.contentLength), 0) ?? 0
@@ -455,14 +482,21 @@ export const importYTOfflineMediaBundle = (file: File, password: string) => new 
       streamPos += contentLength
     }
 
-    progress('importing video captions')
+    progress('importing captions')
 
     await putYTLocalMediaCaptions(id!, captions!.map(({ metadata, trackData }) => ({
       metadata: JSON.parse(metadata ?? '{}'),
       trackData: trackData ?? ''
     })))
 
-    progress('importing video metadata')
+    progress('importing images')
+
+    const cache = await openYTLocalImageCache()
+    await Promise.all(images!.map(decodeYTOfflineMediaCache)).then(entries => Promise.all(
+      entries.map(([url, response]) => cache.put(url, response))
+    ))
+
+    progress('importing metadata')
 
     const associations: YTLocalEntityAssociation[] = []
     await putYTLocalEntities<keyof YTLocalEntityData>([
@@ -508,21 +542,35 @@ export const exportYTOfflineMediaBundle = (id: string, password: string) => new 
         .then(chunks => Promise.all(chunks.map(transform)))
     }))).flat()
 
-    progress('exporting video captions')
+    progress('exporting captions')
 
     const captions = (await getYTLocalMediaCaptions(id)).map(({ metadata, trackData }) => new YTOfflineMediaCaption({
       metadata: JSON.stringify(metadata),
       trackData
     }))
 
-    progress('exporting video metadata')
+    progress('exporting images')
+
+    const cache = await openYTLocalImageCache()
+    const images = await Promise.all(
+      entries(IMAGE_ENTITIES).flatMap(([type, key]) => {
+        const entity = entities.find(entity => entity.entityType === type) as YTLocalEntity<typeof EntityType[keyof typeof IMAGE_ENTITIES]>
+        const thumbnail = entity?.data[key as keyof typeof entity.data] as YTValueData<YTRenderer.Component<'thumbnail'>>
+        return thumbnail?.thumbnails?.map(async ({ url }) => [String(url), url ? await cache.match(url) : null] as const) ?? []
+      })
+    ).then(entries => Promise.all(
+      entries.filter((e): e is [string, Response] => e[1] != null).map(([url, response]) => encodeYTOfflineMediaCache(url, response))
+    ))
+
+    progress('exporting metadata')
 
     let metadataBuffer = await compress(new YTOfflineMediaMetadata({
       version: BUNDLE_VERSION,
       id,
       entities: entities.map(entity => encodeYTOfflineMediaEntity(sanitizeEntity(entity))),
       streams,
-      captions
+      captions,
+      images
     }).serialize(), 'deflate')
 
     const metadataHash = await digestSHA256(metadataBuffer, 24)
