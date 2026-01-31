@@ -371,14 +371,12 @@ class InterceptXMLHttpRequest extends XMLHttpRequest {
         case 2:
           this[kmDispatchProgress]('loadstart')
           break
-        case 4:
-          if (ctx?.state === NetworkState.SUCCESS) {
-            this[kmDispatchProgress]('load')
-          } else {
-            this[kmDispatchProgress]('error')
-          }
+        case 4: {
+          const isLoad = ctx == null ? (super.status > 0) : (ctx.state === NetworkState.SUCCESS)
+          this[kmDispatchProgress](isLoad ? 'load' : 'error')
           this[kmDispatchProgress]('loadend')
           break
+        }
       }
     }
   }
@@ -388,8 +386,7 @@ class InterceptXMLHttpRequest extends XMLHttpRequest {
 
     // Sync ready state
     if (ctx == null) {
-      this[kiReadyState] = super.readyState
-      this[kmDispatchProgress]('readystatechange')
+      this[kmChangeReadyState](super.readyState)
       return
     }
 
