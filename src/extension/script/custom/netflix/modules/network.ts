@@ -79,8 +79,8 @@ interface MSLRequestContext {
   url: string
   encryptionKey: CryptoKey
   hmacKey: CryptoKey
-  request: MSLBody | null
-  response: MSLBody | null
+  request: MSLBody | { error: unknown, body: string } | null
+  response: MSLBody | { error: unknown, body: string } | null
 }
 
 const MSL_API_REGEXP = /\/msl(_v\d+)?\//
@@ -139,11 +139,12 @@ const processRequest = async (ctx: NetworkRequestContext<MSLRequestContext>): Pr
 
   const { encryptionKey, hmacKey } = pair.data
 
+  const body = await request.clone().text()
   ctx.userData = {
     url: url.toString(),
     encryptionKey,
     hmacKey,
-    request: await decryptMSLBody(encryptionKey, await request.clone().text()),
+    request: await decryptMSLBody(encryptionKey, body).catch(error => ({ error, body })),
     response: null
   }
 }
@@ -155,7 +156,8 @@ const processResponse = async (ctx: NetworkContext<MSLRequestContext, NetworkSta
 
   const { encryptionKey, hmacKey, ...mslCtx } = userData
 
-  mslCtx.response = await decryptMSLBody(encryptionKey, await response.clone().text())
+  const body = await response.clone().text()
+  mslCtx.response = await decryptMSLBody(encryptionKey, body).catch(error => ({ error, body }))
 
   logger.debug('msl transaction:', mslCtx)
 }
