@@ -4,9 +4,9 @@ import { SignedMessage, verifyMessage } from '@ext/lib/message/crypto'
 import { ExtensionMessage, ExtensionMessageSource, ExtensionMessageType, getExtensionMessageSender } from '@ext/lib/message/extension'
 import { HANDSHAKE_KEY } from '@virtual/extension'
 
-const MESSAGE_QUEUE_SIZE = 5
-
 const logger = new Logger('PRELOAD-ISOLATED')
+
+const MESSAGE_QUEUE_SIZE = 5
 
 const messageQueue: SignedMessage<ExtensionMessage>[] = []
 

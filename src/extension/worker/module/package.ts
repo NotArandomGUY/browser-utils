@@ -13,14 +13,14 @@ import ScriptPackage from '@ext/proto/script/package'
 
 const { subtle } = crypto
 
+const logger = new Logger('WORKER-PACKAGE')
+
 const ALARM_NAME = 'package-update'
 const BRANCH_KV = 'branch'
 const DEFAULT_BRANCH_ID = 'main'
 const MAX_CACHE_PACKAGE_COUNT = 3
 const AUTO_UPDATE_INTERVAL = 4 * 60 // 4h
 const ENCRYPT_ALGO = { name: 'AES-CBC', length: 256 }
-
-const logger = new Logger('WORKER-PACKAGE')
 
 interface IDBPackageEntry {
   version: string

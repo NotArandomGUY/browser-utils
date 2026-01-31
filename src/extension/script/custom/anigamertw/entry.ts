@@ -4,6 +4,8 @@ import Hook, { HookResult } from '@ext/lib/intercept/hook'
 import Logger from '@ext/lib/logger'
 import type vjs from '@ext/types/videojs.d.ts'
 
+const logger = new Logger('ANI.GAMER')
+
 interface AdHandlerPlayOptions {
   adId: string
   adUrl: string
@@ -12,8 +14,6 @@ interface AdHandlerPlayOptions {
   sponsorText: string
   enableAd: boolean
 }
-
-const logger = new Logger('ANI.GAMER')
 
 logger.info('initializing...')
 

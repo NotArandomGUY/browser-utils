@@ -2,6 +2,8 @@ import { YTEndpoint, YTObjectSchema, YTRenderer, YTResponse, YTValueData, YTValu
 import { keys } from '@ext/global/object'
 import Logger from '@ext/lib/logger'
 
+const logger = new Logger('YTAPI-PROCESSOR')
+
 export type YTValueProcessor<S extends YTValueSchema = YTValueSchema> = (data: YTValueData<S>, schema: S, parent: YTValueParent<S>) => Promise<boolean> | boolean
 
 export const enum YTValueProcessorType {
@@ -16,7 +18,6 @@ type TypeOf<T = void> = T extends void ? {
   'string': string
 } : T extends keyof TypeOf ? TypeOf[T] : never
 
-const logger = new Logger('YTAPI-PROCESSOR')
 const processorMap = new Map<YTValueSchema, [pre: Array<YTValueProcessor>, post: Array<YTValueProcessor>]>()
 
 class DeleteChildError extends Error {

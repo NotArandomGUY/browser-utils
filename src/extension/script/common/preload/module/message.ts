@@ -5,9 +5,9 @@ import { SignedMessage, verifyMessage } from '@ext/lib/message/crypto'
 import { ExtensionMessage, ExtensionMessageSource, ExtensionMessageType, getExtensionMessageSender } from '@ext/lib/message/extension'
 import { MESSAGE_KEY } from '@virtual/package'
 
-const DMASK_SYNC_STORAGE_KEY = 'bufeature-dmask-sync'
-
 const logger = new Logger('PRELOAD-MESSAGE')
+
+const DMASK_SYNC_STORAGE_KEY = 'bufeature-dmask-sync'
 
 const { sendMessageToWorker } = getExtensionMessageSender(MESSAGE_KEY, ExtensionMessageSource.MAIN)
 

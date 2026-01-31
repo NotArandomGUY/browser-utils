@@ -1,6 +1,8 @@
 import { assign, defineProperties } from '@ext/global/object'
 import Logger from '@ext/lib/logger'
 
+const logger = new Logger('INTERCEPT-EVENT')
+
 interface InterceptEventTarget<TTarget, TMap> extends EventTarget {
   [EventTargetAdapterSymbol]: InterceptEventTargetAdapter<TTarget, TMap>
 }
@@ -9,8 +11,6 @@ interface InterceptListenerEntry {
   listener: Function
   options?: AddEventListenerOptions
 }
-
-const logger = new Logger('INTERCEPT-EVENT')
 
 const EventTargetAdapterSymbol = Symbol()
 const EventPreventDispatchSymbol = Symbol()

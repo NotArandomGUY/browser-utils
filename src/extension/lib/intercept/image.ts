@@ -2,9 +2,9 @@ import { defineProperty } from '@ext/global/object'
 import InterceptEventTargetAdapter from '@ext/lib/intercept/event'
 import Logger from '@ext/lib/logger'
 
-type HTMLMediaElementEventMap = HTMLElementEventMap & { 'srcchange': CustomEvent<string> }
-
 const logger = new Logger('INTERCEPT-IMAGE')
+
+type HTMLMediaElementEventMap = HTMLElementEventMap & { 'srcchange': CustomEvent<string> }
 
 const IMAGE_EVENTS = [
   'abort',

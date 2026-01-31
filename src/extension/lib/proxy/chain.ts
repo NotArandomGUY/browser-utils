@@ -67,7 +67,7 @@ class ProxyChainImpl<T> {
 
   public constructor(options: ProxyChainOptions<T> = {}) {
     const trace = options.trace ?? ['<proxy>']
-    const logger = new Logger(trace.map(t => String(t)).join('.'))
+    const logger = new Logger(trace.map(String).join('.'))
 
     return new Proxy<ToObjectType<T>>(createTarget(options), { // NOSONAR
       apply(target, thisArg, argArray) {

@@ -3,9 +3,9 @@ import { fromEntries } from '@ext/global/object'
 import { bufferFromString, bufferToString } from '@ext/lib/buffer'
 import Logger from '@ext/lib/logger'
 
-const DMASK_STORAGE_KEY = 'bufeature-dmask'
-
 const logger = new Logger('FEATURE')
+
+const DMASK_STORAGE_KEY = 'bufeature-dmask'
 
 const kiName = Symbol()
 const kiState = Symbol()

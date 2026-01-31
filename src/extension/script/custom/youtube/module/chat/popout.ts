@@ -9,14 +9,14 @@ import Logger from '@ext/lib/logger'
 import MessageChannel from '@ext/lib/message/channel'
 import { MessageDataUnion } from '@ext/lib/message/type'
 
+const logger = new Logger('YTCHAT-POPOUT')
+
 const CHANNEL_NAME = 'bmc-ytchat-popout'
 const CHANNEL_SOURCE = `cs-${(((floor(random() * 0x10000) << 16) | floor(random() * 0x10000)) ^ Date.now()) >>> 0}`
 const COLLAPSED_CHAT_TIMEOUT = 5e3 // 5 sec
 const CHAT_POPOUT_IDLE_TIMEOUT = 60e3 // 1 min
 const LIVE_CHAT_PATHNAME = '/live_chat'
 const LIVE_CHAT_REPLAY_PATHNAME = '/live_chat_replay'
-
-const logger = new Logger('YTCHAT-POPOUT')
 
 interface YTChatIFrameMessage {
   'yt-live-chat-buy-flow-callback'?: unknown

@@ -3,6 +3,8 @@ import { registerInterceptNetworkFetchModule, unregisterInterceptNetworkFetchMod
 import { registerInterceptNetworkXHRModule, unregisterInterceptNetworkXHRModule } from '@ext/lib/intercept/network/module/xhr'
 import Logger from '@ext/lib/logger'
 
+const logger = new Logger('INTERCEPT-NETWORK')
+
 export type RequestInput = string | URL | Request
 
 export const enum NetworkState {
@@ -27,10 +29,6 @@ export type NetworkResponseCallback<U = unknown> = (ctx: NetworkResponseContext<
 
 export type NetworkCallback<U = unknown> = (ctx: NetworkContext<U>) => Promise<void> | void
 
-const logger = new Logger('INTERCEPT-NETWORK')
-
-const callbacks = new Set<NetworkCallback>()
-
 const REQUEST_INIT_KEYS = [
   'body',
   'cache',
@@ -45,6 +43,8 @@ const REQUEST_INIT_KEYS = [
   'referrerPolicy',
   'signal'
 ] satisfies (keyof RequestInit)[]
+
+const callbacks = new Set<NetworkCallback>()
 
 export const replaceRequest = async (ctx: NetworkRequestContext, init: Partial<{ url: URL | string } & RequestInit>): Promise<void> => {
   const { request } = ctx

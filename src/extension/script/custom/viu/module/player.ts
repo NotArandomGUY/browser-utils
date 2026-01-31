@@ -6,6 +6,8 @@ import { Feature } from '@ext/lib/feature'
 import Logger from '@ext/lib/logger'
 import { PlayerAPI, PlayerConfig, PlayerEvent, SourceConfig } from '@ext/types/bitmovin-player/bitmovinplayer'
 
+const logger = new Logger('VIU-PLAYER')
+
 const enum ReloadStreamState {
   NONE,
   PAUSED,
@@ -13,8 +15,6 @@ const enum ReloadStreamState {
 }
 
 type GetProductStreamMethod = (info: { ccsProductId: string, isBlocked: boolean, timeDiff: number }) => void
-
-const logger = new Logger('VIU-PLAYER')
 
 let currentStreamId: string = ''
 let currentVideo: HTMLVideoElement | null = null

@@ -4,9 +4,9 @@ import Hook, { HookResult } from '@ext/lib/intercept/hook'
 import Logger from '@ext/lib/logger'
 import ProxyChain from '@ext/lib/proxy/chain'
 
-const MESSAGE_NAMESPACE = 'vpbf'
-
 const logger = new Logger('VPBF-MESSAGE')
+
+const MESSAGE_NAMESPACE = 'vpbf'
 
 const { get: parentGet, set: parentSet, value: parentValue } = getOwnPropertyDescriptor(globalThis, 'parent') ?? {}
 

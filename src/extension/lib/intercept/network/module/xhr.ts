@@ -7,9 +7,9 @@ import { NetworkContext, NetworkContextState, NetworkRequestCallback, NetworkRes
 import Logger from '@ext/lib/logger'
 import { proxyBind } from '@ext/lib/proxy/bind'
 
-type XHRRequestBody = Document | XMLHttpRequestBodyInit
-
 const logger = new Logger('INTERCEPT-XHR')
+
+type XHRRequestBody = Document | XMLHttpRequestBodyInit
 
 const DOM_MIME_TYPES = ['application/xhtml+xml', 'application/xml', 'image/svg+xml', 'text/html', 'text/xml']
 const NULL_BODY_STATUS = [101, 204, 205, 304]

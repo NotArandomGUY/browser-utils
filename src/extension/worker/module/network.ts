@@ -14,6 +14,8 @@ import { getPackageScriptEntry, getPackageScriptIDs, PackageLoadCallback, parseO
 
 import DNR = chrome.declarativeNetRequest
 
+const logger = new Logger('WORKER-NETWORK')
+
 const DomainType = {
   [ScriptNetDomainType.FIRST_PARTY]: 'firstParty',
   [ScriptNetDomainType.THIRD_PARTY]: 'thirdParty'
@@ -61,8 +63,6 @@ const RuleActionType = {
 } satisfies Record<ScriptNetRuleActionType, `${DNR.RuleActionType}`>
 
 const RULE_EXCLUDE_DOMAIN_KV = 'rule-exclude-domain'
-
-const logger = new Logger('WORKER-NETWORK')
 
 const kv = new IndexedKV('network', [])
 
