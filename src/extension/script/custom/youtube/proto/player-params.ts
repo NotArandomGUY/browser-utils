@@ -2,7 +2,7 @@ import { pbf_bin, pbf_bol, pbf_i32, pbf_str } from '@ext/lib/protobuf/field'
 import { createMessage } from '@ext/lib/protobuf/message'
 
 const PlayerParams = createMessage({
-  b1: pbf_bol(1),
+  i1: pbf_i32(1),
   b2: pbf_bol(2),
   autoplay: pbf_bol(8),
   index: pbf_i32(9),
