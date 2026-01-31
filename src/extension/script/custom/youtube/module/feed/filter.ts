@@ -1,7 +1,7 @@
 import { registerYTValueFilter } from '@ext/custom/youtube/api/processor'
 import { YTEndpoint, YTRenderer, YTValueData } from '@ext/custom/youtube/api/schema'
 import { isYTLoggedIn } from '@ext/custom/youtube/module/core/bootstrap'
-import { getYTConfigBool, registerYTConfigMenuItem, YTConfigMenuItemType } from '@ext/custom/youtube/module/core/config'
+import { getYTConfigBool, registerYTConfigMenuItemGroup, YTConfigMenuItemType } from '@ext/custom/youtube/module/core/config'
 import { Feature } from '@ext/lib/feature'
 
 const FEED_FILTER_KEY = 'feed-filter'
@@ -80,36 +80,36 @@ export default class YTFeedFilterModule extends Feature {
     registerYTValueFilter(YTRenderer.mapped.shortsLockupViewModel, filterShortsViewModel)
     registerYTValueFilter(YTRenderer.mapped.lockupViewModel, filterVideoViewModel)
 
-    registerYTConfigMenuItem({
-      type: YTConfigMenuItemType.TOGGLE,
-      key: FEED_FILTER_KEY,
-      disabledIcon: YTRenderer.enums.IconType.YOUTUBE_SHORTS_BRAND_24,
-      disabledText: 'Hide Shorts',
-      enabledIcon: YTRenderer.enums.IconType.YOUTUBE_SHORTS_BRAND_24,
-      enabledText: 'Show Shorts',
-      signals: [YTEndpoint.enums.SignalActionType.POPUP_BACK, YTEndpoint.enums.SignalActionType.SOFT_RELOAD_PAGE],
-      mask: YTFeedFilterMask.SHORTS
-    })
-    registerYTConfigMenuItem({
-      type: YTConfigMenuItemType.TOGGLE,
-      key: FEED_FILTER_KEY,
-      disabledIcon: YTRenderer.enums.IconType.LIVE,
-      disabledText: 'Hide Live',
-      enabledIcon: YTRenderer.enums.IconType.LIVE,
-      enabledText: 'Show Live',
-      signals: [YTEndpoint.enums.SignalActionType.POPUP_BACK, YTEndpoint.enums.SignalActionType.SOFT_RELOAD_PAGE],
-      mask: YTFeedFilterMask.VIDEO_LIVE
-    })
-    registerYTConfigMenuItem({
-      type: YTConfigMenuItemType.TOGGLE,
-      key: FEED_FILTER_KEY,
-      disabledIcon: YTRenderer.enums.IconType.VIDEOS,
-      disabledText: 'Hide Video !!Dangerous!!',
-      enabledIcon: YTRenderer.enums.IconType.VIDEOS,
-      enabledText: 'Show Video',
-      signals: [YTEndpoint.enums.SignalActionType.POPUP_BACK, YTEndpoint.enums.SignalActionType.SOFT_RELOAD_PAGE],
-      mask: YTFeedFilterMask.VIDEO
-    })
+    registerYTConfigMenuItemGroup('feed', [
+      {
+        type: YTConfigMenuItemType.TOGGLE,
+        key: FEED_FILTER_KEY,
+        icon: YTRenderer.enums.IconType.YOUTUBE_SHORTS_BRAND_24,
+        text: 'Shorts',
+        signals: [YTEndpoint.enums.SignalActionType.POPUP_BACK, YTEndpoint.enums.SignalActionType.SOFT_RELOAD_PAGE],
+        mask: YTFeedFilterMask.SHORTS,
+        invert: true
+      },
+      {
+        type: YTConfigMenuItemType.TOGGLE,
+        key: FEED_FILTER_KEY,
+        icon: YTRenderer.enums.IconType.LIVE,
+        text: 'Live',
+        signals: [YTEndpoint.enums.SignalActionType.POPUP_BACK, YTEndpoint.enums.SignalActionType.SOFT_RELOAD_PAGE],
+        mask: YTFeedFilterMask.VIDEO_LIVE,
+        invert: true
+      },
+      {
+        type: YTConfigMenuItemType.TOGGLE,
+        key: FEED_FILTER_KEY,
+        icon: YTRenderer.enums.IconType.VIDEOS,
+        text: 'Video',
+        description: 'WARNING: Hiding videos might cause issues!',
+        signals: [YTEndpoint.enums.SignalActionType.POPUP_BACK, YTEndpoint.enums.SignalActionType.SOFT_RELOAD_PAGE],
+        mask: YTFeedFilterMask.VIDEO,
+        invert: true
+      }
+    ])
 
     return true
   }

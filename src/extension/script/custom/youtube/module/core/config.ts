@@ -5,9 +5,6 @@ import { Feature } from '@ext/lib/feature'
 
 const CONFIG_MENU_TITLE = 'BU Menu'
 
-export const CONFIG_TEXT_DISABLE = 'Disable'
-export const CONFIG_TEXT_ENABLE = 'Enable'
-
 export const enum YTConfigMenuItemType {
   BUTTON,
   TOGGLE
@@ -29,12 +26,12 @@ interface YTConfigMenuButtonItem extends YTConfigMenuActionItemBase<YTConfigMenu
 }
 
 interface YTConfigMenuToggleItem extends YTConfigMenuActionItemBase<YTConfigMenuItemType.TOGGLE> {
-  disabledIcon: YTRenderer.enums.IconType
-  disabledText: string
-  enabledIcon: YTRenderer.enums.IconType
-  enabledText: string
-  defaultValue?: boolean
+  icon: YTRenderer.enums.IconType
+  text: string
+  description?: string
   mask?: number
+  default?: boolean
+  invert?: boolean
 }
 
 export type YTConfigMenuItem<T extends YTConfigMenuItemType | void = void> = T extends YTConfigMenuItemType ? Extract<YTConfigMenuItem, { type: T }> : (
@@ -42,14 +39,24 @@ export type YTConfigMenuItem<T extends YTConfigMenuItemType | void = void> = T e
   YTConfigMenuToggleItem
 )
 
+export interface YTConfigMenuItemGroup {
+  key: string
+  items: YTConfigMenuItem[]
+}
+
 const configCacheMap = new Map<string, unknown>()
-const configMenuItems: YTConfigMenuItem[] = [
+const configItemGroups: YTConfigMenuItemGroup[] = [
   {
-    type: YTConfigMenuItemType.BUTTON,
-    key: 'soft-reload',
-    icon: YTRenderer.enums.IconType.REFRESH,
-    text: 'Soft reload',
-    commands: [{ signalAction: { signal: YTEndpoint.enums.SignalActionType.SOFT_RELOAD_PAGE } }]
+    key: 'general',
+    items: [
+      {
+        type: YTConfigMenuItemType.BUTTON,
+        key: 'soft-reload',
+        icon: YTRenderer.enums.IconType.REFRESH,
+        text: 'Soft reload',
+        commands: [{ signalAction: { signal: YTEndpoint.enums.SignalActionType.SOFT_RELOAD_PAGE } }]
+      }
+    ]
   }
 ]
 
@@ -64,13 +71,55 @@ const buildActionItemCommand = (item: Pick<YTConfigMenuActionItemBase<YTConfigMe
   ]
 
   return {
-    commandExecutorCommand: {
-      commands: commands.map(command => command.signalAction ? {
+    signalServiceEndpoint: {
+      signal: 'CLIENT_SIGNAL',
+      actions: commands
+    }
+  }
+}
+
+const buildMultiPageMenuItem = (
+  title: string,
+  icon: YTRenderer.enums.IconType | null,
+  sections: YTValueData<{ type: YTValueType.RENDERER }>[]
+): YTValueData<{ type: YTValueType.RENDERER }> => {
+  return {
+    compactLinkRenderer: {
+      icon: icon ? { iconType: icon } : undefined,
+      title: { simpleText: title },
+      secondaryIcon: { iconType: 'CHEVRON_RIGHT' },
+      serviceEndpoint: {
         signalServiceEndpoint: {
           signal: 'CLIENT_SIGNAL',
-          actions: [command]
+          actions: [{ getMultiPageMenuAction: { menu: buildMultiPageMenu(title, true, sections) } }]
         }
-      } : command)
+      }
+    }
+  }
+}
+
+const buildMultiPageMenu = (
+  title: string,
+  back: boolean,
+  sections: YTValueData<{ type: YTValueType.RENDERER }>[]
+): YTValueData<{ type: YTValueType.RENDERER }> => {
+  return {
+    multiPageMenuRenderer: {
+      header: {
+        simpleMenuHeaderRenderer: {
+          backButton: back ? {
+            buttonRenderer: {
+              accessibility: { label: 'Back' },
+              accessibilityData: { accessibilityData: { label: 'Back' } },
+              icon: { iconType: 'BACK' },
+              size: 'SIZE_DEFAULT'
+            }
+          } : undefined,
+          title: { simpleText: title }
+        }
+      },
+      sections,
+      style: 'MULTI_PAGE_MENU_STYLE_TYPE_SYSTEM'
     }
   }
 }
@@ -79,31 +128,52 @@ const renderConfigMenuItem = (isTV: boolean, item: YTConfigMenuItem): YTValueDat
   switch (item.type) {
     case YTConfigMenuItemType.BUTTON:
       return {
-        [isTV ? 'buttonRenderer' : 'menuServiceItemRenderer']: {
+        [isTV ? 'buttonRenderer' : 'compactLinkRenderer']: {
           icon: { iconType: item.icon },
           text: { simpleText: item.text },
+          title: { simpleText: item.text },
           serviceEndpoint: buildActionItemCommand(item)
         }
       }
     case YTConfigMenuItemType.TOGGLE: {
       const mask = item.mask ?? 1
+      const invert = item.invert ? 1 : 0
+      const state = getYTConfigBool(item.key, !!item.default, mask) !== !!invert
+      const actions = [
+        buildActionItemCommand({
+          commands: item.commands,
+          signals: [getSetterSignalActionType(item.key, -mask), ...item.signals ?? []]
+        }),
+        buildActionItemCommand({
+          commands: item.commands,
+          signals: [getSetterSignalActionType(item.key, mask), ...item.signals ?? []]
+        })
+      ]
 
-      return {
-        [isTV ? 'toggleButtonRenderer' : 'toggleMenuServiceItemRenderer']: {
-          defaultIcon: { iconType: item.disabledIcon },
-          defaultText: { simpleText: item.disabledText },
-          defaultServiceEndpoint: buildActionItemCommand({
-            commands: item.commands,
-            signals: [getSetterSignalActionType(item.key, mask), ...item.signals ?? []]
-          }),
-          toggledIcon: { iconType: item.enabledIcon },
-          toggledText: { simpleText: item.enabledText },
-          toggledServiceEndpoint: buildActionItemCommand({
-            commands: item.commands,
-            signals: [getSetterSignalActionType(item.key, -mask), ...item.signals ?? []]
-          }),
-          isToggled: getYTConfigBool(item.key, !!item.defaultValue, mask)
+      if (isTV) {
+        return {
+          toggleButtonRenderer: {
+            defaultIcon: { iconType: item.icon },
+            defaultText: { simpleText: `${item.text}: OFF` },
+            defaultServiceEndpoint: actions[1 ^ invert],
+            toggledIcon: { iconType: item.icon },
+            toggledText: { simpleText: `${item.text}: ON` },
+            toggledServiceEndpoint: actions[0 ^ invert],
+            isToggled: state
+          }
         }
+      } else {
+        return buildMultiPageMenuItem(`${item.text}: ${state ? 'ON' : 'OFF'}`, item.icon, [
+          {
+            toggleItemRenderer: {
+              label: { simpleText: item.text },
+              descriptionLines: item.description ? [{ simpleText: item.description }] : undefined,
+              toggleOnActions: [actions[1 ^ invert]],
+              toggleOffActions: [actions[0 ^ invert]],
+              toggled: state
+            }
+          }
+        ])
       }
     }
     default:
@@ -111,8 +181,14 @@ const renderConfigMenuItem = (isTV: boolean, item: YTConfigMenuItem): YTValueDat
   }
 }
 
-const renderConfigPopupButton = (isTV: boolean): YTValueData<{ type: YTValueType.RENDERER }> => {
-  const items = configMenuItems.map(renderConfigMenuItem.bind(null, isTV))
+const renderConfigMenuItemGroup = (isTV: boolean, group: YTConfigMenuItemGroup): YTValueData<{ type: YTValueType.RENDERER }>[] | YTValueData<{ type: YTValueType.RENDERER }> => {
+  const items = group.items.map(renderConfigMenuItem.bind(null, isTV))
+
+  return isTV ? items : buildMultiPageMenuItem(group.key, null, [{ multiPageMenuSectionRenderer: { items } }])
+}
+
+const renderConfigMenuButton = (isTV: boolean): YTValueData<{ type: YTValueType.RENDERER }> => {
+  const items = configItemGroups.flatMap(renderConfigMenuItemGroup.bind(null, isTV))
 
   return {
     buttonRenderer: {
@@ -142,11 +218,7 @@ const renderConfigPopupButton = (isTV: boolean): YTValueData<{ type: YTValueType
                 }
               }
             }
-          } : {
-            menuPopupRenderer: {
-              items
-            }
-          },
+          } : buildMultiPageMenu(CONFIG_MENU_TITLE, false, [{ multiPageMenuSectionRenderer: { items } }]),
           popupType: 'RESPONSIVE_DROPDOWN'
         }
       }
@@ -156,14 +228,14 @@ const renderConfigPopupButton = (isTV: boolean): YTValueData<{ type: YTValueType
 
 const updateDesktopTopbarRenderer = (data: YTValueData<YTRenderer.Mapped<'desktopTopbarRenderer'>>): boolean => {
   data.topbarButtons ??= []
-  data.topbarButtons.unshift(renderConfigPopupButton(false))
+  data.topbarButtons.unshift(renderConfigMenuButton(false))
 
   return true
 }
 
 const updateTvSurfaceContentRenderer = (data: YTValueData<YTRenderer.Mapped<'tvSurfaceContentRenderer'>>): boolean => {
   data.content?.sectionListRenderer?.contents?.unshift({
-    itemSectionRenderer: { contents: [renderConfigPopupButton(true)] }
+    itemSectionRenderer: { contents: [renderConfigMenuButton(true)] }
   })
 
   return true
@@ -176,7 +248,6 @@ export const getYTConfigBool = (key: string, defaultValue: boolean, mask = 1): b
 export const getYTConfigInt = (key: string, defaultValue: number): number => {
   let value = Number(configCacheMap.has(key) ? configCacheMap.get(key) : localStorage.getItem(`bu-${key}`) ?? defaultValue)
   if (isNaN(value)) value = defaultValue
-
   configCacheMap.set(key, value)
 
   return value
@@ -193,17 +264,25 @@ export const setYTConfigInt = (key: string, value: number): void => {
   configCacheMap.set(key, value)
 }
 
-export const registerYTConfigMenuItem = (item: YTConfigMenuItem): void => {
-  if (configMenuItems.some(i => i.key === item.key && (i as YTConfigMenuToggleItem).mask === (item as YTConfigMenuToggleItem).mask)) return
-
-  if (item.type === YTConfigMenuItemType.TOGGLE) {
-    const mask = item.mask ?? 1
-
-    registerYTSignalActionHandler(getSetterSignalActionType(item.key, -mask), setYTConfigBool.bind(null, item.key, false, mask))
-    registerYTSignalActionHandler(getSetterSignalActionType(item.key, mask), setYTConfigBool.bind(null, item.key, true, mask))
+export const registerYTConfigMenuItemGroup = (key: string, items: YTConfigMenuItem[]): void => {
+  let group = configItemGroups.find(g => g.key === key)
+  if (group == null) {
+    group = { key, items: [] }
+    configItemGroups.push(group)
   }
 
-  configMenuItems.push(item)
+  for (const item of items) {
+    if (group.items.some(i => i.key === item.key && (i as YTConfigMenuToggleItem).mask === (item as YTConfigMenuToggleItem).mask)) return
+
+    if (item.type === YTConfigMenuItemType.TOGGLE) {
+      const mask = item.mask ?? 1
+
+      registerYTSignalActionHandler(getSetterSignalActionType(item.key, -mask), setYTConfigBool.bind(null, item.key, false, mask))
+      registerYTSignalActionHandler(getSetterSignalActionType(item.key, mask), setYTConfigBool.bind(null, item.key, true, mask))
+    }
+  }
+
+  group.items.push(...items)
 }
 
 export default class YTCoreConfigModule extends Feature {

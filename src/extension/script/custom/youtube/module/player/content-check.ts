@@ -1,7 +1,7 @@
 import { registerYTValueProcessor } from '@ext/custom/youtube/api/processor'
 import { YTEndpoint, YTRenderer, YTResponse, YTValueData } from '@ext/custom/youtube/api/schema'
 import { dispatchYTSignalAction, registerYTSignalActionHandler } from '@ext/custom/youtube/module/core/command'
-import { getYTConfigBool, registerYTConfigMenuItem, YTConfigMenuItemType } from '@ext/custom/youtube/module/core/config'
+import { getYTConfigBool, registerYTConfigMenuItemGroup, YTConfigMenuItemType } from '@ext/custom/youtube/module/core/config'
 import { registerYTInnertubeRequestProcessor } from '@ext/custom/youtube/module/core/network'
 import { Feature } from '@ext/lib/feature'
 
@@ -92,15 +92,16 @@ export default class YTPlayerContentCheckModule extends Feature {
       setTimeout(() => dispatchYTSignalAction(YTEndpoint.enums.SignalActionType.PLAY_PLAYER), 1e3)
     })
 
-    registerYTConfigMenuItem({
-      type: YTConfigMenuItemType.TOGGLE,
-      key: CONTENT_CHECK_KEY,
-      disabledIcon: YTRenderer.enums.IconType.WARNING,
-      disabledText: 'Content Check: Default',
-      enabledIcon: YTRenderer.enums.IconType.WARNING,
-      enabledText: 'Content Check: Hide',
-      signals: [YTEndpoint.enums.SignalActionType.POPUP_BACK, YTEndpoint.enums.SignalActionType.SOFT_RELOAD_PAGE]
-    })
+    registerYTConfigMenuItemGroup('general', [
+      {
+        type: YTConfigMenuItemType.TOGGLE,
+        key: CONTENT_CHECK_KEY,
+        icon: YTRenderer.enums.IconType.WARNING,
+        text: 'Hide Content Check',
+        description: 'Hide basic age/content checks, usually only works when signed in',
+        signals: [YTEndpoint.enums.SignalActionType.POPUP_BACK, YTEndpoint.enums.SignalActionType.SOFT_RELOAD_PAGE]
+      }
+    ])
 
     return true
   }

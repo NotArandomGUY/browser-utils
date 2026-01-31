@@ -1,6 +1,6 @@
 import { registerYTValueProcessor } from '@ext/custom/youtube/api/processor'
 import { YTEndpoint, YTRenderer, YTResponse, YTValueData } from '@ext/custom/youtube/api/schema'
-import { CONFIG_TEXT_DISABLE, CONFIG_TEXT_ENABLE, getYTConfigBool, registerYTConfigMenuItem, YTConfigMenuItemType } from '@ext/custom/youtube/module/core/config'
+import { getYTConfigBool, registerYTConfigMenuItemGroup, YTConfigMenuItemType } from '@ext/custom/youtube/module/core/config'
 import { getYTPInstance, YTPInstanceType } from '@ext/custom/youtube/module/player/bootstrap'
 import { abs, max, min, round } from '@ext/global/math'
 import { defineProperty } from '@ext/global/object'
@@ -165,28 +165,26 @@ export default class YTPlayerLiveModule extends Feature {
   protected activate(): boolean {
     registerYTValueProcessor(YTResponse.mapped.player, updatePlayerResponse)
 
-    registerYTConfigMenuItem({
-      type: YTConfigMenuItemType.TOGGLE,
-      key: LIVE_BEHAVIOUR_KEY,
-      disabledIcon: YTRenderer.enums.IconType.CLOCK,
-      disabledText: `Live Low Latency: ${CONFIG_TEXT_DISABLE}`,
-      enabledIcon: YTRenderer.enums.IconType.CLOCK,
-      enabledText: `Live Low Latency: ${CONFIG_TEXT_ENABLE}`,
-      defaultValue: false,
-      mask: YTLiveBehaviourMask.LOW_LATENCY,
-      signals: [YTEndpoint.enums.SignalActionType.POPUP_BACK, YTEndpoint.enums.SignalActionType.SOFT_RELOAD_PAGE]
-    })
-    registerYTConfigMenuItem({
-      type: YTConfigMenuItemType.TOGGLE,
-      key: LIVE_BEHAVIOUR_KEY,
-      disabledIcon: YTRenderer.enums.IconType.CLOCK,
-      disabledText: `Live DVR: ${CONFIG_TEXT_DISABLE}`,
-      enabledIcon: YTRenderer.enums.IconType.CLOCK,
-      enabledText: `Live DVR: ${CONFIG_TEXT_ENABLE}`,
-      defaultValue: false,
-      mask: YTLiveBehaviourMask.FORCE_DVR,
-      signals: [YTEndpoint.enums.SignalActionType.POPUP_BACK, YTEndpoint.enums.SignalActionType.SOFT_RELOAD_PAGE]
-    })
+    registerYTConfigMenuItemGroup('livestream', [
+      {
+        type: YTConfigMenuItemType.TOGGLE,
+        key: LIVE_BEHAVIOUR_KEY,
+        icon: YTRenderer.enums.IconType.CLOCK,
+        text: 'Low Latency',
+        description: 'Actively adjust playback rate to achieve lowest possible latency based on buffer health',
+        mask: YTLiveBehaviourMask.LOW_LATENCY,
+        signals: [YTEndpoint.enums.SignalActionType.POPUP_BACK, YTEndpoint.enums.SignalActionType.SOFT_RELOAD_PAGE]
+      },
+      {
+        type: YTConfigMenuItemType.TOGGLE,
+        key: LIVE_BEHAVIOUR_KEY,
+        icon: YTRenderer.enums.IconType.CLOCK,
+        text: 'Force DVR',
+        description: 'Enable seeking for livestream even if it was disabled by the creator (might affect latency)',
+        mask: YTLiveBehaviourMask.FORCE_DVR,
+        signals: [YTEndpoint.enums.SignalActionType.POPUP_BACK, YTEndpoint.enums.SignalActionType.SOFT_RELOAD_PAGE]
+      }
+    ])
 
     return true
   }

@@ -1695,6 +1695,8 @@ export const multiMarkersPlayerBarRenderer = ytv_ren(() => ({
   })
 }))
 export const multiPageMenuRenderer = ytv_ren(() => ({
+  footer: ytv_ren(),
+  header: ytv_ren(),
   sections: ytv_arr(ytv_ren()),
   showLoadingSpinner: ytv_bol(),
   style: ytv_str(['MULTI_PAGE_MENU_STYLE_TYPE_ACCOUNT', 'MULTI_PAGE_MENU_STYLE_TYPE_CREATION', 'MULTI_PAGE_MENU_STYLE_TYPE_NOTIFICATIONS', 'MULTI_PAGE_MENU_STYLE_TYPE_SYSTEM'])
@@ -2424,6 +2426,10 @@ export const simpleCardTeaserRenderer = ytv_ren(() => ({
   onTapCommand: ytv_enp(),
   prominent: ytv_bol()
 }))
+export const simpleMenuHeaderRenderer = ytv_ren(() => ({
+  backButton: ytv_ren(),
+  title: components.text
+}))
 export const singleOptionSurveyOptionRenderer = ytv_ren(() => ({
   enumName: ytv_str(),
   option: components.text,
@@ -2643,6 +2649,13 @@ export const toggleButtonRenderer = ytv_ren(() => ({
   toggledStyle: components.style,
   toggledText: components.text,
   toggledTooltip: ytv_str()
+}))
+export const toggleItemRenderer = ytv_ren(() => ({
+  descriptionLines: ytv_arr(components.text),
+  label: components.text,
+  toggleOnActions: ytv_arr(ytv_enp()),
+  toggleOffActions: ytv_arr(ytv_enp()),
+  toggled: ytv_bol()
 }))
 export const toggleMenuServiceItemRenderer = ytv_ren(() => ({
   defaultIcon: components.icon,

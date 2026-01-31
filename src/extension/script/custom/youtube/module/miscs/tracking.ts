@@ -1,7 +1,7 @@
 import { registerYTValueProcessor } from '@ext/custom/youtube/api/processor'
 import { YTEndpoint, YTRenderer, YTResponse, ytv_enp, ytv_ren, YTValueData, YTValueType } from '@ext/custom/youtube/api/schema'
 import { isYTLoggedIn, YTPlayerWebPlayerContextConfig } from '@ext/custom/youtube/module/core/bootstrap'
-import { CONFIG_TEXT_DISABLE, CONFIG_TEXT_ENABLE, getYTConfigBool, getYTConfigInt, registerYTConfigMenuItem, setYTConfigInt, YTConfigMenuItemType } from '@ext/custom/youtube/module/core/config'
+import { getYTConfigBool, getYTConfigInt, registerYTConfigMenuItemGroup, setYTConfigInt, YTConfigMenuItemType } from '@ext/custom/youtube/module/core/config'
 import { registerYTInnertubeRequestProcessor } from '@ext/custom/youtube/module/core/network'
 import { YTPlayerContextConfigCallback } from '@ext/custom/youtube/module/player/bootstrap'
 import { encodeTrackingParam } from '@ext/custom/youtube/utils/crypto'
@@ -315,36 +315,32 @@ export default class YTMiscsTrackingModule extends Feature {
       if (FORBID_PATH_REGEXP.test(pathname) || FAKE_200_PATH_REGEXP.test(pathname) || FAKE_204_PATH_REGEXP.test(pathname)) preventDispatchEvent(event)
     })
 
-    registerYTConfigMenuItem({
-      type: YTConfigMenuItemType.TOGGLE,
-      key: TRACKING_SWITCHES_KEY,
-      disabledIcon: YTRenderer.enums.IconType.PRIVACY_PRIVATE,
-      disabledText: `Guest Watch History: ${CONFIG_TEXT_DISABLE}`,
-      enabledIcon: YTRenderer.enums.IconType.PRIVACY_PUBLIC,
-      enabledText: `Guest Watch History: ${CONFIG_TEXT_ENABLE}`,
-      mask: YTTrackingSwitchMask.GUEST_STATS,
-      signals: [YTEndpoint.enums.SignalActionType.POPUP_BACK, YTEndpoint.enums.SignalActionType.SOFT_RELOAD_PAGE]
-    })
-    registerYTConfigMenuItem({
-      type: YTConfigMenuItemType.TOGGLE,
-      key: TRACKING_SWITCHES_KEY,
-      disabledIcon: YTRenderer.enums.IconType.PRIVACY_PRIVATE,
-      disabledText: `Login Watch History: ${CONFIG_TEXT_DISABLE}`,
-      enabledIcon: YTRenderer.enums.IconType.PRIVACY_PUBLIC,
-      enabledText: `Login Watch History: ${CONFIG_TEXT_ENABLE}`,
-      mask: YTTrackingSwitchMask.LOGIN_STATS,
-      signals: [YTEndpoint.enums.SignalActionType.POPUP_BACK, YTEndpoint.enums.SignalActionType.SOFT_RELOAD_PAGE]
-    })
-    registerYTConfigMenuItem({
-      type: YTConfigMenuItemType.TOGGLE,
-      key: TRACKING_SWITCHES_KEY,
-      disabledIcon: YTRenderer.enums.IconType.PRIVACY_PRIVATE,
-      disabledText: `Share ID: ${CONFIG_TEXT_DISABLE}`,
-      enabledIcon: YTRenderer.enums.IconType.PRIVACY_PUBLIC,
-      enabledText: `Share ID: ${CONFIG_TEXT_ENABLE}`,
-      mask: YTTrackingSwitchMask.SHARE_ID,
-      signals: [YTEndpoint.enums.SignalActionType.POPUP_BACK, YTEndpoint.enums.SignalActionType.SOFT_RELOAD_PAGE]
-    })
+    registerYTConfigMenuItemGroup('privacy', [
+      {
+        type: YTConfigMenuItemType.TOGGLE,
+        key: TRACKING_SWITCHES_KEY,
+        icon: YTRenderer.enums.IconType.PRIVACY_PUBLIC,
+        text: 'Guest Watch History',
+        mask: YTTrackingSwitchMask.GUEST_STATS,
+        signals: [YTEndpoint.enums.SignalActionType.POPUP_BACK, YTEndpoint.enums.SignalActionType.SOFT_RELOAD_PAGE]
+      },
+      {
+        type: YTConfigMenuItemType.TOGGLE,
+        key: TRACKING_SWITCHES_KEY,
+        icon: YTRenderer.enums.IconType.PRIVACY_PRIVATE,
+        text: 'Login Watch History',
+        mask: YTTrackingSwitchMask.LOGIN_STATS,
+        signals: [YTEndpoint.enums.SignalActionType.POPUP_BACK, YTEndpoint.enums.SignalActionType.SOFT_RELOAD_PAGE]
+      },
+      {
+        type: YTConfigMenuItemType.TOGGLE,
+        key: TRACKING_SWITCHES_KEY,
+        icon: YTRenderer.enums.IconType.SHARE_ARROW,
+        text: 'Share ID',
+        mask: YTTrackingSwitchMask.SHARE_ID,
+        signals: [YTEndpoint.enums.SignalActionType.POPUP_BACK, YTEndpoint.enums.SignalActionType.SOFT_RELOAD_PAGE]
+      }
+    ])
 
     // Default only enable login stats
     if (getYTConfigInt(TRACKING_SWITCHES_KEY, -1) < 0) setYTConfigInt(TRACKING_SWITCHES_KEY, YTTrackingSwitchMask.LOGIN_STATS)

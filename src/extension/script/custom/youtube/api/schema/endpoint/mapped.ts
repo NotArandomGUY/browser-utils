@@ -37,6 +37,9 @@ export const changeEngagementPanelVisibilityAction = ytv_enp(() => ({
   targetId: ytv_str(),
   visibility: ytv_str(renderer.enums.EngagementPanelVisibility)
 }))
+export const getMultiPageMenuAction = ytv_enp(() => ({
+  menu: ytv_ren()
+}))
 export const hideEngagementPanelScrimAction = ytv_enp(() => ({
   engagementPanelTargetId: ytv_str()
 }))
