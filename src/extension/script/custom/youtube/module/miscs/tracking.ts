@@ -159,6 +159,12 @@ const updateLoggingDirectives = (data: YTValueData<YTRenderer.Component<'logging
   return true
 }
 
+const updateChannelMetadataRenderer = (data: YTValueData<YTRenderer.Mapped<'channelMetadataRenderer'>>): boolean => {
+  delete data.channelConversionUrl
+
+  return true
+}
+
 const updateCopyLinkRenderer = (data: YTValueData<YTRenderer.Mapped<'copyLinkRenderer'>>): boolean => {
   const { shortUrl } = data
 
@@ -241,6 +247,7 @@ export default class YTMiscsTrackingModule extends Feature {
     registerYTValueProcessor(ytv_enp(), updateEndpoint)
     registerYTValueProcessor(ytv_ren(), updateRenderer)
     registerYTValueProcessor(YTRenderer.components.loggingDirectives, updateLoggingDirectives)
+    registerYTValueProcessor(YTRenderer.mapped.channelMetadataRenderer, updateChannelMetadataRenderer)
     registerYTValueProcessor(YTRenderer.mapped.copyLinkRenderer, updateCopyLinkRenderer)
     registerYTValueProcessor(YTRenderer.mapped.feedNudgeRenderer, updateFeedNudgeRenderer)
     registerYTValueProcessor(YTRenderer.mapped.shareTargetRenderer, updateShareTargetRenderer)

@@ -421,6 +421,7 @@ export const channelMetadataRenderer = ytv_ren(() => ({
   androidDeepLink: ytv_str(),
   availableCountryCodes: ytv_arr(ytv_str()),
   avatar: components.thumbnail,
+  channelConversionUrl: ytv_str(),
   channelUrl: ytv_str(),
   description: ytv_str(),
   externalId: ytv_str(),
