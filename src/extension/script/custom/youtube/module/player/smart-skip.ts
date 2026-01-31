@@ -336,13 +336,11 @@ const fetchSegmentEntries = async (videoId: string | null): Promise<SkipSegmentE
   }
 }
 
-const updatePlayerOverlayRenderer = (data: YTValueData<YTRenderer.Mapped<'playerOverlayRenderer'>>): boolean => {
+const updatePlayerOverlayRenderer = (data: YTValueData<YTRenderer.Mapped<'playerOverlayRenderer'>>): void => {
   data.timelyActionsOverlayViewModel ??= { timelyActionsOverlayViewModel: {} }
-
-  return true
 }
 
-const updateTimelyActionsOverlayViewModel = async (data: YTValueData<YTRenderer.Mapped<'timelyActionsOverlayViewModel'>>): Promise<boolean> => {
+const updateTimelyActionsOverlayViewModel = async (data: YTValueData<YTRenderer.Mapped<'timelyActionsOverlayViewModel'>>): Promise<void> => {
   const entries = await fetchSegmentEntries(lastLoadedVideoId)
 
   let timelyActions = data.timelyActions
@@ -356,19 +354,15 @@ const updateTimelyActionsOverlayViewModel = async (data: YTValueData<YTRenderer.
   }
 
   if (state != null) state.val = entries
-
-  return true
 }
 
-const processPlayerResponse = async (data: YTValueData<YTResponse.Mapped<'player'>>): Promise<boolean> => {
+const processPlayerResponse = async (data: YTValueData<YTResponse.Mapped<'player'>>): Promise<void> => {
   lastLoadedVideoId = data.videoDetails?.videoId ?? null
 
   await fetchSegmentEntries(lastLoadedVideoId)
-
-  return true
 }
 
-const updateNextResponse = async (data: YTValueData<YTResponse.Mapped<'next'>>): Promise<boolean> => {
+const updateNextResponse = async (data: YTValueData<YTResponse.Mapped<'next'>>): Promise<void> => {
   const entries = await fetchSegmentEntries(lastLoadedVideoId)
 
   data.frameworkUpdates ??= {}
@@ -392,8 +386,6 @@ const updateNextResponse = async (data: YTValueData<YTResponse.Mapped<'next'>>):
     data.onResponseReceivedEndpoints ??= []
     data.onResponseReceivedEndpoints.push({ loadMarkersCommand: { entityKeys } })
   }
-
-  return true
 }
 
 export default class YTPlayerSmartSkipModule extends Feature {

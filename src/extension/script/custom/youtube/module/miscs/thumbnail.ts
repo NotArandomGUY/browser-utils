@@ -47,14 +47,12 @@ const updateThumbnails = async (data?: YTValueData<YTRenderer.Component<'thumbna
   }
 }
 
-const updateSetAppBackgroundCommand = async (data: YTValueData<YTEndpoint.Mapped<'setAppBackgroundCommand'>>): Promise<boolean> => {
+const updateSetAppBackgroundCommand = async (data: YTValueData<YTEndpoint.Mapped<'setAppBackgroundCommand'>>): Promise<void> => {
   await updateThumbnails(data.image)
-  return true
 }
 
-const updateLiveStreamOfflineSlateRenderer = async (data: YTValueData<YTRenderer.Mapped<'liveStreamOfflineSlateRenderer'>>): Promise<boolean> => {
+const updateLiveStreamOfflineSlateRenderer = async (data: YTValueData<YTRenderer.Mapped<'liveStreamOfflineSlateRenderer'>>): Promise<void> => {
   await updateThumbnails(data.thumbnail)
-  return true
 }
 
 export default class YTMiscsThumbnailModule extends Feature {

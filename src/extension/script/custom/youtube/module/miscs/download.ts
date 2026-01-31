@@ -345,41 +345,35 @@ const processRequest = async (ctx: NetworkRequestContext): Promise<void> => {
   }
 }
 
-const processPlaylistVideoListRenderer = (data: YTValueData<YTRenderer.Mapped<'playlistVideoListRenderer'>>): boolean => {
+const processPlaylistVideoListRenderer = (data: YTValueData<YTRenderer.Mapped<'playlistVideoListRenderer'>>): void => {
   const { contents, playlistId } = data
 
-  if (playlistId != null && fetchingPlaylistInfo?.playlistId === playlistId) {
-    fetchingPlaylistInfo.videoIds ??= []
-    fetchingPlaylistInfo.videoIds.push(...contents?.map(({ playlistVideoRenderer }) => {
-      const channelId = playlistVideoRenderer?.shortBylineText?.runs?.[0]?.navigationEndpoint?.browseEndpoint?.browseId
-      if (channelId != null && fetchingPlaylistInfo != null) fetchingPlaylistInfo.channelId ??= channelId
+  if (playlistId == null || fetchingPlaylistInfo?.playlistId !== playlistId) return
 
-      return playlistVideoRenderer?.videoId
-    }).filter(videoId => videoId != null) ?? [])
-  }
+  fetchingPlaylistInfo.videoIds ??= []
+  fetchingPlaylistInfo.videoIds.push(...contents?.map(({ playlistVideoRenderer }) => {
+    const channelId = playlistVideoRenderer?.shortBylineText?.runs?.[0]?.navigationEndpoint?.browseEndpoint?.browseId
+    if (channelId != null && fetchingPlaylistInfo != null) fetchingPlaylistInfo.channelId ??= channelId
 
-  return true
+    return playlistVideoRenderer?.videoId
+  }).filter(videoId => videoId != null) ?? [])
 }
 
-const processTopbarLogoRenderer = (data: YTValueData<YTRenderer.Mapped<'topbarLogoRenderer'>>): boolean => {
+const processTopbarLogoRenderer = (data: YTValueData<YTRenderer.Mapped<'topbarLogoRenderer'>>): void => {
   isPremium = data.iconImage?.iconType === 'YOUTUBE_PREMIUM_LOGO'
-
-  return true
 }
 
-const processVideoOwnerRenderer = (data: YTValueData<YTRenderer.Mapped<'videoOwnerRenderer'>>): boolean => {
+const processVideoOwnerRenderer = (data: YTValueData<YTRenderer.Mapped<'videoOwnerRenderer'>>): void => {
   const channelId = data.navigationEndpoint?.browseEndpoint?.browseId
   if (channelId != null && fetchingPlaylistInfo != null) fetchingPlaylistInfo.channelId = channelId
-
-  return true
 }
 
-const updateVideoPrimaryInfoRenderer = (data: YTValueData<YTRenderer.Mapped<'videoPrimaryInfoRenderer'>>): boolean => {
+const updateVideoPrimaryInfoRenderer = (data: YTValueData<YTRenderer.Mapped<'videoPrimaryInfoRenderer'>>): void => {
   const items = data.videoActions?.menuRenderer?.flexibleItems
-  if (!Array.isArray(items) || downloadButtonContext == null) return true
+  if (!Array.isArray(items) || downloadButtonContext == null) return
 
   let item = items.find(item => item.menuFlexibleItemRenderer?.topLevelButton?.downloadButtonRenderer != null)
-  if (item != null) return true
+  if (item != null) return
 
   const { videoId, entityKey } = downloadButtonContext
 
@@ -410,11 +404,9 @@ const updateVideoPrimaryInfoRenderer = (data: YTValueData<YTRenderer.Mapped<'vid
       }
     }
   })
-
-  return true
 }
 
-const updatePlayerResponse = (data: YTValueData<YTResponse.Mapped<'player'>>): boolean => {
+const updatePlayerResponse = (data: YTValueData<YTResponse.Mapped<'player'>>): void => {
   const { frameworkUpdates, playabilityStatus, videoDetails } = data
 
   if (downloadButtonContext != null) {
@@ -423,27 +415,25 @@ const updatePlayerResponse = (data: YTValueData<YTResponse.Mapped<'player'>>): b
   }
 
   const videoId = videoDetails?.videoId
-  if (playabilityStatus?.status !== 'OK' || videoId == null) return true
+  if (videoId == null || playabilityStatus?.status !== 'OK' || videoDetails?.isLive) return
 
   const mutations = frameworkUpdates?.entityBatchUpdate?.mutations
-  if (!videoDetails?.isLive && Array.isArray(mutations)) {
-    const entity = mutations.map(mutation => mutation.payload?.offlineabilityEntity).find(entity => entity != null)
-    if (entity?.key == null || entity.offlineabilityRenderer != null) return true
+  if (!Array.isArray(mutations)) return
 
-    downloadButtonContext = {
-      videoId,
-      entityKey: entity.key
-    }
-    forceDownloadVideoIds.add(videoId)
+  const entity = mutations.map(mutation => mutation.payload?.offlineabilityEntity).find(entity => entity != null)
+  if (entity?.key == null || entity.offlineabilityRenderer != null) return
 
-    entity.addToOfflineButtonState = YTRenderer.enums.AddToOfflineButtonState.ADD_TO_OFFLINE_BUTTON_STATE_ENABLED
-    entity.offlineable = true
-    entity.contentCheckOk = true
-    entity.racyCheckOk = true
-    delete entity.command
+  downloadButtonContext = {
+    videoId,
+    entityKey: entity.key
   }
+  forceDownloadVideoIds.add(videoId)
 
-  return true
+  entity.addToOfflineButtonState = YTRenderer.enums.AddToOfflineButtonState.ADD_TO_OFFLINE_BUTTON_STATE_ENABLED
+  entity.offlineable = true
+  entity.contentCheckOk = true
+  entity.racyCheckOk = true
+  delete entity.command
 }
 
 export const markYTForceDownloadVideo = (videoId: string): void => {

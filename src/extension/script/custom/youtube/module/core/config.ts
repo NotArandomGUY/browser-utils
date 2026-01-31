@@ -226,19 +226,15 @@ const renderConfigMenuButton = (isTV: boolean): YTValueData<{ type: YTValueType.
   }
 }
 
-const updateDesktopTopbarRenderer = (data: YTValueData<YTRenderer.Mapped<'desktopTopbarRenderer'>>): boolean => {
+const updateDesktopTopbarRenderer = (data: YTValueData<YTRenderer.Mapped<'desktopTopbarRenderer'>>): void => {
   data.topbarButtons ??= []
   data.topbarButtons.unshift(renderConfigMenuButton(false))
-
-  return true
 }
 
-const updateTvSurfaceContentRenderer = (data: YTValueData<YTRenderer.Mapped<'tvSurfaceContentRenderer'>>): boolean => {
+const updateTvSurfaceContentRenderer = (data: YTValueData<YTRenderer.Mapped<'tvSurfaceContentRenderer'>>): void => {
   data.content?.sectionListRenderer?.contents?.unshift({
     itemSectionRenderer: { contents: [renderConfigMenuButton(true)] }
   })
-
-  return true
 }
 
 export const getYTConfigBool = (key: string, defaultValue: boolean, mask = 1): boolean => {

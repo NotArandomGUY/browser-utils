@@ -35,21 +35,19 @@ const filterGuideEntry = (data: YTValueData<YTRenderer.Mapped<'guideEntryRendere
   return isYTLoggedIn() || !['FEhistory', 'FElibrary', 'FEsubscriptions', 'SPaccount_overview', 'SPreport_history'].includes(browseId)
 }
 
-const updateGuideResponse = (data: YTValueData<YTResponse.Mapped<'guide'>>): boolean => {
+const updateGuideResponse = (data: YTValueData<YTResponse.Mapped<'guide'>>): void => {
   const { responseContext } = data
-
-  if (isYTLoggedIn()) {
-    const maxAgeSec = responseContext?.maxAgeSeconds ?? 0
-    const nextIntervalSec = (REFRESH_INTERVAL_SEC - ((floor(Date.now() / 1e3) - REFRESH_OFFSET_SEC) % REFRESH_INTERVAL_SEC))
-    const nextRefreshSec = max(MIN_REFRESH_SEC, min(maxAgeSec, nextIntervalSec))
-
-    if (refreshTimer != null) clearTimeout(refreshTimer)
-    refreshTimer = setTimeout(reloadYTGuide, nextRefreshSec * 1e3)
-  }
 
   delete responseContext?.maxAgeSeconds
 
-  return true
+  if (!isYTLoggedIn()) return
+
+  const maxAgeSec = responseContext?.maxAgeSeconds ?? 0
+  const nextIntervalSec = (REFRESH_INTERVAL_SEC - ((floor(Date.now() / 1e3) - REFRESH_OFFSET_SEC) % REFRESH_INTERVAL_SEC))
+  const nextRefreshSec = max(MIN_REFRESH_SEC, min(maxAgeSec, nextIntervalSec))
+
+  if (refreshTimer != null) clearTimeout(refreshTimer)
+  refreshTimer = setTimeout(reloadYTGuide, nextRefreshSec * 1e3)
 }
 
 export const reloadYTGuide = async (): Promise<void> => {

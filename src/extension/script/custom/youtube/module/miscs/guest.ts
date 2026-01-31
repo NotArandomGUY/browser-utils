@@ -3,16 +3,12 @@ import { YTRenderer, YTValueData } from '@ext/custom/youtube/api/schema'
 import { isYTLoggedIn } from '@ext/custom/youtube/module/core/bootstrap'
 import { Feature } from '@ext/lib/feature'
 
-const updateChannelRenderer = (data: YTValueData<YTRenderer.Mapped<'channelRenderer' | 'gridChannelRenderer'>>): boolean => {
+const updateChannelRenderer = (data: YTValueData<YTRenderer.Mapped<'channelRenderer' | 'gridChannelRenderer'>>): void => {
   if (!isYTLoggedIn()) delete data.subscribeButton
-
-  return true
 }
 
-const updateVideoOwnerRenderer = (data: YTValueData<YTRenderer.Mapped<'videoOwnerRenderer'>>): boolean => {
+const updateVideoOwnerRenderer = (data: YTValueData<YTRenderer.Mapped<'videoOwnerRenderer'>>): void => {
   if (!isYTLoggedIn()) delete data.membershipButton
-
-  return true
 }
 
 const filterMenuFlexibleItem = (data: YTValueData<YTRenderer.Mapped<'menuFlexibleItemRenderer'>>): boolean => {

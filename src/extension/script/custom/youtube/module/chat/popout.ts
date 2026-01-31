@@ -96,7 +96,7 @@ class MainAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, Cha
         const continuation = isReplay ? continuations?.map(c => c.reloadContinuationData).find(c => c != null)?.continuation : null
         if (continuation === undefined) {
           logger.warn('missing continuation for live chat replay')
-          return true
+          return
         }
 
         this.liveChatVideoId_ = videoId_
@@ -111,16 +111,12 @@ class MainAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, Cha
 
       // Collapse chat if popout window is available
       data.initialDisplayState = (Date.now() - lastIdlePopoutAnnounce_) <= COLLAPSED_CHAT_TIMEOUT ? 'LIVE_CHAT_DISPLAY_STATE_COLLAPSED' : 'LIVE_CHAT_DISPLAY_STATE_EXPANDED'
-
-      return true
     })
     registerYTValueProcessor(YTResponse.mapped.player, data => {
       const videoId = data.videoDetails?.videoId ?? null
       if (videoId !== this.liveChatVideoId_) onPlayerUnload()
 
       this.videoId_ = videoId
-
-      return true
     })
 
     setInterval(this.update_.bind(this), 5e3)
@@ -230,17 +226,15 @@ class ChatAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, Cha
     registerYTValueProcessor(YTResponse.mapped.liveChatGetLiveChat, data => {
       const { videoId_, state_ } = this
 
-      if (state_ & ChatPopoutState.MASK_LOCK) {
-        const continuations = data.continuationContents?.liveChatContinuation?.continuations
-        if (continuations != null && continuations.length > 0) {
-          this.lock('live_chat_update')
-        } else {
-          this.unlock('live_chat_end')
-          this.send(ChatPopoutMessageType.TOAST_MESSAGE, { text: `Popout live chat '${videoId_}' ended` })
-        }
-      }
+      if (!(state_ & ChatPopoutState.MASK_LOCK)) return
 
-      return true
+      const continuations = data.continuationContents?.liveChatContinuation?.continuations
+      if (continuations != null && continuations.length > 0) {
+        this.lock('live_chat_update')
+      } else {
+        this.unlock('live_chat_end')
+        this.send(ChatPopoutMessageType.TOAST_MESSAGE, { text: `Popout live chat '${videoId_}' ended` })
+      }
     })
 
     setInterval(this.update.bind(this), 5e3)

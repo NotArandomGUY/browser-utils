@@ -4,7 +4,8 @@ import Logger from '@ext/lib/logger'
 
 const logger = new Logger('YTAPI-PROCESSOR')
 
-export type YTValueProcessor<S extends YTValueSchema = YTValueSchema> = (data: YTValueData<S>, schema: S, parent: YTValueParent<S>) => Promise<boolean> | boolean
+export type YTValueFilter<S extends YTValueSchema = YTValueSchema> = (data: YTValueData<S>, schema: S, parent: YTValueParent<S>) => boolean
+export type YTValueProcessor<S extends YTValueSchema = YTValueSchema> = (data: YTValueData<S>, schema: S, parent: YTValueParent<S>) => Promise<void> | void
 
 export const enum YTValueProcessorType {
   PRE = 0,
@@ -18,6 +19,7 @@ type TypeOf<T = void> = T extends void ? {
   'string': string
 } : T extends keyof TypeOf ? TypeOf[T] : never
 
+const filterMap = new Map<YTValueSchema, [pre: Array<YTValueFilter>, post: Array<YTValueFilter>]>()
 const processorMap = new Map<YTValueSchema, [pre: Array<YTValueProcessor>, post: Array<YTValueProcessor>]>()
 
 class DeleteChildError extends Error {
@@ -64,12 +66,10 @@ function filterYTValueProcessor<S extends YTValueSchema>(filter: (data: YTValueD
 }
 
 async function invokeYTValueProcessor<S extends YTValueSchema>(data: YTValueData<S>, schema: S, parent: YTValueParent<S>, type = YTValueProcessorType.PRE): Promise<boolean> {
-  const processors = processorMap.get(schema)?.[type]
-  if (processors == null) return true
+  if (filterMap.get(schema)?.[type].some(filter => !filter(data, schema, parent))) return false
 
-  for (const processor of processors) {
-    if (!await processor(data, schema, parent)) return false
-  }
+  const processors = processorMap.get(schema)?.[type]
+  if (processors != null) await Promise.all(processors.map(processor => Promise.resolve(processor(data, schema, parent))))
 
   return true
 }
@@ -136,8 +136,13 @@ export function registerYTValueProcessor<S extends YTValueSchema>(schema: S, pro
   pair[type]?.push(processor as YTValueProcessor)
 }
 
-export function registerYTValueFilter<S extends YTValueSchema>(schema: S, filter?: ((data: YTValueData<S>) => boolean) | null, type?: YTValueProcessorType): void {
-  registerYTValueProcessor<S>(schema, filter == null ? deleteYTValueProcessor<S> : filterYTValueProcessor.bind(null, filter as (data: YTValueData) => boolean), type)
+export function registerYTValueFilter<S extends YTValueSchema>(schema: S, filter?: ((data: YTValueData<S>) => boolean) | null, type = YTValueProcessorType.PRE): void {
+  let pair = filterMap.get(schema)
+  if (pair == null) {
+    pair = [[], []]
+    filterMap.set(schema, pair)
+  }
+  pair[type]?.push((filter == null ? deleteYTValueProcessor<S> : filterYTValueProcessor.bind(null, filter as (data: YTValueData) => boolean)) as YTValueFilter)
 }
 
 export async function processYTValue(schema: YTValueSchema, value: unknown, parent: YTValueParent<typeof schema>): Promise<boolean> { // NOSONAR

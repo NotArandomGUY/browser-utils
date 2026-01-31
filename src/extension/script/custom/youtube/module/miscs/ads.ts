@@ -12,10 +12,8 @@ const logger = new Logger('YTMISCS-ADS')
 
 let isFetchApiAds = false
 
-const updateNextResponse = (data: YTValueData<YTResponse.Mapped<'next'>>): boolean => {
+const updateNextResponse = (data: YTValueData<YTResponse.Mapped<'next'>>): void => {
   delete data.adEngagementPanels
-
-  return true
 }
 
 const filterReel = (data: YTValueData<YTEndpoint.Mapped<'reelWatchEndpoint'>>): boolean => {

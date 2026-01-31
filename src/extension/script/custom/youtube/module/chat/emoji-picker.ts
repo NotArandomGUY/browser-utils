@@ -1,31 +1,11 @@
-import { registerYTValueProcessor, YTValueProcessorType } from '@ext/custom/youtube/api/processor'
+import { registerYTValueFilter, registerYTValueProcessor, YTValueProcessorType } from '@ext/custom/youtube/api/processor'
 import { YTRenderer, YTValueData } from '@ext/custom/youtube/api/schema'
 import { Feature } from '@ext/lib/feature'
 
 const titleCache = new Map<string, YTValueData<YTRenderer.Component<'text'>>>()
 const emojiCache = new Map<string, YTValueData<YTRenderer.Component<'emoji'>>[]>()
 
-const updateEmojiPickerRenderer = (data: YTValueData<YTRenderer.Mapped<'emojiPickerRenderer'>>): boolean => {
-  const { categories } = data
-
-  if (Array.isArray(categories)) {
-    for (const [categoryId, emojis] of emojiCache) {
-      if (categories.some(({ emojiPickerCategoryRenderer }) => emojiPickerCategoryRenderer?.categoryId === categoryId)) continue
-
-      categories.unshift({
-        emojiPickerCategoryRenderer: {
-          categoryId,
-          emojiIds: emojis.map(({ emojiId }) => emojiId).filter(emojiId => emojiId != null),
-          title: titleCache.get(categoryId) ?? { simpleText: 'Custom emojis' }
-        }
-      })
-    }
-  }
-
-  return true
-}
-
-const updateEmojiPickerUpsellCategoryRenderer = (data: YTValueData<YTRenderer.Mapped<'emojiPickerUpsellCategoryRenderer'>>): boolean => {
+const filterEmojiPickerUpsellCategoryRenderer = (data: YTValueData<YTRenderer.Mapped<'emojiPickerUpsellCategoryRenderer'>>): boolean => {
   const { categoryId, title } = data
 
   if (categoryId != null && title != null) {
@@ -35,7 +15,25 @@ const updateEmojiPickerUpsellCategoryRenderer = (data: YTValueData<YTRenderer.Ma
   return false
 }
 
-const updateLiveChatRenderer = (data: YTValueData<YTRenderer.Mapped<'liveChatRenderer'>>): boolean => {
+const updateEmojiPickerRenderer = (data: YTValueData<YTRenderer.Mapped<'emojiPickerRenderer'>>): void => {
+  const { categories } = data
+
+  if (!Array.isArray(categories)) return
+
+  for (const [categoryId, emojis] of emojiCache) {
+    if (categories.some(({ emojiPickerCategoryRenderer }) => emojiPickerCategoryRenderer?.categoryId === categoryId)) continue
+
+    categories.unshift({
+      emojiPickerCategoryRenderer: {
+        categoryId,
+        emojiIds: emojis.map(({ emojiId }) => emojiId).filter(emojiId => emojiId != null),
+        title: titleCache.get(categoryId) ?? { simpleText: 'Custom emojis' }
+      }
+    })
+  }
+}
+
+const updateLiveChatRenderer = (data: YTValueData<YTRenderer.Mapped<'liveChatRenderer'>>): void => {
   titleCache.clear()
   emojiCache.clear()
 
@@ -52,8 +50,6 @@ const updateLiveChatRenderer = (data: YTValueData<YTRenderer.Mapped<'liveChatRen
 
     delete emoji.isLocked
   })
-
-  return true
 }
 
 export default class YTChatEmojiPickerModule extends Feature {
@@ -62,7 +58,7 @@ export default class YTChatEmojiPickerModule extends Feature {
   }
 
   protected activate(): boolean {
-    registerYTValueProcessor(YTRenderer.mapped.emojiPickerUpsellCategoryRenderer, updateEmojiPickerUpsellCategoryRenderer)
+    registerYTValueFilter(YTRenderer.mapped.emojiPickerUpsellCategoryRenderer, filterEmojiPickerUpsellCategoryRenderer)
     registerYTValueProcessor(YTRenderer.mapped.liveChatRenderer, updateLiveChatRenderer)
     registerYTValueProcessor(YTRenderer.mapped.emojiPickerRenderer, updateEmojiPickerRenderer, YTValueProcessorType.POST)
 

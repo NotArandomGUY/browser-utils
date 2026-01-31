@@ -139,9 +139,9 @@ const matchReduxMethod = (kevlar: Record<string, unknown>, name: string, fn: Fun
   }
 }
 
-const updateEntityUpdateCommand = (data: YTValueData<YTEndpoint.Mapped<'entityUpdateCommand'>>): boolean => {
+const updateEntityUpdateCommand = (data: YTValueData<YTEndpoint.Mapped<'entityUpdateCommand'>>): void => {
   const mutations = data.entityBatchUpdate?.mutations
-  if (!Array.isArray(mutations)) return true
+  if (!Array.isArray(mutations)) return
 
   for (const mutation of mutations) {
     const policy = mutation?.payload?.offlineVideoPolicy
@@ -150,19 +150,15 @@ const updateEntityUpdateCommand = (data: YTValueData<YTEndpoint.Mapped<'entityUp
     policy.expirationTimestamp = 'Infinity'
     policy.lastUpdatedTimestampSeconds = 'Infinity'
   }
-
-  return true
 }
 
-const updatePlayerResponse = async (data: YTValueData<YTResponse.Mapped<'player'>>): Promise<boolean> => {
+const updatePlayerResponse = async (data: YTValueData<YTResponse.Mapped<'player'>>): Promise<void> => {
   const videoId = data.videoDetails?.videoId
-  if (videoId == null) return true
+  if (videoId == null) return
 
   const index = await getYTLocalMediaIndex(videoId, YTLocalMediaType.VIDEO)
   const quality = YTCommon.enums.MediaFormatVideoQuality[index?.format?.quality as keyof typeof YTCommon.enums.MediaFormatVideoQuality]
   if (quality != null && quality > YTCommon.enums.MediaFormatVideoQuality.large) data.cotn = getNonce(16)
-
-  return true
 }
 
 export default class YTPlayerOfflineModule extends Feature {

@@ -130,109 +130,85 @@ const processRequest = async (ctx: NetworkRequestContext): Promise<void> => {
   await replaceRequest(ctx, { url })
 }
 
-const updateEndpoint = (data: YTValueData<{ type: YTValueType.ENDPOINT }>): boolean => {
+const updateEndpoint = (data: YTValueData<{ type: YTValueType.ENDPOINT }>): void => {
   if (data?.clickTrackingParams != null) data.clickTrackingParams = OVERRIDE_TRACKING_PARAMS
-
-  return true
 }
 
-const updateRendererInner = (data: YTValueData<YTRenderer.Mapped | YTResponse.Mapped>): boolean => {
+const updateRendererInner = (data: YTValueData<YTRenderer.Mapped | YTResponse.Mapped>): void => {
   if (data.clickTrackingParams != null) data.clickTrackingParams = OVERRIDE_TRACKING_PARAMS
   if (data.trackingParams != null) data.trackingParams = OVERRIDE_TRACKING_PARAMS
-
-  return true
 }
 
-const updateRenderer = (data: YTValueData<{ type: YTValueType.RENDERER }>): boolean => {
+const updateRenderer = (data: YTValueData<{ type: YTValueType.RENDERER }>): void => {
   for (const key in data) {
     const child = data[key as keyof typeof data]
     if (child != null) updateRendererInner(child)
   }
-
-  return true
 }
 
-const updateLoggingDirectives = (data: YTValueData<YTRenderer.Component<'loggingDirectives'>>): boolean => {
+const updateLoggingDirectives = (data: YTValueData<YTRenderer.Component<'loggingDirectives'>>): void => {
   delete data.clientVeSpec
   delete data.visibility
-
-  return true
 }
 
-const updateChannelMetadataRenderer = (data: YTValueData<YTRenderer.Mapped<'channelMetadataRenderer'>>): boolean => {
+const updateChannelMetadataRenderer = (data: YTValueData<YTRenderer.Mapped<'channelMetadataRenderer'>>): void => {
   delete data.channelConversionUrl
-
-  return true
 }
 
-const updateCopyLinkRenderer = (data: YTValueData<YTRenderer.Mapped<'copyLinkRenderer'>>): boolean => {
+const updateCopyLinkRenderer = (data: YTValueData<YTRenderer.Mapped<'copyLinkRenderer'>>): void => {
   const { shortUrl } = data
 
-  if (!isYTTrackingSwitchEnabled(YTTrackingSwitchMask.SHARE_ID) && shortUrl != null) {
-    data.shortUrl = sanitizeShareUrl(shortUrl)
-  }
+  if (shortUrl == null || isYTTrackingSwitchEnabled(YTTrackingSwitchMask.SHARE_ID)) return
 
-  return true
+  data.shortUrl = sanitizeShareUrl(shortUrl)
 }
 
-const updateFeedNudgeRenderer = (data: YTValueData<YTRenderer.Mapped<'feedNudgeRenderer'>>): boolean => {
-  if (!isYTTrackingSwitchEnabled(isYTLoggedIn() ? YTTrackingSwitchMask.LOGIN_STATS : YTTrackingSwitchMask.GUEST_STATS)) {
-    data.title = { simpleText: 'Oh hi!' }
-    data.subtitle = {
-      runs: [
-        { text: 'Watch history is currently disabled\n' },
-        { text: 'You can enable watch history from the menu' }
-      ]
-    }
-  }
+const updateFeedNudgeRenderer = (data: YTValueData<YTRenderer.Mapped<'feedNudgeRenderer'>>): void => {
+  if (isYTTrackingSwitchEnabled(isYTLoggedIn() ? YTTrackingSwitchMask.LOGIN_STATS : YTTrackingSwitchMask.GUEST_STATS)) return
 
-  return true
+  data.title = { simpleText: 'Oh hi!' }
+  data.subtitle = {
+    runs: [
+      { text: 'Watch history is currently disabled\n' },
+      { text: 'You can enable watch history from the menu' }
+    ]
+  }
 }
 
-const updateShareTargetRenderer = (data: YTValueData<YTRenderer.Mapped<'shareTargetRenderer'>>): boolean => {
+const updateShareTargetRenderer = (data: YTValueData<YTRenderer.Mapped<'shareTargetRenderer'>>): void => {
   const { navigationEndpoint } = data
 
-  if (!isYTTrackingSwitchEnabled(YTTrackingSwitchMask.SHARE_ID) && navigationEndpoint != null) {
-    const { commandMetadata, urlEndpoint } = navigationEndpoint
-    const { webCommandMetadata } = commandMetadata ?? {}
+  if (navigationEndpoint == null || isYTTrackingSwitchEnabled(YTTrackingSwitchMask.SHARE_ID)) return
 
-    if (webCommandMetadata?.url != null) webCommandMetadata.url = sanitizeShareUrl(webCommandMetadata.url)
-    if (urlEndpoint?.url != null) urlEndpoint.url = sanitizeShareUrl(urlEndpoint.url)
-  }
+  const { commandMetadata, urlEndpoint } = navigationEndpoint
+  const { webCommandMetadata } = commandMetadata ?? {}
 
-  return true
+  if (webCommandMetadata?.url != null) webCommandMetadata.url = sanitizeShareUrl(webCommandMetadata.url)
+  if (urlEndpoint?.url != null) urlEndpoint.url = sanitizeShareUrl(urlEndpoint.url)
 }
 
-const updateSharingEmbedRenderer = (data: YTValueData<YTRenderer.Mapped<'sharingEmbedRenderer'>>): boolean => {
+const updateSharingEmbedRenderer = (data: YTValueData<YTRenderer.Mapped<'sharingEmbedRenderer'>>): void => {
   if (!isYTTrackingSwitchEnabled(YTTrackingSwitchMask.SHARE_ID)) delete data.attributionId
-
-  return true
 }
 
-const updateResponseContext = (data: YTValueData<YTResponse.Component<'responseContext'>>): boolean => {
+const updateResponseContext = (data: YTValueData<YTResponse.Component<'responseContext'>>): void => {
   const { mainAppWebResponseContext, serviceTrackingParams } = data
 
   if (mainAppWebResponseContext != null) {
     mainAppWebResponseContext.trackingParam = encodeTrackingParam('CioKDnRyYWNraW5nUGFyYW1zEhhDQUFRQUNJTUNBQVZBQUFBQUIwQUFBQUE')
   }
   serviceTrackingParams?.splice(0)
-
-  return true
 }
 
-const updatePlayerResponse = (data: YTValueData<YTResponse.Mapped<'player'>>): boolean => {
+const updatePlayerResponse = (data: YTValueData<YTResponse.Mapped<'player'>>): void => {
   delete data.playbackTracking?.ptrackingUrl
   delete data.playbackTracking?.qoeUrl
   delete data.playbackTracking?.googleRemarketingUrl
   delete data.playbackTracking?.youtubeRemarketingUrl
-
-  return true
 }
 
-const updateSearchResponse = (data: YTValueData<YTResponse.Mapped<'search'>>): boolean => {
+const updateSearchResponse = (data: YTValueData<YTResponse.Mapped<'search'>>): void => {
   delete data.responseContext?.visitorData
-
-  return true
 }
 
 export default class YTMiscsTrackingModule extends Feature {

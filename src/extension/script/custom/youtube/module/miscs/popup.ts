@@ -2,10 +2,8 @@ import { registerYTValueFilter, registerYTValueProcessor } from '@ext/custom/you
 import { YTRenderer, YTResponse, YTValueData } from '@ext/custom/youtube/api/schema'
 import { Feature } from '@ext/lib/feature'
 
-const updateNextResponse = (data: YTValueData<YTResponse.Mapped<'next'>>): boolean => {
+const updateNextResponse = (data: YTValueData<YTResponse.Mapped<'next'>>): void => {
   delete data.survey
-
-  return true
 }
 
 export default class YTMiscsPopupModule extends Feature {

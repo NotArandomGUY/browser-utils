@@ -123,14 +123,11 @@ const stopLiveHeadUpdate = (): void => {
   player.setPlaybackRate?.(1)
 }
 
-const updatePlayerResponse = (data: YTValueData<YTResponse.Mapped<'player'>>): boolean => {
+const updatePlayerResponse = (data: YTValueData<YTResponse.Mapped<'player'>>): void => {
   const playerConfig = data.playerConfig
   const videoDetails = data.videoDetails
 
-  if (playerConfig == null || !videoDetails?.isLive) {
-    stopLiveHeadUpdate()
-    return true
-  }
+  if (playerConfig == null || !videoDetails?.isLive) return stopLiveHeadUpdate()
 
   if (isYTLiveBehaviourEnabled(YTLiveBehaviourMask.LOW_LATENCY)) {
     videoDetails.isLowLatencyLiveStream = true
@@ -153,8 +150,6 @@ const updatePlayerResponse = (data: YTValueData<YTResponse.Mapped<'player'>>): b
       }
     }
   }
-
-  return true
 }
 
 export default class YTPlayerLiveModule extends Feature {

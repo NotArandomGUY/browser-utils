@@ -13,7 +13,7 @@ const isHideContentCheck = (): boolean => {
   return getYTConfigBool(CONTENT_CHECK_KEY, false)
 }
 
-const updatePlayerResponse = (data: YTValueData<YTResponse.Mapped<'player'>>): boolean => {
+const updatePlayerResponse = (data: YTValueData<YTResponse.Mapped<'player'>>): void => {
   const { errorScreen, status } = data.playabilityStatus ?? {}
 
   switch (status) {
@@ -68,8 +68,6 @@ const updatePlayerResponse = (data: YTValueData<YTResponse.Mapped<'player'>>): b
     data.actions ??= []
     data.actions.push(...playerActions)
   }
-
-  return true
 }
 
 export default class YTPlayerContentCheckModule extends Feature {
