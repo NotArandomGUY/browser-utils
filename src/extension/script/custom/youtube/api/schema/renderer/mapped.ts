@@ -3244,6 +3244,12 @@ export const lockupViewModel = ytv_ren(() => ({
   contentId: ytv_str(),
   contentImage: ytv_ren(),
   contentType: ytv_str(['LOCKUP_CONTENT_TYPE_ALBUM', 'LOCKUP_CONTENT_TYPE_PLAYLIST', 'LOCKUP_CONTENT_TYPE_VIDEO']),
+  itemPlayback: ytv_sch({
+    inlinePlayerData: ytv_sch({
+      onSelect: ytv_enp(),
+      onVisible: ytv_enp()
+    })
+  }),
   metadata: ytv_ren(),
   rendererContext: components.rendererContext
 }))

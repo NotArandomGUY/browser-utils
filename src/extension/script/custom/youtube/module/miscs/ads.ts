@@ -2,7 +2,9 @@ import { registerYTValueFilter, registerYTValueProcessor, YTValueProcessorType }
 import { YTEndpoint, YTRenderer, YTResponse, YTValueData } from '@ext/custom/youtube/api/schema'
 import { registerYTInnertubeRequestProcessor } from '@ext/custom/youtube/module/core/network'
 import { YTServerAdDelayCallback } from '@ext/custom/youtube/module/player/ump'
+import PlayerParams from '@ext/custom/youtube/proto/player-params'
 import { defineProperty } from '@ext/global/object'
+import { bufferFromString } from '@ext/lib/buffer'
 import { Feature } from '@ext/lib/feature'
 import InterceptDOM from '@ext/lib/intercept/dom'
 import { HookResult } from '@ext/lib/intercept/hook'
@@ -10,7 +12,24 @@ import Logger from '@ext/lib/logger'
 
 const logger = new Logger('YTMISCS-ADS')
 
+const INLINE_PLAYER_SIGNATURE_CACHE_TTL = 3600e3 // 1 hour
+
+const inlinePlayerSignatureCache = new Map<string, [sign: Uint8Array<ArrayBuffer> | null, expire: number]>()
+
 let isFetchApiAds = false
+
+const processWatchEndpoint = (data: YTValueData<YTEndpoint.Mapped<'watchEndpoint'>>): void => {
+  const { params, videoId } = data
+
+  if (params == null || videoId == null) return
+
+  const playerParams = new PlayerParams().deserialize(bufferFromString(decodeURIComponent(params), 'base64url'))
+  if (!playerParams.isInlinePlayback) return
+
+  const now = Date.now()
+  Array.from(inlinePlayerSignatureCache.entries()).forEach(([key, [_, expire]]) => expire <= now && inlinePlayerSignatureCache.delete(key))
+  inlinePlayerSignatureCache.set(videoId, [playerParams.sign, now + INLINE_PLAYER_SIGNATURE_CACHE_TTL])
+}
 
 const updateNextResponse = (data: YTValueData<YTResponse.Mapped<'next'>>): void => {
   delete data.adEngagementPanels
@@ -42,19 +61,19 @@ export default class YTMiscsAdsModule extends Feature {
     registerYTValueFilter(YTRenderer.mapped.adPlayerOverlayRenderer, null, YTValueProcessorType.POST)
     registerYTValueFilter(YTRenderer.mapped.adSlotRenderer, null, YTValueProcessorType.POST)
     registerYTValueFilter(YTRenderer.mapped.topBannerImageTextIconButtonedLayoutViewModel, null, YTValueProcessorType.POST)
+    registerYTValueProcessor(YTEndpoint.mapped.watchEndpoint, processWatchEndpoint)
     registerYTValueProcessor(YTResponse.mapped.next, updateNextResponse)
 
-    registerYTInnertubeRequestProcessor('player', ({ params, playbackContext }) => {
+    registerYTInnertubeRequestProcessor('player', ({ params, playbackContext, videoId }) => {
       if (params.isInlinePlayback || playbackContext?.contentPlaybackContext?.currentUrl?.startsWith('/shorts/')) return
+
+      const entry = inlinePlayerSignatureCache.get(videoId!)
+      if (entry == null) return
 
       params.isInlinePlaybackMuted = false
       params.isInlinePlayback = true
-      // NOTE: some flags that might be useless, but kept for reference later
-      /*
-      params.b78 = false
-      params.b79 = false
-      params.sign = null
-      */
+      // NOTE: salt/key id/magic[5 bytes] + sign(video id + params? (e.g. inline=1))[16 bytes]
+      params.sign = entry[0]
     })
 
     InterceptDOM.setAppendChildCallback(ctx => {
