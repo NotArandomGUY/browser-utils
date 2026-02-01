@@ -81,9 +81,9 @@ const sanitizeShareUrl = (url: string | URL): string => {
     const { searchParams } = url
 
     if (['youtu.be', 'youtube.com', 'youtube-nocookie.com'].includes(url.hostname)) {
-      searchParams.forEach((_, key) => SHARE_URL_ALLOW_PARAMS.has(key) || searchParams.delete(key))
+      Array.from(searchParams.keys()).forEach(key => SHARE_URL_ALLOW_PARAMS.has(key) || searchParams.delete(key))
     } else {
-      searchParams.forEach((value, key) => searchParams.set(key, sanitizeShareUrl(value)))
+      Array.from(searchParams.entries()).forEach(([key, value]) => searchParams.set(key, sanitizeShareUrl(value)))
     }
 
     return url.toString()

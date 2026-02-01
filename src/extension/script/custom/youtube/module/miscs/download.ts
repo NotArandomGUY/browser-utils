@@ -104,10 +104,7 @@ const fetchInnertubeFeed = async <T extends InnertubeFeedInfo>(
 ): Promise<T> => {
   const now = Date.now()
 
-  for (const [key, { expire }] of Array.from(feedInfoCache.entries())) {
-    if (expire <= now) feedInfoCache.delete(key)
-  }
-
+  Array.from(feedInfoCache.entries()).forEach(([key, { expire }]) => expire <= now && feedInfoCache.delete(key))
   let info = feedInfoCache.get(browseId) as T
   if (info != null) return info
 
@@ -155,10 +152,7 @@ const fetchInnertubePlaylist = async (playlistId: string, context?: YTInnertubeR
 const fetchInnertubeVideo = async (videoId: string, context?: YTInnertubeRequestContext): Promise<InnertubeVideoInfo> => {
   const now = Date.now()
 
-  for (const [key, { expire }] of Array.from(videoInfoCache.entries())) {
-    if (expire <= now) videoInfoCache.delete(key)
-  }
-
+  Array.from(videoInfoCache.entries()).forEach(([key, { expire }]) => expire <= now && videoInfoCache.delete(key))
   let info = videoInfoCache.get(videoId)
   if (info != null) return info
 
@@ -295,9 +289,7 @@ const processRequest = async (ctx: NetworkRequestContext): Promise<void> => {
 
     if (id == null || pot == null || itag == null) throw new Error('missing params')
 
-    for (const key of Array.from(searchParams.keys())) {
-      if (!params.includes(key)) searchParams.delete(key)
-    }
+    Array.from(searchParams.keys()).forEach(key => params.includes(key) || searchParams.delete(key))
 
     if (downloaderId !== id || downloader == null) {
       downloader = new SabrDownloader({

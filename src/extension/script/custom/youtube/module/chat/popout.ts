@@ -315,7 +315,7 @@ class ChatAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, Cha
     this.send(ChatPopoutMessageType.TOAST_MESSAGE, { text: `Popout live chat '${videoId_}' loading...` })
 
     url.pathname = path
-    searchParams.forEach((_, key) => searchParams.delete(key))
+    Array.from(searchParams.keys()).forEach(key => searchParams.delete(key))
     searchParams.set(key, value)
 
     location.href = url.toString()
