@@ -317,7 +317,7 @@ export const playerPlayabilityStatus = ytv_ren({
   paygatedQualitiesMetadata,
   playableInEmbed: ytv_bol(),
   reason: ytv_str(),
-  status: ytv_str(['AGE_CHECK_REQUIRED', 'AGE_VERIFICATION_REQUIRED', 'CONTENT_CHECK_REQUIRED', 'LIVE_STREAM_OFFLINE', 'OK'])
+  status: ytv_str(['AGE_CHECK_REQUIRED', 'AGE_VERIFICATION_REQUIRED', 'CONTENT_CHECK_REQUIRED', 'LIVE_STREAM_OFFLINE', 'OK', 'UNPLAYABLE'])
 })
 export const playerPlaybackTracking = ytv_ren({
   atrUrl: common.components.url,
