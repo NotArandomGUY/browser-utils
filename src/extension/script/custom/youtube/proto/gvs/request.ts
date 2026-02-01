@@ -13,7 +13,7 @@ export const InitPlaybackRequest = createMessage({
   /*@__MANGLE_PROP__*/onesieUstreamerConfig: pbf_bin(4),
   /*@__MANGLE_PROP__*/maxVp9Height: pbf_i32(5),
   /*@__MANGLE_PROP__*/clientDisplayHeight: pbf_i32(6),
-  /*@__MANGLE_PROP__*/streamerContext: pbf_bin(10),
+  /*@__MANGLE_PROP__*/streamerContext: pbf_msg(10, StreamerContext),
   /*@__MANGLE_PROP__*/requestTarget: pbf_i32(13),
   /*@__MANGLE_PROP__*/bufferedRanges: pbf_repeat(pbf_msg(14, BufferedRange)),
   /*@__MANGLE_PROP__*/reloadPlaybackParams: pbf_bin(15)
