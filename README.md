@@ -11,17 +11,20 @@ purpose.
 ## Main features
 
 - YouTube
-   - Disable watch history & view count tracking
    - Block most ads without getting detected
-   - Remove share tracking id from share link
-   - Jump ahead feature via [SponsorBlock API](https://sponsor.ajay.app/)
-   - Mostly works feed filter (hide shorts/live/video)
-   - Live DVR (enable seeking for livestream that doesn't have it enabled)
-   - Low latency live (adjust playback rate to get lowest possible latency while keeping barely enough buffer to play)
-   - Offline downloads export (custom bundle format/audio only/video only)
-   - Offline downloads import (custom bundle format)
-   - Force unlock offline downloads (experimental video downloader)
    - Unlock TVHTML5 client (put `/tv` after the domain)
+   - Features/Options accessible via website UI
+      - Disable watch history & view count tracking
+      - Remove share tracking id from share link
+      - Jump ahead feature via [SponsorBlock API](https://sponsor.ajay.app/)
+      - Mostly works feed filter (hide shorts/live/video)
+      - Live DVR (enable seeking for livestream that doesn't have it enabled)
+      - Low latency live (adjust playback rate to get lowest possible latency while keeping barely enough buffer to play)
+      - Force unlock offline downloads (experimental video downloader)
+   - Features/Options accessible via extension popup
+      - Offline downloads export (custom bundle format/audio only/video only/video+audio via [ffmpeg.wasm](https://github.com/ffmpegwasm/ffmpeg.wasm))
+      - Offline downloads import (custom bundle format)
+      - Queue offline downloads from url/id
 
 Branch config at `<path-to-project-directory>/dist/extension/package/branch.json` for the features listed above
 ```json
@@ -96,3 +99,5 @@ npm run build
    mode**.
 3. Click **Load unpacked** button and select the extension directory
    `<path-to-project-directory>/dist/extension`.
+4. Make sure user scripts permission is allowed
+5. Make sure site access is set to 'On all sites'
