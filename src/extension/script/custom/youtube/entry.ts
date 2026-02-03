@@ -52,10 +52,10 @@ registerFeatureGroup(FEED_GROUP_ID, group => {
 registerFeatureGroup(PLAYER_GROUP_ID, group => {
   registerFeature(group, YTPlayerBootstrapModule)
   registerFeature(group, YTPlayerUMPModule)
-  registerFeature(group, YTPlayerLiveModule)
   registerFeature(group, YTPlayerContentCheckModule)
   registerFeature(group, YTPlayerOfflineModule)
   registerFeature(group, YTPlayerSmartSkipModule)
+  registerFeature(group, YTPlayerLiveModule)
 }, [CORE_GROUP_ID])
 
 registerFeatureGroup(CHAT_GROUP_ID, group => {

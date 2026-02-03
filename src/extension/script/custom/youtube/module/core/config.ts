@@ -183,8 +183,9 @@ const renderConfigMenuItem = (isTV: boolean, item: YTConfigMenuItem): YTValueDat
 
 const renderConfigMenuItemGroup = (isTV: boolean, group: YTConfigMenuItemGroup): YTValueData<{ type: YTValueType.RENDERER }>[] | YTValueData<{ type: YTValueType.RENDERER }> => {
   const items = group.items.map(renderConfigMenuItem.bind(null, isTV))
+  const title = group.key.replace(/(^|-)[a-z]/g, c => c.toUpperCase().replace('-', ' '))
 
-  return isTV ? items : buildMultiPageMenuItem(group.key, null, [{ multiPageMenuSectionRenderer: { items } }])
+  return isTV ? items : buildMultiPageMenuItem(title, null, [{ multiPageMenuSectionRenderer: { items } }])
 }
 
 const renderConfigMenuButton = (isTV: boolean): YTValueData<{ type: YTValueType.RENDERER }> => {

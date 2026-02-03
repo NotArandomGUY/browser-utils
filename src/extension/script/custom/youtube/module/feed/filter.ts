@@ -80,7 +80,7 @@ export default class YTFeedFilterModule extends Feature {
     registerYTValueFilter(YTRenderer.mapped.shortsLockupViewModel, filterShortsViewModel)
     registerYTValueFilter(YTRenderer.mapped.lockupViewModel, filterVideoViewModel)
 
-    registerYTConfigMenuItemGroup('feed', [
+    registerYTConfigMenuItemGroup(FEED_FILTER_KEY, [
       {
         type: YTConfigMenuItemType.TOGGLE,
         key: FEED_FILTER_KEY,

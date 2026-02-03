@@ -160,7 +160,7 @@ export default class YTPlayerLiveModule extends Feature {
   protected activate(): boolean {
     registerYTValueProcessor(YTResponse.mapped.player, updatePlayerResponse)
 
-    registerYTConfigMenuItemGroup('livestream', [
+    registerYTConfigMenuItemGroup('live-stream', [
       {
         type: YTConfigMenuItemType.TOGGLE,
         key: LIVE_BEHAVIOUR_KEY,
@@ -173,7 +173,7 @@ export default class YTPlayerLiveModule extends Feature {
       {
         type: YTConfigMenuItemType.TOGGLE,
         key: LIVE_BEHAVIOUR_KEY,
-        icon: YTRenderer.enums.IconType.CLOCK,
+        icon: YTRenderer.enums.IconType.FAST_REWIND,
         text: 'Force DVR',
         description: 'Enable seeking for livestream even if it was disabled by the creator (might affect latency)',
         mask: YTLiveBehaviourMask.FORCE_DVR,
