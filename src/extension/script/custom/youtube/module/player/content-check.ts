@@ -96,8 +96,7 @@ export default class YTPlayerContentCheckModule extends Feature {
         key: CONTENT_CHECK_KEY,
         icon: YTRenderer.enums.IconType.WARNING,
         text: 'Hide Content Check',
-        description: 'Hide basic age/content checks, usually only works when signed in',
-        signals: [YTEndpoint.enums.SignalActionType.POPUP_BACK, YTEndpoint.enums.SignalActionType.SOFT_RELOAD_PAGE]
+        description: 'Hide basic age/content checks, usually only works when signed in'
       }
     ])
 

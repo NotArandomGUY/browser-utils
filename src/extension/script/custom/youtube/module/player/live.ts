@@ -167,8 +167,7 @@ export default class YTPlayerLiveModule extends Feature {
         icon: YTRenderer.enums.IconType.CLOCK,
         text: 'Low Latency',
         description: 'Actively adjust playback rate to achieve lowest possible latency based on buffer health',
-        mask: YTLiveBehaviourMask.LOW_LATENCY,
-        signals: [YTEndpoint.enums.SignalActionType.POPUP_BACK, YTEndpoint.enums.SignalActionType.SOFT_RELOAD_PAGE]
+        mask: YTLiveBehaviourMask.LOW_LATENCY
       },
       {
         type: YTConfigMenuItemType.TOGGLE,
@@ -176,8 +175,7 @@ export default class YTPlayerLiveModule extends Feature {
         icon: YTRenderer.enums.IconType.FAST_REWIND,
         text: 'Force DVR',
         description: 'Enable seeking for livestream even if it was disabled by the creator (might affect latency)',
-        mask: YTLiveBehaviourMask.FORCE_DVR,
-        signals: [YTEndpoint.enums.SignalActionType.POPUP_BACK, YTEndpoint.enums.SignalActionType.SOFT_RELOAD_PAGE]
+        mask: YTLiveBehaviourMask.FORCE_DVR
       }
     ])
 

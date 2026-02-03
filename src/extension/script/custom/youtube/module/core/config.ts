@@ -4,6 +4,10 @@ import { registerYTSignalActionHandler } from '@ext/custom/youtube/module/core/c
 import { Feature } from '@ext/lib/feature'
 
 const CONFIG_MENU_TITLE = 'BU Menu'
+const TOGGLE_ICONS = [
+  YTRenderer.enums.IconType.UNKNOWN,
+  YTRenderer.enums.IconType.CHECK
+] as const
 
 export const enum YTConfigMenuItemType {
   BUTTON,
@@ -54,7 +58,7 @@ const configItemGroups: YTConfigMenuItemGroup[] = [
         key: 'soft-reload',
         icon: YTRenderer.enums.IconType.REFRESH,
         text: 'Soft reload',
-        commands: [{ signalAction: { signal: YTEndpoint.enums.SignalActionType.SOFT_RELOAD_PAGE } }]
+        signals: [YTEndpoint.enums.SignalActionType.SOFT_RELOAD_PAGE]
       }
     ]
   }
@@ -78,26 +82,6 @@ const buildActionItemCommand = (item: Pick<YTConfigMenuActionItemBase<YTConfigMe
   }
 }
 
-const buildMultiPageMenuItem = (
-  title: string,
-  icon: YTRenderer.enums.IconType | null,
-  sections: YTValueData<{ type: YTValueType.RENDERER }>[]
-): YTValueData<{ type: YTValueType.RENDERER }> => {
-  return {
-    compactLinkRenderer: {
-      icon: icon ? { iconType: icon } : undefined,
-      title: { simpleText: title },
-      secondaryIcon: { iconType: 'CHEVRON_RIGHT' },
-      serviceEndpoint: {
-        signalServiceEndpoint: {
-          signal: 'CLIENT_SIGNAL',
-          actions: [{ getMultiPageMenuAction: { menu: buildMultiPageMenu(title, true, sections) } }]
-        }
-      }
-    }
-  }
-}
-
 const buildMultiPageMenu = (
   title: string,
   back: boolean,
@@ -111,7 +95,7 @@ const buildMultiPageMenu = (
             buttonRenderer: {
               accessibility: { label: 'Back' },
               accessibilityData: { accessibilityData: { label: 'Back' } },
-              icon: { iconType: 'BACK' },
+              icon: { iconType: YTRenderer.enums.IconType.BACK },
               size: 'SIZE_DEFAULT'
             }
           } : undefined,
@@ -120,6 +104,67 @@ const buildMultiPageMenu = (
       },
       sections,
       style: 'MULTI_PAGE_MENU_STYLE_TYPE_SYSTEM'
+    }
+  }
+}
+
+const buildMultiPageMenuItem = (
+  title: string,
+  icon: YTRenderer.enums.IconType | null,
+  sections: YTValueData<{ type: YTValueType.RENDERER }>[]
+): YTValueData<{ type: YTValueType.RENDERER }> => {
+  return {
+    compactLinkRenderer: {
+      icon: icon ? { iconType: icon } : undefined,
+      title: { simpleText: title },
+      secondaryIcon: { iconType: YTRenderer.enums.IconType.CHEVRON_RIGHT },
+      serviceEndpoint: {
+        signalServiceEndpoint: {
+          signal: 'CLIENT_SIGNAL',
+          actions: [{ getMultiPageMenuAction: { menu: buildMultiPageMenu(title, true, sections) } }]
+        }
+      }
+    }
+  }
+}
+
+const buildOverlayPanel = (
+  title: string,
+  items: YTValueData<{ type: YTValueType.RENDERER }>[]
+): YTValueData<{ type: YTValueType.RENDERER }> => {
+  return {
+    overlaySectionRenderer: {
+      dismissalCommand: {
+        signalAction: { signal: YTEndpoint.enums.SignalActionType.POPUP_BACK }
+      },
+      overlay: {
+        overlayTwoPanelRenderer: {
+          actionPanel: {
+            overlayPanelRenderer: {
+              header: { overlayPanelHeaderRenderer: { title: { simpleText: title } } },
+              content: { overlayPanelItemListRenderer: { items } }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+const buildOverlayPanelItem = (
+  title: string,
+  items: YTValueData<{ type: YTValueType.RENDERER }>[]
+): YTValueData<{ type: YTValueType.RENDERER }> => {
+  return {
+    buttonRenderer: {
+      icon: { iconType: YTRenderer.enums.IconType.CHEVRON_RIGHT },
+      text: { simpleText: title },
+      serviceEndpoint: {
+        signalServiceEndpoint: {
+          signal: 'CLIENT_SIGNAL',
+          actions: [{ openPopupAction: { popup: buildOverlayPanel(title, items) } }]
+        }
+      }
     }
   }
 }
@@ -137,40 +182,43 @@ const renderConfigMenuItem = (isTV: boolean, item: YTConfigMenuItem): YTValueDat
       }
     case YTConfigMenuItemType.TOGGLE: {
       const mask = item.mask ?? 1
-      const invert = item.invert ? 1 : 0
-      const state = getYTConfigBool(item.key, !!item.default, mask) !== !!invert
-      const actions = [
-        buildActionItemCommand({
-          commands: item.commands,
-          signals: [getSetterSignalActionType(item.key, -mask), ...item.signals ?? []]
-        }),
-        buildActionItemCommand({
-          commands: item.commands,
-          signals: [getSetterSignalActionType(item.key, mask), ...item.signals ?? []]
-        })
+      const invert = Number(!!item.invert)
+      const state = Number(getYTConfigBool(item.key, !!item.default, mask)) ^ invert
+      const title = `${item.text}: ${state ? 'ON' : 'OFF'}`
+      const commands = item.commands
+      const signals = [
+        [getSetterSignalActionType(item.key, -mask), ...item.signals ?? []],
+        [getSetterSignalActionType(item.key, mask), ...item.signals ?? []]
       ]
 
       if (isTV) {
-        return {
-          toggleButtonRenderer: {
-            defaultIcon: { iconType: item.icon },
-            defaultText: { simpleText: `${item.text}: OFF` },
-            defaultServiceEndpoint: actions[1 ^ invert],
-            toggledIcon: { iconType: item.icon },
-            toggledText: { simpleText: `${item.text}: ON` },
-            toggledServiceEndpoint: actions[0 ^ invert],
-            isToggled: state
-          }
-        }
+        return buildOverlayPanelItem(title, [
+          renderConfigMenuItem(isTV, {
+            type: YTConfigMenuItemType.BUTTON,
+            key: `${item.key}:1`,
+            icon: TOGGLE_ICONS[state],
+            text: 'ON',
+            commands,
+            signals: signals[1 ^ invert]
+          }),
+          renderConfigMenuItem(isTV, {
+            type: YTConfigMenuItemType.BUTTON,
+            key: `${item.key}:0`,
+            icon: TOGGLE_ICONS[state ^ 1],
+            text: 'OFF',
+            commands,
+            signals: signals[0 ^ invert]
+          })
+        ])
       } else {
-        return buildMultiPageMenuItem(`${item.text}: ${state ? 'ON' : 'OFF'}`, item.icon, [
+        return buildMultiPageMenuItem(title, item.icon, [
           {
             toggleItemRenderer: {
               label: { simpleText: item.text },
               descriptionLines: item.description ? [{ simpleText: item.description }] : undefined,
-              toggleOnActions: [actions[1 ^ invert]],
-              toggleOffActions: [actions[0 ^ invert]],
-              toggled: state
+              toggleOnActions: [buildActionItemCommand({ commands, signals: signals[1 ^ invert] })],
+              toggleOffActions: [buildActionItemCommand({ commands, signals: signals[0 ^ invert] })],
+              toggled: !!state
             }
           }
         ])
@@ -185,7 +233,7 @@ const renderConfigMenuItemGroup = (isTV: boolean, group: YTConfigMenuItemGroup):
   const items = group.items.map(renderConfigMenuItem.bind(null, isTV))
   const title = group.key.replace(/(^|-)[a-z]/g, c => c.toUpperCase().replace('-', ' '))
 
-  return isTV ? items : buildMultiPageMenuItem(title, null, [{ multiPageMenuSectionRenderer: { items } }])
+  return isTV ? buildOverlayPanelItem(title, items) : buildMultiPageMenuItem(title, null, [{ multiPageMenuSectionRenderer: { items } }])
 }
 
 const renderConfigMenuButton = (isTV: boolean): YTValueData<{ type: YTValueType.RENDERER }> => {
@@ -203,23 +251,7 @@ const renderConfigMenuButton = (isTV: boolean): YTValueData<{ type: YTValueType.
       isDisabled: false,
       command: {
         openPopupAction: {
-          popup: isTV ? {
-            overlaySectionRenderer: {
-              dismissalCommand: {
-                signalAction: { signal: YTEndpoint.enums.SignalActionType.POPUP_BACK }
-              },
-              overlay: {
-                overlayTwoPanelRenderer: {
-                  actionPanel: {
-                    overlayPanelRenderer: {
-                      content: { overlayPanelItemListRenderer: { items } },
-                      header: { overlayPanelHeaderRenderer: { title: { simpleText: CONFIG_MENU_TITLE } } }
-                    }
-                  }
-                }
-              }
-            }
-          } : buildMultiPageMenu(CONFIG_MENU_TITLE, false, [{ multiPageMenuSectionRenderer: { items } }]),
+          popup: isTV ? buildOverlayPanel(CONFIG_MENU_TITLE, items) : buildMultiPageMenu(CONFIG_MENU_TITLE, false, [{ multiPageMenuSectionRenderer: { items } }]),
           popupType: 'RESPONSIVE_DROPDOWN'
         }
       }
@@ -276,6 +308,7 @@ export const registerYTConfigMenuItemGroup = (key: string, items: YTConfigMenuIt
 
       registerYTSignalActionHandler(getSetterSignalActionType(item.key, -mask), setYTConfigBool.bind(null, item.key, false, mask))
       registerYTSignalActionHandler(getSetterSignalActionType(item.key, mask), setYTConfigBool.bind(null, item.key, true, mask))
+      item.signals ??= [YTEndpoint.enums.SignalActionType.CLOSE_POPUP, YTEndpoint.enums.SignalActionType.SOFT_RELOAD_PAGE]
     }
   }
 

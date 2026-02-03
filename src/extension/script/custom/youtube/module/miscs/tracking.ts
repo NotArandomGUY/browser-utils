@@ -304,24 +304,21 @@ export default class YTMiscsTrackingModule extends Feature {
         key: TRACKING_SWITCHES_KEY,
         icon: YTRenderer.enums.IconType.PRIVACY_PUBLIC,
         text: 'Guest Watch History',
-        mask: YTTrackingSwitchMask.GUEST_STATS,
-        signals: [YTEndpoint.enums.SignalActionType.POPUP_BACK, YTEndpoint.enums.SignalActionType.SOFT_RELOAD_PAGE]
+        mask: YTTrackingSwitchMask.GUEST_STATS
       },
       {
         type: YTConfigMenuItemType.TOGGLE,
         key: TRACKING_SWITCHES_KEY,
         icon: YTRenderer.enums.IconType.PRIVACY_PRIVATE,
         text: 'Login Watch History',
-        mask: YTTrackingSwitchMask.LOGIN_STATS,
-        signals: [YTEndpoint.enums.SignalActionType.POPUP_BACK, YTEndpoint.enums.SignalActionType.SOFT_RELOAD_PAGE]
+        mask: YTTrackingSwitchMask.LOGIN_STATS
       },
       {
         type: YTConfigMenuItemType.TOGGLE,
         key: TRACKING_SWITCHES_KEY,
         icon: YTRenderer.enums.IconType.SHARE_ARROW,
         text: 'Share ID',
-        mask: YTTrackingSwitchMask.SHARE_ID,
-        signals: [YTEndpoint.enums.SignalActionType.POPUP_BACK, YTEndpoint.enums.SignalActionType.SOFT_RELOAD_PAGE]
+        mask: YTTrackingSwitchMask.SHARE_ID
       }
     ])
 

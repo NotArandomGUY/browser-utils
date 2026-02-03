@@ -1,5 +1,5 @@
 import { registerYTValueFilter } from '@ext/custom/youtube/api/processor'
-import { YTEndpoint, YTRenderer, YTValueData } from '@ext/custom/youtube/api/schema'
+import { YTRenderer, YTValueData } from '@ext/custom/youtube/api/schema'
 import { isYTLoggedIn } from '@ext/custom/youtube/module/core/bootstrap'
 import { getYTConfigBool, registerYTConfigMenuItemGroup, YTConfigMenuItemType } from '@ext/custom/youtube/module/core/config'
 import { Feature } from '@ext/lib/feature'
@@ -86,7 +86,6 @@ export default class YTFeedFilterModule extends Feature {
         key: FEED_FILTER_KEY,
         icon: YTRenderer.enums.IconType.YOUTUBE_SHORTS_BRAND_24,
         text: 'Shorts',
-        signals: [YTEndpoint.enums.SignalActionType.POPUP_BACK, YTEndpoint.enums.SignalActionType.SOFT_RELOAD_PAGE],
         mask: YTFeedFilterMask.SHORTS,
         invert: true
       },
@@ -95,7 +94,6 @@ export default class YTFeedFilterModule extends Feature {
         key: FEED_FILTER_KEY,
         icon: YTRenderer.enums.IconType.LIVE,
         text: 'Live',
-        signals: [YTEndpoint.enums.SignalActionType.POPUP_BACK, YTEndpoint.enums.SignalActionType.SOFT_RELOAD_PAGE],
         mask: YTFeedFilterMask.VIDEO_LIVE,
         invert: true
       },
@@ -105,7 +103,6 @@ export default class YTFeedFilterModule extends Feature {
         icon: YTRenderer.enums.IconType.VIDEOS,
         text: 'Video',
         description: 'WARNING: Hiding videos might cause issues!',
-        signals: [YTEndpoint.enums.SignalActionType.POPUP_BACK, YTEndpoint.enums.SignalActionType.SOFT_RELOAD_PAGE],
         mask: YTFeedFilterMask.VIDEO,
         invert: true
       }
