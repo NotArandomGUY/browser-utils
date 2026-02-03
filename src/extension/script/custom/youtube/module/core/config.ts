@@ -265,9 +265,10 @@ const updateDesktopTopbarRenderer = (data: YTValueData<YTRenderer.Mapped<'deskto
 }
 
 const updateTvSurfaceContentRenderer = (data: YTValueData<YTRenderer.Mapped<'tvSurfaceContentRenderer'>>): void => {
-  data.content?.sectionListRenderer?.contents?.unshift({
-    itemSectionRenderer: { contents: [renderConfigMenuButton(true)] }
-  })
+  data.content?.sectionListRenderer?.contents?.unshift(
+    { itemSectionRenderer: { contents: [renderConfigMenuButton(true)] } },
+    { itemSectionRenderer: { contents: [] } }
+  )
 }
 
 export const getYTConfigBool = (key: string, defaultValue: boolean, mask = 1): boolean => {
