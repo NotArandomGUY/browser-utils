@@ -984,6 +984,11 @@ export const fusionSearchboxRenderer = ytv_ren(() => ({
 export const ghostGridRenderer = ytv_ren(() => ({
   rows: ytv_num()
 }))
+export const gridButtonRenderer = ytv_ren(() => ({
+  icon: components.icon,
+  navigationEndpoint: ytv_enp(),
+  title: components.text
+}))
 export const gridChannelRenderer = ytv_ren(() => ({
   channelId: ytv_str(),
   navigationEndpoint: ytv_enp(),
