@@ -164,17 +164,25 @@ class FormatBuffer {
   }
 
   public getBufferAt_(type: PositionType, start: number, end: number): Uint8Array<ArrayBuffer> | null {
-    const segments = this.segments.filter(s => !(s[`${type}_s`] > end || s[`${type}_e`] < start))
-    const buffering = segments.length === 0 || segments.some((s, i) => s.buffering || (i > 0 && (s.index - segments[i - 1].index) !== 1))
+    const { clen, segments } = this
+
+    const initSegment = segments.find(s => s.b_s === 0)
+    if (initSegment != null) end = max(end, initSegment[`${type}_s`])
+
+    const lastSegment = segments.find(s => s.b_e === clen)
+    if (lastSegment != null) start = min(start, lastSegment[`${type}_e`])
+
+    const rangeSegments = segments.filter(s => !(s[`${type}_s`] > end || s[`${type}_e`] < start))
+    const buffering = rangeSegments.length === 0 || rangeSegments.some((s, i) => s.buffering || (i > 0 && (s.index - rangeSegments[i - 1].index) !== 1))
     if (buffering) return null
 
-    const first = segments.at(0)!
-    const last = segments.at(-1)!
-    if ((first.b_s > 0 && start < first[`${type}_s`]) || (last.b_e < this.clen && last[`${type}_e`] < end)) return null
+    const first = rangeSegments.at(0)!
+    const last = rangeSegments.at(-1)!
+    if ((first.b_s > 0 && start < first[`${type}_s`]) || (last.b_e < clen && last[`${type}_e`] < end)) return null
 
-    let buffer = bufferConcat(segments.map(s => s.buffer))
+    let buffer = bufferConcat(rangeSegments.map(s => s.buffer))
     if (type === PositionType.BYTE) {
-      const offset = start - segments[0].b_s
+      const offset = start - rangeSegments[0].b_s
       buffer = buffer.subarray(offset, offset + (end - start))
     }
 
