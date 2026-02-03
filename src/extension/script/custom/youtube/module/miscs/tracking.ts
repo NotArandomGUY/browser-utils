@@ -173,6 +173,7 @@ const updateFeedNudgeRenderer = (data: YTValueData<YTRenderer.Mapped<'feedNudgeR
       { text: 'You can enable watch history from the menu' }
     ]
   }
+  delete data.impressionEndpoint
 }
 
 const updateShareTargetRenderer = (data: YTValueData<YTRenderer.Mapped<'shareTargetRenderer'>>): void => {
