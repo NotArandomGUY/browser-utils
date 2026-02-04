@@ -39,8 +39,7 @@ const PLAYER_EXPERIMENT_FLAGS: [key: string, value?: string][] = [
   ['html5_onesie_attach_po_token'],
   ['html5_non_onesie_attach_po_token'],
   ['html5_use_shared_owl_instance'],
-  ['html5_web_po_token_disable_caching'],
-  //['html5_web_po_request_key', 'O43z0dpjhgX20SCx4KAo']
+  ['html5_web_po_token_disable_caching']
 ]
 const STYLE_SHEET = [
   // FIX: leanback animated overlay virtual list bug
@@ -373,8 +372,8 @@ const processPlayerContextConfig = (webPlayerContextConfig: Record<string, YTPla
   }
 }
 
-const processInnertubeRequest = ({ context }: YTInnertubeRequest): void => {
-  if (isYTLoggedIn()) return
+const processInnertubeRequest = (isGuestOnly: boolean, { context }: YTInnertubeRequest, headers: Headers): void => {
+  if (isGuestOnly && isYTLoggedIn()) return
 
   const client = context?.client
   if (client == null) return
@@ -385,6 +384,8 @@ const processInnertubeRequest = ({ context }: YTInnertubeRequest): void => {
   const [name, version] = override
   client.clientName = name
   client.clientVersion = version
+
+  headers.delete('authorization')
 }
 
 const processResponse = async (ctx: NetworkContext<unknown, NetworkState.SUCCESS>): Promise<void> => {
@@ -429,8 +430,8 @@ export default class YTPlayerBootstrapModule extends Feature {
     YTConfigInitCallback.registerCallback(ytcfg => processPlayerContextConfig(ytcfg.get('WEB_PLAYER_CONTEXT_CONFIGS')))
     YTPlayerCreateCallback.registerCallback(onCreateYTPlayer)
 
-    registerYTInnertubeRequestProcessor('att/get', processInnertubeRequest)
-    registerYTInnertubeRequestProcessor('player', processInnertubeRequest)
+    registerYTInnertubeRequestProcessor('att/get', processInnertubeRequest.bind(null, false))
+    registerYTInnertubeRequestProcessor('player', processInnertubeRequest.bind(null, true))
 
     addInterceptNetworkCallback(async ctx => {
       if (ctx.state === NetworkState.SUCCESS) await processResponse(ctx)
