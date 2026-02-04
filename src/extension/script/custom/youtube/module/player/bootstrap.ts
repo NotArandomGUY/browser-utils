@@ -1,4 +1,4 @@
-import { YTConfigInitCallback, YTPlayerCreateCallback, YTPlayerWebPlayerContextConfig } from '@ext/custom/youtube/module/core/bootstrap'
+import { isYTLoggedIn, YTConfigInitCallback, YTPlayerCreateCallback, YTPlayerWebPlayerContextConfig } from '@ext/custom/youtube/module/core/bootstrap'
 import { registerYTInnertubeRequestProcessor, YTInnertubeRequest } from '@ext/custom/youtube/module/core/network'
 import { URLSearchParams } from '@ext/global/network'
 import { defineProperty, entries, fromEntries, getOwnPropertyNames, getPrototypeOf, keys, values } from '@ext/global/object'
@@ -40,7 +40,7 @@ const PLAYER_EXPERIMENT_FLAGS: [key: string, value?: string][] = [
   ['html5_non_onesie_attach_po_token'],
   ['html5_use_shared_owl_instance'],
   ['html5_web_po_token_disable_caching'],
-  ['html5_web_po_request_key', 'O43z0dpjhgX20SCx4KAo']
+  //['html5_web_po_request_key', 'O43z0dpjhgX20SCx4KAo']
 ]
 const STYLE_SHEET = [
   // FIX: leanback animated overlay virtual list bug
@@ -374,6 +374,8 @@ const processPlayerContextConfig = (webPlayerContextConfig: Record<string, YTPla
 }
 
 const processInnertubeRequest = ({ context }: YTInnertubeRequest): void => {
+  if (isYTLoggedIn()) return
+
   const client = context?.client
   if (client == null) return
 
