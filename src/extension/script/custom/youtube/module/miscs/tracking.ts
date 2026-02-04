@@ -97,6 +97,7 @@ const processPlayerContextConfig = (config: YTPlayerWebPlayerContextConfig): voi
   if (obfuscatedGaiaId == null) return
 
   accessTokenCacheKey = `${obfuscatedGaiaId}||${obfuscatedGaiaId}`
+  if (getCachedAccessToken() != null) ytcfg?.set('LOGGED_IN', true)
 }
 
 const processRequest = async (ctx: NetworkRequestContext): Promise<void> => {
