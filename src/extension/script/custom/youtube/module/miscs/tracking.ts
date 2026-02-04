@@ -1,5 +1,5 @@
 import { registerYTValueProcessor } from '@ext/custom/youtube/api/processor'
-import { YTEndpoint, YTRenderer, YTResponse, ytv_enp, ytv_ren, YTValueData, YTValueType } from '@ext/custom/youtube/api/schema'
+import { YTRenderer, YTResponse, ytv_enp, ytv_ren, YTValueData, YTValueType } from '@ext/custom/youtube/api/schema'
 import { isYTLoggedIn, YTPlayerWebPlayerContextConfig } from '@ext/custom/youtube/module/core/bootstrap'
 import { getYTConfigBool, getYTConfigInt, registerYTConfigMenuItemGroup, setYTConfigInt, YTConfigMenuItemType } from '@ext/custom/youtube/module/core/config'
 import { registerYTInnertubeRequestProcessor } from '@ext/custom/youtube/module/core/network'
