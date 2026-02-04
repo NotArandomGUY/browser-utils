@@ -1,8 +1,14 @@
 import { registerYTValueFilter } from '@ext/custom/youtube/api/processor'
 import { YTRenderer } from '@ext/custom/youtube/api/schema'
 import { random } from '@ext/global/math'
-import { defineProperties } from '@ext/global/object'
+import { defineProperty, entries, getPropertyDescriptor } from '@ext/global/object'
 import { Feature } from '@ext/lib/feature'
+import Hook, { HookResult } from '@ext/lib/intercept/hook'
+
+const DOCUMENT_PROPERTIES_OVERRIDE = {
+  hidden: false,
+  webkitHidden: false
+}
 
 const generateActivity = (): void => {
   if (random() > 0.15) return
@@ -25,19 +31,18 @@ export default class YTMiscsBackgroundModule extends Feature {
   protected activate(): boolean {
     registerYTValueFilter(YTRenderer.mapped.youThereRenderer)
 
-    defineProperties(document, {
-      hidden: {
+    entries(DOCUMENT_PROPERTIES_OVERRIDE).forEach(([name, value]) => {
+      const get = getPropertyDescriptor(document, name)?.get
+      if (get == null) return
+
+      defineProperty(Document.prototype, name, {
         configurable: true,
-        get() {
-          return false
-        }
-      },
-      webkitHidden: {
-        configurable: true,
-        get() {
-          return false
-        }
-      }
+        enumerable: true,
+        get: new Hook(get).install(ctx => {
+          ctx.returnValue = value
+          return HookResult.EXECUTION_RETURN
+        }).call
+      })
     })
 
     setInterval(generateActivity, 15e3)
