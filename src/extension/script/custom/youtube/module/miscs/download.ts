@@ -10,6 +10,7 @@ import PlayerParams from '@ext/custom/youtube/proto/player-params'
 import { updateYTReduxStoreLocalEntities } from '@ext/custom/youtube/utils/redux'
 import SabrDownloader, { SabrFormatInfo } from '@ext/custom/youtube/utils/sabr-downloader'
 import { UMPSlice } from '@ext/custom/youtube/utils/ump'
+import { mintYTWebPoToken } from '@ext/custom/youtube/utils/wpo'
 import { floor } from '@ext/global/math'
 import { assign, fromEntries } from '@ext/global/object'
 import { bufferConcat, bufferFromString, bufferToString } from '@ext/lib/buffer'
@@ -303,7 +304,9 @@ const processRequest = async (ctx: NetworkRequestContext): Promise<void> => {
       })
       downloaderId = id
     }
-    if (pot != null) downloader.setPoToken(bufferFromString(pot, 'base64url'))
+
+    const poToken = pot == null ? await mintYTWebPoToken(videoId) : bufferFromString(pot, 'base64url')
+    if (poToken != null) downloader.setPoToken(poToken)
 
     const [formatId, buffer] = await downloader.fetchChunk(Number(itag), start, end == null ? end : end + 1)
     const header = new Uint8Array([0])
