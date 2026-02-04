@@ -1,3 +1,5 @@
+import { registerYTValueProcessor } from '@ext/custom/youtube/api/processor'
+import { YTRenderer, YTValueData } from '@ext/custom/youtube/api/schema'
 import { isYTLoggedIn, YTConfigInitCallback, YTPlayerCreateCallback, YTPlayerWebPlayerContextConfig } from '@ext/custom/youtube/module/core/bootstrap'
 import { registerYTInnertubeRequestProcessor, YTInnertubeRequest } from '@ext/custom/youtube/module/core/network'
 import { URLSearchParams } from '@ext/global/network'
@@ -413,6 +415,11 @@ const processResponse = async (ctx: NetworkContext<unknown, NetworkState.SUCCESS
   }
 }
 
+const updateTransportControlsAction = (data: YTValueData<YTRenderer.Component<'transportControlsAction'>>): void => {
+  const button = data.button?.buttonRenderer
+  if (button && data.type === 'TRANSPORT_CONTROLS_BUTTON_TYPE_SPEED_BUTTON') button.isDisabled = false
+}
+
 export const getAllYTPInstance = <T extends YTPInstanceType>(type: T): YTPInstanceOf<T>[] => {
   return Array.from(instancesByType[type]?.values() as SetIterator<WeakRef<YTPInstanceOf<T>>> ?? []).map(ref => ref.deref()).filter(value => value != null)
 }
@@ -429,6 +436,8 @@ export default class YTPlayerBootstrapModule extends Feature {
   protected activate(): boolean {
     YTConfigInitCallback.registerCallback(ytcfg => processPlayerContextConfig(ytcfg.get('WEB_PLAYER_CONTEXT_CONFIGS')))
     YTPlayerCreateCallback.registerCallback(onCreateYTPlayer)
+
+    registerYTValueProcessor(YTRenderer.components.transportControlsAction, updateTransportControlsAction)
 
     registerYTInnertubeRequestProcessor('att/get', processInnertubeRequest.bind(null, false))
     registerYTInnertubeRequestProcessor('player', processInnertubeRequest.bind(null, true))

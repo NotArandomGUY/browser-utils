@@ -2690,31 +2690,13 @@ export const topbarMenuButtonRenderer = ytv_ren(() => ({
   tooltip: ytv_str()
 }))
 export const transportControlsRenderer = ytv_ren(() => ({
-  buttons: ytv_arr(ytv_sch({
-    button: ytv_ren(),
-    type: ytv_str([
-      'TRANSPORT_CONTROLS_BUTTON_TYPE_ADD_TO_PLAYLIST',
-      'TRANSPORT_CONTROLS_BUTTON_TYPE_AUDIO_TRACKS',
-      'TRANSPORT_CONTROLS_BUTTON_TYPE_CAPTIONS',
-      'TRANSPORT_CONTROLS_BUTTON_TYPE_CHANNEL_BUTTON',
-      'TRANSPORT_CONTROLS_BUTTON_TYPE_DISLIKE_BUTTON',
-      'TRANSPORT_CONTROLS_BUTTON_TYPE_DRC',
-      'TRANSPORT_CONTROLS_BUTTON_TYPE_FEEDBACK',
-      'TRANSPORT_CONTROLS_BUTTON_TYPE_LIKE_BUTTON',
-      'TRANSPORT_CONTROLS_BUTTON_TYPE_LOOP_BUTTON',
-      'TRANSPORT_CONTROLS_BUTTON_TYPE_MUSIC_DISPLAY',
-      'TRANSPORT_CONTROLS_BUTTON_TYPE_PLAYBACK_SETTINGS',
-      'TRANSPORT_CONTROLS_BUTTON_TYPE_QUALITY',
-      'TRANSPORT_CONTROLS_BUTTON_TYPE_REPORT_VIDEO',
-      'TRANSPORT_CONTROLS_BUTTON_TYPE_SKIP_NEXT',
-      'TRANSPORT_CONTROLS_BUTTON_TYPE_SKIP_PREVIOUS',
-      'TRANSPORT_CONTROLS_BUTTON_TYPE_SPEED_BUTTON',
-      'TRANSPORT_CONTROLS_BUTTON_TYPE_STATS_FOR_NERDS',
-      'TRANSPORT_CONTROLS_BUTTON_TYPE_SUBSCRIBE',
-      'TRANSPORT_CONTROLS_BUTTON_TYPE_SURROUND_SOUND'
-    ])
-  })),
-  featuredActionViewModels: ytv_arr(ytv_ren())
+  buttons: ytv_arr(components.transportControlsAction),
+  engagementActions: ytv_arr(components.transportControlsAction),
+  featuredActionViewModels: ytv_arr(ytv_ren()),
+  promotedActions: ytv_arr(components.transportControlsAction),
+  settingActions: ytv_arr(components.transportControlsAction),
+  skipNextButton: ytv_ren(),
+  skipPreviousButton: ytv_ren()
 }))
 export const tvBrowseRenderer = ytv_ren(() => ({
   content: ytv_ren(),
