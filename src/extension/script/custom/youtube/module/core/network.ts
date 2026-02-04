@@ -156,7 +156,10 @@ type YTInnertubeRequestMap = {
 export type YTInnertubeRequestEndpoint = keyof YTInnertubeRequestMap
 export type YTInnertubeRequest<E extends YTInnertubeRequestEndpoint = YTInnertubeRequestEndpoint> = YTInnertubeRequestBase & YTInnertubeRequestMap[E]
 
-export type YTInnertubeRequestProcessor<E extends YTInnertubeRequestEndpoint = YTInnertubeRequestEndpoint> = (request: YTInnertubeRequest<E>) => Promise<YTValueData<YTResponse.Mapped> | void> | YTValueData<YTResponse.Mapped> | void
+export type YTInnertubeRequestProcessor<E extends YTInnertubeRequestEndpoint = YTInnertubeRequestEndpoint> = (
+  request: YTInnertubeRequest<E>,
+  headers: Headers
+) => Promise<YTValueData<YTResponse.Mapped> | void> | YTValueData<YTResponse.Mapped> | void
 
 const innertubeRequestProcessorMap: { [endpoint: string]: Set<YTInnertubeRequestProcessor> } = {}
 
@@ -173,32 +176,32 @@ const protoBase64UrlEncode = <D extends MessageDefinition>(message: Message<D>):
   return encodeURIComponent(bufferToString(data, 'base64url'))
 }
 
-const invokeProcessors = async (request: YTInnertubeRequest, processors?: Set<YTInnertubeRequestProcessor>): Promise<YTValueData<YTResponse.Mapped> | null> => {
+const invokeProcessors = async (request: YTInnertubeRequest, headers: Headers, processors?: Set<YTInnertubeRequestProcessor>): Promise<YTValueData<YTResponse.Mapped> | null> => {
   let response: YTValueData<YTResponse.Mapped> | null = null
   if (processors == null) return response
 
   for (const processor of processors) {
-    response = await processor(request) ?? null
+    response = await processor(request, headers) ?? null
     if (response != null) break
   }
 
   return response
 }
 
-const processInnertubeRequest = async (endpoint: string, request?: YTInnertubeRequest): Promise<Response | null> => {
+const processInnertubeRequest = async (endpoint: string, headers: Headers, request?: YTInnertubeRequest): Promise<Response | null> => {
   if (request == null) return null
 
-  let response = await invokeProcessors(request, innertubeRequestProcessorMap['*'])
+  let response = await invokeProcessors(request, headers, innertubeRequestProcessorMap['*'])
   if (response == null) {
     const processors = innertubeRequestProcessorMap[endpoint]
     switch (endpoint) {
       case 'get_watch': {
         const data = request as YTInnertubeRequest<typeof endpoint>
 
-        response = await invokeProcessors(data, processors)
+        response = await invokeProcessors(data, headers, processors)
 
-        await processInnertubeRequest('player', data.playerRequest as YTInnertubeRequest)
-        await processInnertubeRequest('next', data.watchNextRequest as YTInnertubeRequest)
+        await processInnertubeRequest('player', headers, data.playerRequest as YTInnertubeRequest)
+        await processInnertubeRequest('next', headers, data.watchNextRequest as YTInnertubeRequest)
         break
       }
       case 'player': {
@@ -207,13 +210,13 @@ const processInnertubeRequest = async (endpoint: string, request?: YTInnertubeRe
         }
         data.params = protoBase64UrlDecode(new PlayerParams(), data.params as string)
 
-        response = await invokeProcessors(data, processors)
+        response = await invokeProcessors(data, headers, processors)
 
         data.params = protoBase64UrlEncode(data.params)
         break
       }
       default:
-        response = await invokeProcessors(request, processors)
+        response = await invokeProcessors(request, headers, processors)
         break
     }
   }
@@ -255,11 +258,12 @@ const processInnertubeResponse = async (endpoint: string, request: Request, resp
 
 const processRequest = async (ctx: NetworkRequestContext): Promise<void> => {
   const { url, request } = ctx
+  const { headers } = request
 
   const innertubeEndpoint = INNERTUBE_API_REGEXP.exec(url.pathname)?.[0]
   if (innertubeEndpoint == null) return
 
-  const encoding = request.headers.get('content-encoding')
+  const encoding = headers.get('content-encoding')
 
   let data = null
   try {
@@ -278,7 +282,7 @@ const processRequest = async (ctx: NetworkRequestContext): Promise<void> => {
   }
 
   try {
-    const response = await processInnertubeRequest(innertubeEndpoint, data)
+    const response = await processInnertubeRequest(innertubeEndpoint, headers, data)
     if (response != null) {
       assign<NetworkContext, NetworkContextState>(ctx, { state: NetworkState.SUCCESS, response })
       return
@@ -296,7 +300,7 @@ const processRequest = async (ctx: NetworkRequestContext): Promise<void> => {
       body = await compress(body, encoding)
       break
     default:
-      request.headers.delete('content-encoding')
+      headers.delete('content-encoding')
       break
   }
   await replaceRequest(ctx, { body })
