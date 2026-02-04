@@ -59,6 +59,25 @@ export interface YTInnertubeContext {
     acceptHeader: string
     deviceExperimentId: string
     rolloutToken: string
+    mainAppWebInfo: Partial<{
+      graftUrl: string
+      isWebNativeShareAvailable: boolean
+      webDisplayMode: 'WEB_DISPLAY_MODE_BROWSER'
+    }>
+    tvAppInfo: Partial<{
+      appQuality: 'TV_APP_QUALITY_FULL_ANIMATION'
+      livingRoomAppMode: 'LIVING_ROOM_APP_MODE_UNSPECIFIED'
+      livingRoomPoTokenId: string
+      supportsNativeScrolling: boolean
+      voiceCapability: {
+        hasHardMicSupport: boolean
+        hasSoftMicSupport: boolean
+      }
+      watchPageInfo: {
+        combineChannelSdEntrypoints: boolean
+        watchPageVersion: string
+      }
+    }>
   }>
   user: Partial<{
     lockedSafetyMode: boolean

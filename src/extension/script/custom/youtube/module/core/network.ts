@@ -85,6 +85,9 @@ type YTInnertubeRequestBase = {
 
 type YTInnertubeRequestMap = {
   '*': {}
+  'att/get': Partial<{
+    engagementType: 'ENGAGEMENT_TYPE_PLAYBACK' | 'ENGAGEMENT_TYPE_SHARE' | 'ENGAGEMENT_TYPE_UNBOUND' | 'ENGAGEMENT_TYPE_VIDEO_TRANSCRIPT_REQUEST' | 'ENGAGEMENT_TYPE_YPC_GET_DOWNLOAD_ACTION' | 'ENGAGEMENT_TYPE_YPC_GET_PREMIUM_PAGE'
+  }>
   'browse': Partial<{
     browseId: string
     params: string // TODO: should be a protobuf message
@@ -139,6 +142,7 @@ type YTInnertubeRequestMap = {
     playbackContext: YTInnertubeRequestPlaybackContext
     playlistId: string
     playlistIndex: number
+    serviceIntegrityDimensions: { poToken: string }
     videoId: string
   }> & { params: InstanceType<typeof PlayerParams> }
   'search': Partial<{

@@ -1,4 +1,5 @@
 import { YTConfigInitCallback, YTPlayerCreateCallback, YTPlayerWebPlayerContextConfig } from '@ext/custom/youtube/module/core/bootstrap'
+import { registerYTInnertubeRequestProcessor, YTInnertubeRequest } from '@ext/custom/youtube/module/core/network'
 import { URLSearchParams } from '@ext/global/network'
 import { defineProperty, entries, fromEntries, getOwnPropertyNames, getPrototypeOf, keys, values } from '@ext/global/object'
 import Callback from '@ext/lib/callback'
@@ -10,6 +11,9 @@ import Logger from '@ext/lib/logger'
 
 const logger = new Logger('YTPLAYER-BOOTSTRAP')
 
+const PLAYER_CLIENT_OVERRIDE: Record<string, [name: string, version: string]> = {
+  'TVHTML5': ['WEB', '2.20260128.05.00']
+}
 const PLAYER_EXPERIMENT_FLAGS: [key: string, value?: string][] = [
   // unlock higher quality formats
   ['html5_force_hfr_support'],
@@ -25,9 +29,18 @@ const PLAYER_EXPERIMENT_FLAGS: [key: string, value?: string][] = [
   ['html5_sabr_live_timing'],
   ['html5_streaming_resilience'],
 
-  // Enable miniplayer & pip context menu buttons
+  // enable miniplayer & pip context menu buttons
   ['web_player_miniplayer_in_context_menu'],
-  ['web_watch_pip_context_menu_button']
+  ['web_watch_pip_context_menu_button'],
+
+  // use WEB po token on TVHTML5
+  ['html5_generate_content_po_token'],
+  ['html5_generate_session_po_token'],
+  ['html5_onesie_attach_po_token'],
+  ['html5_non_onesie_attach_po_token'],
+  ['html5_use_shared_owl_instance'],
+  ['html5_web_po_token_disable_caching'],
+  ['html5_web_po_request_key', 'O43z0dpjhgX20SCx4KAo']
 ]
 const STYLE_SHEET = [
   // FIX: leanback animated overlay virtual list bug
@@ -360,6 +373,18 @@ const processPlayerContextConfig = (webPlayerContextConfig: Record<string, YTPla
   }
 }
 
+const processInnertubeRequest = ({ context }: YTInnertubeRequest): void => {
+  const client = context?.client
+  if (client == null) return
+
+  const override = PLAYER_CLIENT_OVERRIDE[client.clientName!]
+  if (override == null) return
+
+  const [name, version] = override
+  client.clientName = name
+  client.clientVersion = version
+}
+
 const processResponse = async (ctx: NetworkContext<unknown, NetworkState.SUCCESS>): Promise<void> => {
   const { url: { pathname, searchParams }, response } = ctx
 
@@ -401,6 +426,9 @@ export default class YTPlayerBootstrapModule extends Feature {
   protected activate(): boolean {
     YTConfigInitCallback.registerCallback(ytcfg => processPlayerContextConfig(ytcfg.get('WEB_PLAYER_CONTEXT_CONFIGS')))
     YTPlayerCreateCallback.registerCallback(onCreateYTPlayer)
+
+    registerYTInnertubeRequestProcessor('att/get', processInnertubeRequest)
+    registerYTInnertubeRequestProcessor('player', processInnertubeRequest)
 
     addInterceptNetworkCallback(async ctx => {
       if (ctx.state === NetworkState.SUCCESS) await processResponse(ctx)
