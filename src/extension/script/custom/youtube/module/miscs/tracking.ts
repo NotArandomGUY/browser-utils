@@ -100,32 +100,32 @@ const processPlayerContextConfig = (config: YTPlayerWebPlayerContextConfig): voi
 }
 
 const processRequest = async (ctx: NetworkRequestContext): Promise<void> => {
-  const { url, request } = ctx
+  const { url, request: { headers } } = ctx
   const { pathname, search, searchParams } = url
 
   // Remove visitor id from everything
-  request.headers.delete('x-goog-visitor-id')
+  headers.delete('x-goog-visitor-id')
 
   const path = pathname + search
 
   // Inject access token for some requests
   if (INJECT_ACCESS_TOKEN_PATH_REGEXP.test(path)) {
     const accessToken = getCachedAccessToken()
-    if (accessToken != null) request.headers.set('authorization', `Bearer ${accessToken}`)
+    if (accessToken != null) headers.set('authorization', `Bearer ${accessToken}`)
   }
 
   // Ignore non stats requests
   if (!STATS_BLACKLIST_PATH_REGEXP.test(path)) return
 
   // Block stats requests unless switch is enabled
-  const isLoggedIn = isYTLoggedIn() || (searchParams.has('cttype') && searchParams.has('ctt')) || request.headers.has('authorization')
+  const isLoggedIn = isYTLoggedIn() || (searchParams.has('cttype') && searchParams.has('ctt')) || headers.has('authorization')
   if (!isYTTrackingSwitchEnabled(isLoggedIn ? YTTrackingSwitchMask.LOGIN_STATS : YTTrackingSwitchMask.GUEST_STATS) || !STATS_WHITELIST_PATH_REGEXP.test(path)) {
     assign<NetworkContext, NetworkContextState>(ctx, { state: NetworkState.FAILED, error: new Error('Failed') })
     return
   }
 
   // Sanitize stats requests params
-  searchParams.forEach((_, key) => STATS_API_BLOCK_PARAMS.has(key) && searchParams.delete(key))
+  Array.from(searchParams.keys()).forEach(key => STATS_API_BLOCK_PARAMS.has(key) && searchParams.delete(key))
 
   await replaceRequest(ctx, { url })
 }
