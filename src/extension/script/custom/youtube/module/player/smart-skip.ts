@@ -209,7 +209,15 @@ const buildAutoTimelyActionFromSegmentEntry = (entry: SkipSegmentEntry): YTValue
         serialCommand: {
           commands: [
             buildInnertubeCommand({ seekToVideoTimestampCommand: { videoId, offsetFromVideoStartMilliseconds: endTimeMs.toString() } }),
-            buildInnertubeCommand({ openPopupAction: { popup: { notificationActionRenderer: { responseText: { simpleText: title } } }, popupType: 'TOAST' } })
+            buildInnertubeCommand({
+              openPopupAction: {
+                popup: {
+                  notificationActionRenderer: { responseText: { simpleText: title } },
+                  overlayToastRenderer: { title: { simpleText: title } }
+                },
+                popupType: 'TOAST'
+              }
+            })
           ]
         }
       }
