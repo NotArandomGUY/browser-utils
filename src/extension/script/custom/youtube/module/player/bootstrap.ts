@@ -17,10 +17,6 @@ const PLAYER_CLIENT_OVERRIDE: Record<string, [name: string, version: string]> = 
   'TVHTML5': ['WEB', '2.20260128.05.00']
 }
 const PLAYER_EXPERIMENT_FLAGS: [key: string, value?: string][] = [
-  // unlock higher quality formats
-  ['html5_force_hfr_support'],
-  ['html5_tv_ignore_capable_constraint'],
-
   // sabr usually have a smoother buffer, but prevent csdai seeking in some cases
   ['html5_enable_sabr_csdai', 'false'],
   ['html5_remove_client_sabr_determination', 'true'],
@@ -460,6 +456,19 @@ export default class YTPlayerBootstrapModule extends Feature {
 
       return HookResult.EXECUTION_PASSTHROUGH
     })
+
+    // Fail properly on invalid tests to unlock higher qualities
+    const isTypeSupported = window.MediaSource?.isTypeSupported
+    if (isTypeSupported != null) {
+      MediaSource.isTypeSupported = new Hook(isTypeSupported).install(ctx => {
+        const type = String(ctx.args[0])
+        if (/;\s*\w+=(99+|\d000000+|invalid\w*|nope)$/.test(type)) {
+          ctx.returnValue = false
+          return HookResult.EXECUTION_RETURN
+        }
+        return HookResult.EXECUTION_PASSTHROUGH
+      }).call
+    }
 
     return true
   }
