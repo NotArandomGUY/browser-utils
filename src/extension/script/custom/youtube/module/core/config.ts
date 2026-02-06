@@ -130,7 +130,8 @@ const buildMultiPageMenuItem = (
 
 const buildOverlayPanel = (
   title: string,
-  items: YTValueData<{ type: YTValueType.RENDERER }>[]
+  items: YTValueData<{ type: YTValueType.RENDERER }>[],
+  description?: string
 ): YTValueData<{ type: YTValueType.RENDERER }> => {
   return {
     overlaySectionRenderer: {
@@ -141,7 +142,7 @@ const buildOverlayPanel = (
         overlayTwoPanelRenderer: {
           actionPanel: {
             overlayPanelRenderer: {
-              header: { overlayPanelHeaderRenderer: { title: { simpleText: title } } },
+              header: { overlayPanelHeaderRenderer: { title: { simpleText: title }, subtitle: description ? { simpleText: description } : undefined } },
               content: { overlayPanelItemListRenderer: { items } }
             }
           }
@@ -153,7 +154,8 @@ const buildOverlayPanel = (
 
 const buildOverlayPanelItem = (
   title: string,
-  items: YTValueData<{ type: YTValueType.RENDERER }>[]
+  items: YTValueData<{ type: YTValueType.RENDERER }>[],
+  description?: string
 ): YTValueData<{ type: YTValueType.RENDERER }> => {
   return {
     buttonRenderer: {
@@ -162,7 +164,7 @@ const buildOverlayPanelItem = (
       serviceEndpoint: {
         signalServiceEndpoint: {
           signal: 'CLIENT_SIGNAL',
-          actions: [{ openPopupAction: { popup: buildOverlayPanel(title, items) } }]
+          actions: [{ openPopupAction: { popup: buildOverlayPanel(title, items, description) } }]
         }
       }
     }
@@ -209,7 +211,7 @@ const renderConfigMenuItem = (isTV: boolean, item: YTConfigMenuItem): YTValueDat
             commands,
             signals: signals[0 ^ invert]
           })
-        ])
+        ], item.description)
       } else {
         return buildMultiPageMenuItem(title, item.icon, [
           {
