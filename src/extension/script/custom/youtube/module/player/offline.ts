@@ -1,8 +1,6 @@
-import { registerOverlayPage } from '@ext/common/preload/overlay'
 import { registerYTValueProcessor } from '@ext/custom/youtube/api/processor'
 import { YTCommon, YTEndpoint, YTResponse, YTValueData } from '@ext/custom/youtube/api/schema'
 import { YTKevlarMethodDefineCallback, YTPlayerCreateCallback } from '@ext/custom/youtube/module/core/bootstrap'
-import YTOfflinePage from '@ext/custom/youtube/pages/offline'
 import { decodeEntityKey, EntityType } from '@ext/custom/youtube/proto/entity-key'
 import { getNonce } from '@ext/custom/youtube/utils/crypto'
 import { getYTLocalEntitiesByType, getYTLocalEntityByKey, getYTLocalEntityByType, getYTLocalMediaIndex, putYTLocalEntity, YTLocalEntity, YTLocalMediaType } from '@ext/custom/youtube/utils/local'
@@ -172,8 +170,6 @@ export default class YTPlayerOfflineModule extends Feature {
 
     registerYTValueProcessor(YTEndpoint.mapped.entityUpdateCommand, updateEntityUpdateCommand)
     registerYTValueProcessor(YTResponse.mapped.player, updatePlayerResponse)
-
-    registerOverlayPage('Downloads', YTOfflinePage)
 
     window.ytglobal = window.ytglobal ?? {} as typeof ytglobal
     ytglobal!['idbToken_'] = {}

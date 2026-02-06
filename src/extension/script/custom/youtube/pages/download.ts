@@ -86,15 +86,15 @@ const VideoEntityTableItem = (
   ]
 }
 
-class YTOfflinePageLifecycle extends Lifecycle<void> {
+class YTDownloadPageLifecycle extends Lifecycle<void> {
   private static readonly ID = Lifecycle.getId('yt-offline-page')
 
   public static override define(): void {
-    Lifecycle.define(YTOfflinePageLifecycle, YTOfflinePageLifecycle.ID)
+    Lifecycle.define(YTDownloadPageLifecycle, YTDownloadPageLifecycle.ID)
   }
 
-  public static override create(): YTOfflinePageLifecycle {
-    return Lifecycle.create({}, YTOfflinePageLifecycle.ID) as YTOfflinePageLifecycle
+  public static override create(): YTDownloadPageLifecycle {
+    return Lifecycle.create({}, YTDownloadPageLifecycle.ID) as YTDownloadPageLifecycle
   }
 
   private readonly fileInput_: HTMLInputElement
@@ -382,8 +382,8 @@ class YTOfflinePageLifecycle extends Lifecycle<void> {
   }
 }
 
-YTOfflinePageLifecycle.define()
+YTDownloadPageLifecycle.define()
 
-const YTOfflinePage = YTOfflinePageLifecycle.create
+const YTDownloadPage = YTDownloadPageLifecycle.create
 
-export default YTOfflinePage
+export default YTDownloadPage
