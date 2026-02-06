@@ -20,6 +20,7 @@ import YTMiscsTrackingModule from '@ext/custom/youtube/module/miscs/tracking'
 import YTPlayerBootstrapModule from '@ext/custom/youtube/module/player/bootstrap'
 import YTPlayerContentCheckModule from '@ext/custom/youtube/module/player/content-check'
 import YTPlayerLiveModule from '@ext/custom/youtube/module/player/live'
+import YTPlayerMusicVideoModule from '@ext/custom/youtube/module/player/music-video'
 import YTPlayerOfflineModule from '@ext/custom/youtube/module/player/offline'
 import YTPlayerSmartSkipModule from '@ext/custom/youtube/module/player/smart-skip'
 import YTPlayerUMPModule from '@ext/custom/youtube/module/player/ump'
@@ -56,6 +57,7 @@ registerFeatureGroup(PLAYER_GROUP_ID, group => {
   registerFeature(group, YTPlayerOfflineModule)
   registerFeature(group, YTPlayerSmartSkipModule)
   registerFeature(group, YTPlayerLiveModule)
+  registerFeature(group, YTPlayerMusicVideoModule)
 }, [CORE_GROUP_ID])
 
 registerFeatureGroup(CHAT_GROUP_ID, group => {
