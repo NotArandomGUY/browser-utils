@@ -321,7 +321,7 @@ export const adsEngagementPanelContentRenderer = ytv_ren(() => ({
   hack: ytv_bol()
 }))
 export const audioOnlyPlayabilityRenderer = ytv_ren(() => ({
-  audioOnlyAvailability: ytv_str(['FEATURE_AVAILABILITY_ALLOWED'])
+  audioOnlyAvailability: ytv_str(['FEATURE_AVAILABILITY_ALLOWED', 'FEATURE_AVAILABILITY_BLOCKED'])
 }))
 export const autoplayEndpointRenderer = ytv_ren(() => ({
   endpoint: ytv_enp(),
@@ -1710,8 +1710,14 @@ export const multiPageMenuRenderer = ytv_ren(() => ({
 export const multiPageMenuSectionRenderer = ytv_ren(() => ({
   items: ytv_arr(ytv_ren())
 }))
+export const musicLyricContentRenderer = ytv_ren(() => ({
+  impressionCommand: ytv_enp(),
+  lyricProvider: components.text,
+  timedLyricLines: ytv_arr(components.timedLyricLine)
+}))
 export const musicWatchMetadataRenderer = ytv_ren(() => ({
   accessibilityText: ytv_str(),
+  albumName: components.text,
   blurredBackgroundThumbnail: components.thumbnail,
   byline: components.text,
   darkColorPalette: ytv_sch({
@@ -1727,6 +1733,7 @@ export const musicWatchMetadataRenderer = ytv_ren(() => ({
   dateText: components.text,
   educationText: components.text,
   featuredMetadata: ytv_arr(ytv_ren()),
+  lyricContentRenderer: ytv_ren(),
   mayTruncateChannelName: ytv_bol(),
   onClickCommand: ytv_enp(),
   publishedTime: components.text,

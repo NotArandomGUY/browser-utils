@@ -344,6 +344,7 @@ export const playerVideoDetails = ytv_ren({
   author: ytv_str(),
   channelId: ytv_str(),
   isCrawlable: ytv_bol(),
+  isExternallyHostedPodcast: ytv_bol(),
   isLive: ytv_bol(),
   isLiveContent: ytv_bol(),
   isLiveDvrEnabled: ytv_bol(),
@@ -412,6 +413,12 @@ export const textViewModelColorMapExtension = ytv_ren({
 export const themedColor = ytv_ren({
   darkTheme: ytv_num(),
   lightTheme: ytv_num()
+})
+export const timedLyricLine = ytv_ren({
+  endTimeOffsetMs: ytv_num(),
+  lyricLine: text,
+  lyricLineStyle: ytv_str(['LYRIC_LINE_STYLE_EQUALIZER', 'LYRIC_LINE_STYLE_SONG_SOURCE', 'LYRIC_LINE_STYLE_TEXT']),
+  startTimeOffsetMs: ytv_num()
 })
 export const transportControlsAction = ytv_ren({
   button: ytv_ren(),

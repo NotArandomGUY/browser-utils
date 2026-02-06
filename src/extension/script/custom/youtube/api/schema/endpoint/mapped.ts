@@ -231,6 +231,9 @@ export const localWatchHistoryCommand = ytv_enp(() => ({
 export const logGestureCommand = ytv_ren(() => ({
   gestureType: ytv_str(['GESTURE_EVENT_TYPE_LOG_GENERIC_CLICK'])
 }))
+export const logLyricEventCommand = ytv_enp(() => ({
+  serializedLyricInfo: ytv_str()
+}))
 export const loopCommand = ytv_enp(() => ({
   loop: ytv_bol()
 }))
