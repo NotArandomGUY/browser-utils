@@ -7,15 +7,13 @@ export default class YTMiscsMerchModule extends Feature {
     super('merch')
   }
 
-  protected activate(): boolean {
-    registerYTValueFilter(YTRenderer.mapped.merchandiseShelfRenderer)
-    registerYTValueFilter(YTRenderer.mapped.productListHeaderRenderer)
-    registerYTValueFilter(YTRenderer.mapped.productListItemRenderer)
+  protected activate(cleanupCallbacks: Function[]): boolean {
+    cleanupCallbacks.push(
+      registerYTValueFilter(YTRenderer.mapped.merchandiseShelfRenderer),
+      registerYTValueFilter(YTRenderer.mapped.productListHeaderRenderer),
+      registerYTValueFilter(YTRenderer.mapped.productListItemRenderer)
+    )
 
     return true
-  }
-
-  protected deactivate(): boolean {
-    return false
   }
 }

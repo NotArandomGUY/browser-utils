@@ -315,7 +315,7 @@ const processResponse = async (ctx: NetworkContext<unknown, NetworkState.SUCCESS
   ctx.response = await processInnertubeResponse(innertubeEndpoint, request, response)
 }
 
-export const registerYTInnertubeRequestProcessor = <E extends YTInnertubeRequestEndpoint>(endpoint: E, processor: YTInnertubeRequestProcessor<E>): void => {
+export const registerYTInnertubeRequestProcessor = <E extends YTInnertubeRequestEndpoint>(endpoint: E, processor: YTInnertubeRequestProcessor<E>): () => void => {
   let processors = innertubeRequestProcessorMap[endpoint]
   if (processors == null) {
     processors = new Set() as NonNullable<typeof processors>
@@ -323,6 +323,11 @@ export const registerYTInnertubeRequestProcessor = <E extends YTInnertubeRequest
   }
 
   processors.add(processor as YTInnertubeRequestProcessor)
+
+  return () => {
+    processors.delete(processor as YTInnertubeRequestProcessor)
+    if (processors.size === 0) delete innertubeRequestProcessorMap[endpoint]
+  }
 }
 
 export default class YTCoreNetworkModule extends Feature {

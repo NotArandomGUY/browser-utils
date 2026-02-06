@@ -11,14 +11,12 @@ export default class YTMiscsPopupModule extends Feature {
     super('popup')
   }
 
-  protected activate(): boolean {
-    registerYTValueFilter(YTRenderer.mapped.mealbarPromoRenderer)
-    registerYTValueProcessor(YTResponse.mapped.next, updateNextResponse)
+  protected activate(cleanupCallbacks: Function[]): boolean {
+    cleanupCallbacks.push(
+      registerYTValueFilter(YTRenderer.mapped.mealbarPromoRenderer),
+      registerYTValueProcessor(YTResponse.mapped.next, updateNextResponse)
+    )
 
     return true
-  }
-
-  protected deactivate(): boolean {
-    return false
   }
 }

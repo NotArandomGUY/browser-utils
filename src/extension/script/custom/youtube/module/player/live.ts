@@ -1,5 +1,5 @@
 import { registerYTValueProcessor } from '@ext/custom/youtube/api/processor'
-import { YTEndpoint, YTRenderer, YTResponse, YTValueData } from '@ext/custom/youtube/api/schema'
+import { YTRenderer, YTResponse, YTValueData } from '@ext/custom/youtube/api/schema'
 import { getYTConfigBool, registerYTConfigMenuItemGroup, YTConfigMenuItemType } from '@ext/custom/youtube/module/core/config'
 import { getYTPInstance, YTPInstanceType } from '@ext/custom/youtube/module/player/bootstrap'
 import { abs, max, min, round } from '@ext/global/math'
@@ -157,27 +157,28 @@ export default class YTPlayerLiveModule extends Feature {
     super('live')
   }
 
-  protected activate(): boolean {
-    registerYTValueProcessor(YTResponse.mapped.player, updatePlayerResponse)
-
-    registerYTConfigMenuItemGroup('live-stream', [
-      {
-        type: YTConfigMenuItemType.TOGGLE,
-        key: LIVE_BEHAVIOUR_KEY,
-        icon: YTRenderer.enums.IconType.CLOCK,
-        text: 'Low Latency',
-        description: 'Actively adjust playback rate to achieve lowest possible latency based on buffer health',
-        mask: YTLiveBehaviourMask.LOW_LATENCY
-      },
-      {
-        type: YTConfigMenuItemType.TOGGLE,
-        key: LIVE_BEHAVIOUR_KEY,
-        icon: YTRenderer.enums.IconType.FAST_REWIND,
-        text: 'Force DVR',
-        description: 'Enable seeking for livestream even if it was disabled by the creator (might affect latency)',
-        mask: YTLiveBehaviourMask.FORCE_DVR
-      }
-    ])
+  protected activate(cleanupCallbacks: Function[]): boolean {
+    cleanupCallbacks.push(
+      registerYTConfigMenuItemGroup('live-stream', [
+        {
+          type: YTConfigMenuItemType.TOGGLE,
+          key: LIVE_BEHAVIOUR_KEY,
+          icon: YTRenderer.enums.IconType.CLOCK,
+          text: 'Low Latency',
+          description: 'Actively adjust playback rate to achieve lowest possible latency based on buffer health',
+          mask: YTLiveBehaviourMask.LOW_LATENCY
+        },
+        {
+          type: YTConfigMenuItemType.TOGGLE,
+          key: LIVE_BEHAVIOUR_KEY,
+          icon: YTRenderer.enums.IconType.FAST_REWIND,
+          text: 'Force DVR',
+          description: 'Enable seeking for livestream even if it was disabled by the creator (might affect latency)',
+          mask: YTLiveBehaviourMask.FORCE_DVR
+        }
+      ]),
+      registerYTValueProcessor(YTResponse.mapped.player, updatePlayerResponse)
+    )
 
     return true
   }
@@ -185,6 +186,6 @@ export default class YTPlayerLiveModule extends Feature {
   protected deactivate(): boolean {
     stopLiveHeadUpdate()
 
-    return false
+    return super.deactivate()
   }
 }

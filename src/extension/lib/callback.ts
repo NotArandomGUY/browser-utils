@@ -5,8 +5,9 @@ export default class Callback<A extends unknown[], C extends (...args: A) => voi
     this.callbacks_ = new Set()
   }
 
-  /*@__MANGLE_PROP__*/public registerCallback(callback: C): void {
+  /*@__MANGLE_PROP__*/public registerCallback(callback: C): () => void {
     this.callbacks_.add(callback)
+    return () => this.unregisterCallback(callback)
   }
 
   /*@__MANGLE_PROP__*/public unregisterCallback(callback: C): void {

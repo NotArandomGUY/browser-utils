@@ -296,26 +296,40 @@ export const setYTConfigInt = (key: string, value: number): void => {
   configCacheMap.set(key, value)
 }
 
-export const registerYTConfigMenuItemGroup = (key: string, items: YTConfigMenuItem[]): void => {
+export const registerYTConfigMenuItemGroup = (key: string, items: YTConfigMenuItem[]): () => void => {
   let group = configItemGroups.find(g => g.key === key)
   if (group == null) {
     group = { key, items: [] }
     configItemGroups.push(group)
   }
 
+  const cleanupCallbacks: Function[] = []
+
   for (const item of items) {
-    if (group.items.some(i => i.key === item.key && (i as YTConfigMenuToggleItem).mask === (item as YTConfigMenuToggleItem).mask)) return
+    if (group.items.some(i => i.key === item.key && (i as YTConfigMenuToggleItem).mask === (item as YTConfigMenuToggleItem).mask)) continue
 
     if (item.type === YTConfigMenuItemType.TOGGLE) {
       const mask = item.mask ?? 1
 
-      registerYTSignalActionHandler(getSetterSignalActionType(item.key, -mask), setYTConfigBool.bind(null, item.key, false, mask))
-      registerYTSignalActionHandler(getSetterSignalActionType(item.key, mask), setYTConfigBool.bind(null, item.key, true, mask))
+      cleanupCallbacks.push(
+        registerYTSignalActionHandler(getSetterSignalActionType(item.key, -mask), setYTConfigBool.bind(null, item.key, false, mask)),
+        registerYTSignalActionHandler(getSetterSignalActionType(item.key, mask), setYTConfigBool.bind(null, item.key, true, mask))
+      )
       item.signals ??= [YTEndpoint.enums.SignalActionType.CLOSE_POPUP, YTEndpoint.enums.SignalActionType.SOFT_RELOAD_PAGE]
     }
+
+    group.items.push(item)
+    cleanupCallbacks.push(() => group.items.splice(group.items.indexOf(item), 1))
   }
 
-  group.items.push(...items)
+  return () => {
+    cleanupCallbacks.splice(0).forEach(callback => callback())
+
+    const index = configItemGroups.indexOf(group)
+    if (index < 0 || group.items.length > 0) return
+
+    configItemGroups.splice(index, 1)
+  }
 }
 
 export default class YTCoreConfigModule extends Feature {
@@ -323,14 +337,12 @@ export default class YTCoreConfigModule extends Feature {
     super('config')
   }
 
-  protected activate(): boolean {
-    registerYTValueProcessor(YTRenderer.mapped.tvSurfaceContentRenderer, updateTvSurfaceContentRenderer, YTValueProcessorType.POST)
-    registerYTValueProcessor(YTRenderer.mapped.desktopTopbarRenderer, updateDesktopTopbarRenderer, YTValueProcessorType.POST)
+  protected activate(cleanupCallbacks: Function[]): boolean {
+    cleanupCallbacks.push(
+      registerYTValueProcessor(YTRenderer.mapped.tvSurfaceContentRenderer, updateTvSurfaceContentRenderer, YTValueProcessorType.POST),
+      registerYTValueProcessor(YTRenderer.mapped.desktopTopbarRenderer, updateDesktopTopbarRenderer, YTValueProcessorType.POST)
+    )
 
     return true
-  }
-
-  protected deactivate(): boolean {
-    return false
   }
 }

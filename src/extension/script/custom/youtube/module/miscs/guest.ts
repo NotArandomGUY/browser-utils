@@ -20,20 +20,18 @@ export default class YTMiscsGuestModule extends Feature {
     super('guest')
   }
 
-  protected activate(): boolean {
-    registerYTValueFilter(YTRenderer.mapped.commentSimpleboxRenderer, isYTLoggedIn)
-    registerYTValueFilter(YTRenderer.mapped.menuFlexibleItemRenderer, filterMenuFlexibleItem)
-    registerYTValueFilter(YTRenderer.mapped.segmentedLikeDislikeButtonViewModel, isYTLoggedIn)
-    registerYTValueFilter(YTRenderer.mapped.subscribeButtonRenderer, isYTLoggedIn)
-    registerYTValueFilter(YTRenderer.mapped.subscribeButtonViewModel, isYTLoggedIn)
-    registerYTValueProcessor(YTRenderer.mapped.channelRenderer, updateChannelRenderer)
-    registerYTValueProcessor(YTRenderer.mapped.gridChannelRenderer, updateChannelRenderer)
-    registerYTValueProcessor(YTRenderer.mapped.videoOwnerRenderer, updateVideoOwnerRenderer)
+  protected activate(cleanupCallbacks: Function[]): boolean {
+    cleanupCallbacks.push(
+      registerYTValueFilter(YTRenderer.mapped.commentSimpleboxRenderer, isYTLoggedIn),
+      registerYTValueFilter(YTRenderer.mapped.menuFlexibleItemRenderer, filterMenuFlexibleItem),
+      registerYTValueFilter(YTRenderer.mapped.segmentedLikeDislikeButtonViewModel, isYTLoggedIn),
+      registerYTValueFilter(YTRenderer.mapped.subscribeButtonRenderer, isYTLoggedIn),
+      registerYTValueFilter(YTRenderer.mapped.subscribeButtonViewModel, isYTLoggedIn),
+      registerYTValueProcessor(YTRenderer.mapped.channelRenderer, updateChannelRenderer),
+      registerYTValueProcessor(YTRenderer.mapped.gridChannelRenderer, updateChannelRenderer),
+      registerYTValueProcessor(YTRenderer.mapped.videoOwnerRenderer, updateVideoOwnerRenderer)
+    )
 
     return true
-  }
-
-  protected deactivate(): boolean {
-    return false
   }
 }

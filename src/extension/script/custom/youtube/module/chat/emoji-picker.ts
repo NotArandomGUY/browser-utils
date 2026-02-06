@@ -57,15 +57,13 @@ export default class YTChatEmojiPickerModule extends Feature {
     super('emoji-picker')
   }
 
-  protected activate(): boolean {
-    registerYTValueFilter(YTRenderer.mapped.emojiPickerUpsellCategoryRenderer, filterEmojiPickerUpsellCategoryRenderer)
-    registerYTValueProcessor(YTRenderer.mapped.liveChatRenderer, updateLiveChatRenderer)
-    registerYTValueProcessor(YTRenderer.mapped.emojiPickerRenderer, updateEmojiPickerRenderer, YTValueProcessorType.POST)
+  protected activate(cleanupCallbacks: Function[]): boolean {
+    cleanupCallbacks.push(
+      registerYTValueFilter(YTRenderer.mapped.emojiPickerUpsellCategoryRenderer, filterEmojiPickerUpsellCategoryRenderer),
+      registerYTValueProcessor(YTRenderer.mapped.liveChatRenderer, updateLiveChatRenderer),
+      registerYTValueProcessor(YTRenderer.mapped.emojiPickerRenderer, updateEmojiPickerRenderer, YTValueProcessorType.POST)
+    )
 
     return true
-  }
-
-  protected deactivate(): boolean {
-    return false
   }
 }

@@ -18,8 +18,14 @@ export interface OverlayProps {
 
 const additionalPageSet = new Set<TabPageProps>()
 
-export const registerOverlayPage = (title: string, content: ChildDom): void => {
-  additionalPageSet.add({ title, content })
+export const registerOverlayPage = (title: string, content: ChildDom): () => void => {
+  const page = { title, content } satisfies TabPageProps
+
+  additionalPageSet.add(page)
+
+  return () => {
+    additionalPageSet.delete(page)
+  }
 }
 
 class OverlayLifecycle extends Lifecycle<OverlayProps> {

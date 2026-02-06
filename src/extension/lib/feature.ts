@@ -9,6 +9,7 @@ const DMASK_STORAGE_KEY = 'bufeature-dmask'
 
 const kiName = Symbol()
 const kiState = Symbol()
+const kiCleanupCallbacks = Symbol()
 
 export const enum FeatureState {
   DISABLED,
@@ -19,10 +20,12 @@ export const enum FeatureState {
 export abstract class Feature {
   private readonly [kiName]: string | null
   private [kiState]: FeatureState
+  private readonly [kiCleanupCallbacks]: Function[]
 
   public constructor(name?: string) {
     this[kiName] = name ?? null
     this[kiState] = FeatureState.INACTIVE
+    this[kiCleanupCallbacks] = []
   }
 
   public getName(): string | null {
@@ -41,7 +44,7 @@ export abstract class Feature {
           if (this[kiState] === FeatureState.ACTIVE && !this.deactivate()) return false
           break
         case FeatureState.ACTIVE:
-          if (this[kiState] !== FeatureState.ACTIVE && !this.activate()) return false
+          if (this[kiState] !== FeatureState.ACTIVE && !this.activate(this[kiCleanupCallbacks])) return false
           break
       }
       this[kiState] = state
@@ -53,9 +56,13 @@ export abstract class Feature {
     }
   }
 
-  protected abstract activate(): boolean
+  protected abstract activate(cleanupCallbacks: Function[]): boolean
 
-  protected abstract deactivate(): boolean
+  protected deactivate(): boolean {
+    this[kiCleanupCallbacks].forEach(callback => callback())
+
+    return true
+  }
 }
 
 export interface FeatureGroup {

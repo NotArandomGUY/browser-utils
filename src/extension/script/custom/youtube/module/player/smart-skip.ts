@@ -453,74 +453,74 @@ export default class YTPlayerSmartSkipModule extends Feature {
     super('smart-skip')
   }
 
-  protected activate(): boolean {
-    registerYTValueProcessor(YTRenderer.mapped.playerOverlayRenderer, updatePlayerOverlayRenderer)
-    registerYTValueProcessor(YTRenderer.mapped.timelyActionsOverlayViewModel, updateTimelyActionsOverlayViewModel)
-    registerYTValueProcessor(YTResponse.mapped.next, updateNextResponse)
-    registerYTValueProcessor(YTResponse.mapped.player, processPlayerResponse)
+  protected activate(cleanupCallbacks: Function[]): boolean {
+    state ??= van.state<SkipSegmentEntry[]>([])
 
-    registerYTConfigMenuItemGroup(AUTO_SKIP_CATEGORY_KEY, [
-      {
-        type: YTConfigMenuItemType.TOGGLE,
-        key: AUTO_SKIP_CATEGORY_KEY,
-        icon: YTRenderer.enums.IconType.MONEY_FILL,
-        text: 'Sponsor',
-        mask: YTAutoSkipCategoryMask.SPONSOR
-      },
-      {
-        type: YTConfigMenuItemType.TOGGLE,
-        key: AUTO_SKIP_CATEGORY_KEY,
-        icon: YTRenderer.enums.IconType.PROMOTE,
-        text: 'Self promotion',
-        mask: YTAutoSkipCategoryMask.SELFPROMO
-      },
-      {
-        type: YTConfigMenuItemType.TOGGLE,
-        key: AUTO_SKIP_CATEGORY_KEY,
-        icon: YTRenderer.enums.IconType.CHECK_BOX,
-        text: 'Interaction',
-        mask: YTAutoSkipCategoryMask.INTERACTION
-      },
-      {
-        type: YTConfigMenuItemType.TOGGLE,
-        key: AUTO_SKIP_CATEGORY_KEY,
-        icon: YTRenderer.enums.IconType.PLAY_ARROW,
-        text: 'Intro',
-        mask: YTAutoSkipCategoryMask.INTRO
-      },
-      {
-        type: YTConfigMenuItemType.TOGGLE,
-        key: AUTO_SKIP_CATEGORY_KEY,
-        icon: YTRenderer.enums.IconType.PAUSE_FILLED,
-        text: 'Outro',
-        mask: YTAutoSkipCategoryMask.OUTRO
-      },
-      {
-        type: YTConfigMenuItemType.TOGGLE,
-        key: AUTO_SKIP_CATEGORY_KEY,
-        icon: YTRenderer.enums.IconType.SKIP_NEXT,
-        text: 'Preview',
-        mask: YTAutoSkipCategoryMask.PREVIEW
-      },
-      {
-        type: YTConfigMenuItemType.TOGGLE,
-        key: AUTO_SKIP_CATEGORY_KEY,
-        icon: YTRenderer.enums.IconType.SKIP_NEXT,
-        text: 'Hook',
-        mask: YTAutoSkipCategoryMask.HOOK
-      },
-      {
-        type: YTConfigMenuItemType.TOGGLE,
-        key: AUTO_SKIP_CATEGORY_KEY,
-        icon: YTRenderer.enums.IconType.SKIP_NEXT,
-        text: 'Filler',
-        mask: YTAutoSkipCategoryMask.FILLER
-      }
-    ])
-
-    state = van.state<SkipSegmentEntry[]>([])
-
-    registerOverlayPage('Skip Segments', YTSkipSegmentPage.bind(null, { segments: state }))
+    cleanupCallbacks.push(
+      registerOverlayPage('Skip Segments', YTSkipSegmentPage.bind(null, { segments: state })),
+      registerYTConfigMenuItemGroup(AUTO_SKIP_CATEGORY_KEY, [
+        {
+          type: YTConfigMenuItemType.TOGGLE,
+          key: AUTO_SKIP_CATEGORY_KEY,
+          icon: YTRenderer.enums.IconType.MONEY_FILL,
+          text: 'Sponsor',
+          mask: YTAutoSkipCategoryMask.SPONSOR
+        },
+        {
+          type: YTConfigMenuItemType.TOGGLE,
+          key: AUTO_SKIP_CATEGORY_KEY,
+          icon: YTRenderer.enums.IconType.PROMOTE,
+          text: 'Self promotion',
+          mask: YTAutoSkipCategoryMask.SELFPROMO
+        },
+        {
+          type: YTConfigMenuItemType.TOGGLE,
+          key: AUTO_SKIP_CATEGORY_KEY,
+          icon: YTRenderer.enums.IconType.CHECK_BOX,
+          text: 'Interaction',
+          mask: YTAutoSkipCategoryMask.INTERACTION
+        },
+        {
+          type: YTConfigMenuItemType.TOGGLE,
+          key: AUTO_SKIP_CATEGORY_KEY,
+          icon: YTRenderer.enums.IconType.PLAY_ARROW,
+          text: 'Intro',
+          mask: YTAutoSkipCategoryMask.INTRO
+        },
+        {
+          type: YTConfigMenuItemType.TOGGLE,
+          key: AUTO_SKIP_CATEGORY_KEY,
+          icon: YTRenderer.enums.IconType.PAUSE_FILLED,
+          text: 'Outro',
+          mask: YTAutoSkipCategoryMask.OUTRO
+        },
+        {
+          type: YTConfigMenuItemType.TOGGLE,
+          key: AUTO_SKIP_CATEGORY_KEY,
+          icon: YTRenderer.enums.IconType.SKIP_NEXT,
+          text: 'Preview',
+          mask: YTAutoSkipCategoryMask.PREVIEW
+        },
+        {
+          type: YTConfigMenuItemType.TOGGLE,
+          key: AUTO_SKIP_CATEGORY_KEY,
+          icon: YTRenderer.enums.IconType.SKIP_NEXT,
+          text: 'Hook',
+          mask: YTAutoSkipCategoryMask.HOOK
+        },
+        {
+          type: YTConfigMenuItemType.TOGGLE,
+          key: AUTO_SKIP_CATEGORY_KEY,
+          icon: YTRenderer.enums.IconType.SKIP_NEXT,
+          text: 'Filler',
+          mask: YTAutoSkipCategoryMask.FILLER
+        }
+      ]),
+      registerYTValueProcessor(YTRenderer.mapped.playerOverlayRenderer, updatePlayerOverlayRenderer),
+      registerYTValueProcessor(YTRenderer.mapped.timelyActionsOverlayViewModel, updateTimelyActionsOverlayViewModel),
+      registerYTValueProcessor(YTResponse.mapped.next, updateNextResponse),
+      registerYTValueProcessor(YTResponse.mapped.player, processPlayerResponse)
+    )
 
     // Default enable auto skip for sponsor segments
     if (getYTConfigInt(AUTO_SKIP_CATEGORY_KEY, -1) < 0) setYTConfigInt(AUTO_SKIP_CATEGORY_KEY, YTAutoSkipCategoryMask.SPONSOR)
@@ -531,6 +531,6 @@ export default class YTPlayerSmartSkipModule extends Feature {
   protected deactivate(): boolean {
     state = null
 
-    return false
+    return super.deactivate()
   }
 }

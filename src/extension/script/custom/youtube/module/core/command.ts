@@ -30,8 +30,12 @@ export const dispatchYTSignalAction = (signal: YTEndpoint.enums.SignalActionType
   executeYTCommand({ signalServiceEndpoint: { signal: 'CLIENT_SIGNAL', actions: [{ signalAction: { signal } }] } })
 }
 
-export const registerYTSignalActionHandler = (signal: YTEndpoint.enums.SignalActionType, handler: YTActionHandler): void => {
+export const registerYTSignalActionHandler = (signal: YTEndpoint.enums.SignalActionType, handler: YTActionHandler): () => void => {
   signalActionHandlerMap.set(signal, handler)
+
+  return () => {
+    signalActionHandlerMap.delete(signal)
+  }
 }
 
 export default class YTCoreCommandModule extends Feature {

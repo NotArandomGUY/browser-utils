@@ -127,22 +127,45 @@ async function processYTSchemaEntries(
   return await invokeYTValueProcessor(value, schema, parent, YTValueProcessorType.POST)
 }
 
-export function registerYTValueProcessor<S extends YTValueSchema>(schema: S, processor: YTValueProcessor<S>, type = YTValueProcessorType.PRE): void {
+export function registerYTValueProcessor<S extends YTValueSchema>(schema: S, processor: YTValueProcessor<S>, type = YTValueProcessorType.PRE): () => void {
   let pair = processorMap.get(schema)
   if (pair == null) {
     pair = [[], []]
     processorMap.set(schema, pair)
   }
-  pair[type]?.push(processor as YTValueProcessor)
+
+  let processors: YTValueProcessor[] | null = pair[type]
+  if (processors == null) throw new Error('invalid processor type')
+
+  processors.push(processor as YTValueProcessor)
+
+  return () => {
+    if (processors == null) return
+
+    processors.splice(processors.indexOf(processor as YTValueProcessor), 1)
+    processors = null
+  }
 }
 
-export function registerYTValueFilter<S extends YTValueSchema>(schema: S, filter?: ((data: YTValueData<S>) => boolean) | null, type = YTValueProcessorType.PRE): void {
+export function registerYTValueFilter<S extends YTValueSchema>(schema: S, filter?: ((data: YTValueData<S>) => boolean) | null, type = YTValueProcessorType.PRE): () => void {
   let pair = filterMap.get(schema)
   if (pair == null) {
     pair = [[], []]
     filterMap.set(schema, pair)
   }
-  pair[type]?.push((filter == null ? deleteYTValueProcessor<S> : filterYTValueProcessor.bind(null, filter as (data: YTValueData) => boolean)) as YTValueFilter)
+
+  let filters: YTValueFilter[] | null = pair[type]
+  if (filters == null) throw new Error('invalid filter type')
+
+  const wrappedFilter = (filter == null ? deleteYTValueProcessor<S> : filterYTValueProcessor.bind(null, filter as (data: YTValueData) => boolean)) as YTValueFilter
+  filters.push(wrappedFilter)
+
+  return () => {
+    if (filters == null) return
+
+    filters.splice(filters.indexOf(wrappedFilter), 1)
+    filters = null
+  }
 }
 
 export async function processYTValue(schema: YTValueSchema, value: unknown, parent: YTValueParent<typeof schema>): Promise<boolean> { // NOSONAR

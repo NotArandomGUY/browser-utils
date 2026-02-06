@@ -70,48 +70,45 @@ export default class YTFeedFilterModule extends Feature {
     super('filter')
   }
 
-  protected activate(): boolean {
-    registerYTValueFilter(YTRenderer.mapped.compactVideoRenderer, filterVideoRenderer)
-    registerYTValueFilter(YTRenderer.mapped.guideEntryRenderer, filterGuideEntryRenderer)
-    registerYTValueFilter(YTRenderer.mapped.reelShelfRenderer, filterShelfRenderer)
-    registerYTValueFilter(YTRenderer.mapped.richShelfRenderer, filterShelfRenderer)
-    registerYTValueFilter(YTRenderer.mapped.tileRenderer, filterTileRenderer)
-    registerYTValueFilter(YTRenderer.mapped.videoRenderer, filterVideoRenderer)
-    registerYTValueFilter(YTRenderer.mapped.shortsLockupViewModel, filterShortsViewModel)
-    registerYTValueFilter(YTRenderer.mapped.lockupViewModel, filterVideoViewModel)
-
-    registerYTConfigMenuItemGroup(FEED_FILTER_KEY, [
-      {
-        type: YTConfigMenuItemType.TOGGLE,
-        key: FEED_FILTER_KEY,
-        icon: YTRenderer.enums.IconType.YOUTUBE_SHORTS_BRAND_24,
-        text: 'Shorts',
-        mask: YTFeedFilterMask.SHORTS,
-        invert: true
-      },
-      {
-        type: YTConfigMenuItemType.TOGGLE,
-        key: FEED_FILTER_KEY,
-        icon: YTRenderer.enums.IconType.LIVE,
-        text: 'Live',
-        mask: YTFeedFilterMask.VIDEO_LIVE,
-        invert: true
-      },
-      {
-        type: YTConfigMenuItemType.TOGGLE,
-        key: FEED_FILTER_KEY,
-        icon: YTRenderer.enums.IconType.VIDEOS,
-        text: 'Video',
-        description: 'WARNING: Hiding videos might cause issues!',
-        mask: YTFeedFilterMask.VIDEO,
-        invert: true
-      }
-    ])
+  protected activate(cleanupCallbacks: Function[]): boolean {
+    cleanupCallbacks.push(
+      registerYTConfigMenuItemGroup(FEED_FILTER_KEY, [
+        {
+          type: YTConfigMenuItemType.TOGGLE,
+          key: FEED_FILTER_KEY,
+          icon: YTRenderer.enums.IconType.YOUTUBE_SHORTS_BRAND_24,
+          text: 'Shorts',
+          mask: YTFeedFilterMask.SHORTS,
+          invert: true
+        },
+        {
+          type: YTConfigMenuItemType.TOGGLE,
+          key: FEED_FILTER_KEY,
+          icon: YTRenderer.enums.IconType.LIVE,
+          text: 'Live',
+          mask: YTFeedFilterMask.VIDEO_LIVE,
+          invert: true
+        },
+        {
+          type: YTConfigMenuItemType.TOGGLE,
+          key: FEED_FILTER_KEY,
+          icon: YTRenderer.enums.IconType.VIDEOS,
+          text: 'Video',
+          description: 'WARNING: Hiding videos might cause issues!',
+          mask: YTFeedFilterMask.VIDEO,
+          invert: true
+        }
+      ]),
+      registerYTValueFilter(YTRenderer.mapped.compactVideoRenderer, filterVideoRenderer),
+      registerYTValueFilter(YTRenderer.mapped.guideEntryRenderer, filterGuideEntryRenderer),
+      registerYTValueFilter(YTRenderer.mapped.reelShelfRenderer, filterShelfRenderer),
+      registerYTValueFilter(YTRenderer.mapped.richShelfRenderer, filterShelfRenderer),
+      registerYTValueFilter(YTRenderer.mapped.tileRenderer, filterTileRenderer),
+      registerYTValueFilter(YTRenderer.mapped.videoRenderer, filterVideoRenderer),
+      registerYTValueFilter(YTRenderer.mapped.shortsLockupViewModel, filterShortsViewModel),
+      registerYTValueFilter(YTRenderer.mapped.lockupViewModel, filterVideoViewModel)
+    )
 
     return true
-  }
-
-  protected deactivate(): boolean {
-    return false
   }
 }

@@ -440,237 +440,233 @@ export default class YTMiscsDownloadModule extends Feature {
     super('download')
   }
 
-  protected activate(): boolean {
-    registerYTValueProcessor(YTRenderer.mapped.playlistVideoListRenderer, processPlaylistVideoListRenderer)
-    registerYTValueProcessor(YTRenderer.mapped.topbarLogoRenderer, processTopbarLogoRenderer)
-    registerYTValueProcessor(YTRenderer.mapped.videoOwnerRenderer, processVideoOwnerRenderer)
-    registerYTValueProcessor(YTRenderer.mapped.videoPrimaryInfoRenderer, updateVideoPrimaryInfoRenderer)
-    registerYTValueProcessor(YTResponse.mapped.player, updatePlayerResponse)
+  protected activate(cleanupCallbacks: Function[]): boolean {
+    cleanupCallbacks.push(
+      addInterceptNetworkCallback(async ctx => {
+        if (ctx.state === NetworkState.UNSENT) await processRequest(ctx)
+      }),
+      registerYTInnertubeRequestProcessor('offline', async ({ context, playlistIds, videoIds }) => {
+        if (Array.isArray(playlistIds) && !isPremium) {
+          return { playlists: await batchFetchOfflinePlaylistData(playlistIds, context) }
+        }
 
-    registerYTInnertubeRequestProcessor('offline', async ({ context, playlistIds, videoIds }) => {
-      if (Array.isArray(playlistIds) && !isPremium) {
-        return { playlists: await batchFetchOfflinePlaylistData(playlistIds, context) }
-      }
+        if (Array.isArray(videoIds) && (!isPremium || videoIds.some(id => forceDownloadVideoIds.has(id)))) {
+          return { videos: await batchFetchOfflineVideoData(videoIds, context) }
+        }
 
-      if (Array.isArray(videoIds) && (!isPremium || videoIds.some(id => forceDownloadVideoIds.has(id)))) {
-        return { videos: await batchFetchOfflineVideoData(videoIds, context) }
-      }
+        logger.debug('using premium offline request')
+      }),
+      registerYTInnertubeRequestProcessor('offline/get_download_action', ({ preferredFormatType, videoId }) => {
+        if (isPremium && !forceDownloadVideoIds.has(videoId!)) {
+          logger.debug('using premium offline action request')
+          return
+        }
 
-      logger.debug('using premium offline request')
-    })
-    registerYTInnertubeRequestProcessor('offline/get_download_action', ({ preferredFormatType, videoId }) => {
-      if (isPremium && !forceDownloadVideoIds.has(videoId!)) {
-        logger.debug('using premium offline action request')
-        return
-      }
+        const downloadQualityPickerEntityKey = encodeEntityKey({ entityId: videoId, entityType: EntityType.downloadQualityPickerEntity })
 
-      const downloadQualityPickerEntityKey = encodeEntityKey({ entityId: videoId, entityType: EntityType.downloadQualityPickerEntity })
-
-      return {
-        onResponseReceivedCommand: {
-          commandExecutorCommand: {
-            commands: [
-              {
-                openPopupAction: {
-                  popup: {
-                    downloadQualitySelectorRenderer: {
-                      downloadQualityPickerEntityKey,
-                      onSubmitEndpoint: {
-                        offlineVideoEndpoint: {
-                          videoId,
-                          action: 'ACTION_ADD',
-                          actionParams: {
-                            formatType: (preferredFormatType as YTCommon.enums.OfflineFormatType) ?? 'UNKNOWN_FORMAT_TYPE',
-                            settingsAction: 'DOWNLOAD_QUALITY_SETTINGS_ACTION_SAVE'
+        return {
+          onResponseReceivedCommand: {
+            commandExecutorCommand: {
+              commands: [
+                {
+                  openPopupAction: {
+                    popup: {
+                      downloadQualitySelectorRenderer: {
+                        downloadQualityPickerEntityKey,
+                        onSubmitEndpoint: {
+                          offlineVideoEndpoint: {
+                            videoId,
+                            action: 'ACTION_ADD',
+                            actionParams: {
+                              formatType: (preferredFormatType as YTCommon.enums.OfflineFormatType) ?? 'UNKNOWN_FORMAT_TYPE',
+                              settingsAction: 'DOWNLOAD_QUALITY_SETTINGS_ACTION_SAVE'
+                            }
                           }
                         }
                       }
+                    },
+                    popupType: 'DIALOG',
+                    replacePopup: true
+                  }
+                },
+                { signalAction: { signal: 'REQUEST_PERSISTENT_STORAGE' } }
+              ]
+            }
+          },
+          frameworkUpdates: {
+            entityBatchUpdate: {
+              mutations: [
+                {
+                  entityKey: downloadQualityPickerEntityKey,
+                  type: 'ENTITY_MUTATION_TYPE_REPLACE',
+                  payload: {
+                    downloadQualityPickerEntity: {
+                      formats: [
+                        buildDownloadQualityFormat('HD_1080', 'Full HD (1080p)'),
+                        buildDownloadQualityFormat('HD', 'High (720p)'),
+                        buildDownloadQualityFormat('SD', 'Medium (360p)'),
+                        buildDownloadQualityFormat('LD', 'Low (144p)')
+                      ],
+                      key: downloadQualityPickerEntityKey,
+                      rememberSettingString: 'Remember settings'
                     }
-                  },
-                  popupType: 'DIALOG',
-                  replacePopup: true
-                }
-              },
-              { signalAction: { signal: 'REQUEST_PERSISTENT_STORAGE' } }
-            ]
-          }
-        },
-        frameworkUpdates: {
-          entityBatchUpdate: {
-            mutations: [
-              {
-                entityKey: downloadQualityPickerEntityKey,
-                type: 'ENTITY_MUTATION_TYPE_REPLACE',
-                payload: {
-                  downloadQualityPickerEntity: {
-                    formats: [
-                      buildDownloadQualityFormat('HD_1080', 'Full HD (1080p)'),
-                      buildDownloadQualityFormat('HD', 'High (720p)'),
-                      buildDownloadQualityFormat('SD', 'Medium (360p)'),
-                      buildDownloadQualityFormat('LD', 'Low (144p)')
-                    ],
-                    key: downloadQualityPickerEntityKey,
-                    rememberSettingString: 'Remember settings'
                   }
                 }
-              }
-            ],
-            timestamp: { seconds: `${floor(Date.now() / 1e3)}`, nanos: 0 }
-          }
-        }
-      }
-    })
-    registerYTInnertubeRequestProcessor('offline/get_playback_data_entity', async ({ context, videos }) => {
-      if (!Array.isArray(videos) || (isPremium && !videos.some(({ entityKey }) => forceDownloadVideoIds.has(decodeEntityKey(entityKey).entityId!)))) return
-
-      const now = floor(Date.now() / 1e3)
-      const offlineState = new OfflineState({
-        token: `${DOWNLOAD_ID_PREFIX}state`,
-        refreshInSeconds: 0,
-        expiresInSeconds: 0,
-        action: OfflineStateAction.OK,
-        isOfflineSharingAllowed: true
-      })
-
-      const orchestrationActions: YTValueData<YTResponse.Mapped<'offlineGetPlaybackDataEntity'>>['orchestrationActions'] = []
-      const mutations: YTValueData<YTEndpoint.Component<'entityMutation'>>[] = []
-
-      await Promise.all(videos.map(async ({ entityKey, downloadParameters }) => {
-        const videoId = decodeEntityKey(entityKey).entityId
-        if (videoId == null) return
-
-        const contextEntityKey = encodeEntityKey({ entityId: videoId, entityType: EntityType.videoDownloadContextEntity, isPersistent: true })
-        const policyEntityKey = encodeEntityKey({ entityId: videoId, entityType: EntityType.offlineVideoPolicy, isPersistent: true })
-        const transferEntityKey = encodeEntityKey({ entityId: videoId, entityType: EntityType.transfer, isPersistent: true })
-
-        const { response } = await fetchInnertubeVideo(videoId, context)
-        const { playabilityStatus, playerConfig, streamingData } = response
-
-        const ustreamerConfig = playerConfig?.mediaCommonConfig?.mediaUstreamerRequestConfig?.videoPlaybackUstreamerConfig
-        if (ustreamerConfig != null && streamingData != null) {
-          const { adaptiveFormats, serverAbrStreamingUrl } = streamingData
-
-          if (Array.isArray(adaptiveFormats) && serverAbrStreamingUrl != null) {
-            const formats = adaptiveFormats
-              .filter(({ audioQuality, itag, quality }) => itag != null && (audioQuality != null || quality != null))
-              .map<SabrFormatInfo>(({
-                approxDurationMs,
-                audioQuality,
-                contentLength,
-                itag,
-                lastModified,
-                quality,
-                xtags
-              }) => ({
-                itag: itag!,
-                contentLength: String(contentLength ?? 0),
-                lastModified: String(lastModified ?? 0),
-                duration: String(approxDurationMs ?? 0),
-                xtags: xtags ?? '',
-                audioQuality: YTCommon.enums.MediaFormatAudioQuality[audioQuality!],
-                videoQuality: YTCommon.enums.MediaFormatVideoQuality[quality!]
-              }))
-
-            const formatUrl = new URL(serverAbrStreamingUrl)
-            const { searchParams } = formatUrl
-
-            searchParams.set(SNAPSHOT_PARAM_NAME, JSON.stringify({
-              videoId,
-              params: Array.from(searchParams.keys()),
-              ustreamerConfig,
-              formats
-            } satisfies PlaybackDataSnapshot))
-
-            for (const format of adaptiveFormats) {
-              if (format.itag == null) continue
-
-              searchParams.set('itag', String(format.itag))
-              format.url ??= formatUrl.toString()
+              ],
+              timestamp: { seconds: `${floor(Date.now() / 1e3)}`, nanos: 0 }
             }
           }
         }
+      }),
+      registerYTInnertubeRequestProcessor('offline/get_playback_data_entity', async ({ context, videos }) => {
+        if (!Array.isArray(videos) || (isPremium && !videos.some(({ entityKey }) => forceDownloadVideoIds.has(decodeEntityKey(entityKey).entityId!)))) return
 
-        orchestrationActions.push({
-          actionType: 'OFFLINE_ORCHESTRATION_ACTION_TYPE_ADD',
-          actionMetadata: {
-            priority: 1,
-            transferEntityActionMetadata: {
-              maximumDownloadQuality: downloadParameters?.maximumDownloadQuality ?? 'HD_1080',
-              isEnqueuedForPes: true
-            }
-          },
-          entityKey: transferEntityKey
+        const now = floor(Date.now() / 1e3)
+        const offlineState = new OfflineState({
+          token: `${DOWNLOAD_ID_PREFIX}state`,
+          refreshInSeconds: 0,
+          expiresInSeconds: 0,
+          action: OfflineStateAction.OK,
+          isOfflineSharingAllowed: true
         })
-        mutations.push(
-          {
-            entityKey,
-            type: 'ENTITY_MUTATION_TYPE_REPLACE',
-            payload: {
-              playbackData: {
-                key: entityKey,
-                offlineVideoPolicy: policyEntityKey,
-                playerResponseJson: JSON.stringify(response),
-                playerResponsePlayabilityCanPlayStatus: playabilityStatus?.status,
-                playerResponseTimestamp: `${now}`,
-                streamDownloadTimestampSeconds: `${now}`,
-                transfer: transferEntityKey,
-                videoDownloadContextEntity: contextEntityKey
+
+        const orchestrationActions: YTValueData<YTResponse.Mapped<'offlineGetPlaybackDataEntity'>>['orchestrationActions'] = []
+        const mutations: YTValueData<YTEndpoint.Component<'entityMutation'>>[] = []
+
+        await Promise.all(videos.map(async ({ entityKey, downloadParameters }) => {
+          const videoId = decodeEntityKey(entityKey).entityId
+          if (videoId == null) return
+
+          const contextEntityKey = encodeEntityKey({ entityId: videoId, entityType: EntityType.videoDownloadContextEntity, isPersistent: true })
+          const policyEntityKey = encodeEntityKey({ entityId: videoId, entityType: EntityType.offlineVideoPolicy, isPersistent: true })
+          const transferEntityKey = encodeEntityKey({ entityId: videoId, entityType: EntityType.transfer, isPersistent: true })
+
+          const { response } = await fetchInnertubeVideo(videoId, context)
+          const { playabilityStatus, playerConfig, streamingData } = response
+
+          const ustreamerConfig = playerConfig?.mediaCommonConfig?.mediaUstreamerRequestConfig?.videoPlaybackUstreamerConfig
+          if (ustreamerConfig != null && streamingData != null) {
+            const { adaptiveFormats, serverAbrStreamingUrl } = streamingData
+
+            if (Array.isArray(adaptiveFormats) && serverAbrStreamingUrl != null) {
+              const formats = adaptiveFormats
+                .filter(({ audioQuality, itag, quality }) => itag != null && (audioQuality != null || quality != null))
+                .map<SabrFormatInfo>(({
+                  approxDurationMs,
+                  audioQuality,
+                  contentLength,
+                  itag,
+                  lastModified,
+                  quality,
+                  xtags
+                }) => ({
+                  itag: itag!,
+                  contentLength: String(contentLength ?? 0),
+                  lastModified: String(lastModified ?? 0),
+                  duration: String(approxDurationMs ?? 0),
+                  xtags: xtags ?? '',
+                  audioQuality: YTCommon.enums.MediaFormatAudioQuality[audioQuality!],
+                  videoQuality: YTCommon.enums.MediaFormatVideoQuality[quality!]
+                }))
+
+              const formatUrl = new URL(serverAbrStreamingUrl)
+              const { searchParams } = formatUrl
+
+              searchParams.set(SNAPSHOT_PARAM_NAME, JSON.stringify({
+                videoId,
+                params: Array.from(searchParams.keys()),
+                ustreamerConfig,
+                formats
+              } satisfies PlaybackDataSnapshot))
+
+              for (const format of adaptiveFormats) {
+                if (format.itag == null) continue
+
+                searchParams.set('itag', String(format.itag))
+                format.url ??= formatUrl.toString()
               }
-            },
-            options: {
-              persistenceOption: 'ENTITY_PERSISTENCE_OPTION_PERSIST'
-            }
-          },
-          {
-            entityKey: policyEntityKey,
-            type: 'ENTITY_MUTATION_TYPE_REPLACE',
-            payload: {
-              offlineVideoPolicy: {
-                key: policyEntityKey,
-                action: 'OFFLINE_VIDEO_POLICY_ACTION_OK',
-                offlineStateBytes: bufferToString(offlineState.serialize(), 'base64'),
-                expirationTimestamp: 'Infinity',
-                lastUpdatedTimestampSeconds: 'Infinity'
-              }
-            },
-            options: {
-              persistenceOption: 'ENTITY_PERSISTENCE_OPTION_PERSIST'
             }
           }
-        )
-        forceDownloadVideoIds.delete(videoId)
-      }))
 
-      return {
-        orchestrationActions,
-        frameworkUpdates: {
-          entityBatchUpdate: {
-            mutations,
-            timestamp: { seconds: `${now}`, nanos: 0 }
+          orchestrationActions.push({
+            actionType: 'OFFLINE_ORCHESTRATION_ACTION_TYPE_ADD',
+            actionMetadata: {
+              priority: 1,
+              transferEntityActionMetadata: {
+                maximumDownloadQuality: downloadParameters?.maximumDownloadQuality ?? 'HD_1080',
+                isEnqueuedForPes: true
+              }
+            },
+            entityKey: transferEntityKey
+          })
+          mutations.push(
+            {
+              entityKey,
+              type: 'ENTITY_MUTATION_TYPE_REPLACE',
+              payload: {
+                playbackData: {
+                  key: entityKey,
+                  offlineVideoPolicy: policyEntityKey,
+                  playerResponseJson: JSON.stringify(response),
+                  playerResponsePlayabilityCanPlayStatus: playabilityStatus?.status,
+                  playerResponseTimestamp: `${now}`,
+                  streamDownloadTimestampSeconds: `${now}`,
+                  transfer: transferEntityKey,
+                  videoDownloadContextEntity: contextEntityKey
+                }
+              },
+              options: {
+                persistenceOption: 'ENTITY_PERSISTENCE_OPTION_PERSIST'
+              }
+            },
+            {
+              entityKey: policyEntityKey,
+              type: 'ENTITY_MUTATION_TYPE_REPLACE',
+              payload: {
+                offlineVideoPolicy: {
+                  key: policyEntityKey,
+                  action: 'OFFLINE_VIDEO_POLICY_ACTION_OK',
+                  offlineStateBytes: bufferToString(offlineState.serialize(), 'base64'),
+                  expirationTimestamp: 'Infinity',
+                  lastUpdatedTimestampSeconds: 'Infinity'
+                }
+              },
+              options: {
+                persistenceOption: 'ENTITY_PERSISTENCE_OPTION_PERSIST'
+              }
+            }
+          )
+          forceDownloadVideoIds.delete(videoId)
+        }))
+
+        return {
+          orchestrationActions,
+          frameworkUpdates: {
+            entityBatchUpdate: {
+              mutations,
+              timestamp: { seconds: `${now}`, nanos: 0 }
+            }
           }
         }
-      }
-    })
-    registerYTInnertubeRequestProcessor('offline/offline_video_playback_position_sync', () => {
-      if (!isPremium) return {}
-    })
-    registerYTInnertubeRequestProcessor('offline/playlist_sync_check', () => {
-      if (!isPremium) return {}
-    })
-    registerYTInnertubeRequestProcessor('player', ({ playbackContext }) => {
-      if (playbackContext?.devicePlaybackCapabilities == null) return
+      }),
+      registerYTInnertubeRequestProcessor('offline/offline_video_playback_position_sync', () => {
+        if (!isPremium) return {}
+      }),
+      registerYTInnertubeRequestProcessor('offline/playlist_sync_check', () => {
+        if (!isPremium) return {}
+      }),
+      registerYTInnertubeRequestProcessor('player', ({ playbackContext }) => {
+        if (playbackContext?.devicePlaybackCapabilities == null) return
 
-      devicePlaybackCapabilities = { ...playbackContext.devicePlaybackCapabilities }
-    })
-
-    addInterceptNetworkCallback(async ctx => {
-      if (ctx.state === NetworkState.UNSENT) await processRequest(ctx)
-    })
+        devicePlaybackCapabilities = { ...playbackContext.devicePlaybackCapabilities }
+      }),
+      registerYTValueProcessor(YTRenderer.mapped.playlistVideoListRenderer, processPlaylistVideoListRenderer),
+      registerYTValueProcessor(YTRenderer.mapped.topbarLogoRenderer, processTopbarLogoRenderer),
+      registerYTValueProcessor(YTRenderer.mapped.videoOwnerRenderer, processVideoOwnerRenderer),
+      registerYTValueProcessor(YTRenderer.mapped.videoPrimaryInfoRenderer, updateVideoPrimaryInfoRenderer),
+      registerYTValueProcessor(YTResponse.mapped.player, updatePlayerResponse)
+    )
 
     return true
-  }
-
-  protected deactivate(): boolean {
-    return false
   }
 }

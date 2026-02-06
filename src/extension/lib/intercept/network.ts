@@ -49,7 +49,7 @@ const callbacks = new Set<NetworkCallback>()
 export const replaceRequest = async (ctx: NetworkRequestContext, init: Partial<{ url: URL | string } & RequestInit>): Promise<void> => {
   const { request } = ctx
 
-  if (typeof init.body === 'undefined' && request.body != null) {
+  if (init.body === undefined && request.body != null) {
     init.body = await request.arrayBuffer()
   }
 
@@ -103,11 +103,13 @@ const unregisterInterceptNetworkModules = (): void => {
   unregisterInterceptNetworkXHRModule()
 }
 
-export const addInterceptNetworkCallback = <U = unknown>(callback: NetworkCallback<U>): void => {
+export const addInterceptNetworkCallback = <U = unknown>(callback: NetworkCallback<U>): () => void => {
   // Register modules on first callback added
   if (callbacks.size === 0) registerInterceptNetworkModules()
 
   callbacks.add(callback as NetworkCallback)
+
+  return () => removeInterceptNetworkCallback(callback)
 }
 
 export const removeInterceptNetworkCallback = <U = unknown>(callback: NetworkCallback<U>): void => {

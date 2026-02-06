@@ -75,35 +75,30 @@ export default class YTPlayerContentCheckModule extends Feature {
     super('content-check')
   }
 
-  protected activate(): boolean {
-    registerYTValueProcessor(YTResponse.mapped.player, updatePlayerResponse)
+  protected activate(cleanupCallbacks: Function[]): boolean {
+    cleanupCallbacks.push(
+      registerYTConfigMenuItemGroup('general', [
+        {
+          type: YTConfigMenuItemType.TOGGLE,
+          key: CONTENT_CHECK_KEY,
+          icon: YTRenderer.enums.IconType.WARNING,
+          text: 'Hide Content Check',
+          description: 'Hide basic age/content checks, usually only works when signed in'
+        }
+      ]),
+      registerYTInnertubeRequestProcessor('player', request => {
+        if (!isHideContentCheck()) return
 
-    registerYTInnertubeRequestProcessor('player', request => {
-      if (!isHideContentCheck()) return
-
-      request.contentCheckOk = true
-      request.racyCheckOk = true
-    })
-
-    registerYTSignalActionHandler(YTEndpoint.enums.SignalActionType.CONTENT_CHECK_COMPLETE, () => {
-      // TODO: improve reliability by hooking into player internal events
-      setTimeout(() => dispatchYTSignalAction(YTEndpoint.enums.SignalActionType.PLAY_PLAYER), 1e3)
-    })
-
-    registerYTConfigMenuItemGroup('general', [
-      {
-        type: YTConfigMenuItemType.TOGGLE,
-        key: CONTENT_CHECK_KEY,
-        icon: YTRenderer.enums.IconType.WARNING,
-        text: 'Hide Content Check',
-        description: 'Hide basic age/content checks, usually only works when signed in'
-      }
-    ])
+        request.contentCheckOk = true
+        request.racyCheckOk = true
+      }),
+      registerYTSignalActionHandler(YTEndpoint.enums.SignalActionType.CONTENT_CHECK_COMPLETE, () => {
+        // TODO: improve reliability by hooking into player internal events
+        setTimeout(() => dispatchYTSignalAction(YTEndpoint.enums.SignalActionType.PLAY_PLAYER), 1e3)
+      }),
+      registerYTValueProcessor(YTResponse.mapped.player, updatePlayerResponse)
+    )
 
     return true
-  }
-
-  protected deactivate(): boolean {
-    return false
   }
 }
