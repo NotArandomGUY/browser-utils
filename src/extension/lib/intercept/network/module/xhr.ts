@@ -1,5 +1,6 @@
 import { URL, XMLHttpRequest } from '@ext/global/network'
 import { assign, defineProperties, defineProperty, fromEntries, getOwnPropertyDescriptor, keys } from '@ext/global/object'
+import { waitTick } from '@ext/lib/async'
 import { bufferToString } from '@ext/lib/buffer'
 import { unsafePolicy } from '@ext/lib/dom'
 import InterceptEventTargetAdapter from '@ext/lib/intercept/event'
@@ -64,9 +65,7 @@ const responseMimeType = (xhr: InterceptXMLHttpRequest): string | null => {
   return xhr.getResponseHeader('content-type')
 }
 
-const responseBlob = (xhr: InterceptXMLHttpRequest): Blob | null => {
-  const { status, responseType, response } = xhr
-
+const responseBlob = (status: number, responseType: XMLHttpRequestResponseType, response: unknown): Blob | null => {
   if (NULL_BODY_STATUS.includes(status)) return null
 
   switch (responseType) {
@@ -473,12 +472,29 @@ class InterceptXMLHttpRequest extends XMLHttpRequest {
 
     // Create response context
     if (ctx.state === NetworkState.UNSENT) {
+      const getResponsePart = (pos: number) => responseBlob(super.status, super.responseType, super.response)?.slice(pos)
+      const getReadyState = () => super.readyState
       assign<NetworkContext, NetworkContextState>(ctx, {
         state: NetworkState.SUCCESS,
-        response: new Response(responseBlob(this), {
-          status: this.status,
-          headers: parseHeaders(this.getAllResponseHeaders())
-        })
+        response: new Response(
+          new ReadableStream({
+            async start(controller) {
+              try {
+                for (let pos = 0, part: Blob | undefined; ; pos += part.size) {
+                  part = getResponsePart(pos)
+                  if (part == null || (part.size === 0 && getReadyState() > 3)) break
+
+                  controller.enqueue(new Uint8Array(await part.arrayBuffer()))
+                  await waitTick()
+                }
+                controller.close()
+              } catch (error) {
+                controller.error(error)
+              }
+            }
+          }),
+          { status: this.status, headers: parseHeaders(this.getAllResponseHeaders()) }
+        )
       })
     }
 
