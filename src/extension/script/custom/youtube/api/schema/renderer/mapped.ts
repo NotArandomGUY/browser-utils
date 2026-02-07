@@ -2395,6 +2395,7 @@ export const shelfRenderer = ytv_ren(() => ({
     styleType: ytv_str(['INLINE_CHIPS'])
   }),
   playAllButton: ytv_ren(),
+  subscribeButton: ytv_ren(),
   subtitle: components.text,
   thumbnail: components.thumbnail,
   title: components.text,
