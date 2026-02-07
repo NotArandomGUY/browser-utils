@@ -193,6 +193,10 @@ export const paygatedQualitiesMetadata = ytv_ren({
   }))
   */
 })
+export const playbackPosition = ytv_ren({
+  streamTimeMillis: ytv_str(),
+  utcTimeMillis: ytv_str()
+})
 export const playerConfig = ytv_ren({
   audioConfig: ytv_sch({
     audioMuted: ytv_bol(),
@@ -274,10 +278,7 @@ export const playerConfig = ytv_ren({
     progressBarEndPosition: ytv_num(),
     progressBarStartPosition: ytv_num(),
     startPaused: ytv_bol(),
-    startPosition: ytv_sch({
-      streamTimeMillis: ytv_str(),
-      utcTimeMillis: ytv_str()
-    }),
+    startPosition: playbackPosition,
     startSeconds: ytv_num()
   }),
   skippableIntroConfig: ytv_sch({
@@ -310,6 +311,7 @@ export const playerPlayabilityStatus = ytv_ren({
   audioOnlyPlayability: ytv_ren(),
   contextParams: ytv_str(),
   desktopLegacyAgeGateReason: ytv_num(),
+  errorCode: ytv_str(['PLAYABILITY_ERROR_CODE_EMBARGOED']),
   errorScreen: ytv_ren(),
   liveStreamability: ytv_ren(),
   miniplayer: ytv_ren(),

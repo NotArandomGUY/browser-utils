@@ -1,5 +1,5 @@
 import { ytv_enp, ytv_ren, ytv_rsp } from '../define/extended'
-import { ytv_arr, ytv_bol, ytv_num, ytv_sch, ytv_str } from '../define/primitive'
+import { ytv_arr, ytv_bol, ytv_num, ytv_sch, ytv_str, ytv_unk } from '../define/primitive'
 
 import * as renderer from '../renderer'
 import * as components from './components'
@@ -110,9 +110,24 @@ export const player = ytv_rsp(() => ({
 }))
 export const playerHeartbeat = ytv_rsp(() => ({
   adBreakHeartbeatParams: ytv_str(),
+  authenticationMismatch: ytv_bol(),
+  compositeLiveIngestionOffsetToken: ytv_str(),
+  compositeLiveStatusToken: ytv_str(),
+  heartbeatAttestationConfig: ytv_sch({
+    requiresAttestation: ytv_bol()
+  }),
+  heartbeatLoggingToken: ytv_str(),
   heartbeatServerData: ytv_str(),
   playabilityStatus: renderer.components.playerPlayabilityStatus,
-  pollDelayMs: ytv_str()
+  playerCueRangeSet: ytv_unk(),
+  playerCueRanges: ytv_arr(ytv_unk()),
+  pollDelayMs: ytv_str(),
+  progressBarConfig: ytv_sch({
+    progressBarEndPosition: renderer.components.playbackPosition,
+    progressBarStartPosition: renderer.components.playbackPosition
+  }),
+  stopHeartbeat: ytv_bol(),
+  videoTransitionEndpoint: ytv_enp()
 }))
 export const reelReelItemWatch = ytv_rsp(() => ({
   background: ytv_ren(),
