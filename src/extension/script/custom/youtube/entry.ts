@@ -19,6 +19,7 @@ import YTMiscsThumbnailModule from '@ext/custom/youtube/module/miscs/thumbnail'
 import YTMiscsTrackingModule from '@ext/custom/youtube/module/miscs/tracking'
 import YTPlayerBootstrapModule from '@ext/custom/youtube/module/player/bootstrap'
 import YTPlayerContentCheckModule from '@ext/custom/youtube/module/player/content-check'
+import YTPlayerHeartbeatModule from '@ext/custom/youtube/module/player/heartbeat'
 import YTPlayerLiveModule from '@ext/custom/youtube/module/player/live'
 import YTPlayerMusicVideoModule from '@ext/custom/youtube/module/player/music-video'
 import YTPlayerNetworkModule from '@ext/custom/youtube/module/player/network'
@@ -53,6 +54,7 @@ registerFeatureGroup(FEED_GROUP_ID, group => {
 registerFeatureGroup(PLAYER_GROUP_ID, group => {
   registerFeature(group, YTPlayerBootstrapModule)
   registerFeature(group, YTPlayerNetworkModule)
+  registerFeature(group, YTPlayerHeartbeatModule)
   registerFeature(group, YTPlayerContentCheckModule)
   registerFeature(group, YTPlayerOfflineModule)
   registerFeature(group, YTPlayerSmartSkipModule)
