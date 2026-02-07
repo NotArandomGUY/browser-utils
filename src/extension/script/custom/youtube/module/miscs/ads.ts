@@ -2,7 +2,7 @@ import { registerYTValueFilter, registerYTValueProcessor, YTValueProcessorType }
 import { YTEndpoint, YTRenderer, YTResponse, YTValueData } from '@ext/custom/youtube/api/schema'
 import { dispatchYTSignalAction } from '@ext/custom/youtube/module/core/command'
 import { registerYTInnertubeRequestProcessor } from '@ext/custom/youtube/module/core/network'
-import { YTServerAdDelayCallback } from '@ext/custom/youtube/module/player/ump'
+import { YTPlayerServerAdDelayCallback } from '@ext/custom/youtube/module/player/network'
 import PlayerParams from '@ext/custom/youtube/proto/player-params'
 import { defineProperty } from '@ext/global/object'
 import { bufferFromString } from '@ext/lib/buffer'
@@ -33,8 +33,8 @@ const processWatchEndpoint = (data: YTValueData<YTEndpoint.Mapped<'watchEndpoint
   inlinePlayerSignatureCache.set(videoId, [playerParams.sign, now + INLINE_PLAYER_SIGNATURE_CACHE_TTL])
 }
 
-const processPlayerPlayabilityStatus = (data: YTValueData<YTRenderer.Component<'playerPlayabilityStatus'>>): void => {
-  if (isInlinePlayerSigned || data.status !== 'UNPLAYABLE') return
+const processPlayerResponse = (data: YTValueData<YTResponse.Mapped<'player'>>): void => {
+  if (isInlinePlayerSigned || data.playabilityStatus?.status !== 'UNPLAYABLE') return
 
   isInlinePlayerSigned = true
 
@@ -55,7 +55,7 @@ export default class YTMiscsAdsModule extends Feature {
   }
 
   protected activate(): boolean {
-    YTServerAdDelayCallback.registerCallback(() => {
+    YTPlayerServerAdDelayCallback.registerCallback(() => {
       if (isFetchApiAds) return
 
       isFetchApiAds = true
@@ -72,8 +72,8 @@ export default class YTMiscsAdsModule extends Feature {
     registerYTValueFilter(YTRenderer.mapped.adSlotRenderer, null, YTValueProcessorType.POST)
     registerYTValueFilter(YTRenderer.mapped.topBannerImageTextIconButtonedLayoutViewModel, null, YTValueProcessorType.POST)
     registerYTValueProcessor(YTEndpoint.mapped.watchEndpoint, processWatchEndpoint)
-    registerYTValueProcessor(YTRenderer.components.playerPlayabilityStatus, processPlayerPlayabilityStatus)
     registerYTValueProcessor(YTResponse.mapped.next, updateNextResponse)
+    registerYTValueProcessor(YTResponse.mapped.player, processPlayerResponse)
 
     registerYTInnertubeRequestProcessor('player', ({ params, playbackContext, videoId }) => {
       if (params.isInlinePlayback || playbackContext?.contentPlaybackContext?.currentUrl?.startsWith('/shorts/')) return

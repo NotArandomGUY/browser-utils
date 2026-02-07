@@ -21,9 +21,9 @@ import YTPlayerBootstrapModule from '@ext/custom/youtube/module/player/bootstrap
 import YTPlayerContentCheckModule from '@ext/custom/youtube/module/player/content-check'
 import YTPlayerLiveModule from '@ext/custom/youtube/module/player/live'
 import YTPlayerMusicVideoModule from '@ext/custom/youtube/module/player/music-video'
+import YTPlayerNetworkModule from '@ext/custom/youtube/module/player/network'
 import YTPlayerOfflineModule from '@ext/custom/youtube/module/player/offline'
 import YTPlayerSmartSkipModule from '@ext/custom/youtube/module/player/smart-skip'
-import YTPlayerUMPModule from '@ext/custom/youtube/module/player/ump'
 import { registerFeature, registerFeatureGroup } from '@ext/lib/feature'
 import { hideOwnWebpackRuntimeFromGlobal } from '@ext/lib/wprt'
 
@@ -52,7 +52,7 @@ registerFeatureGroup(FEED_GROUP_ID, group => {
 
 registerFeatureGroup(PLAYER_GROUP_ID, group => {
   registerFeature(group, YTPlayerBootstrapModule)
-  registerFeature(group, YTPlayerUMPModule)
+  registerFeature(group, YTPlayerNetworkModule)
   registerFeature(group, YTPlayerContentCheckModule)
   registerFeature(group, YTPlayerOfflineModule)
   registerFeature(group, YTPlayerSmartSkipModule)

@@ -39,7 +39,7 @@ const UMP_PATHNAME_REGEXP = /^\/(init|video)playback$/
 let onesieClientKeys: Uint8Array[] = []
 let onesieHeader: InstanceType<typeof UMPOnesieHeader> | null = null
 
-export const YTServerAdDelayCallback = new Callback<[delayMs: number]>()
+export const YTPlayerServerAdDelayCallback = new Callback<[delayMs: number]>()
 
 const manager = new UMPContextManager({
   [UMPSliceType.UNKNOWN]: (data, slice) => {
@@ -126,7 +126,7 @@ const manager = new UMPContextManager({
       const backoffTimeMs = context.backoffTimeMs
       if (!backoffTimeMs) return
 
-      YTServerAdDelayCallback.invoke(backoffTimeMs)
+      YTPlayerServerAdDelayCallback.invoke(backoffTimeMs)
       ytuiShowToast(`Waiting for server ad delay (${ceil(backoffTimeMs / 1e3)}s)...`, backoffTimeMs)
     }
   },
@@ -273,9 +273,9 @@ const processResponse = async (ctx: NetworkContext<unknown, NetworkState.SUCCESS
   })
 }
 
-export default class YTPlayerUMPModule extends Feature {
+export default class YTPlayerNetworkModule extends Feature {
   public constructor() {
-    super('ump')
+    super('network')
   }
 
   protected activate(): boolean {
