@@ -1,5 +1,5 @@
 import { registerYTValueProcessor } from '@ext/custom/youtube/api/processor'
-import { YTEndpoint, YTRenderer, YTResponse } from '@ext/custom/youtube/api/schema'
+import { YTEndpoint, YTRenderer, YTResponse, YTValueData } from '@ext/custom/youtube/api/schema'
 import { registerYTSignalActionHandler } from '@ext/custom/youtube/module/core/command'
 import { registerYTConfigMenuItemGroup, YTConfigMenuItemType } from '@ext/custom/youtube/module/core/config'
 import { getYTPInstance, YTPInstanceType, YTPVideoPlayerInstance } from '@ext/custom/youtube/module/player/bootstrap'
@@ -44,11 +44,11 @@ interface YTChatIFrameMessage {
   'yt-player-video-progress'?: number
 }
 
-type ChatBinding = [continuation: string, isReplay: boolean, source: string | null]
+type ChatBinding = [continuation: string, isReplay: boolean]
 
 type ChatPopoutMessageDataMap = {
   [ChatPopoutMessageType.POPOUT_ANNOUNCE]: [source: string, boundTo: string | null]
-  [ChatPopoutMessageType.PLAYER_BIND]: [source: string, binding: ChatBinding]
+  [ChatPopoutMessageType.PLAYER_BIND]: [source: string, boundTo: string | null, binding: ChatBinding]
   [ChatPopoutMessageType.PLAYER_UNBIND]: [source: string]
   [ChatPopoutMessageType.PLAYER_KEEPALIVE]: [source: string]
   [ChatPopoutMessageType.PLAYER_MESSAGE]: [source: string, forwardMessage: YTChatIFrameMessage]
@@ -58,6 +58,7 @@ type ChatPopoutMessageDataMap = {
 class MainAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, ChatPopoutMessageType> {
   private player_: YTPVideoPlayerInstance | null
   private binding_: ChatBinding | null
+  private boundTo_: string | null
   private lastBoundedPopoutAnnounce_: number
   private lastUnboundPopoutAnnounce_: number
 
@@ -66,6 +67,7 @@ class MainAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, Cha
 
     this.player_ = null
     this.binding_ = null
+    this.boundTo_ = null
     this.lastBoundedPopoutAnnounce_ = 0
     this.lastUnboundPopoutAnnounce_ = Date.now() - POPOUT_KEEPALIVE_TIMEOUT + COLD_NAV_IFRAME_DISABLE_DURATION
 
@@ -82,7 +84,7 @@ class MainAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, Cha
       open(`${location.origin}${LIVE_CHAT_PATHNAME}`, Math.random().toString(36), 'menubar=0,location=0,scrollbars=0,toolbar=0,width=600,height=600')
     })
     registerYTValueProcessor(YTRenderer.mapped.liveChatRenderer, data => {
-      const { binding_, lastBoundedPopoutAnnounce_, lastUnboundPopoutAnnounce_ } = this
+      const { lastBoundedPopoutAnnounce_, lastUnboundPopoutAnnounce_ } = this
       const { continuations, isReplay } = data
 
       const continuation = continuations?.map(c => c.reloadContinuationData?.continuation).find(c => c != null)
@@ -95,23 +97,19 @@ class MainAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, Cha
       const lastAnnounce = max(lastBoundedPopoutAnnounce_, lastUnboundPopoutAnnounce_)
       data.initialDisplayState = `LIVE_CHAT_DISPLAY_STATE_${(Date.now() - lastAnnounce) > POPOUT_KEEPALIVE_TIMEOUT ? 'EXPANDED' : 'COLLAPSED'}`
 
-      this.clearBinding_()
-
-      // Update binding and inherit popout if available
-      const binding: ChatBinding = [continuation, !!isReplay, binding_?.[2] ?? null]
-      logger.debug('load live chat:', binding)
-
-      this.binding_ = binding
-      this.send(ChatPopoutMessageType.PLAYER_BIND, [CHANNEL_SOURCE, binding])
+      this.loadLiveChat_([continuation, !!isReplay])
+    })
+    registerYTValueProcessor(YTResponse.mapped.next, (data: YTValueData<YTResponse.Mapped<'next'>>) => {
+      if (data.contents) this.unloadLiveChat_()
     })
 
     setInterval(this.update_.bind(this), 5e3)
 
-    window.addEventListener('beforeunload', this.clearBinding_.bind(this))
+    window.addEventListener('beforeunload', this.unloadLiveChat_.bind(this))
   }
 
   protected onMessage(message: MessageDataUnion<ChatPopoutMessageDataMap, ChatPopoutMessageType>): void {
-    const { binding_, lastBoundedPopoutAnnounce_ } = this
+    let { binding_, boundTo_, lastBoundedPopoutAnnounce_ } = this
 
     switch (message.type) {
       case ChatPopoutMessageType.POPOUT_ANNOUNCE: {
@@ -136,28 +134,33 @@ class MainAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, Cha
         // Return if chat binding is not available
         if (binding_ == null) return
 
-        // Clear binding source if bounded popout timed out
-        if ((now - lastBoundedPopoutAnnounce_) > POPOUT_KEEPALIVE_TIMEOUT) binding_[2] = null
+        // Unbind from current popout if it has timed out
+        if ((now - lastBoundedPopoutAnnounce_) > POPOUT_KEEPALIVE_TIMEOUT) {
+          this.boundTo_ = boundTo_ = null
+        }
 
-        // Attempt to bind with popout if trying to rebind or binding source is unset and page is visible
-        if ((boundTo != null || binding_[2] !== source) && (binding_[2] != null || documentHidden?.())) return
+        // Only bind with popout if it's trying to rebind or we are not bound to anything and page is visible
+        if ((boundTo_ !== source || boundTo != null) && (boundTo_ != null || documentHidden?.())) return
 
-        // Set binding source to popout if it has bounded to us successfully (2nd announce)
-        if (boundTo === CHANNEL_SOURCE) binding_[2] = source
+        // Bind to popout if it has bounded to us successfully (2nd announce)
+        if (boundTo === CHANNEL_SOURCE) {
+          this.boundTo_ = boundTo_ = source
+          this.lastBoundedPopoutAnnounce_ = now
+        }
 
         logger.debug(`player bind '${source}'/'${boundTo}'`)
 
-        this.send(ChatPopoutMessageType.PLAYER_BIND, [CHANNEL_SOURCE, binding_])
+        this.send(ChatPopoutMessageType.PLAYER_BIND, [CHANNEL_SOURCE, boundTo_, binding_])
         return
       }
       case ChatPopoutMessageType.TOAST_MESSAGE: {
         const [source, text] = message.data
 
-        if (binding_?.[2] === source) ytuiShowToast(text, 5e3)
+        if (boundTo_ === source) ytuiShowToast(text, 5e3)
         return
       }
       default:
-        logger.debug('invalid message:', message)
+        logger.trace('invalid message:', message)
         return
     }
   }
@@ -178,7 +181,14 @@ class MainAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, Cha
     this.send(ChatPopoutMessageType.PLAYER_MESSAGE, [CHANNEL_SOURCE, { 'yt-player-state-change': state }])
   }
 
-  private clearBinding_(): void {
+  private loadLiveChat_(binding: ChatBinding): void {
+    logger.debug('load live chat:', binding)
+
+    this.binding_ = binding
+    this.send(ChatPopoutMessageType.PLAYER_BIND, [CHANNEL_SOURCE, this.boundTo_, binding])
+  }
+
+  private unloadLiveChat_(): void {
     const { binding_ } = this
 
     if (binding_ == null) return
@@ -186,6 +196,7 @@ class MainAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, Cha
     logger.debug('unload live chat:', binding_)
 
     this.binding_ = null
+    this.setPlayer_(null)
     this.send(ChatPopoutMessageType.PLAYER_UNBIND, [CHANNEL_SOURCE])
   }
 
@@ -207,21 +218,21 @@ class MainAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, Cha
   }
 
   private update_(): void {
-    if (this.binding_?.[2] == null) return this.setPlayer_(null)
+    const { binding_, boundTo_ } = this
 
-    this.setPlayer_(getYTPInstance(YTPInstanceType.APP)?.playerRef?.deref())
-    this.send(ChatPopoutMessageType.PLAYER_KEEPALIVE, [CHANNEL_SOURCE])
+    if (binding_) this.setPlayer_(getYTPInstance(YTPInstanceType.APP)?.playerRef?.deref())
+    if (boundTo_) this.send(ChatPopoutMessageType.PLAYER_KEEPALIVE, [CHANNEL_SOURCE])
   }
 }
 
 class ChatAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, ChatPopoutMessageType> {
-  private binding_: ChatBinding | null
+  private boundTo_: string | null
   private lastKeepalive_: number
 
   public constructor() {
     super(CHANNEL_NAME)
 
-    this.binding_ = null
+    this.boundTo_ = null
     this.lastKeepalive_ = 0
 
     registerYTValueProcessor(YTResponse.mapped.liveChatGetLiveChat, () => this.keepalive_('live_chat'))
@@ -231,25 +242,25 @@ class ChatAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, Cha
   }
 
   protected onMessage(message: MessageDataUnion<ChatPopoutMessageDataMap, ChatPopoutMessageType>): void {
-    const { binding_ } = this
+    const { boundTo_ } = this
 
     switch (message.type) {
       case ChatPopoutMessageType.PLAYER_BIND: {
-        const [source, [continuation, isReplay, boundTo]] = message.data
+        const [source, boundTo, binding] = message.data
 
-        // Only handle message from player bounded to us unless binding source is unset
-        if (binding_?.[2] != null && binding_[2] !== source) return
+        // Only handle message from player bounded to us if we are bounded to a player
+        if (boundTo_ != null && boundTo_ !== source) return
 
         // Unbind from player if another popout already bounded to it
         if (boundTo != null && boundTo !== CHANNEL_SOURCE) return this.unbind_('race')
 
         // Load live chat
-        if (this.load_(continuation, isReplay)) return
+        if (this.load_(binding)) return
 
         logger.debug(`popout bind '${source}'`)
 
         // Update binding
-        this.binding_ = [continuation, isReplay, source]
+        this.boundTo_ = source
         this.keepalive_('bind')
         this.update_()
         return
@@ -257,28 +268,28 @@ class ChatAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, Cha
       case ChatPopoutMessageType.PLAYER_UNBIND: {
         const [source] = message.data
 
-        if (binding_?.[2] === source) this.unbind_('player')
+        if (boundTo_ === source) this.unbind_('player')
         return
       }
       case ChatPopoutMessageType.PLAYER_KEEPALIVE: {
         const [source] = message.data
 
-        if (binding_?.[2] === source) this.keepalive_('player')
+        if (boundTo_ === source) this.keepalive_('player')
         return
       }
       case ChatPopoutMessageType.PLAYER_MESSAGE: {
         const [source, forwardMessage] = message.data
 
-        if (binding_?.[2] === source) window.postMessage(forwardMessage)
+        if (boundTo_ === source) window.postMessage(forwardMessage)
         return
       }
       default:
-        logger.debug('invalid message:', message)
+        logger.trace('invalid message:', message)
         return
     }
   }
 
-  private load_(continuation: string, isReplay: boolean): boolean {
+  private load_([continuation, isReplay]: ChatBinding): boolean {
     const { origin, pathname, searchParams } = new URL(location.href)
 
     const path = isReplay ? LIVE_CHAT_REPLAY_PATHNAME : LIVE_CHAT_PATHNAME
@@ -293,31 +304,31 @@ class ChatAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, Cha
   }
 
   private keepalive_(reason: string): void {
-    const { binding_ } = this
+    const { boundTo_ } = this
 
-    if (binding_?.[2] == null) return
+    if (boundTo_ == null) return
 
-    logger.debug(`popout keepalive '${binding_[2]}', reason: ${reason}`)
+    logger.debug(`popout keepalive '${boundTo_}', reason: ${reason}`)
 
     this.lastKeepalive_ = Date.now()
   }
 
   private unbind_(reason: string): void {
-    const { binding_ } = this
+    const { boundTo_ } = this
 
-    if (binding_?.[2] == null) return
+    if (boundTo_ == null) return
 
-    logger.debug(`popout unbind '${binding_[2]}', reason: ${reason}`)
+    logger.debug(`popout unbind '${boundTo_}', reason: ${reason}`)
 
-    binding_[2] = null
+    this.boundTo_ = null
   }
 
   private update_(): void {
-    const { binding_, lastKeepalive_ } = this
+    const { boundTo_, lastKeepalive_ } = this
 
-    if (binding_?.[2] != null) {
+    if (boundTo_ != null) {
       if ((Date.now() - lastKeepalive_) < PLAYER_KEEPALIVE_TIMEOUT) {
-        this.send(ChatPopoutMessageType.POPOUT_ANNOUNCE, [CHANNEL_SOURCE, binding_[2]])
+        this.send(ChatPopoutMessageType.POPOUT_ANNOUNCE, [CHANNEL_SOURCE, boundTo_])
         return
       }
 
