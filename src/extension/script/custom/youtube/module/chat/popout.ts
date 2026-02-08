@@ -15,8 +15,9 @@ import { MessageDataUnion } from '@ext/lib/message/type'
 const logger = new Logger('YTCHAT-POPOUT')
 
 const CHANNEL_NAME = 'bmc-ytchat-popout'
-const CHANNEL_SOURCE = `cs-${(((floor(random() * 0x10000) << 16) | floor(random() * 0x10000)) ^ Date.now()) >>> 0}`
-const POPOUT_KEEPALIVE_TIMEOUT = 10e3 // 10 sec
+const CHANNEL_SOURCE = sessionStorage.getItem(CHANNEL_NAME) || `cs-${(((floor(random() * 0x10000) << 16) | floor(random() * 0x10000)) ^ Date.now()) >>> 0}`
+const COLD_NAV_IFRAME_DISABLE_DURATION = 5e3 // 5 sec
+const POPOUT_KEEPALIVE_TIMEOUT = 25e3 // 25 sec
 const PLAYER_KEEPALIVE_TIMEOUT = 60e3 // 1 min
 const LIVE_CHAT_PATHNAME = '/live_chat'
 const LIVE_CHAT_REPLAY_PATHNAME = '/live_chat_replay'
@@ -65,8 +66,8 @@ class MainAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, Cha
 
     this.player_ = null
     this.binding_ = null
-    this.lastBoundedPopoutAnnounce_ = Date.now()
-    this.lastUnboundPopoutAnnounce_ = Date.now()
+    this.lastBoundedPopoutAnnounce_ = 0
+    this.lastUnboundPopoutAnnounce_ = Date.now() - POPOUT_KEEPALIVE_TIMEOUT + COLD_NAV_IFRAME_DISABLE_DURATION
 
     registerYTConfigMenuItemGroup('general', [
       {
@@ -138,8 +139,8 @@ class MainAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, Cha
         // Clear binding source if bounded popout timed out
         if ((now - lastBoundedPopoutAnnounce_) > POPOUT_KEEPALIVE_TIMEOUT) binding_[2] = null
 
-        // Attempt to bind with popout if binding source is unset and page is visible
-        if (binding_[2] != null || documentHidden?.()) return
+        // Attempt to bind with popout if trying to rebind or binding source is unset and page is visible
+        if ((boundTo != null || binding_[2] !== source) && (binding_[2] != null || documentHidden?.())) return
 
         // Set binding source to popout if it has bounded to us successfully (2nd announce)
         if (boundTo === CHANNEL_SOURCE) binding_[2] = source
@@ -349,6 +350,8 @@ export default class YTChatPopoutModule extends Feature {
         this.channel_ = new MainAppMessageChannel()
         break
     }
+
+    sessionStorage.setItem(CHANNEL_NAME, CHANNEL_SOURCE)
 
     return true
   }
