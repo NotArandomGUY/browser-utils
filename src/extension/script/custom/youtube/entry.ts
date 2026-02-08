@@ -51,6 +51,11 @@ registerFeatureGroup(FEED_GROUP_ID, group => {
   registerFeature(group, YTFeedFilterModule)
 }, [CORE_GROUP_ID])
 
+registerFeatureGroup(CHAT_GROUP_ID, group => {
+  registerFeature(group, YTChatEmojiPickerModule)
+  registerFeature(group, YTChatPopoutModule)
+}, [CORE_GROUP_ID])
+
 registerFeatureGroup(PLAYER_GROUP_ID, group => {
   registerFeature(group, YTPlayerBootstrapModule)
   registerFeature(group, YTPlayerNetworkModule)
@@ -60,11 +65,6 @@ registerFeatureGroup(PLAYER_GROUP_ID, group => {
   registerFeature(group, YTPlayerSmartSkipModule)
   registerFeature(group, YTPlayerLiveModule)
   registerFeature(group, YTPlayerMusicVideoModule)
-}, [CORE_GROUP_ID])
-
-registerFeatureGroup(CHAT_GROUP_ID, group => {
-  registerFeature(group, YTChatEmojiPickerModule)
-  registerFeature(group, YTChatPopoutModule)
 }, [CORE_GROUP_ID])
 
 registerFeatureGroup(MISCS_GROUP_ID, group => {

@@ -1,5 +1,7 @@
 import { registerYTValueProcessor } from '@ext/custom/youtube/api/processor'
-import { YTRenderer, YTResponse } from '@ext/custom/youtube/api/schema'
+import { YTEndpoint, YTRenderer, YTResponse } from '@ext/custom/youtube/api/schema'
+import { registerYTSignalActionHandler } from '@ext/custom/youtube/module/core/command'
+import { registerYTConfigMenuItemGroup, YTConfigMenuItemType } from '@ext/custom/youtube/module/core/config'
 import { getYTPInstance, YTPInstanceType, YTPVideoPlayerInstance } from '@ext/custom/youtube/module/player/bootstrap'
 import { ytuiShowToast } from '@ext/custom/youtube/utils/ytui'
 import { floor, max, random } from '@ext/global/math'
@@ -66,6 +68,18 @@ class MainAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, Cha
     this.lastBoundedPopoutAnnounce_ = Date.now()
     this.lastUnboundPopoutAnnounce_ = Date.now()
 
+    registerYTConfigMenuItemGroup('general', [
+      {
+        type: YTConfigMenuItemType.BUTTON,
+        key: 'open-popout-chat',
+        icon: YTRenderer.enums.IconType.CHAT,
+        text: 'Open popout chat',
+        signals: [YTEndpoint.enums.SignalActionType.OPEN_POPOUT_CHAT, YTEndpoint.enums.SignalActionType.CLOSE_POPUP]
+      }
+    ])
+    registerYTSignalActionHandler(YTEndpoint.enums.SignalActionType.OPEN_POPOUT_CHAT, () => {
+      open(`${location.origin}${LIVE_CHAT_PATHNAME}`, Math.random().toString(36), 'menubar=0,location=0,scrollbars=0,toolbar=0,width=600,height=600')
+    })
     registerYTValueProcessor(YTRenderer.mapped.liveChatRenderer, data => {
       const { binding_, lastBoundedPopoutAnnounce_, lastUnboundPopoutAnnounce_ } = this
       const { continuations, isReplay } = data

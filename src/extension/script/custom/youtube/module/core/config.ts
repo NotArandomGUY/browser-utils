@@ -179,7 +179,7 @@ const renderConfigMenuItem = (isTV: boolean, item: YTConfigMenuItem): YTValueDat
           icon: { iconType: item.icon },
           text: { simpleText: item.text },
           title: { simpleText: item.text },
-          serviceEndpoint: buildActionItemCommand(item)
+          navigationEndpoint: buildActionItemCommand(item)
         }
       }
     case YTConfigMenuItemType.TOGGLE: {
