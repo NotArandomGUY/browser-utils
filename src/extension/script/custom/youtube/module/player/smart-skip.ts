@@ -417,7 +417,9 @@ const updateTimelyActionsOverlayViewModel = async (data: YTValueData<YTRenderer.
 }
 
 const processPlayerResponse = async (data: YTValueData<YTResponse.Mapped<'player'>>): Promise<void> => {
-  lastLoadedVideoId = data.videoDetails?.videoId ?? null
+  const { videoDetails } = data
+
+  lastLoadedVideoId = videoDetails?.isLive ? null : (videoDetails?.videoId ?? null)
 
   await fetchSegmentEntries(lastLoadedVideoId)
 }
