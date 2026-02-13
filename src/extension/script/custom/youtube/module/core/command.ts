@@ -2,20 +2,34 @@ import { YTEndpoint, YTValueData, YTValueType } from '@ext/custom/youtube/api/sc
 import { YTKevlarMethodDefineCallback } from '@ext/custom/youtube/module/core/bootstrap'
 import { defineProperty, values } from '@ext/global/object'
 import { Feature } from '@ext/lib/feature'
-import Hook, { HookResult } from '@ext/lib/intercept/hook'
+import Hook, { CallContext, HookResult } from '@ext/lib/intercept/hook'
 
-const RESOLVE_COMMAND_REGEXP = /navigate.*?handleServiceRequest.*?sendAction/s
+const RESOLVE_COMMAND_REGEXP = /(navigate.*?handleServiceRequest.*?sendAction)|(\(this,[^(]+\)\.handled)/s
 
 export type YTActionHandler = () => void
 
 interface YTCommandResolver {
-  resolveCommand(data: YTValueData<{ type: YTValueType.ENDPOINT }>): void
+  buildCommandPayload(command: YTValueData<{ type: YTValueType.ENDPOINT }>, ...args: unknown[]): void
+  resolveCommand(command: YTValueData<{ type: YTValueType.ENDPOINT }>, ...args: unknown[]): boolean
 }
+
+const IgnoreSignalActionSymbol = Symbol()
 
 const signalActionHandlerMap = new Map<YTEndpoint.enums.SignalActionType, YTActionHandler>()
 const commandQueue: Array<YTValueData<{ type: YTValueType.ENDPOINT }>> = []
 
 let instance: YTCommandResolver | null = null
+
+const handleCommand = (ctx: CallContext<unknown, [command: YTValueData<{ type: YTValueType.ENDPOINT }>, ...args: unknown[]], unknown>): HookResult => {
+  const signalAction = ctx.args[0]?.signalAction
+
+  if (signalAction != null && !(IgnoreSignalActionSymbol in signalAction)) {
+    defineProperty(signalAction, IgnoreSignalActionSymbol, { configurable: true, enumerable: false, value: true })
+    signalActionHandlerMap.get(signalAction.signal as YTEndpoint.enums.SignalActionType)?.()
+  }
+
+  return HookResult.EXECUTION_PASSTHROUGH
+}
 
 export const executeYTCommand = (command: YTValueData<{ type: YTValueType.ENDPOINT }>): void => {
   if (instance == null) {
@@ -51,27 +65,26 @@ export default class YTCoreCommandModule extends Feature {
         const prototype = typeof value === 'function' ? value.prototype : null
         if (prototype == null) return
 
-        const method = prototype.resolveCommand as (this: object, ...args: Parameters<YTCommandResolver['resolveCommand']>) => void
-        if (typeof method !== 'function' || !RESOLVE_COMMAND_REGEXP.test(String(method))) return
+        const resolveMethod = prototype.resolveCommand as (...args: Parameters<YTCommandResolver['resolveCommand']>) => void
+        if (typeof resolveMethod !== 'function' || !RESOLVE_COMMAND_REGEXP.test(String(resolveMethod))) return
 
         defineProperty(value, 'instance', {
           configurable: true,
           enumerable: true,
           get() { return instance },
-          set(v) {
+          set(v: YTCommandResolver) {
             instance = v
+
+            const buildMethod = instance.buildCommandPayload
+            if (typeof buildMethod === 'function') {
+              instance.buildCommandPayload = new Hook(buildMethod).install(handleCommand).call
+            }
+
             while (commandQueue.length > 0) executeYTCommand(commandQueue.shift()!)
           }
         })
 
-        prototype.resolveCommand = new Hook(method).install(ctx => {
-          const { args: [command] } = ctx
-
-          const signal = command?.signalAction?.signal
-          if (signal != null) signalActionHandlerMap.get(signal as YTEndpoint.enums.SignalActionType)?.()
-
-          return HookResult.EXECUTION_PASSTHROUGH
-        }).call
+        prototype.resolveCommand = new Hook(resolveMethod).install(handleCommand).call
       })
     })
 
