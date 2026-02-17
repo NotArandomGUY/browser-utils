@@ -15,10 +15,17 @@ const logger = new Logger('YTMISCS-ADS')
 
 const INLINE_PLAYER_SIGNATURE_CACHE_TTL = 3600e3 // 1 hour
 
+const enum ModifierMode {
+  DISABLED = 0,
+  PLAYER_PARAMS_REPLAY,
+  PLAYER_SCREEN,
+  PLAYER_PARAMS
+}
+
 const inlinePlayerSignatureCache = new Map<string, [sign: Uint8Array<ArrayBuffer> | null, expire: number]>()
 
-let isInlinePlayerSigned = false
 let isFetchApiAds = false
+let modifierMode: ModifierMode = ModifierMode.PLAYER_PARAMS
 
 const processWatchEndpoint = (data: YTValueData<YTEndpoint.Mapped<'watchEndpoint'>>): void => {
   const { params, videoId } = data
@@ -34,9 +41,9 @@ const processWatchEndpoint = (data: YTValueData<YTEndpoint.Mapped<'watchEndpoint
 }
 
 const processPlayerResponse = (data: YTValueData<YTResponse.Mapped<'player'>>): void => {
-  if (isInlinePlayerSigned || data.playabilityStatus?.status !== 'UNPLAYABLE') return
+  if (modifierMode <= 0 || data.playabilityStatus?.status !== 'UNPLAYABLE') return
 
-  isInlinePlayerSigned = true
+  logger.debug('switching modifier mode:', --modifierMode)
 
   setTimeout(() => dispatchYTSignalAction(YTEndpoint.enums.SignalActionType.SOFT_RELOAD_PAGE), 1e3)
 }
@@ -75,16 +82,32 @@ export default class YTMiscsAdsModule extends Feature {
     registerYTValueProcessor(YTResponse.mapped.next, updateNextResponse)
     registerYTValueProcessor(YTResponse.mapped.player, processPlayerResponse)
 
-    registerYTInnertubeRequestProcessor('player', ({ params, playbackContext, videoId }) => {
+    registerYTInnertubeRequestProcessor('player', ({ context, params, playbackContext, videoId }) => {
       if (params.isInlinePlayback || playbackContext?.contentPlaybackContext?.currentUrl?.startsWith('/shorts/')) return
 
-      const entry = inlinePlayerSignatureCache.get(videoId!)
-      if (isInlinePlayerSigned && entry == null) return
+      switch (modifierMode) {
+        case ModifierMode.PLAYER_SCREEN: {
+          const client = context?.client
+          if (client != null) {
+            client.clientScreen = 'CHANNEL'
+            break
+          }
+        }
+        // falls through
+        case ModifierMode.PLAYER_PARAMS_REPLAY: {
+          const entry = inlinePlayerSignatureCache.get(videoId!)
+          if (entry == null) break
 
-      params.isInlinePlaybackMuted = false
-      params.isInlinePlayback = true
-      // NOTE: salt/key id/magic[5 bytes] + sign(video id + params? (e.g. inline=1))[16 bytes]
-      params.sign = entry?.[0] ?? null
+          // NOTE: salt/key id/magic[5 bytes] + sign(video id + params? (e.g. inline=1))[16 bytes]
+          params.sign = entry?.[0] ?? null
+        }
+        // falls through
+        case ModifierMode.PLAYER_PARAMS: {
+          params.isInlinePlaybackMuted = false
+          params.isInlinePlayback = true
+          break
+        }
+      }
     })
 
     InterceptDOM.setAppendChildCallback(ctx => {
