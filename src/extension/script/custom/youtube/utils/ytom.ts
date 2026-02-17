@@ -10,7 +10,6 @@ import YTOfflineMediaStream from '@ext/custom/youtube/proto/ytom/stream'
 import { decryptAesCtr, deriveAesCtrKey, digestSHA256, encodeTrackingParam, encryptAesCtr, getNonce } from '@ext/custom/youtube/utils/crypto'
 import { getYTLocalEntitiesByType, getYTLocalEntityByKey, getYTLocalMediaCaptions, getYTLocalMediaChunks, getYTLocalMediaIndex, getYTLocalMediaStorage, openYTLocalImageCache, putYTLocalEntities, putYTLocalEntity, putYTLocalEntityAssociation, putYTLocalMediaCaptions, putYTLocalMediaStream, ReverseEntityType, setYTLocalMediaStorage, YTLocalEntity, YTLocalEntityAssociation, YTLocalEntityData, YTLocalMediaIndex, YTLocalMediaType } from '@ext/custom/youtube/utils/local'
 import { updateYTReduxStoreLocalEntities } from '@ext/custom/youtube/utils/redux'
-import { ceil } from '@ext/global/math'
 import { URLSearchParams } from '@ext/global/network'
 import { assign, entries, fromEntries, values } from '@ext/global/object'
 import { PromiseWithProgress } from '@ext/lib/async'
@@ -452,23 +451,7 @@ export const importYTOfflineMediaBundle = (file: File, password: string) => new 
       const index = decodeYTOfflineMediaStream(id!, stream)
 
       const contentLength = Number(stream.contentLength)
-      const chunkSize = Number(stream.chunkSize)
-
-      const chunkCount = ceil(contentLength / chunkSize)
-      if (isNaN(chunkCount)) throw new Error('invalid chunk size')
-
-      let complete = 0
-
-      const chunks = await Promise.all(
-        new Array(chunkCount).fill(null).map((_, i) => {
-          const pos = streamPos + (i * chunkSize)
-          const size = i < (chunkCount - 1) ? chunkSize : (contentLength % chunkSize)
-          return file.slice(pos, pos + size).arrayBuffer().then(chunk => {
-            progress(`reading '${id}' stream.${stream.type} (${((++complete / chunkCount) * 100).toFixed(1)}%)`)
-            return new Uint8Array(chunk)
-          })
-        })
-      )
+      if (isNaN(contentLength)) throw new Error('invalid content length')
 
       streamsEntity.data.streamsProgress.push({
         formatStreamBytes: JSON.stringify(index),
@@ -477,7 +460,11 @@ export const importYTOfflineMediaBundle = (file: File, password: string) => new 
         streamState: 'DOWNLOAD_STREAM_STATE_COMPLETE',
         streamType: (['STREAM_TYPE_AUDIO', 'STREAM_TYPE_VIDEO', 'STREAM_TYPE_AUDIO_AND_VIDEO'] as const)[index.type]
       })
-      await putYTLocalMediaStream(index, chunks).progress(p => progress(`importing '${id}' stream.${index.type} (${(p * 100).toFixed(1)}%)`))
+
+      await putYTLocalMediaStream(index, async (offset, size) => {
+        const pos = streamPos + offset
+        return file.slice(pos, pos + size).arrayBuffer().then(chunk => new Uint8Array(chunk))
+      }).progress(p => progress(`importing '${id}' stream.${index.type} (${(p * 100).toFixed(1)}%)`))
 
       streamPos += contentLength
     }
