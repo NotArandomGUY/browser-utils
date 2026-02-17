@@ -6,6 +6,9 @@ import { PromiseWithProgress, waitAllBatched } from '@ext/lib/async'
 import { bufferFromString, bufferToString } from '@ext/lib/buffer'
 import IndexedDB, { IndexedDBStoreDefinition } from '@ext/lib/idb'
 
+const TRANSFER_ERROR_RETRIES = 10
+const TRANSFER_BATCH_SIZE = 16
+
 export type YTLocalMediaChunkReader = (offset: number, size: number) => Promise<Uint8Array<ArrayBuffer>>
 export type YTLocalMediaChunkTransform = (chunk: Uint8Array<ArrayBuffer>) => Promise<Uint8Array<ArrayBuffer>>
 
@@ -193,8 +196,6 @@ export interface YTLocalMediaCaption {
 }
 
 const PLAYER_LMS_KEY = 'yt-player-lv'
-const TRANSFER_BATCH_SIZE = 16
-
 const LOCAL_DATABASE_CONFIGS = [
   {
     name: 'PersistentEntityStoreDb',
@@ -452,22 +453,34 @@ export const putYTLocalMediaStream = (index: YTLocalMediaIndex, reader: YTLocalM
     })
 
     const transferChunk = async (chunkIndex: number) => {
-      const offset = chunkIndex * chunkSize
-      const size = chunkIndex < (chunkCount - 1) ? chunkSize : contentLength % chunkSize
+      let lastError: unknown
 
-      // Read chunk
-      let chunk = await reader(offset, size)
-      if (chunk.length !== size) throw new Error('invalid chunk size')
+      for (let attempt = 0; attempt < TRANSFER_ERROR_RETRIES; attempt++) {
+        try {
+          const offset = chunkIndex * chunkSize
+          const size = chunkIndex < (chunkCount - 1) ? chunkSize : contentLength % chunkSize
 
-      // Apply chunk transforms
-      for (const transform of transforms) chunk = await transform(chunk)
+          // Read chunk
+          let chunk = await reader(offset, size)
+          if (chunk.length !== size) throw new Error('invalid chunk size')
 
-      // Write chunk
-      await db!.transaction('media', async trans => {
-        const key = `${videoId}|${formatId}|${lastModified}|${String(chunkIndex).padStart(10, '0')}`
-        await trans.objectStore('media').put(chunk, key)
-        transactions.push(key)
-      })
+          // Apply chunk transforms
+          for (const transform of transforms) chunk = await transform(chunk)
+
+          // Write chunk
+          await db!.transaction('media', async trans => {
+            const key = `${videoId}|${formatId}|${lastModified}|${String(chunkIndex).padStart(10, '0')}`
+            await trans.objectStore('media').put(chunk, key)
+            transactions.push(key)
+          })
+
+          return
+        } catch (error) {
+          lastError = error
+        }
+      }
+
+      throw lastError
     }
 
     const transferTasks = new Array(chunkCount).fill(0).map((_, i) => transferChunk.bind(null, i))
