@@ -1,16 +1,12 @@
 type WaitCondition<TArgs extends [] = []> = (...args: TArgs) => boolean
 
-const taskList: {
-  cond: WaitCondition | number
-  resolve: () => void
-  time: number
-}[] = []
+const taskList: [cond: WaitCondition | number, resolve: () => void, time: number][] = []
 
 setInterval(() => {
   let i = 0
   while (i < taskList.length) {
     try {
-      const { cond, resolve, time } = taskList[i++]
+      const [cond, resolve, time] = taskList[i++]
 
       if (typeof cond === 'number' && Date.now() - time < cond) continue
       if (typeof cond === 'function' && !cond()) continue
@@ -29,8 +25,8 @@ export type PromiseReject<T> = (reason?: T) => void
 export type PromiseProgress<T> = (progress: T) => void
 
 export class PromiseWithProgress<TResolve, TProgress, TReject = unknown> extends Promise<TResolve> {
-  private readonly progressCallbacks: PromiseProgress<TProgress>[]
-  private resolved: boolean
+  private readonly progressCallbacks_: PromiseProgress<TProgress>[]
+  private resolved_: boolean
 
   public constructor(
     executor: (
@@ -46,20 +42,20 @@ export class PromiseWithProgress<TResolve, TProgress, TReject = unknown> extends
         async (...args) => {
           if (!isInitialized) await waitUntil(() => isInitialized)
           resolve(...args)
-          this.resolved = true
+          this.resolved_ = true
         },
         async (...args) => {
           if (!isInitialized) await waitUntil(() => isInitialized)
           reject(...args)
-          this.resolved = true
+          this.resolved_ = true
         },
         async (progress) => {
           if (!isInitialized) await waitUntil(() => isInitialized)
 
           try {
-            if (this.resolved) return
+            if (this.resolved_) return
 
-            this.progressCallbacks.forEach((callback) => callback(progress))
+            this.progressCallbacks_.forEach((callback) => callback(progress))
           } catch (error) {
             reject(error)
           }
@@ -67,53 +63,73 @@ export class PromiseWithProgress<TResolve, TProgress, TReject = unknown> extends
       )
     )
 
-    this.progressCallbacks = []
-    this.resolved = false
+    this.progressCallbacks_ = []
+    this.resolved_ = false
 
     isInitialized = true
   }
 
   public progress(callback: PromiseProgress<TProgress>): this {
-    this.progressCallbacks.push(callback)
+    this.progressCallbacks_.push(callback)
 
     return this
   }
 }
 
 export class Mutex {
-  private promise: Promise<void> | null
-  private resolve: (() => void) | null
-
-  public constructor() {
-    this.promise = null
-    this.resolve = null
-  }
+  private promise_: Promise<void> | null = null
+  private resolve_: (() => void) | null = null
 
   public get isLocked(): boolean {
-    return this.promise != null
+    return this.promise_ != null
   }
 
   public async lock(): Promise<void> {
-    while (this.promise != null) await this.promise
-    this.promise = new Promise((resolve) => this.resolve = resolve)
+    while (this.promise_ != null) await this.promise_
+    this.promise_ = new Promise((resolve) => this.resolve_ = resolve)
   }
 
   public unlock(): void {
-    this.resolve?.()
+    this.resolve_?.()
 
-    this.promise = null
-    this.resolve = null
+    this.promise_ = null
+    this.resolve_ = null
   }
 }
 
 export const waitTick = (): Promise<void> => {
-  return new Promise((resolve) => taskList.push({ cond: 20, resolve, time: Date.now() }))
+  return new Promise((resolve) => taskList.push([20, resolve, Date.now()]))
 }
 
 export const waitMs = (ms: number): Promise<void> => {
-  return new Promise((resolve) => taskList.push({ cond: ms, resolve, time: Date.now() }))
+  return new Promise((resolve) => taskList.push([ms, resolve, Date.now()]))
 }
 
 export const waitUntil = (cond: WaitCondition): Promise<void> => {
-  return new Promise((resolve) => taskList.push({ cond, resolve, time: 0 }))
+  return new Promise((resolve) => taskList.push([cond, resolve, 0]))
+}
+
+export function waitAllBatched<T>(tasks: Iterable<() => PromiseLike<T>>, ...batchSizes: number[]): PromiseWithProgress<T[], number>
+export function waitAllBatched<T extends readonly (() => PromiseLike<unknown>)[] = []>(tasks: T, ...batchSizes: number[]): PromiseWithProgress<{ [P in keyof T]: Awaited<ReturnType<T[P]>> }, number>
+export function waitAllBatched(tasks: Iterable<() => PromiseLike<unknown>>, ...batchSizes: number[]): PromiseWithProgress<unknown[], number> {
+  return new PromiseWithProgress(async (resolve, reject, progress) => {
+    try {
+      const taskArr = Array.from(tasks)
+      const results: unknown[] = []
+
+      for (let i = 0, s = 1; i < taskArr.length; i += s, s = batchSizes.shift() ?? s) {
+        const batchResults = await Promise.allSettled(taskArr.slice(i, i + s).map(task => task()))
+
+        const rejected = batchResults.find(r => r.status !== 'fulfilled')
+        if (rejected != null) throw rejected.reason
+
+        results.push(...(batchResults as PromiseFulfilledResult<unknown>[]).map(r => r.value))
+        progress(results.length)
+      }
+
+      resolve(results)
+    } catch (error) {
+      reject(error)
+    }
+  })
 }

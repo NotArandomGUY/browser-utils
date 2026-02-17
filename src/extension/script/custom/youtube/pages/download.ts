@@ -5,7 +5,7 @@ import { markYTForceDownloadVideo } from '@ext/custom/youtube/module/miscs/downl
 import { decodeEntityKey, EntityType } from '@ext/custom/youtube/proto/entity-key'
 import { getYTLocalEntitiesByType, getYTLocalEntityByKey, getYTLocalEntityByType, YTLocalEntity, YTLocalMediaType } from '@ext/custom/youtube/utils/local'
 import { deleteYTOfflineMedia, exportYTOfflineMediaBundle, exportYTOfflineMediaStream, importYTOfflineMediaBundle } from '@ext/custom/youtube/utils/ytom'
-import { PromiseWithProgress } from '@ext/lib/async'
+import { PromiseWithProgress, waitAllBatched } from '@ext/lib/async'
 import van, { ChildDom, State } from 'vanjs-core'
 
 const { button, div, h1, h4, input, p, table, tbody, td, th, thead, tr } = van.tags
@@ -98,7 +98,6 @@ class YTDownloadPageLifecycle extends Lifecycle<void> {
   }
 
   private readonly fileInput_: HTMLInputElement
-  private readonly queuedTasks_: Array<() => Promise<void>>
   private readonly videoEntities_: State<VideoEntity[]>
   private readonly isLoading_: State<boolean>
   private readonly password_: State<string>
@@ -111,7 +110,6 @@ class YTDownloadPageLifecycle extends Lifecycle<void> {
     super()
 
     this.fileInput_ = input({ style: 'display:none', type: 'file', accept: '.ytom' })
-    this.queuedTasks_ = []
     this.videoEntities_ = van.state([])
     this.isLoading_ = van.state(false)
     this.password_ = van.state('')
@@ -122,7 +120,7 @@ class YTDownloadPageLifecycle extends Lifecycle<void> {
   }
 
   protected override onCreate(): void {
-    const { classList, fileInput_, queuedTasks_, videoEntities_, isLoading_, password_, status_, downloadSource_, filter_ } = this
+    const { classList, fileInput_, videoEntities_, isLoading_, password_, status_, downloadSource_, filter_ } = this
 
     const className = buildClass(['bu-overlay', 'page'])
     classList.add(className)
@@ -141,54 +139,47 @@ class YTDownloadPageLifecycle extends Lifecycle<void> {
       try {
         isLoading_.val = true
 
-        const mainDownloadsListEntity = await getYTLocalEntityByType(EntityType.mainDownloadsListEntity, true)
-        const mainPlaylistEntities = await getYTLocalEntitiesByType(EntityType.mainPlaylistEntity, true)
-        const mainVideoEntities = await getYTLocalEntitiesByType(EntityType.mainVideoEntity, true)
-
+        const [mainDownloadsListEntity, mainPlaylistEntities, mainVideoEntities] = await Promise.all([
+          getYTLocalEntityByType(EntityType.mainDownloadsListEntity, true),
+          getYTLocalEntitiesByType(EntityType.mainPlaylistEntity, true),
+          getYTLocalEntitiesByType(EntityType.mainVideoEntity, true)
+        ])
         const playlistMap = new Map(mainPlaylistEntities.flatMap(({ data }) => Array.from(data.videos ?? []).map(key => [
           String(JSON.parse(decodeEntityKey(key).entityId ?? 'null')?.videoId),
           data
         ])))
 
-        while (mainVideoEntities.length > 0) {
-          const batchSize = queuedTasks_.length === 0 ? ENTITY_PROCESS_INIT_BATCH_SIZE : ENTITY_PROCESS_CONT_BATCH_SIZE
-          const batch = mainVideoEntities.splice(0, batchSize).filter(({ data }) => !videoEntities_.val.some(entity => data.videoId === entity.videoId))
-          if (batch.length === 0) continue
+        const processEntity = async ({ key, data }: YTLocalEntity<EntityType.mainVideoEntity>): Promise<void> => {
+          const playlist = playlistMap.get(data.videoId)
+          const [channel, downloadState] = await Promise.all([
+            getYTLocalEntityByKey<EntityType.ytMainChannelEntity>(data.owner, true),
+            getYTLocalEntityByKey<EntityType.mainVideoDownloadStateEntity>(data.downloadState, true)
+          ])
 
-          queuedTasks_.push(async () => {
-            const videoEntities = await Promise.all<VideoEntity>(batch.map(async ({ key, data }) => {
-              const playlist = playlistMap.get(data.videoId)
-              const [channel, downloadState] = await Promise.all([
-                getYTLocalEntityByKey<EntityType.ytMainChannelEntity>(data.owner, true),
-                getYTLocalEntityByKey<EntityType.mainVideoDownloadStateEntity>(data.downloadState, true)
-              ])
+          const timestamp = downloadState?.data.downloadStatusEntity.downloadState === 'DOWNLOAD_STATE_COMPLETE' ? Number(downloadState.data.addedTimestampMillis) : -1
+          if (timestamp < 0) return
 
-              return {
-                ...data,
-                owner: channel?.data.title,
-                playlistId: playlist?.playlistId,
-                playlistTitle: playlist?.title,
-                timestamp: downloadState?.data.downloadStatusEntity.downloadState === 'DOWNLOAD_STATE_COMPLETE' ? Number(downloadState.data.addedTimestampMillis) : -1,
-                auto: !!mainDownloadsListEntity?.data.downloads?.some(({ videoItem }) => videoItem === key)
-              }
-            }))
-
-            videoEntities_.val = videoEntities.concat(videoEntities_.val)
-              .filter(entity => entity.timestamp >= 0)
-              .sort((l, r) => (
-                l.auto === r.auto ?
-                  (r.timestamp - l.timestamp) :
-                  (l.auto ? 1 : -1) // NOSONAR
-              ))
+          videoEntities_.val.push({
+            ...data,
+            owner: channel?.data.title,
+            playlistId: playlist?.playlistId,
+            playlistTitle: playlist?.title,
+            timestamp,
+            auto: !!mainDownloadsListEntity?.data.downloads?.some(({ videoItem }) => videoItem === key)
           })
         }
 
-        let task: (() => Promise<void>) | undefined
-        while (task = queuedTasks_.shift()) await task()
+        const entities = mainVideoEntities.filter(({ data }) => !videoEntities_.val.some(entity => data.videoId === entity.videoId))
+        await waitAllBatched(entities.map(entity => processEntity.bind(null, entity)), ENTITY_PROCESS_INIT_BATCH_SIZE, ENTITY_PROCESS_CONT_BATCH_SIZE).progress(() => {
+          videoEntities_.val = videoEntities_.val.slice().sort((l, r) => (
+            l.auto === r.auto ?
+              (r.timestamp - l.timestamp) :
+              (l.auto ? 1 : -1) // NOSONAR
+          ))
+        })
       } catch (error) {
         status_.val = error instanceof Error ? error.message : String(error)
       } finally {
-        queuedTasks_.splice(0)
         isLoading_.val = false
       }
     }
