@@ -421,7 +421,8 @@ const processPlayerResponse = async (data: YTValueData<YTResponse.Mapped<'player
 
   lastLoadedVideoId = videoDetails?.isLive ? null : (videoDetails?.videoId ?? null)
 
-  await fetchSegmentEntries(lastLoadedVideoId)
+  // Prefetch without blocking player
+  fetchSegmentEntries(lastLoadedVideoId)
 }
 
 const updateNextResponse = async (data: YTValueData<YTResponse.Mapped<'next'>>): Promise<void> => {
