@@ -17,6 +17,10 @@ const PLAYER_CLIENT_OVERRIDE: Record<string, [name: string, version: string]> = 
   'TVHTML5': ['WEB', '2.20260128.05.00']
 }
 const PLAYER_EXPERIMENT_FLAGS: [key: string, value?: string][] = [
+  // prefer sticky resolution
+  ['html5_perf_cap_override_sticky', 'false'],
+  ['html5_ustreamer_cap_override_sticky', 'false'],
+
   // sabr usually have a smoother buffer, but prevent csdai seeking in some cases
   ['html5_enable_sabr_csdai', 'false'],
   ['html5_remove_client_sabr_determination', 'true'],
