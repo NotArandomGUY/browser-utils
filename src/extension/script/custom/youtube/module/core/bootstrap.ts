@@ -45,6 +45,7 @@ export interface YTInnertubeContext {
     visitorData: string
     userAgent: string
     clientName: string
+    clientScreen: string
     clientVersion: string
     osName: string
     osVersion: string

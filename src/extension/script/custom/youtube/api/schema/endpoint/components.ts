@@ -236,7 +236,8 @@ export const entityMutationPayload = ytv_sch(() => ({
     key: ytv_str(),
     lastUpdatedTimestampSeconds: ytv_str(),
     offlineStateBytes: ytv_str(),
-    offlineToken: ytv_str()
+    offlineToken: ytv_str(),
+    shortMessageForDisabledAction: ytv_str()
   }),
   offlineabilityEntity: renderer.mapped.offlineabilityRenderer,
   playbackData: ytv_sch({
