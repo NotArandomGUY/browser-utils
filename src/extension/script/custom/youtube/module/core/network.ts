@@ -163,7 +163,8 @@ export type YTInnertubeRequestProcessor<E extends YTInnertubeRequestEndpoint = Y
 
 const innertubeRequestProcessorMap: { [endpoint: string]: Set<YTInnertubeRequestProcessor> } = {}
 
-const protoBase64UrlDecode = <D extends MessageDefinition>(message: Message<D>, data?: string): Message<D> => {
+const protoBase64UrlDecode = <D extends MessageDefinition>(ctor: new (initData?: object) => Message<D>, data?: string): Message<D> => {
+  const message = new ctor({})
   if (typeof data !== 'string') return message
 
   return message.deserialize(bufferFromString(decodeURIComponent(data), 'base64url'))
@@ -208,7 +209,7 @@ const processInnertubeRequest = async (endpoint: string, headers: Headers, reque
         const data = request as Omit<YTInnertubeRequest<typeof endpoint>, 'params'> & {
           params?: InstanceType<typeof PlayerParams> | string
         }
-        data.params = protoBase64UrlDecode(new PlayerParams(), data.params as string)
+        data.params = protoBase64UrlDecode(PlayerParams, data.params as string)
 
         response = await invokeProcessors(data, headers, processors)
 
