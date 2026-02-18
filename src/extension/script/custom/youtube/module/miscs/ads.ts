@@ -17,15 +17,18 @@ const INLINE_PLAYER_SIGNATURE_CACHE_TTL = 3600e3 // 1 hour
 
 const enum ModifierMode {
   DISABLED = 0,
-  PLAYER_PARAMS_REPLAY,
+  PLAYER_INLINE_V1_SIGNED,
   PLAYER_SCREEN,
-  PLAYER_PARAMS
+  PLAYER_INLINE_V1,
+  PLAYER_INLINE_V2,
+  __COUNT__
 }
 
 const inlinePlayerSignatureCache = new Map<string, [sign: Uint8Array<ArrayBuffer> | null, expire: number]>()
 
 let isFetchApiAds = false
-let modifierMode: ModifierMode = ModifierMode.PLAYER_PARAMS
+let modifierMode: ModifierMode = ModifierMode.__COUNT__ - 1
+let unmuteVideoId: string | undefined
 
 const processWatchEndpoint = (data: YTValueData<YTEndpoint.Mapped<'watchEndpoint'>>): void => {
   const { params, videoId } = data
@@ -33,7 +36,7 @@ const processWatchEndpoint = (data: YTValueData<YTEndpoint.Mapped<'watchEndpoint
   if (params == null || videoId == null) return
 
   const playerParams = new PlayerParams().deserialize(bufferFromString(decodeURIComponent(params), 'base64url'))
-  if (!playerParams.isInlinePlayback) return
+  if (!playerParams.isInlinePlaybackV1) return
 
   const now = Date.now()
   Array.from(inlinePlayerSignatureCache.entries()).forEach(([key, [_, expire]]) => expire <= now && inlinePlayerSignatureCache.delete(key))
@@ -41,7 +44,10 @@ const processWatchEndpoint = (data: YTValueData<YTEndpoint.Mapped<'watchEndpoint
 }
 
 const processPlayerResponse = (data: YTValueData<YTResponse.Mapped<'player'>>): void => {
-  const { playabilityStatus } = data
+  const { playabilityStatus, playerConfig, videoDetails } = data
+
+  const audioConfig = playerConfig?.audioConfig
+  if (audioConfig?.muteOnStart && unmuteVideoId === videoDetails?.videoId) delete audioConfig.muteOnStart
 
   if (modifierMode <= 0 || playabilityStatus?.status !== 'UNPLAYABLE') return
 
@@ -91,7 +97,7 @@ export default class YTMiscsAdsModule extends Feature {
     registerYTValueProcessor(YTResponse.mapped.player, processPlayerResponse)
 
     registerYTInnertubeRequestProcessor('player', ({ context, params, playbackContext, videoId }) => {
-      if (params.isInlinePlayback || playbackContext?.contentPlaybackContext?.currentUrl?.startsWith('/shorts/')) return
+      if (params.isInlinePlaybackV1 || playbackContext?.contentPlaybackContext?.currentUrl?.startsWith('/shorts/')) return
 
       switch (modifierMode) {
         case ModifierMode.PLAYER_SCREEN: {
@@ -102,7 +108,7 @@ export default class YTMiscsAdsModule extends Feature {
           }
         }
         // falls through
-        case ModifierMode.PLAYER_PARAMS_REPLAY: {
+        case ModifierMode.PLAYER_INLINE_V1_SIGNED: {
           const entry = inlinePlayerSignatureCache.get(videoId!)
           if (entry == null) break
 
@@ -110,11 +116,14 @@ export default class YTMiscsAdsModule extends Feature {
           params.sign = entry?.[0] ?? null
         }
         // falls through
-        case ModifierMode.PLAYER_PARAMS: {
+        case ModifierMode.PLAYER_INLINE_V1:
           params.isInlinePlaybackMuted = false
-          params.isInlinePlayback = true
+          params.isInlinePlaybackV1 = true
           break
-        }
+        case ModifierMode.PLAYER_INLINE_V2:
+          params.isInlinePlaybackV2 = true
+          unmuteVideoId = videoId
+          break
       }
     })
 
