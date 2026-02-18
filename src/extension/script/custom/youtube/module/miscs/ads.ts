@@ -45,7 +45,10 @@ const processPlayerResponse = (data: YTValueData<YTResponse.Mapped<'player'>>): 
 
   logger.debug('switching modifier mode:', --modifierMode)
 
-  setTimeout(() => dispatchYTSignalAction(YTEndpoint.enums.SignalActionType.SOFT_RELOAD_PAGE), 1e3)
+  setTimeout(() => {
+    dispatchYTSignalAction(YTEndpoint.enums.SignalActionType.RELOAD_PLAYER)
+    dispatchYTSignalAction(YTEndpoint.enums.SignalActionType.SOFT_RELOAD_PAGE)
+  }, 1e3)
 }
 
 const updateNextResponse = (data: YTValueData<YTResponse.Mapped<'next'>>): void => {
