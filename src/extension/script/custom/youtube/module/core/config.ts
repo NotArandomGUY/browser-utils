@@ -266,6 +266,12 @@ const updateDesktopTopbarRenderer = (data: YTValueData<YTRenderer.Mapped<'deskto
   data.topbarButtons.unshift(renderConfigMenuButton(false))
 }
 
+const updateTransportControlsRenderer = (data: YTValueData<YTRenderer.Mapped<'transportControlsRenderer'>>): void => {
+  const actions = data.buttons ?? data.settingActions
+
+  actions?.unshift({ type: 'TRANSPORT_CONTROLS_BUTTON_TYPE_ABOUT_BUTTON', button: renderConfigMenuButton(true) })
+}
+
 const updateTvSurfaceContentRenderer = (data: YTValueData<YTRenderer.Mapped<'tvSurfaceContentRenderer'>>): void => {
   data.content?.sectionListRenderer?.contents?.unshift(
     { itemSectionRenderer: { contents: [renderConfigMenuButton(true)] } },
@@ -339,6 +345,7 @@ export default class YTCoreConfigModule extends Feature {
 
   protected activate(cleanupCallbacks: Function[]): boolean {
     cleanupCallbacks.push(
+      registerYTValueProcessor(YTRenderer.mapped.transportControlsRenderer, updateTransportControlsRenderer, YTValueProcessorType.POST),
       registerYTValueProcessor(YTRenderer.mapped.tvSurfaceContentRenderer, updateTvSurfaceContentRenderer, YTValueProcessorType.POST),
       registerYTValueProcessor(YTRenderer.mapped.desktopTopbarRenderer, updateDesktopTopbarRenderer, YTValueProcessorType.POST)
     )
