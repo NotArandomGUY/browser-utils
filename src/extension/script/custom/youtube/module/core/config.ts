@@ -269,7 +269,7 @@ const updateDesktopTopbarRenderer = (data: YTValueData<YTRenderer.Mapped<'deskto
 const updateTransportControlsRenderer = (data: YTValueData<YTRenderer.Mapped<'transportControlsRenderer'>>): void => {
   const actions = data.buttons ?? data.settingActions
 
-  actions?.unshift({ type: 'TRANSPORT_CONTROLS_BUTTON_TYPE_ABOUT_BUTTON', button: renderConfigMenuButton(true) })
+  actions?.unshift({ type: 'TRANSPORT_CONTROLS_BUTTON_TYPE_COMMENTS', button: renderConfigMenuButton(true) })
 }
 
 const updateTvSurfaceContentRenderer = (data: YTValueData<YTRenderer.Mapped<'tvSurfaceContentRenderer'>>): void => {
