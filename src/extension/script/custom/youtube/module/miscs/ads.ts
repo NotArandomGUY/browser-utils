@@ -41,9 +41,14 @@ const processWatchEndpoint = (data: YTValueData<YTEndpoint.Mapped<'watchEndpoint
 }
 
 const processPlayerResponse = (data: YTValueData<YTResponse.Mapped<'player'>>): void => {
-  if (modifierMode <= 0 || data.playabilityStatus?.status !== 'UNPLAYABLE') return
+  const { playabilityStatus } = data
+
+  if (modifierMode <= 0 || playabilityStatus?.status !== 'UNPLAYABLE') return
 
   logger.debug('switching modifier mode:', --modifierMode)
+
+  playabilityStatus.status = 'LIVE_STREAM_OFFLINE'
+  delete playabilityStatus.errorScreen
 
   setTimeout(() => {
     dispatchYTSignalAction(YTEndpoint.enums.SignalActionType.RELOAD_PLAYER)
