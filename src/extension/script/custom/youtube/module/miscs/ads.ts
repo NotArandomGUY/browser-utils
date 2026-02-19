@@ -3,6 +3,7 @@ import { YTEndpoint, YTRenderer, YTResponse, YTValueData } from '@ext/custom/you
 import { registerYTInnertubeRequestProcessor } from '@ext/custom/youtube/module/core/network'
 import { getAllYTPInstance, YTPInstanceType } from '@ext/custom/youtube/module/player/bootstrap'
 import PlayerParams from '@ext/custom/youtube/proto/player-params'
+import { max, min } from '@ext/global/math'
 import { defineProperty } from '@ext/global/object'
 import { waitMs, waitUntil } from '@ext/lib/async'
 import { bufferFromString } from '@ext/lib/buffer'
@@ -13,6 +14,7 @@ import Logger from '@ext/lib/logger'
 
 const logger = new Logger('YTMISCS-ADS')
 
+const MODIFIER_MODE_KEY = 'bu-ab-prm-mode'
 const INLINE_PLAYER_SIGNATURE_CACHE_TTL = 3600e3 // 1 hour
 
 const enum ModifierMode {
@@ -26,7 +28,7 @@ const enum ModifierMode {
 
 const inlinePlayerSignatureCache = new Map<string, [sign: Uint8Array<ArrayBuffer> | null, expire: number]>()
 
-let modifierMode: ModifierMode = ModifierMode.IDLE
+let modifierMode: ModifierMode = max(ModifierMode.DISABLED, min(ModifierMode.IDLE, Number(sessionStorage.getItem(MODIFIER_MODE_KEY)) || ModifierMode.IDLE))
 let unmuteVideoId: string | undefined
 
 const processWatchEndpoint = (data: YTValueData<YTEndpoint.Mapped<'watchEndpoint'>>): void => {
@@ -54,7 +56,8 @@ const processPlayerResponse = (data: YTValueData<YTResponse.Mapped<'player'>>): 
   const isPlayable = playabilityStatus.status !== 'UNPLAYABLE' && !adSlots?.length
   if (isPlayable || modifierMode <= 0) return
 
-  logger.debug('switching modifier mode:', --modifierMode)
+  sessionStorage.setItem(MODIFIER_MODE_KEY, String(--modifierMode))
+  logger.debug('switching modifier mode:', modifierMode)
 
   playabilityStatus.status = 'LIVE_STREAM_OFFLINE'
   waitMs(500).then(() => waitUntil(() => {
