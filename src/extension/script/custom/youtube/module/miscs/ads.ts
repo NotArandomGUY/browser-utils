@@ -46,7 +46,11 @@ const processWatchEndpoint = (data: YTValueData<YTEndpoint.Mapped<'watchEndpoint
   inlinePlayerSignatureCache.set(videoId, [playerParams.sign, now + INLINE_PLAYER_SIGNATURE_CACHE_TTL])
 }
 
-const processPlayerResponse = (data: YTValueData<YTResponse.Mapped<'player'>>): void => {
+const updateNextResponse = (data: YTValueData<YTResponse.Mapped<'next'>>): void => {
+  delete data.adEngagementPanels
+}
+
+const updatePlayerResponse = (data: YTValueData<YTResponse.Mapped<'player'>>): void => {
   const { adSlots, playabilityStatus, playerConfig, videoDetails } = data
 
   const videoId = videoDetails?.videoId
@@ -73,10 +77,6 @@ const processPlayerResponse = (data: YTValueData<YTResponse.Mapped<'player'>>): 
   }))
 }
 
-const updateNextResponse = (data: YTValueData<YTResponse.Mapped<'next'>>): void => {
-  delete data.adEngagementPanels
-}
-
 const filterReel = (data: YTValueData<YTEndpoint.Mapped<'reelWatchEndpoint'>>): boolean => {
   return data.adClientParams == null
 }
@@ -98,7 +98,7 @@ export default class YTMiscsAdsModule extends Feature {
     registerYTValueFilter(YTRenderer.mapped.topBannerImageTextIconButtonedLayoutViewModel, null, YTValueProcessorType.POST)
     registerYTValueProcessor(YTEndpoint.mapped.watchEndpoint, processWatchEndpoint)
     registerYTValueProcessor(YTResponse.mapped.next, updateNextResponse)
-    registerYTValueProcessor(YTResponse.mapped.player, processPlayerResponse)
+    registerYTValueProcessor(YTResponse.mapped.player, updatePlayerResponse)
 
     registerYTInnertubeRequestProcessor('player', ({ context, params, playbackContext, videoId }) => {
       if (params.isInlinePlaybackV1 || playbackContext?.contentPlaybackContext?.currentUrl?.startsWith('/shorts/')) return
