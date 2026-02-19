@@ -26,7 +26,6 @@ import { ytuiShowToast } from '@ext/custom/youtube/utils/ytui'
 import { ceil } from '@ext/global/math'
 import { assign, fromEntries } from '@ext/global/object'
 import { bufferFromString, bufferToString } from '@ext/lib/buffer'
-import Callback from '@ext/lib/callback'
 import { Feature } from '@ext/lib/feature'
 import { addInterceptNetworkCallback, NetworkContext, NetworkContextState, NetworkRequestContext, NetworkState, onInterceptNetworkRequest, replaceRequest } from '@ext/lib/intercept/network'
 import Logger from '@ext/lib/logger'
@@ -38,8 +37,6 @@ const UMP_PATHNAME_REGEXP = /^\/(init|video)playback$/
 
 let onesieClientKeys: Uint8Array[] = []
 let onesieHeader: InstanceType<typeof UMPOnesieHeader> | null = null
-
-export const YTPlayerServerAdDelayCallback = new Callback<[delayMs: number]>()
 
 const manager = new UMPContextManager({
   [UMPSliceType.UNKNOWN]: (data, slice) => {
@@ -126,7 +123,6 @@ const manager = new UMPContextManager({
       const backoffTimeMs = context.backoffTimeMs
       if (!backoffTimeMs) return
 
-      YTPlayerServerAdDelayCallback.invoke(backoffTimeMs)
       ytuiShowToast(`Waiting for server ad delay (${ceil(backoffTimeMs / 1e3)}s)...`, backoffTimeMs)
     }
   },

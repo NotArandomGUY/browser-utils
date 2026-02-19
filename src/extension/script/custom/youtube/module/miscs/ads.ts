@@ -1,10 +1,10 @@
 import { registerYTValueFilter, registerYTValueProcessor, YTValueProcessorType } from '@ext/custom/youtube/api/processor'
 import { YTEndpoint, YTRenderer, YTResponse, YTValueData } from '@ext/custom/youtube/api/schema'
-import { dispatchYTSignalAction } from '@ext/custom/youtube/module/core/command'
 import { registerYTInnertubeRequestProcessor } from '@ext/custom/youtube/module/core/network'
-import { YTPlayerServerAdDelayCallback } from '@ext/custom/youtube/module/player/network'
+import { getAllYTPInstance, YTPInstanceType } from '@ext/custom/youtube/module/player/bootstrap'
 import PlayerParams from '@ext/custom/youtube/proto/player-params'
 import { defineProperty } from '@ext/global/object'
+import { waitMs, waitUntil } from '@ext/lib/async'
 import { bufferFromString } from '@ext/lib/buffer'
 import { Feature } from '@ext/lib/feature'
 import InterceptDOM from '@ext/lib/intercept/dom'
@@ -21,13 +21,12 @@ const enum ModifierMode {
   PLAYER_SCREEN,
   PLAYER_INLINE_V1,
   PLAYER_INLINE_V2,
-  __COUNT__
+  IDLE
 }
 
 const inlinePlayerSignatureCache = new Map<string, [sign: Uint8Array<ArrayBuffer> | null, expire: number]>()
 
-let isFetchApiAds = false
-let modifierMode: ModifierMode = ModifierMode.__COUNT__ - 1
+let modifierMode: ModifierMode = ModifierMode.IDLE
 let unmuteVideoId: string | undefined
 
 const processWatchEndpoint = (data: YTValueData<YTEndpoint.Mapped<'watchEndpoint'>>): void => {
@@ -44,22 +43,29 @@ const processWatchEndpoint = (data: YTValueData<YTEndpoint.Mapped<'watchEndpoint
 }
 
 const processPlayerResponse = (data: YTValueData<YTResponse.Mapped<'player'>>): void => {
-  const { playabilityStatus, playerConfig, videoDetails } = data
+  const { adSlots, playabilityStatus, playerConfig, videoDetails } = data
+
+  const videoId = videoDetails?.videoId
+  if (videoId == null || playabilityStatus == null) return
 
   const audioConfig = playerConfig?.audioConfig
-  if (audioConfig?.muteOnStart && unmuteVideoId === videoDetails?.videoId) delete audioConfig.muteOnStart
+  if (audioConfig && unmuteVideoId === videoId) delete audioConfig.muteOnStart
 
-  if (modifierMode <= 0 || playabilityStatus?.status !== 'UNPLAYABLE') return
+  const isPlayable = playabilityStatus.status !== 'UNPLAYABLE' && !adSlots?.length
+  if (isPlayable || modifierMode <= 0) return
 
   logger.debug('switching modifier mode:', --modifierMode)
 
   playabilityStatus.status = 'LIVE_STREAM_OFFLINE'
-  delete playabilityStatus.errorScreen
+  waitMs(500).then(() => waitUntil(() => {
+    const player = getAllYTPInstance(YTPInstanceType.VIDEO_PLAYER).find(({ videoData }) => videoData?.videoId === videoId)
+    if (player == null) return false
 
-  setTimeout(() => {
-    dispatchYTSignalAction(YTEndpoint.enums.SignalActionType.RELOAD_PLAYER)
-    dispatchYTSignalAction(YTEndpoint.enums.SignalActionType.SOFT_RELOAD_PAGE)
-  }, 1e3)
+    logger.debug('reloading player', player)
+
+    player.publish?.('signatureexpired')
+    return true
+  }))
 }
 
 const updateNextResponse = (data: YTValueData<YTResponse.Mapped<'next'>>): void => {
@@ -76,13 +82,6 @@ export default class YTMiscsAdsModule extends Feature {
   }
 
   protected activate(): boolean {
-    YTPlayerServerAdDelayCallback.registerCallback(() => {
-      if (isFetchApiAds) return
-
-      isFetchApiAds = true
-      throw new Response(null, { status: 403 })
-    })
-
     registerYTValueFilter(YTEndpoint.mapped.adsControlFlowOpportunityReceivedCommand)
     registerYTValueFilter(YTEndpoint.mapped.reelWatchEndpoint, filterReel)
     registerYTValueFilter(YTRenderer.mapped.adPlacementRenderer)

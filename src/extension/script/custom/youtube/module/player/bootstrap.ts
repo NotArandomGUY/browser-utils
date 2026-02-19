@@ -93,15 +93,22 @@ export interface YTPDisposableInstance {
   dispose?(): void
 }
 
+export interface YTPEventTargetInstance extends YTPDisposableInstance {
+  subscribe?<T, A extends unknown[]>(event: string, callback: (this: T, ...args: A) => void, instance?: T): number
+  unsubscribe?<T, A extends unknown[]>(event: string, callback: (this: T, ...args: A) => void, instance?: T): boolean
+  publish?<A extends unknown[]>(event: string, ...args: A): void
+}
+
 export interface YTPVideoDataInstance extends YTPDisposableInstance {
-  cotn: string | undefined
+  videoId?: string
+  cotn?: string
 
   isAd?(): boolean
   isDaiEnabled?(): boolean
   isEmbedsShortsMode?(): boolean
   isLoaded?(): boolean
   isOtf?(): boolean
-  setData?(data: object | undefined): void
+  setData?(data?: object): void
 }
 
 export interface YTPAppInstance extends YTPDisposableInstance {
@@ -114,14 +121,11 @@ export interface YTPAppInstance extends YTPDisposableInstance {
   loadVideoByPlayerVars?(...args: unknown[]): void
 }
 
-export interface YTPVideoPlayerInstance extends YTPDisposableInstance {
+export interface YTPVideoPlayerInstance extends YTPEventTargetInstance {
   loop: boolean
   playbackRate: number
   playerType: number
   videoData?: YTPVideoDataInstance
-
-  subscribe?<T, A extends unknown[]>(event: string, callback: (this: T, ...args: A) => void, instance: T): number
-  unsubscribe?<T, A extends unknown[]>(event: string, callback: (this: T, ...args: A) => void, instance: T): boolean
 
   getBandWidth?(): number
   getBufferHealth?(): number
