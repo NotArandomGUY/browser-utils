@@ -1,5 +1,5 @@
 import { registerYTValueProcessor } from '@ext/custom/youtube/api/processor'
-import { YTRenderer, YTResponse, YTValueData } from '@ext/custom/youtube/api/schema'
+import { YTEndpoint, YTRenderer, YTResponse, YTValueData } from '@ext/custom/youtube/api/schema'
 import { getYTConfigBool, registerYTConfigMenuItemGroup, YTConfigMenuItemType } from '@ext/custom/youtube/module/core/config'
 import { getYTPInstance, YTPInstanceType } from '@ext/custom/youtube/module/player/bootstrap'
 import { abs, max, min, round } from '@ext/global/math'
@@ -45,7 +45,7 @@ const liveHeadUpdate = (): void => {
   lastLiveHeadUpdateTime = now
 
   const player = getYTPInstance(YTPInstanceType.APP)?.playerRef?.deref()
-  if (player == null || !player.isPlaying?.()) return
+  if (!player?.isPlaying?.()) return
 
   healthDev *= HEALTH_DEV_DECAY_MUL
 
@@ -166,7 +166,8 @@ export default class YTPlayerLiveModule extends Feature {
           icon: YTRenderer.enums.IconType.CLOCK,
           text: 'Low Latency',
           description: 'Actively adjust playback rate to achieve lowest possible latency based on buffer health',
-          mask: YTLiveBehaviourMask.LOW_LATENCY
+          mask: YTLiveBehaviourMask.LOW_LATENCY,
+          signals: [YTEndpoint.enums.SignalActionType.RELOAD_PLAYER]
         },
         {
           type: YTConfigMenuItemType.TOGGLE,
@@ -174,7 +175,8 @@ export default class YTPlayerLiveModule extends Feature {
           icon: YTRenderer.enums.IconType.FAST_REWIND,
           text: 'Force DVR',
           description: 'Enable seeking for livestream even if it was disabled by the creator (might affect latency)',
-          mask: YTLiveBehaviourMask.FORCE_DVR
+          mask: YTLiveBehaviourMask.FORCE_DVR,
+          signals: [YTEndpoint.enums.SignalActionType.RELOAD_PLAYER]
         }
       ]),
       registerYTValueProcessor(YTResponse.mapped.player, updatePlayerResponse)
