@@ -26,6 +26,8 @@ const enum ModifierMode {
   IDLE
 }
 
+const MinAdSlotCheckMode = ModifierMode.PLAYER_SCREEN
+
 const inlinePlayerSignatureCache = new Map<string, [sign: Uint8Array<ArrayBuffer> | null, expire: number]>()
 
 let modifierMode: ModifierMode = max(ModifierMode.DISABLED, min(ModifierMode.IDLE, Number(sessionStorage.getItem(MODIFIER_MODE_KEY)) || ModifierMode.IDLE))
@@ -53,7 +55,7 @@ const processPlayerResponse = (data: YTValueData<YTResponse.Mapped<'player'>>): 
   const audioConfig = playerConfig?.audioConfig
   if (audioConfig && unmuteVideoId === videoId) delete audioConfig.muteOnStart
 
-  const isPlayable = playabilityStatus.status !== 'UNPLAYABLE' && !adSlots?.length
+  const isPlayable = playabilityStatus.status !== 'UNPLAYABLE' && (modifierMode < MinAdSlotCheckMode || !adSlots?.length)
   if (isPlayable || modifierMode <= 0) return
 
   sessionStorage.setItem(MODIFIER_MODE_KEY, String(--modifierMode))
@@ -115,7 +117,7 @@ export default class YTMiscsAdsModule extends Feature {
           if (entry == null) break
 
           // NOTE: salt/key id/magic[5 bytes] + sign(video id + params? (e.g. inline=1))[16 bytes]
-          params.sign = entry?.[0] ?? null
+          params.sign = entry[0] ?? null
         }
         // falls through
         case ModifierMode.PLAYER_INLINE_V1:
