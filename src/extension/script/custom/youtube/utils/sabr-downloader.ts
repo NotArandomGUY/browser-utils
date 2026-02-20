@@ -3,14 +3,17 @@ import BufferedRange from '@ext/custom/youtube/proto/gvs/common/buffered-range'
 import ClientAbrState from '@ext/custom/youtube/proto/gvs/common/client-abr-state'
 import ClientCapabilities from '@ext/custom/youtube/proto/gvs/common/client-capabilities'
 import ClientInfo from '@ext/custom/youtube/proto/gvs/common/client-info'
-import { UMPSliceType } from '@ext/custom/youtube/proto/gvs/common/enum'
+import { SabrContextWritePolicy, UMPSliceType } from '@ext/custom/youtube/proto/gvs/common/enum'
 import FormatId from '@ext/custom/youtube/proto/gvs/common/format-id'
 import PlaybackAuthorization, { AuthorizedFormat } from '@ext/custom/youtube/proto/gvs/common/playback-authorization'
 import PlaybackCookie from '@ext/custom/youtube/proto/gvs/common/playback-cookie'
+import SabrContext from '@ext/custom/youtube/proto/gvs/common/sabr-context'
+import SabrContextValue from '@ext/custom/youtube/proto/gvs/common/sabr-context-value'
 import StreamerContext from '@ext/custom/youtube/proto/gvs/common/streamer-context'
 import { VideoPlaybackRequest } from '@ext/custom/youtube/proto/gvs/request'
 import UMPMediaHeader from '@ext/custom/youtube/proto/gvs/ump/media-header'
 import UMPNextRequestPolicy from '@ext/custom/youtube/proto/gvs/ump/next-request-policy'
+import UMPSabrContextUpdate from '@ext/custom/youtube/proto/gvs/ump/sabr-context-update'
 import UMPStreamProtectionStatus from '@ext/custom/youtube/proto/gvs/ump/stream-protection-status'
 import { UMPContextManager } from '@ext/custom/youtube/utils/ump'
 import { floor, max, min } from '@ext/global/math'
@@ -222,11 +225,6 @@ export default class SabrDownloader {
     ustreamerConfig,
     formats
   }: SabrOptions) {
-    this.mutex_ = new Mutex()
-    this.audioFormats_ = []
-    this.videoFormats_ = []
-    this.selectedFormats_ = []
-    this.headerMap_ = new Map()
     this.clientInfo_ = new ClientInfo({
       hl: locale,
       clientName,
@@ -236,7 +234,7 @@ export default class SabrDownloader {
     this.playbackRate_ = playbackRate ?? 1
     this.baseUrl_ = baseUrl
 
-    const { audioFormats_, videoFormats_, headerMap_ } = this
+    const { audioFormats_, videoFormats_, headerMap_, contextMap_ } = this
 
     let duration = 0
     for (const format of formats) {
@@ -286,6 +284,13 @@ export default class SabrDownloader {
       },
       [UMPSliceType.SABR_REDIRECT]: (data) => {
         this.baseUrl_ = bufferToString(data, 'utf8')
+      },
+      [UMPSliceType.SABR_CONTEXT_UPDATE]: (data) => {
+        const { type, value, sendByDefault, writePolicy } = new UMPSabrContextUpdate().deserialize(data)
+
+        if (type == null || writePolicy === SabrContextWritePolicy.SABR_CONTEXT_WRITE_POLICY_KEEP_EXISTING && contextMap_.has(type)) return
+
+        contextMap_.set(type, sendByDefault ? value : null)
       },
       [UMPSliceType.STREAM_PROTECTION_STATUS]: (data) => {
         const message = new UMPStreamProtectionStatus().deserialize(data)
@@ -370,12 +375,13 @@ export default class SabrDownloader {
 
   /// Private ///
 
-  private readonly mutex_: Mutex
+  private readonly mutex_ = new Mutex()
   private readonly manager_: UMPContextManager
-  private readonly audioFormats_: AudioFormatBuffer[]
-  private readonly videoFormats_: VideoFormatBuffer[]
-  private readonly selectedFormats_: FormatBuffer[]
-  private readonly headerMap_: Map<number, InstanceType<typeof UMPMediaHeader>>
+  private readonly audioFormats_: AudioFormatBuffer[] = []
+  private readonly videoFormats_: VideoFormatBuffer[] = []
+  private readonly selectedFormats_: FormatBuffer[] = []
+  private readonly headerMap_ = new Map<number, InstanceType<typeof UMPMediaHeader>>()
+  private readonly contextMap_ = new Map<number, InstanceType<typeof SabrContextValue> | null>()
   private readonly clientInfo_: InstanceType<typeof ClientInfo>
   private readonly ustreamerConfig_: Uint8Array<ArrayBuffer>
   private readonly durationMs_: number
@@ -412,10 +418,11 @@ export default class SabrDownloader {
   }
 
   private async fetchSegments_(): Promise<void> {
-    const { manager_, audioFormats_, videoFormats_, selectedFormats_, clientInfo_, playbackCookie_, ustreamerConfig_, baseUrl_, poToken_, playbackRate_ } = this
+    const { manager_, audioFormats_, videoFormats_, selectedFormats_, contextMap_, clientInfo_, playbackCookie_, ustreamerConfig_, baseUrl_, poToken_, playbackRate_ } = this
 
     const elapsedSinceLoad = BigInt(Date.now() - DOWNLOADER_LOAD_TIMESTAMP)
     const resolution = selectedFormats_.find(format => format instanceof VideoFormatBuffer)?.quality ?? YTCommon.enums.MediaFormatVideoQuality.highres
+    const contexts = Array.from(contextMap_.entries())
 
     const url = new URL(baseUrl_)
     const { searchParams } = url
@@ -464,7 +471,9 @@ export default class SabrDownloader {
         streamerContext: new StreamerContext({
           clientInfo: clientInfo_,
           playbackCookie: playbackCookie_,
-          poToken: poToken_
+          poToken: poToken_,
+          sabrContexts: contexts.map(([type, value]) => value && new SabrContext({ type, value: value.serialize() })).filter(ctx => ctx != null),
+          unsentSabrContexts: contexts.map(([type, value]) => value && type).filter(type => type != null)
         }),
         videoPlaybackUstreamerConfig: ustreamerConfig_
       }).serialize()
