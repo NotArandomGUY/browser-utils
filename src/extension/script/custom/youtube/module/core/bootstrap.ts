@@ -11,7 +11,7 @@ import Logger from '@ext/lib/logger'
 const logger = new Logger('YTCORE-BOOTSTRAP')
 
 type YTInitDataResponse = {
-  page: 'browse' | 'channel'
+  page: 'browse' | 'channel' | 'playlist'
   response: YTValueData<YTResponse.Mapped<'browse'>>
 } | {
   page: 'search'
@@ -260,6 +260,7 @@ const processInitialData = async (initData: YTInitData): Promise<void> => {
   switch (initData.page) {
     case 'browse':
     case 'channel':
+    case 'playlist':
       await processYTResponse('browse', initData.response)
       break
     case 'search':
