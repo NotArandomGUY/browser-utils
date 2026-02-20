@@ -80,7 +80,7 @@ const getLengthText = (seconds?: string | number): string => {
 }
 
 const buildDownloadQualityFormat = <const T extends `${YTCommon.enums.OfflineFormatType}`>(format: T, name: string) => ({
-  availabilityType: 'OFFLINEABILITY_AVAILABILITY_TYPE_PREMIUM_UNLOCKED',
+  availabilityType: YTRenderer.enums.OfflineabilityAvailabilityType.OFFLINEABILITY_AVAILABILITY_TYPE_PREMIUM_UNLOCKED,
   format,
   name,
   savedSettingShouldExpire: false

@@ -45,6 +45,7 @@ export const next = ytv_rsp(() => ({
   mdxExpandedVideoList: ytv_sch({
     videoIds: ytv_arr(ytv_str())
   }),
+  microformat: ytv_ren(),
   pageVisualEffects: ytv_arr(ytv_ren()),
   playerOverlays: ytv_ren(),
   queueContextParams: ytv_str(),
@@ -141,7 +142,7 @@ export const reelReelItemWatch = ytv_rsp(() => ({
 }))
 export const reelReelWatchSequence = ytv_rsp(() => ({
   continuationEndpoint: ytv_enp(),
-  entries: ytv_arr(ytv_ren())
+  entries: ytv_arr(ytv_ren({}))
 }))
 export const search = ytv_rsp(() => ({
   contents: ytv_ren(),

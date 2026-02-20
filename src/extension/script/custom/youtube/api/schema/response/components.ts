@@ -36,6 +36,9 @@ export const responseContext = ytv_ren({
     webPrefetchData: ytv_sch({
       navigationEndpoints: ytv_arr(ytv_enp())
     }),
+    webResponseContextPreloadData: ytv_sch({
+      preloadMessageNames: ytv_arr(ytv_str())
+    }),
     ytConfigData: ytv_sch({
       rootVisualElementType: ytv_num(),
       sessionIndex: ytv_num(),

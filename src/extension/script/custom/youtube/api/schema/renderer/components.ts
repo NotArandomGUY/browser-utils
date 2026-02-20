@@ -20,19 +20,6 @@ export const image = ytv_ren({
   processor: ytv_obj(ytv_str(), ytv_unk()),
   sources: ytv_arr(imageSource)
 })
-export const loggingDirectives = ytv_ren({
-  attentionLogging: ytv_str(['ATTENTION_LOGGING_BASIC', 'ATTENTION_LOGGING_SCROLL']),
-  clientVeSpec: ytv_sch({
-    uiType: ytv_num(),
-    veCounter: ytv_num()
-  }),
-  visibility: ytv_sch({
-    types: ytv_str()
-  }),
-  gestures: ytv_sch({
-    types: ytv_str()
-  })
-})
 export const thumbnail = ytv_ren({
   accessibility: common.components.accessibility,
   darkColorPalette: ytv_obj(ytv_str(), ytv_num()),
@@ -133,6 +120,20 @@ export const layoutExitedForReasonTrigger = ytv_ren({
   layoutExitReason: ytv_str(['LAYOUT_EXIT_REASON_ERROR', 'LAYOUT_EXIT_REASON_NORMAL']),
   triggeringLayoutId: ytv_str()
 })
+export const loggingDirectives = ytv_sch({
+  attentionLogging: ytv_str(['ATTENTION_LOGGING_BASIC', 'ATTENTION_LOGGING_SCROLL']),
+  clientVeSpec: ytv_sch({
+    uiType: ytv_num(),
+    veCounter: ytv_num()
+  }),
+  gestures: ytv_sch({
+    types: ytv_str()
+  }),
+  trackingParams: ytv_str(),
+  visibility: ytv_sch({
+    types: ytv_str()
+  })
+})
 export const mediaFormatRange = ytv_sch({
   start: ytv_str(),
   end: ytv_str()
@@ -145,7 +146,8 @@ export const mediaFormat = ytv_sch({
   audioTrack: ytv_sch({
     audioIsDefault: ytv_bol(),
     displayName: ytv_str(),
-    id: ytv_str()
+    id: ytv_str(),
+    isAutoDubbed: ytv_bol()
   }),
   averageBitrate: ytv_num(),
   bitrate: ytv_num(),
@@ -161,6 +163,7 @@ export const mediaFormat = ytv_sch({
   indexRange: mediaFormatRange,
   initRange: mediaFormatRange,
   isDrc: ytv_bol(),
+  isVb: ytv_bol(),
   itag: ytv_num(),
   lastModified: ytv_str(),
   loudnessDb: ytv_num(),
@@ -172,6 +175,7 @@ export const mediaFormat = ytv_sch({
   qualityOrdinal: ytv_str(common.enums.MediaFormatQualityOrdinal),
   signatureCipher: ytv_str(),
   targetDurationSec: ytv_num(),
+  trackAbsoluteLoudnessLkfs: ytv_num(),
   url: ytv_str(),
   width: ytv_num(),
   xtags: ytv_str()
@@ -222,13 +226,25 @@ export const playerConfig = ytv_ren({
     }),
     enableDai: ytv_bol(),
     enablePreroll: ytv_bol(),
-    enableServerStitchedDai: ytv_bol()
+    enableServerStitchedDai: ytv_bol(),
+    sendSsdaiMissingAdBreakReasons: ytv_bol()
   }),
   embeddedPlayerConfig: ytv_sch({
     embeddedPlayerMode: ytv_str(['EMBEDDED_PLAYER_MODE_DEFAULT', 'EMBEDDED_PLAYER_MODE_PFL', 'EMBEDDED_PLAYER_MODE_PFP', 'EMBEDDED_PLAYER_MODE_UNKNOWN']),
     permissions: ytv_sch({
       allowImaMonetization: ytv_bol()
     })
+  }),
+  granularVariableSpeedConfig: ytv_sch({
+    defaultPlaybackRateOptions: ytv_arr(ytv_sch({
+      isPremiumUpsell: ytv_bol(),
+      label: ytv_str(),
+      priority: ytv_num(),
+      value: ytv_num()
+    })),
+    maximumPlaybackRate: ytv_num(),
+    minimumPlaybackRate: ytv_num(),
+    stepSize: ytv_num()
   }),
   inlinePlaybackConfig: ytv_sch({
     showAudioControls: ytv_bol(),
@@ -259,6 +275,7 @@ export const playerConfig = ytv_ren({
     mediaUstreamerRequestConfig: ytv_sch({
       videoPlaybackUstreamerConfig: ytv_str()
     }),
+    platypusUseEnvoyNetFetch: ytv_bol(),
     serverPlaybackStartConfig: ytv_sch({
       enable: ytv_bol(),
       playbackStartPolicy: ytv_sch({
@@ -294,6 +311,9 @@ export const playerConfig = ytv_ren({
   }),
   vrConfig: ytv_sch({
     partialSpherical: ytv_str()
+  }),
+  vssClientConfig: ytv_sch({
+    vssUsePostRequest: ytv_bol()
   }),
   webPlayerConfig: ytv_sch({
     useCobaltTvosDash: ytv_bol(),
@@ -391,14 +411,14 @@ export const subscribeButtonViewModelContent = ytv_ren({
   })
 })
 export const style = ytv_ren({
-  styleType: ytv_str(['STYLE_DEFAULT', 'STYLE_DEFAULT_ACTIVE', 'STYLE_GREY_TEXT', 'STYLE_HOME_FILTER', 'STYLE_TEXT'])
+  styleType: ytv_str(['STYLE_BLUE_TEXT', 'STYLE_DEFAULT', 'STYLE_DEFAULT_ACTIVE', 'STYLE_GREY_TEXT', 'STYLE_HOME_FILTER', 'STYLE_TEXT'])
 })
 export const text = ytv_ren({
-  runs: ytv_arr(ytv_sch({
+  runs: ytv_arr(ytv_ren({
     bold: ytv_bol(),
     emoji,
     fontFace: ytv_str(['FONT_FACE_ROBOTO_MEDIUM', 'FONT_FACE_ROBOTO_REGULAR']),
-    loggingDirectives,
+    italics: ytv_bol(),
     navigationEndpoint: ytv_enp(),
     text: ytv_str(),
     textColor: ytv_num()
@@ -482,5 +502,10 @@ export const videoAdPings = ytv_ren({
 export const SchemaBase = {
   clickTrackingParams: ytv_str(),
   command: ytv_enp(),
+  loggingDirectives,
   trackingParams: ytv_str()
+} as const satisfies YTObjectSchema
+export const ViewModelBase = {
+  ...SchemaBase,
+  rendererContext
 } as const satisfies YTObjectSchema

@@ -29,6 +29,9 @@ export const addLiveChatTickerItemAction = ytv_enp(() => ({
   durationSec: ytv_str(),
   item: ytv_ren()
 }))
+export const addToToastAction = ytv_enp(() => ({
+  item: ytv_ren()
+}))
 export const appendContinuationItemsAction = ytv_enp(() => ({
   continuationItems: ytv_arr(ytv_ren()),
   targetId: ytv_str()
@@ -53,7 +56,8 @@ export const openPopupAction = ytv_enp(() => ({
   durationHintMs: ytv_num(),
   popup: ytv_ren(),
   popupType: ytv_str(['DIALOG', 'DROPDOWN', 'FULLSCREEN_OVERLAY', 'HINT', 'LOCKED_MODAL', 'MODAL', 'NOTIFICATION', 'RESPONSIVE_DROPDOWN', 'SURVEY', 'TOP_ALIGNED_DIALOG', 'TOAST']),
-  replacePopup: ytv_bol()
+  replacePopup: ytv_bol(),
+  uniqueId: ytv_str()
 }))
 export const removeChatItemAction = ytv_enp(() => ({
   targetItemId: ytv_str()
@@ -73,6 +77,10 @@ export const replayChatItemAction = ytv_enp(() => ({
 }))
 export const sendFeedbackAction = ytv_enp(() => ({
   bucket: ytv_str()
+}))
+export const setActivePanelItemAction = ytv_enp(() => ({
+  itemIndex: ytv_num(),
+  panelTargetId: ytv_str()
 }))
 export const setLiveChatCollapsedStateAction = ytv_enp(() => ({}))
 export const showEngagementPanelScrimAction = ytv_enp(() => ({
@@ -99,6 +107,11 @@ export const updateDescriptionAction = ytv_enp(() => ({
 }))
 export const updateLiveChatPollAction = ytv_enp(() => ({
   pollToUpdate: ytv_ren()
+}))
+export const updateNotificationsUnseenCountAction = ytv_enp(() => ({
+  handlerData: ytv_str(),
+  timeoutMs: ytv_num(),
+  unseenCount: ytv_num()
 }))
 export const updateTitleAction = ytv_enp(() => ({
   title: renderer.components.text
@@ -143,6 +156,9 @@ export const authRequiredCommand = ytv_enp(() => ({
     eventTrigger: ytv_str(['ACCOUNT_EVENT_TRIGGER_LIKE_DISLIKE', 'ACCOUNT_EVENT_TRIGGER_SAVE_VIDEO', 'ACCOUNT_EVENT_TRIGGER_SUBSCRIBE']),
     nextEndpoint: ytv_enp()
   })
+}))
+export const changeCreatorEndscreenVisibilityCommand = ytv_enp(() => ({
+  hide: ytv_bol()
 }))
 export const changeMarkersVisibilityCommand = ytv_enp(() => ({
   entityKeys: ytv_arr(ytv_str()),
@@ -285,9 +301,12 @@ export const scrollToEngagementPanelCommand = ytv_enp(() => ({
   panelIdentifier: renderer.components.engagementPanelIdentifier,
   targetId: ytv_str()
 }))
+export const showAudioTrackPickerActionCommand = ytv_enp(() => ({}))
+export const showCaptionLanguageSelectActionCommand = ytv_enp(() => ({}))
 export const showDialogCommand = ytv_enp(() => ({
   panelLoadingStrategy: ytv_sch({
-    inlineContent: ytv_ren()
+    inlineContent: ytv_ren(),
+    screenVe: ytv_num()
   })
 }))
 export const showHintCommand = ytv_enp(() => ({
@@ -305,11 +324,26 @@ export const showMiniplayerCommand = ytv_enp(() => ({
   showPremiumBranding: ytv_bol()
 }))
 export const showReloadUiCommand = ytv_enp(() => ({
+  content: ytv_ren(),
   targetId: ytv_str()
 }))
 export const showSheetCommand = ytv_enp(() => ({
+  contextualSheetPresentationConfig: ytv_sch({
+    expandToFullWidth: ytv_bol(),
+    hoverConfig: ytv_sch({
+      hideDelayMs: ytv_num(),
+      preventCloseWhileHovered: ytv_bol(),
+      showDelayMs: ytv_num()
+    }),
+    position: ytv_str(['SHEET_POSITION_BOTTOM_LEFT', 'SHEET_POSITION_RIGHT'])
+  }),
   panelLoadingStrategy: ytv_sch({
-    inlineContent: ytv_ren()
+    inlineContent: ytv_ren(),
+    requestTemplate: ytv_sch({
+      panelId: ytv_str(),
+      params: ytv_str()
+    }),
+    screenVe: ytv_num()
   })
 }))
 export const showSponsorshipsGiftOfferDialogCommand = ytv_enp(() => ({
@@ -487,6 +521,10 @@ export const reelWatchEndpoint = ytv_enp(() => ({
   sequenceParams: ytv_str(),
   sequenceProvider: ytv_str(['REEL_WATCH_SEQUENCE_PROVIDER_RPC']),
   thumbnail: renderer.components.thumbnail,
+  unserializedPrefetchData: ytv_sch({
+    playerResponse: ytv_unk(),
+    reelItemWatchResponse: ytv_unk()
+  }),
   updateKey: ytv_str(),
   ustreamerConfig: ytv_str(),
   videoId: ytv_str()

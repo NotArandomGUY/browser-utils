@@ -31,6 +31,19 @@ export function ytv_ren<const S extends YTObjectSchema>(s?: S | (() => S)): { ty
     }
   }
 }
+export function ytv_rvm<const S extends YTObjectSchema>(): { type: YTValueType.RENDERER }
+export function ytv_rvm<const S extends YTObjectSchema>(s: S): { type: YTValueType.RENDERER, schema: typeof renderer.components.ViewModelBase & S }
+export function ytv_rvm<const S extends YTObjectSchema>(s: () => S): { type: YTValueType.RENDERER, schema: typeof renderer.components.ViewModelBase & S }
+export function ytv_rvm<const S extends YTObjectSchema>(s?: S | (() => S)): { type: YTValueType.RENDERER, schema?: typeof renderer.components.ViewModelBase & S } {
+  return s == null ? YT_VALUE_RENDERER : {
+    type: YTValueType.RENDERER,
+    get schema() {
+      const schema = { ...renderer.components.ViewModelBase, ...(typeof s === 'function' ? s() : s) }
+      defineProperty(this, 'schema', { value: schema })
+      return schema
+    }
+  }
+}
 export function ytv_rsp<const S extends YTObjectSchema>(): { type: YTValueType.RESPONSE }
 export function ytv_rsp<const S extends YTObjectSchema>(s: S): { type: YTValueType.RESPONSE, schema: typeof response.components.SchemaBase & S }
 export function ytv_rsp<const S extends YTObjectSchema>(s: () => S): { type: YTValueType.RESPONSE, schema: typeof response.components.SchemaBase & S }
