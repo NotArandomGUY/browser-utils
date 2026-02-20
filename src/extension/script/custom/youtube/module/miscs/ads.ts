@@ -71,6 +71,8 @@ const updatePlayerResponse = (data: YTValueData<YTResponse.Mapped<'player'>>): v
   logger.debug('switching modifier mode:', modifierMode)
 
   playabilityStatus.status = 'LIVE_STREAM_OFFLINE'
+  videoDetails!.isLive = true
+  data.heartbeatParams = { intervalMilliseconds: 'Infinity', maxRetries: '1' }
   delete data.streamingData
 
   waitMs(500).then(() => waitUntil(() => {
