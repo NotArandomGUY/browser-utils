@@ -367,9 +367,7 @@ export default class SabrDownloader {
   }
 
   public seek(time: number, relative: boolean): void {
-    const { durationMs_, playbackTime_ } = this
-
-    this.playbackTime_ = max(0, min(durationMs_, relative ? (min(durationMs_, playbackTime_) + time) : time))
+    this.playbackTime_ = max(0, min(this.durationMs_, relative ? (this.getPlayerTimeMs_() + time) : time))
     this.playbackBase_ = -1
   }
 
