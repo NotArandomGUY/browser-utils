@@ -66,6 +66,8 @@ const updatePlayerResponse = (data: YTValueData<YTResponse.Mapped<'player'>>): v
   logger.debug('switching modifier mode:', modifierMode)
 
   playabilityStatus.status = 'LIVE_STREAM_OFFLINE'
+  delete data.streamingData
+
   waitMs(500).then(() => waitUntil(() => {
     const player = getAllYTPInstance(YTPInstanceType.VIDEO_PLAYER).find(({ videoData }) => videoData?.videoId === videoId)
     if (player == null) return false

@@ -49,7 +49,7 @@ export default class YTMiscsFixupModule extends Feature {
     registerYTValueFilter(YTRenderer.mapped.shoppingOverlayRenderer, filterProductsData, YTValueProcessorType.POST)
 
     InterceptDOM.setAppendChildCallback(ctx => {
-      const { self, args: [node] } = ctx
+      const node = ctx.args[0]
 
       if (node instanceof HTMLIFrameElement && getOwnPropertyDescriptor(node, 'contentDocument') == null) {
         // Make yt fallback to using src property instead
