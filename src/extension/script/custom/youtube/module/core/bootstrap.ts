@@ -373,7 +373,6 @@ export default class YTCoreBootstrapModule extends Feature {
               html5_offline_playback_position_sync: !!ytcfg.get('LOGGED_IN'),
               json_condensed_response: location.pathname !== '/tv',
               kevlar_remove_page_dom_on_switch: true,
-              web_streaming_watch: false, // NOTE: this might get killed at some point ;p
               web_watch_pip: true
             })
             break

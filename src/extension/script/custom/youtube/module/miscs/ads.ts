@@ -23,7 +23,8 @@ const enum ModifierMode {
   PLAYER_SCREEN,
   PLAYER_INLINE_V1,
   PLAYER_INLINE_V2,
-  IDLE
+  WARM_IDLE,
+  COLD_IDLE
 }
 
 const MinAdSlotCheckMode = ModifierMode.PLAYER_SCREEN
@@ -32,7 +33,7 @@ const inlinePlayerSignatureCache = new Map<string, [sign: Uint8Array<ArrayBuffer
 const ignoreResponseVideoIds = new Set<string>()
 const unmuteVideoIds = new Set<string>()
 
-let modifierMode: ModifierMode = max(ModifierMode.DISABLED, min(ModifierMode.IDLE, Number(sessionStorage.getItem(MODIFIER_MODE_KEY)) || ModifierMode.IDLE))
+let modifierMode: ModifierMode = ModifierMode.COLD_IDLE
 
 const processWatchEndpoint = (data: YTValueData<YTEndpoint.Mapped<'watchEndpoint'>>): void => {
   const { params, videoId } = data
@@ -63,7 +64,11 @@ const updatePlayerResponse = (data: YTValueData<YTResponse.Mapped<'player'>>): v
   const isPlayable = playabilityStatus.status !== 'UNPLAYABLE' && (modifierMode < MinAdSlotCheckMode || !adSlots?.length)
   if (ignoreResponseVideoIds.delete(videoId) || isPlayable || modifierMode <= 0) return
 
-  sessionStorage.setItem(MODIFIER_MODE_KEY, String(--modifierMode))
+  if (modifierMode === ModifierMode.COLD_IDLE) {
+    modifierMode = max(ModifierMode.DISABLED, min(ModifierMode.WARM_IDLE, Number(sessionStorage.getItem(MODIFIER_MODE_KEY)) || ModifierMode.WARM_IDLE))
+  } else {
+    sessionStorage.setItem(MODIFIER_MODE_KEY, String(--modifierMode))
+  }
   logger.debug('switching modifier mode:', modifierMode)
 
   playabilityStatus.status = 'LIVE_STREAM_OFFLINE'
