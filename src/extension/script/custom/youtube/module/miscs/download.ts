@@ -2,6 +2,7 @@ import { registerOverlayPage } from '@ext/common/preload/overlay'
 import { registerYTValueProcessor } from '@ext/custom/youtube/api/processor'
 import { YTCommon, YTEndpoint, YTRenderer, YTResponse, YTValueData, YTValueType } from '@ext/custom/youtube/api/schema'
 import { registerYTInnertubeRequestProcessor, YTInnertubeRequest, YTInnertubeRequestContext, YTInnertubeRequestEndpoint, YTInnertubeRequestPlaybackContext } from '@ext/custom/youtube/module/core/network'
+import { ytadIgnoreResponse } from '@ext/custom/youtube/module/miscs/ads'
 import YTDownloadPage from '@ext/custom/youtube/pages/download'
 import { decodeEntityKey, encodeEntityKey, EntityType } from '@ext/custom/youtube/proto/entity-key'
 import { UMPSliceType } from '@ext/custom/youtube/proto/gvs/common/enum'
@@ -158,6 +159,8 @@ const fetchInnertubeVideo = async (videoId: string, context?: YTInnertubeRequest
   Array.from(videoInfoCache.entries()).forEach(([key, { expire }]) => expire <= now && videoInfoCache.delete(key))
   let info = videoInfoCache.get(videoId)
   if (info != null) return info
+
+  ytadIgnoreResponse(videoId)
 
   const response = await fetchInnertube<'player', 'player', { params?: string }>('player', {
     attestationRequest: { omitBotguardData: true },

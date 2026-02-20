@@ -29,6 +29,7 @@ const enum ModifierMode {
 const MinAdSlotCheckMode = ModifierMode.PLAYER_SCREEN
 
 const inlinePlayerSignatureCache = new Map<string, [sign: Uint8Array<ArrayBuffer> | null, expire: number]>()
+const ignoreResponseVideoIds = new Set<string>()
 
 let modifierMode: ModifierMode = max(ModifierMode.DISABLED, min(ModifierMode.IDLE, Number(sessionStorage.getItem(MODIFIER_MODE_KEY)) || ModifierMode.IDLE))
 let unmuteVideoId: string | undefined
@@ -54,7 +55,7 @@ const updatePlayerResponse = (data: YTValueData<YTResponse.Mapped<'player'>>): v
   const { adSlots, playabilityStatus, playerConfig, videoDetails } = data
 
   const videoId = videoDetails?.videoId
-  if (videoId == null || playabilityStatus == null) return
+  if (videoId == null || playabilityStatus == null || ignoreResponseVideoIds.delete(videoId)) return
 
   const audioConfig = playerConfig?.audioConfig
   if (audioConfig && unmuteVideoId === videoId) delete audioConfig.muteOnStart
@@ -81,6 +82,10 @@ const updatePlayerResponse = (data: YTValueData<YTResponse.Mapped<'player'>>): v
 
 const filterReel = (data: YTValueData<YTEndpoint.Mapped<'reelWatchEndpoint'>>): boolean => {
   return data.adClientParams == null
+}
+
+export const ytadIgnoreResponse = (videoId: string): void => {
+  ignoreResponseVideoIds.add(videoId)
 }
 
 export default class YTMiscsAdsModule extends Feature {
