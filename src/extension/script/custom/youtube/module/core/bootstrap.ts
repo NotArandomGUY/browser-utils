@@ -504,7 +504,7 @@ export default class YTCoreBootstrapModule extends Feature {
       },
 
       // Override kevlar global
-      ...fromEntries(['default_kevlar_base', '_yttv'].map(key => [key, {
+      ...fromEntries(['default_kevlar', 'default_kevlar_base', '_yttv'].map(key => [key, {
         configurable: true,
         set(value) {
           defineProperty(window, key, {
