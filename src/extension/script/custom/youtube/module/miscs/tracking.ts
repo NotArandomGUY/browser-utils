@@ -2,10 +2,10 @@ import { registerYTValueProcessor } from '@ext/custom/youtube/api/processor'
 import { YTRenderer, YTResponse, ytv_enp, ytv_ren, YTValueData, YTValueType } from '@ext/custom/youtube/api/schema'
 import { isYTLoggedIn, YTPlayerWebPlayerContextConfig } from '@ext/custom/youtube/module/core/bootstrap'
 import { getYTConfigBool, getYTConfigInt, registerYTConfigMenuItemGroup, setYTConfigInt, YTConfigMenuItemType } from '@ext/custom/youtube/module/core/config'
-import { registerYTInnertubeRequestProcessor } from '@ext/custom/youtube/module/core/network'
+import { registerYTInnertubeRequestProcessor, YTInnertubeRequest, YTInnertubeRequestContext } from '@ext/custom/youtube/module/core/network'
 import { YTPlayerContextConfigCallback } from '@ext/custom/youtube/module/player/bootstrap'
 import { encodeTrackingParam } from '@ext/custom/youtube/utils/crypto'
-import { assign, defineProperty, getOwnPropertyDescriptor, keys, values } from '@ext/global/object'
+import { assign, defineProperty, entries, getOwnPropertyDescriptor, keys, values } from '@ext/global/object'
 import { Feature } from '@ext/lib/feature'
 import { preventDispatchEvent } from '@ext/lib/intercept/event'
 import InterceptImage from '@ext/lib/intercept/image'
@@ -72,6 +72,25 @@ const getCachedAccessToken = (): string | null => {
   } catch {
     return null
   }
+}
+
+// Rebuild watch page url with less info (can also be used to unlock formats in leanback /player request)
+const buildWatchUrl = ({ playlistId, playlistIndex, videoId }: YTInnertubeRequest<'player'>, context?: YTInnertubeRequestContext): string => {
+  const url = `/watch?${new URLSearchParams(entries({
+    v: videoId,
+    list: playlistId,
+    index: playlistIndex
+  }).filter(e => e[1]).map(([name, value]) => [name, String(value)])).toString()}`
+
+  const client = context?.client
+  if (client != null) {
+    client.originalUrl = `${location.origin}${url}`
+
+    const mainAppWebInfo = client.mainAppWebInfo
+    if (mainAppWebInfo != null) mainAppWebInfo.graftUrl = url
+  }
+
+  return url
 }
 
 const sanitizeShareUrl = (url: string | URL): string => {
@@ -239,8 +258,14 @@ export default class YTMiscsTrackingModule extends Feature {
       delete context?.clickTracking
       delete context?.clientScreenNonce
     })
+    registerYTInnertubeRequestProcessor('get_watch', ({ context, playerRequest }) => {
+      if (playerRequest != null) buildWatchUrl(playerRequest, context)
+    })
+    registerYTInnertubeRequestProcessor('player', request => {
+      const { context, params, playbackContext } = request
 
-    registerYTInnertubeRequestProcessor('player', ({ params, playbackContext, playlistId, playlistIndex, videoId }) => {
+      const currentUrl = buildWatchUrl(request, context)
+
       params.searchQuery = null
 
       const contentPlaybackContext = playbackContext?.contentPlaybackContext
@@ -255,15 +280,7 @@ export default class YTMiscsTrackingModule extends Feature {
       delete contentPlaybackContext.referer
 
       contentPlaybackContext.lactMilliseconds = '-1'
-
-      // Limited current url (can also be used to unlock formats in leanback /player request)
-      const searchParams = new URLSearchParams()
-
-      if (videoId != null) searchParams.set('v', videoId)
-      if (playlistId != null) searchParams.set('list', playlistId)
-      if (playlistIndex != null) searchParams.set('index', `${playlistIndex}`)
-
-      contentPlaybackContext.currentUrl = `/watch?${searchParams.toString()}`
+      contentPlaybackContext.currentUrl = currentUrl
     })
     registerYTInnertubeRequestProcessor('search', request => {
       const { context } = request

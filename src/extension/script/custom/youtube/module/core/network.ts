@@ -92,10 +92,10 @@ type YTInnertubeRequestMap = {
     browseId: string
     params: string // TODO: should be a protobuf message
   }>
-  'get_watch': {
-    playerRequest: object
-    watchNextRequest: object
-  }
+  'get_watch': Partial<{
+    playerRequest: YTInnertubeRequest<'player'>
+    watchNextRequest: YTInnertubeRequest<'next'>
+  }>
   'next': Partial<{
     continuation: string
   }>

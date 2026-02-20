@@ -63,7 +63,7 @@ export interface YTInnertubeContext {
     mainAppWebInfo: Partial<{
       graftUrl: string
       isWebNativeShareAvailable: boolean
-      webDisplayMode: 'WEB_DISPLAY_MODE_BROWSER'
+      webDisplayMode: 'WEB_DISPLAY_MODE_UNKNOWN' | 'WEB_DISPLAY_MODE_BROWSER' | 'WEB_DISPLAY_MODE_MINIMAL_UI' | 'WEB_DISPLAY_MODE_STANDALONE' | 'WEB_DISPLAY_MODE_FULLSCREEN'
     }>
     tvAppInfo: Partial<{
       appQuality: 'TV_APP_QUALITY_FULL_ANIMATION'
