@@ -550,47 +550,85 @@ export default class YTMiscsDownloadModule extends Feature {
           const { response } = await fetchInnertubeVideo(videoId, context)
           const { playabilityStatus, playerConfig, streamingData } = response
 
+          forceDownloadVideoIds.delete(videoId)
+
           const ustreamerConfig = playerConfig?.mediaCommonConfig?.mediaUstreamerRequestConfig?.videoPlaybackUstreamerConfig
-          if (ustreamerConfig != null && streamingData != null) {
-            const { adaptiveFormats, serverAbrStreamingUrl } = streamingData
-
-            if (Array.isArray(adaptiveFormats) && serverAbrStreamingUrl != null) {
-              const formats = adaptiveFormats
-                .filter(({ audioQuality, itag, quality }) => itag != null && (audioQuality != null || quality != null))
-                .map<SabrFormatInfo>(({
-                  approxDurationMs,
-                  audioQuality,
-                  contentLength,
-                  itag,
-                  lastModified,
-                  quality,
-                  xtags
-                }) => ({
-                  itag: itag!,
-                  contentLength: String(contentLength ?? 0),
-                  lastModified: String(lastModified ?? 0),
-                  duration: String(approxDurationMs ?? 0),
-                  xtags: xtags ?? '',
-                  audioQuality: YTCommon.enums.MediaFormatAudioQuality[audioQuality!],
-                  videoQuality: YTCommon.enums.MediaFormatVideoQuality[quality!]
-                }))
-
-              const formatUrl = new URL(serverAbrStreamingUrl)
-              const { searchParams } = formatUrl
-
-              searchParams.set(SNAPSHOT_PARAM_NAME, JSON.stringify({
-                videoId,
-                params: Array.from(searchParams.keys()),
-                ustreamerConfig,
-                formats
-              } satisfies PlaybackDataSnapshot))
-
-              for (const format of adaptiveFormats) {
-                if (format.itag == null) continue
-
-                searchParams.set('itag', String(format.itag))
-                format.url ??= formatUrl.toString()
+          if (ustreamerConfig == null || streamingData == null) {
+            mutations.push(
+              {
+                entityKey,
+                type: 'ENTITY_MUTATION_TYPE_REPLACE',
+                payload: {
+                  playbackData: {
+                    key: entityKey,
+                    offlineVideoPolicy: policyEntityKey,
+                    playerResponsePlayabilityCanPlayStatus: playabilityStatus?.status,
+                    playerResponseTimestamp: `${now}`,
+                    videoDownloadContextEntity: contextEntityKey
+                  }
+                },
+                options: {
+                  persistenceOption: 'ENTITY_PERSISTENCE_OPTION_PERSIST'
+                }
+              },
+              {
+                entityKey: policyEntityKey,
+                type: 'ENTITY_MUTATION_TYPE_REPLACE',
+                payload: {
+                  offlineVideoPolicy: {
+                    key: policyEntityKey,
+                    action: 'OFFLINE_VIDEO_POLICY_ACTION_DOWNLOAD_FAILED',
+                    offlineStateBytes: bufferToString(offlineState.serialize(), 'base64'),
+                    lastUpdatedTimestampSeconds: `${now}`,
+                    shortMessageForDisabledAction: 'Unable to download video'
+                  }
+                },
+                options: {
+                  persistenceOption: 'ENTITY_PERSISTENCE_OPTION_PERSIST'
+                }
               }
+            )
+            return
+          }
+
+          const { adaptiveFormats, serverAbrStreamingUrl } = streamingData
+
+          if (Array.isArray(adaptiveFormats) && serverAbrStreamingUrl != null) {
+            const formats = adaptiveFormats
+              .filter(({ audioQuality, itag, quality }) => itag != null && (audioQuality != null || quality != null))
+              .map<SabrFormatInfo>(({
+                approxDurationMs,
+                audioQuality,
+                contentLength,
+                itag,
+                lastModified,
+                quality,
+                xtags
+              }) => ({
+                itag: itag!,
+                contentLength: String(contentLength ?? 0),
+                lastModified: String(lastModified ?? 0),
+                duration: String(approxDurationMs ?? 0),
+                xtags: xtags ?? '',
+                audioQuality: YTCommon.enums.MediaFormatAudioQuality[audioQuality!],
+                videoQuality: YTCommon.enums.MediaFormatVideoQuality[quality!]
+              }))
+
+            const formatUrl = new URL(serverAbrStreamingUrl)
+            const { searchParams } = formatUrl
+
+            searchParams.set(SNAPSHOT_PARAM_NAME, JSON.stringify({
+              videoId,
+              params: Array.from(searchParams.keys()),
+              ustreamerConfig,
+              formats
+            } satisfies PlaybackDataSnapshot))
+
+            for (const format of adaptiveFormats) {
+              if (format.itag == null) continue
+
+              searchParams.set('itag', String(format.itag))
+              format.url ??= formatUrl.toString()
             }
           }
 
@@ -642,7 +680,6 @@ export default class YTMiscsDownloadModule extends Feature {
               }
             }
           )
-          forceDownloadVideoIds.delete(videoId)
         }))
 
         return {
