@@ -30,10 +30,12 @@ const enum ExportFormat {
   MERGED
 }
 
-type VideoEntity = Partial<YTLocalEntity<EntityType.mainVideoEntity>['data']> & {
-  playlistId?: string
-  playlistTitle?: string
+type VideoEntity = Partial<Omit<YTLocalEntity<EntityType.mainVideoEntity>['data'], 'videoId'>> & {
+  videoId: string
+  playlistId: string
+  playlistTitle: string
   timestamp: number
+  addedOn: string
   auto: boolean
 }
 
@@ -43,45 +45,42 @@ function copyEventTarget(event: Event): void {
   if (target instanceof HTMLElement) navigator.clipboard?.writeText(target.innerText)
 }
 
-const validSource = (source: string | null | undefined, index: number): boolean => {
+const isValidSource = (source: string | null | undefined, index: number): boolean => {
   return index > 0 && !!source?.trim()
 }
 
+const isFilteredVideo = (filter: string, { owner, title, videoId, playlistId, playlistTitle, addedOn }: VideoEntity): boolean => {
+  const search = [title, videoId, owner, playlistTitle, addedOn, playlistId]
+  return !filter || search.some((value, i) => `${COLUMN_TITLES[i] ?? ''}:"${value}"`.toLowerCase().includes(filter))
+}
+
 const VideoEntityTableItem = (
-  filter: string,
   onWatch: (videoId: string, playlistId: string) => void,
   onExport: (id: string, format: ExportFormat) => void,
   onDelete: (id: string) => void,
-  { owner, title, videoId, playlistId, playlistTitle, timestamp, auto }: VideoEntity
+  { owner, title, videoId, playlistId, playlistTitle, addedOn }: VideoEntity
 ): ChildDom[] => {
-  const time = new Date(timestamp).toLocaleString()
-  playlistId ??= 'PPSV'
-  playlistTitle ??= auto ? 'Smart Downloads' : 'Your Downloads'
-
-  const search = [title, videoId, owner, playlistTitle, time, playlistId]
-  if (videoId == null || (filter && !search.some((value, i) => `${COLUMN_TITLES[i] ?? ''}:"${value}"`.toLowerCase().includes(filter)))) return []
-
   return [
     tr(
       td(COLUMN_PROPS_INFO_TITLE, title ?? '-'),
       td(
         COLUMN_PROPS_ACTION_BODY,
-        button({ onclick: onExport.bind(null, videoId, ExportFormat.BUNDLE) }, 'Bundle'),
-        button({ onclick: onExport.bind(null, videoId, ExportFormat.AUDIO_STREAM) }, 'Audio'),
-        button({ onclick: onExport.bind(null, videoId, ExportFormat.VIDEO_STREAM) }, 'Video'),
-        button({ onclick: onExport.bind(null, videoId, ExportFormat.MERGED) }, 'MP4')
+        button({ onclick: () => { onExport(videoId, ExportFormat.BUNDLE) } }, 'Bundle'),
+        button({ onclick: () => { onExport(videoId, ExportFormat.AUDIO_STREAM) } }, 'Audio'),
+        button({ onclick: () => { onExport(videoId, ExportFormat.VIDEO_STREAM) } }, 'Video'),
+        button({ onclick: () => { onExport(videoId, ExportFormat.MERGED) } }, 'MP4')
       ),
       td(
         COLUMN_PROPS_ACTION_BODY,
-        button({ onclick: onWatch.bind(null, videoId, playlistId) }, 'Watch'),
-        button({ onclick: onDelete.bind(null, videoId) }, 'Delete')
+        button({ onclick: () => { onWatch(videoId, playlistId) } }, 'Watch'),
+        button({ onclick: () => { onDelete(videoId) } }, 'Delete')
       )
     ),
     tr(
-      td(COLUMN_PROPS_INFO_SMALL, videoId ?? '-'),
+      td(COLUMN_PROPS_INFO_SMALL, videoId),
       td(COLUMN_PROPS_INFO_SMALL, owner ?? '-'),
       td(COLUMN_PROPS_INFO_SMALL, playlistTitle),
-      td(COLUMN_PROPS_INFO_SMALL, time)
+      td(COLUMN_PROPS_INFO_SMALL, addedOn)
     )
   ]
 }
@@ -159,13 +158,15 @@ class YTDownloadPageLifecycle extends Lifecycle<void> {
           const timestamp = downloadState?.data.downloadStatusEntity.downloadState === 'DOWNLOAD_STATE_COMPLETE' ? Number(downloadState.data.addedTimestampMillis) : -1
           if (timestamp < 0) return
 
+          const auto = !!mainDownloadsListEntity?.data.downloads?.some(({ videoItem }) => videoItem === key)
           videoEntities_.val.push({
             ...data,
             owner: channel?.data.title,
-            playlistId: playlist?.playlistId,
-            playlistTitle: playlist?.title,
+            playlistId: playlist?.playlistId ?? 'PPSV',
+            playlistTitle: playlist?.title ?? (auto ? 'Smart Downloads' : 'Your Downloads'),
             timestamp,
-            auto: !!mainDownloadsListEntity?.data.downloads?.some(({ videoItem }) => videoItem === key)
+            addedOn: new Date(timestamp).toLocaleString(),
+            auto
           })
         }
 
@@ -214,24 +215,26 @@ class YTDownloadPageLifecycle extends Lifecycle<void> {
       fileInput_.click()
     }
 
-    const handleExport = (id: string, format: ExportFormat): void => {
+    const handleExport = async (id: string, format: ExportFormat): Promise<void> => {
       switch (format) {
         case ExportFormat.BUNDLE:
-          promiseStatus(exportYTOfflineMediaBundle(id, password_.val))
-          break
+          return promiseStatus(exportYTOfflineMediaBundle(id, password_.val))
         case ExportFormat.AUDIO_STREAM:
-          promiseStatus(exportYTOfflineMediaStream(id, YTLocalMediaType.AUDIO))
-          break
+          return promiseStatus(exportYTOfflineMediaStream(id, YTLocalMediaType.AUDIO))
         case ExportFormat.VIDEO_STREAM:
-          promiseStatus(exportYTOfflineMediaStream(id, YTLocalMediaType.VIDEO))
-          break
+          return promiseStatus(exportYTOfflineMediaStream(id, YTLocalMediaType.VIDEO))
         case ExportFormat.MERGED:
-          promiseStatus(exportYTOfflineMediaStream(id, YTLocalMediaType.AUDIO_AND_VIDEO))
-          break
+          return promiseStatus(exportYTOfflineMediaStream(id, YTLocalMediaType.AUDIO_AND_VIDEO))
         default:
           status_.val = 'invalid export format'
-          break
       }
+    }
+
+    const handleExportFiltered = async (format: ExportFormat): Promise<void> => {
+      const entities = videoEntities_.val.filter(isFilteredVideo.bind(null, filter_.val.trim().toLowerCase()))
+      if (entities.length === 0 || !confirm(`Export ${entities.length} downloaded videos?`)) return
+
+      for (const entity of entities) await handleExport(entity.videoId, format)
     }
 
     const handleDelete = (id: string): void => {
@@ -276,9 +279,9 @@ class YTDownloadPageLifecycle extends Lifecycle<void> {
       } catch {
         sources[2] = sources[1] = sources[0]
       }
-      if (!sources.some(validSource)) return
+      if (!sources.some(isValidSource)) return
 
-      let idx = sources.filter(validSource).length === 1 ? sources.findIndex(validSource) : -1
+      let idx = sources.filter(isValidSource).length === 1 ? sources.findIndex(isValidSource) : -1
       while (idx < 0) {
         idx = Number(prompt('Download type: 1=Video 2=Playlist', '0'))
         if (!sources[idx]?.trim()) idx = 0
@@ -327,6 +330,17 @@ class YTDownloadPageLifecycle extends Lifecycle<void> {
             { style: STYLE_FLEX_CONTAINER },
             button({ onclick: handleImport }, 'Import Bundle')
           ),
+          h4(() => {
+            const entities = videoEntities_.val.filter(isFilteredVideo.bind(null, filter_.val.trim().toLowerCase()))
+            return `Export All (${entities.length} total)`
+          }),
+          div(
+            { style: STYLE_FLEX_CONTAINER },
+            button({ onclick: () => { handleExportFiltered(ExportFormat.BUNDLE) } }, 'Bundle'),
+            button({ onclick: () => { handleExportFiltered(ExportFormat.AUDIO_STREAM) } }, 'Audio'),
+            button({ onclick: () => { handleExportFiltered(ExportFormat.VIDEO_STREAM) } }, 'Video'),
+            button({ onclick: () => { handleExportFiltered(ExportFormat.MERGED) } }, 'MP4')
+          ),
           p(() => `Status: ${status_.val}`)
         ),
         div(
@@ -342,7 +356,7 @@ class YTDownloadPageLifecycle extends Lifecycle<void> {
         button({ onclick: handleQueueDownload }, 'Queue Download')
       ),
       h1('Available Videos'),
-      input({ placeholder: 'Filter', value: filter_, oninput: e => filter_.val = e.target.value }),
+      input({ placeholder: 'Filter, for specific column (use: [column]:"value") (example: title:"Me at the zoo")', value: filter_, oninput: e => filter_.val = e.target.value }),
       table(
         thead(tr(
           th(COLUMN_PROPS_INFO_HEAD, COLUMN_TITLES.join(' / ')),
@@ -350,12 +364,16 @@ class YTDownloadPageLifecycle extends Lifecycle<void> {
           th(COLUMN_PROPS_ACTION_HEAD, button({ disabled: () => isLoading_.val, onclick: () => void refreshTable() }, 'Refresh'))
         )),
         () => {
-          const entities = videoEntities_.val
           const filter = filter_.val.trim().toLowerCase()
+          const entities = videoEntities_.val.filter(isFilteredVideo.bind(null, filter))
           return tbody(
-            entities.length ?
-              entities.flatMap(VideoEntityTableItem.bind(null, filter, handleWatch, handleExport, handleDelete)) :
-              tr(td({ colSpan: 6 }, () => isLoading_.val ? 'Loading...' : 'Videos you download/import will appear here'))
+            entities.length > 0 ?
+              entities.flatMap(VideoEntityTableItem.bind(null, handleWatch, handleExport, handleDelete)) :
+              tr(td({ colSpan: 6 }, () => {
+                if (isLoading_.val) return 'Loading...'
+                if (filter) return 'No results'
+                return 'Videos you download/import will appear here'
+              }))
           )
         }
       ),
