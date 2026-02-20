@@ -30,9 +30,9 @@ const MinAdSlotCheckMode = ModifierMode.PLAYER_SCREEN
 
 const inlinePlayerSignatureCache = new Map<string, [sign: Uint8Array<ArrayBuffer> | null, expire: number]>()
 const ignoreResponseVideoIds = new Set<string>()
+const unmuteVideoIds = new Set<string>()
 
 let modifierMode: ModifierMode = max(ModifierMode.DISABLED, min(ModifierMode.IDLE, Number(sessionStorage.getItem(MODIFIER_MODE_KEY)) || ModifierMode.IDLE))
-let unmuteVideoId: string | undefined
 
 const processWatchEndpoint = (data: YTValueData<YTEndpoint.Mapped<'watchEndpoint'>>): void => {
   const { params, videoId } = data
@@ -58,7 +58,7 @@ const updatePlayerResponse = (data: YTValueData<YTResponse.Mapped<'player'>>): v
   if (videoId == null || playabilityStatus == null) return
 
   const audioConfig = playerConfig?.audioConfig
-  if (audioConfig && unmuteVideoId === videoId) delete audioConfig.muteOnStart
+  if (audioConfig && unmuteVideoIds.delete(videoId)) delete audioConfig.muteOnStart
 
   const isPlayable = playabilityStatus.status !== 'UNPLAYABLE' && (modifierMode < MinAdSlotCheckMode || !adSlots?.length)
   if (ignoreResponseVideoIds.delete(videoId) || isPlayable || modifierMode <= 0) return
@@ -108,7 +108,7 @@ export default class YTMiscsAdsModule extends Feature {
     registerYTValueProcessor(YTResponse.mapped.player, updatePlayerResponse)
 
     registerYTInnertubeRequestProcessor('player', ({ context, params, playbackContext, videoId }) => {
-      if (params.isInlinePlaybackV1 || playbackContext?.contentPlaybackContext?.currentUrl?.startsWith('/shorts/')) return
+      if (!videoId || params.isInlinePlaybackV1 || playbackContext?.contentPlaybackContext?.currentUrl?.startsWith('/shorts/')) return
 
       switch (modifierMode) {
         case ModifierMode.PLAYER_SCREEN: {
@@ -120,7 +120,7 @@ export default class YTMiscsAdsModule extends Feature {
         }
         // falls through
         case ModifierMode.PLAYER_INLINE_V1_SIGNED: {
-          const entry = inlinePlayerSignatureCache.get(videoId!)
+          const entry = inlinePlayerSignatureCache.get(videoId)
           if (entry == null) break
 
           // NOTE: salt/key id/magic[5 bytes] + sign(video id + params? (e.g. inline=1))[16 bytes]
@@ -133,7 +133,7 @@ export default class YTMiscsAdsModule extends Feature {
           break
         case ModifierMode.PLAYER_INLINE_V2:
           params.isInlinePlaybackV2 = true
-          unmuteVideoId = videoId
+          unmuteVideoIds.add(videoId)
           break
       }
     })
