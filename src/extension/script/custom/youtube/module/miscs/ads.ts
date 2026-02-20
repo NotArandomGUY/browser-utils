@@ -55,13 +55,13 @@ const updatePlayerResponse = (data: YTValueData<YTResponse.Mapped<'player'>>): v
   const { adSlots, playabilityStatus, playerConfig, videoDetails } = data
 
   const videoId = videoDetails?.videoId
-  if (videoId == null || playabilityStatus == null || ignoreResponseVideoIds.delete(videoId)) return
+  if (videoId == null || playabilityStatus == null) return
 
   const audioConfig = playerConfig?.audioConfig
   if (audioConfig && unmuteVideoId === videoId) delete audioConfig.muteOnStart
 
   const isPlayable = playabilityStatus.status !== 'UNPLAYABLE' && (modifierMode < MinAdSlotCheckMode || !adSlots?.length)
-  if (isPlayable || modifierMode <= 0) return
+  if (ignoreResponseVideoIds.delete(videoId) || isPlayable || modifierMode <= 0) return
 
   sessionStorage.setItem(MODIFIER_MODE_KEY, String(--modifierMode))
   logger.debug('switching modifier mode:', modifierMode)
