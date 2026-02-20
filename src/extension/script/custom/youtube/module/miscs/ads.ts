@@ -20,14 +20,13 @@ const INLINE_PLAYER_SIGNATURE_CACHE_TTL = 3600e3 // 1 hour
 const enum ModifierMode {
   DISABLED = 0,
   PLAYER_INLINE_V1_SIGNED,
-  PLAYER_SCREEN,
   PLAYER_INLINE_V1,
   PLAYER_INLINE_V2,
   WARM_IDLE,
   COLD_IDLE
 }
 
-const MinAdSlotCheckMode = ModifierMode.PLAYER_SCREEN
+const MinAdSlotCheckMode = ModifierMode.PLAYER_INLINE_V1
 
 const inlinePlayerSignatureCache = new Map<string, [sign: Uint8Array<ArrayBuffer> | null, expire: number]>()
 const ignoreResponseVideoIds = new Set<string>()
@@ -112,18 +111,10 @@ export default class YTMiscsAdsModule extends Feature {
     registerYTValueProcessor(YTResponse.mapped.next, updateNextResponse)
     registerYTValueProcessor(YTResponse.mapped.player, updatePlayerResponse)
 
-    registerYTInnertubeRequestProcessor('player', ({ context, params, playbackContext, videoId }) => {
+    registerYTInnertubeRequestProcessor('player', ({ params, playbackContext, videoId }) => {
       if (!videoId || params.isInlinePlaybackV1 || playbackContext?.contentPlaybackContext?.currentUrl?.startsWith('/shorts/')) return
 
       switch (modifierMode) {
-        case ModifierMode.PLAYER_SCREEN: {
-          const client = context?.client
-          if (client != null) {
-            client.clientScreen = 'CHANNEL'
-            break
-          }
-        }
-        // falls through
         case ModifierMode.PLAYER_INLINE_V1_SIGNED: {
           const entry = inlinePlayerSignatureCache.get(videoId)
           if (entry == null) break

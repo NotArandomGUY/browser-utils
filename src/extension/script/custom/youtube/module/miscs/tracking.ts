@@ -257,6 +257,7 @@ export default class YTMiscsTrackingModule extends Feature {
       delete context?.adSignalsInfo
       delete context?.clickTracking
       delete context?.clientScreenNonce
+      delete context?.client?.clientScreen
     })
     registerYTInnertubeRequestProcessor('get_watch', ({ context, playerRequest }) => {
       if (playerRequest != null) buildWatchUrl(playerRequest, context)
