@@ -1,6 +1,7 @@
 import { registerOverlayPage } from '@ext/common/preload/overlay'
 import { registerYTValueProcessor } from '@ext/custom/youtube/api/processor'
 import { YTCommon, YTEndpoint, YTRenderer, YTResponse, YTValueData, YTValueType } from '@ext/custom/youtube/api/schema'
+import { YTKevlarMethodDefineCallback } from '@ext/custom/youtube/module/core/bootstrap'
 import { registerYTInnertubeRequestProcessor, YTInnertubeRequest, YTInnertubeRequestContext, YTInnertubeRequestEndpoint, YTInnertubeRequestPlaybackContext } from '@ext/custom/youtube/module/core/network'
 import { ytadIgnoreResponse } from '@ext/custom/youtube/module/miscs/ads'
 import YTDownloadPage from '@ext/custom/youtube/pages/download'
@@ -59,6 +60,7 @@ interface PlaybackDataSnapshot {
 const DOWNLOAD_ID_PREFIX = 'ytdl:'
 const SNAPSHOT_PARAM_NAME = 'pdsnapshot'
 const INFO_CACHE_TTL = 300e3 // 5 min
+const GET_AUTH_HEADER_VALUE_REGEXP = /SAPISID[\dP]*HASH.*?push.*?return/s
 
 const feedInfoCache = new Map<string, InnertubeFeedInfo>()
 const videoInfoCache = new Map<string, InnertubeVideoInfo>()
@@ -71,6 +73,7 @@ let isPremium: boolean = false
 let downloadButtonContext: DownloadButtonContext | null = null
 let fetchingPlaylistInfo: ({ playlistId: string } & Partial<InnertubePlaylistInfo>) | null = null
 let devicePlaybackCapabilities: YTInnertubeRequestPlaybackContext['devicePlaybackCapabilities'] | null = null
+let getAuthHeaderValue: ((params: Array<{ key: string, value: string }>) => string) | null = null
 
 const getLengthText = (seconds?: string | number): string => {
   seconds = Number(seconds ?? 0)
@@ -91,11 +94,22 @@ const fetchInnertube = async <
   R extends YTResponse.MappedKey,
   M extends Record<string, unknown> = {}
 >(endpoint: E, request: Omit<YTInnertubeRequest<E>, keyof M> & M): Promise<YTValueData<YTResponse.Mapped<R>>> => {
+  const headers: Record<string, string> = {
+    'content-type': 'application/json',
+    'x-goog-authuser': `${ytcfg?.get<number>('SESSION_INDEX') ?? 0}`
+  }
+
+  const authParams: Array<{ key: string, value: string }> = []
+  const sessionId = ytcfg?.get<string>('USER_SESSION_ID')
+  if (sessionId) authParams.push({ key: 'u', value: sessionId })
+  const authHeader = getAuthHeaderValue?.(authParams)
+  if (authHeader) headers.authorization = authHeader
+
   const response = await fetch(`/youtubei/v1/${endpoint}?prettyPrint=false`, {
     method: 'POST',
     credentials: 'include',
     cache: 'no-store',
-    headers: { 'content-type': 'application/json' },
+    headers,
     body: JSON.stringify(request)
   })
   return response.json()
@@ -447,6 +461,11 @@ export default class YTMiscsDownloadModule extends Feature {
 
   protected activate(cleanupCallbacks: Function[]): boolean {
     cleanupCallbacks.push(
+      YTKevlarMethodDefineCallback.registerCallback((_kevlar, _name, fn) => {
+        if (getAuthHeaderValue != null || !GET_AUTH_HEADER_VALUE_REGEXP.test(String(fn))) return
+
+        getAuthHeaderValue = fn as NonNullable<typeof getAuthHeaderValue>
+      }),
       registerOverlayPage('Downloads', YTDownloadPage),
       addInterceptNetworkCallback(async ctx => {
         if (ctx.state === NetworkState.UNSENT) await processRequest(ctx)
