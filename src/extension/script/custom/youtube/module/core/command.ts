@@ -3,8 +3,10 @@ import { YTKevlarMethodDefineCallback } from '@ext/custom/youtube/module/core/bo
 import { defineProperty, values } from '@ext/global/object'
 import { Feature } from '@ext/lib/feature'
 import Hook, { CallContext, HookResult } from '@ext/lib/intercept/hook'
+import { findMethodEntryByRegexp } from '@ext/lib/regexp'
 
 const RESOLVE_COMMAND_REGEXP = /(navigate.*?handleServiceRequest.*?sendAction)|(\(this,[^(]+\)\.handled)/s
+const BUILD_COMMAND_PAYLOAD_REGEXP = /function\s*\(\w+,\s*\w+\)\s*\{.*\w+\([\w,]+\s*\w+\)\s*\}/s
 
 export type YTActionHandler = () => void
 
@@ -75,9 +77,9 @@ export default class YTCoreCommandModule extends Feature {
           set(v: YTCommandResolver) {
             instance = v
 
-            const buildMethod = instance.buildCommandPayload
-            if (typeof buildMethod === 'function') {
-              instance.buildCommandPayload = new Hook(buildMethod).install(handleCommand).call
+            const buildMethodEntry = findMethodEntryByRegexp<YTCommandResolver, 'buildCommandPayload'>(instance, BUILD_COMMAND_PAYLOAD_REGEXP)
+            if (buildMethodEntry != null) {
+              instance[buildMethodEntry[0]] = new Hook(buildMethodEntry[1]).install(handleCommand).call
             }
 
             while (commandQueue.length > 0) executeYTCommand(commandQueue.shift()!)

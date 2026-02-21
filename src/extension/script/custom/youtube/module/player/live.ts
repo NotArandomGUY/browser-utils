@@ -167,7 +167,7 @@ export default class YTPlayerLiveModule extends Feature {
           text: 'Low Latency',
           description: 'Actively adjust playback rate to achieve lowest possible latency based on buffer health',
           mask: YTLiveBehaviourMask.LOW_LATENCY,
-          signals: [YTEndpoint.enums.SignalActionType.RELOAD_PLAYER]
+          signals: [YTEndpoint.enums.SignalActionType.CLOSE_POPUP, YTEndpoint.enums.SignalActionType.SOFT_RELOAD_PAGE, YTEndpoint.enums.SignalActionType.RELOAD_PLAYER]
         },
         {
           type: YTConfigMenuItemType.TOGGLE,
@@ -176,7 +176,7 @@ export default class YTPlayerLiveModule extends Feature {
           text: 'Force DVR',
           description: 'Enable seeking for livestream even if it was disabled by the creator (might affect latency)',
           mask: YTLiveBehaviourMask.FORCE_DVR,
-          signals: [YTEndpoint.enums.SignalActionType.RELOAD_PLAYER]
+          signals: [YTEndpoint.enums.SignalActionType.CLOSE_POPUP, YTEndpoint.enums.SignalActionType.SOFT_RELOAD_PAGE, YTEndpoint.enums.SignalActionType.RELOAD_PLAYER]
         }
       ]),
       registerYTValueProcessor(YTResponse.mapped.player, updatePlayerResponse)
