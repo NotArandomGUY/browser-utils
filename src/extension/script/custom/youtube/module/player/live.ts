@@ -124,8 +124,7 @@ const stopLiveHeadUpdate = (): void => {
 }
 
 const updatePlayerResponse = (data: YTValueData<YTResponse.Mapped<'player'>>): void => {
-  const playerConfig = data.playerConfig
-  const videoDetails = data.videoDetails
+  const { videoDetails, playerConfig, streamingData } = data
 
   if (playerConfig == null || !videoDetails?.isLive) return stopLiveHeadUpdate()
 
@@ -139,15 +138,12 @@ const updatePlayerResponse = (data: YTValueData<YTResponse.Mapped<'player'>>): v
     startLiveHeadUpdate()
   }
 
-  if (isYTLiveBehaviourEnabled(YTLiveBehaviourMask.FORCE_DVR) && !videoDetails.isLiveDvrEnabled) {
+  if (isYTLiveBehaviourEnabled(YTLiveBehaviourMask.FORCE_DVR) && !videoDetails.isLiveDvrEnabled && streamingData?.adaptiveFormats?.some(f => f.url)) {
     videoDetails.isLiveDvrEnabled = true
-
-    if (playerConfig.mediaCommonConfig?.useServerDrivenAbr) {
-      playerConfig.mediaCommonConfig.useServerDrivenAbr = false
-      playerConfig.daiConfig ??= {
-        daiType: 'DAI_TYPE_CLIENT_STITCHED',
-        enableDai: true
-      }
+    playerConfig.daiConfig = {
+      ...playerConfig.daiConfig,
+      daiType: 'DAI_TYPE_CLIENT_STITCHED',
+      enableDai: true
     }
   }
 }
@@ -174,7 +170,7 @@ export default class YTPlayerLiveModule extends Feature {
           key: LIVE_BEHAVIOUR_KEY,
           icon: YTRenderer.enums.IconType.FAST_REWIND,
           text: 'Force DVR',
-          description: 'Enable seeking for livestream even if it was disabled by the creator (might affect latency)',
+          description: 'Enable seeking for livestream when possible (might affect latency)',
           mask: YTLiveBehaviourMask.FORCE_DVR,
           signals: [YTEndpoint.enums.SignalActionType.CLOSE_POPUP, YTEndpoint.enums.SignalActionType.SOFT_RELOAD_PAGE, YTEndpoint.enums.SignalActionType.RELOAD_PLAYER]
         }
