@@ -57,7 +57,7 @@ function errorMessage(error: unknown): string {
 }
 
 function deleteYTValueProcessor<S extends YTValueSchema>(data: YTValueData<S>, schema: S, parent: YTValueParent<S>): boolean {
-  logger.debug('filtered value:', data, schema, parent)
+  logger.trace('filtered value:', data, schema, parent)
   return false
 }
 

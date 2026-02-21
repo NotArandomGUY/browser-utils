@@ -30,7 +30,7 @@ type YTInitDataResponse = {
 type YTInitData = YTInitDataResponse & Partial<{
   endpoint: YTValueData<{ type: YTValueType.ENDPOINT }>
   playerResponse: YTValueData<YTResponse.Mapped<'player'>>
-  reelWatchSequenceResponse: object
+  reelWatchSequenceResponse: YTValueData<YTResponse.Mapped<'reelReelWatchSequence'>>
   url: string
   previousCsn: string
 }>
@@ -268,6 +268,7 @@ const processInitialData = async (initData: YTInitData): Promise<void> => {
       break
     case 'shorts':
       await processYTResponse('reelReelItemWatch', initData.response)
+      await processYTResponse('reelReelWatchSequence', initData.reelWatchSequenceResponse)
       break
     case 'watch':
       await processYTResponse('next', initData.response)
