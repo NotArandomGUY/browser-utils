@@ -89,7 +89,7 @@ class MainAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, Cha
 
       const continuation = continuations?.map(c => c.reloadContinuationData?.continuation).find(c => c != null)
       if (continuation == null) {
-        logger.warn('missing continuation for live chat')
+        logger.debug('missing continuation for live chat')
         return
       }
 
