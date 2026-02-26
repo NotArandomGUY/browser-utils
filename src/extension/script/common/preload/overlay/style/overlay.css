@@ -106,7 +106,7 @@
   background: initial !important;
 }
 
-.bu-overlay table tr:not(.bu-overlay--page--package--feature):nth-child(2n) {
+.bu-overlay table tr:not(.bu-overlay__page__package__feature):nth-child(2n) {
   background: #101010 !important;
 }
 
@@ -129,7 +129,7 @@
   color: inherit !important;
 }
 
-.bu-overlay .bu-overlay--backdrop {
+.bu-overlay .bu-overlay__backdrop {
   position: absolute;
   top: 0;
   left: 0;
@@ -140,7 +140,7 @@
   pointer-events: all;
 }
 
-.bu-overlay .bu-overlay--modal {
+.bu-overlay .bu-overlay__modal {
   position: absolute;
   top: 50%;
   left: 50%;
@@ -160,25 +160,25 @@
   pointer-events: all;
 }
 
-.bu-overlay .bu-overlay--modal--topbar {
+.bu-overlay .bu-overlay__modal__topbar {
   display: flex;
   flex-direction: row;
   flex-wrap: nowrap;
   align-items: center;
 }
 
-.bu-overlay .bu-overlay--modal--topbar--title {
+.bu-overlay .bu-overlay__modal__topbar__title {
   flex-grow: 1;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
 
-.bu-overlay .bu-overlay--modal--topbar--close-btn {
+.bu-overlay .bu-overlay__modal__topbar__close-btn {
   font-weight: 900;
 }
 
-.bu-overlay .bu-overlay--modal--content {
+.bu-overlay .bu-overlay__modal__content {
   display: flex;
   flex-direction: column;
   flex-grow: 1;
@@ -186,7 +186,7 @@
   scrollbar-color: #A0A0A0 #202020;
 }
 
-.bu-overlay .bu-overlay--tab {
+.bu-overlay .bu-overlay__tab {
   width: 100%;
   height: 100%;
   display: flex;
@@ -194,7 +194,7 @@
   gap: 16px;
 }
 
-.bu-overlay .bu-overlay--tab--topbar {
+.bu-overlay .bu-overlay__tab__topbar {
   flex-shrink: 0;
   display: flex;
   flex-direction: row;
@@ -204,16 +204,16 @@
   overflow: auto hidden;
 }
 
-.bu-overlay .bu-overlay--tab--topbar--btn {
+.bu-overlay .bu-overlay__tab__topbar__btn {
   border-radius: 0 !important;
 }
 
-.bu-overlay .bu-overlay--tab--topbar--btn-active {
+.bu-overlay .bu-overlay__tab__topbar__btn--active {
   border-radius: 0 !important;
   padding: 0.5em 0.75em !important;
 }
 
-.bu-overlay .bu-overlay--tab--content {
+.bu-overlay .bu-overlay__tab__content {
   display: flex;
   flex-direction: column;
   flex-grow: 1;
@@ -221,18 +221,18 @@
   scrollbar-color: #A0A0A0 #202020;
 }
 
-.bu-overlay .bu-overlay--page {
+.bu-overlay .bu-overlay__page {
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.bu-overlay .bu-overlay--page--package--feature button {
+.bu-overlay .bu-overlay__page__package__feature button {
   width: 100%;
 }
 
-.bu-overlay .bu-overlay--page--package--feature--shrink {
+.bu-overlay .bu-overlay__page__package__feature__shrink {
   width: 1px;
   white-space: nowrap;
 }

@@ -5,10 +5,8 @@ const { div } = van.tags
 
 export interface ModalContentProps extends ClassNameProps { }
 
-const ModalContent = ({ parentClassName }: ModalContentProps, ...child: ChildDom[]): ChildDom => {
-  const className = buildClass(parentClassName, 'content')
-
-  return div({ class: className }, ...child)
+const ModalContent = ({ parentClass }: ModalContentProps, ...child: ChildDom[]): ChildDom => {
+  return div({ class: buildClass(...parentClass, 'content', []) }, ...child)
 }
 
 export default ModalContent

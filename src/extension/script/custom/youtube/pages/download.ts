@@ -121,8 +121,8 @@ class YTDownloadPageLifecycle extends Lifecycle<void> {
   protected override onCreate(): void {
     const { classList, fileInput_, videoEntities_, isLoading_, password_, status_, downloadSource_, filter_ } = this
 
-    const className = buildClass(['bu-overlay', 'page'])
-    classList.add(className)
+    const classPath = ['bu-overlay', 'page'] as const
+    classList.add(buildClass(...classPath, []))
 
     const promiseStatus = async (promise: Promise<void> | PromiseWithProgress<void, string>): Promise<void> => {
       if (promise instanceof PromiseWithProgress) promise.progress(progress => status_.val = progress)
@@ -324,7 +324,7 @@ class YTDownloadPageLifecycle extends Lifecycle<void> {
       div(
         { style: `${STYLE_FLEX_CONTAINER};flex-basis:50%` },
         div(
-          { className, style: STYLE_FLEX_ITEM_GROW },
+          { className: buildClass(...classPath, []), style: STYLE_FLEX_ITEM_GROW },
           h4('Import Video'),
           div(
             { style: STYLE_FLEX_CONTAINER },
@@ -344,7 +344,7 @@ class YTDownloadPageLifecycle extends Lifecycle<void> {
           p(() => `Status: ${status_.val}`)
         ),
         div(
-          { className, style: STYLE_FLEX_ITEM_GROW },
+          { className: buildClass(...classPath, []), style: STYLE_FLEX_ITEM_GROW },
           h4('Options'),
           input({ placeholder: 'Bundle Password (Optional)', value: password_, oninput: e => password_.val = e.target.value }),
         )

@@ -9,13 +9,13 @@ export interface TabTopbarProps extends ClassNameProps {
   index: State<number>
 }
 
-const TabTopbar = ({ parentClassName, tabs, index }: TabTopbarProps): ChildDom => {
-  const className = buildClass(parentClassName, 'topbar')
+const TabTopbar = ({ parentClass, tabs, index }: TabTopbarProps): ChildDom => {
+  const classPath = [...parentClass, 'topbar'] as const
 
   return div(
-    { class: className },
+    { class: buildClass(...classPath, []) },
     tabs.map((title, i) => TabButton({
-      parentClassName: className,
+      parentClass: classPath,
       title,
       active: van.derive(() => index.val === i),
       onClick() { index.val = i }

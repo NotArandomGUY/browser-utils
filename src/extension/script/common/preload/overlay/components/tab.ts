@@ -16,8 +16,8 @@ export interface TabProps extends ClassNameProps {
   onTabChange?(index: number): void
 }
 
-const Tab = ({ parentClassName, tabs, initIndex = 0, onTabChange }: TabProps): ChildDom => {
-  const className = buildClass(parentClassName, 'tab')
+const Tab = ({ parentClass, tabs, initIndex = 0, onTabChange }: TabProps): ChildDom => {
+  const classPath = [...parentClass, 'tab'] as const
   const currentIndex = van.state(initIndex)
   const previousIndex = van.state(initIndex)
 
@@ -29,9 +29,9 @@ const Tab = ({ parentClassName, tabs, initIndex = 0, onTabChange }: TabProps): C
   })
 
   return div(
-    { class: className },
-    (tabs.length > 1 ? TabTopbar({ parentClassName: className, tabs: tabs.map(tab => tab.title), index: currentIndex }) : null),
-    TabContent({ parentClassName: className, tabs: tabs.map(tab => tab.content), index: currentIndex })
+    { class: buildClass(...classPath, []) },
+    (tabs.length > 1 ? TabTopbar({ parentClass: classPath, tabs: tabs.map(tab => tab.title), index: currentIndex }) : null),
+    TabContent({ parentClass: classPath, tabs: tabs.map(tab => tab.content), index: currentIndex })
   )
 }
 

@@ -8,13 +8,13 @@ export interface ModalTopbarProps extends ClassNameProps {
   onCloseClick(): void
 }
 
-const ModalTopbar = ({ parentClassName, title, onCloseClick }: ModalTopbarProps): ChildDom => {
-  const className = buildClass(parentClassName, 'topbar')
+const ModalTopbar = ({ parentClass, title, onCloseClick }: ModalTopbarProps): ChildDom => {
+  const classPath = [...parentClass, 'topbar'] as const
 
   return div(
-    { class: className },
-    h6({ class: buildClass(className, 'title') }, title),
-    button({ class: buildClass(className, 'close-btn'), onclick: onCloseClick }, 'X')
+    { class: buildClass(...classPath, []) },
+    h6({ class: buildClass(...classPath, 'title', []) }, title),
+    button({ class: buildClass(...classPath, 'close-btn', []), onclick: onCloseClick }, 'X')
   )
 }
 

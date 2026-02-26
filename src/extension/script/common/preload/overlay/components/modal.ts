@@ -29,11 +29,11 @@ class ModalLifecycle extends Lifecycle<ModalProps> {
     this.onKeyDown = this.onKeyDown.bind(this)
   }
 
-  protected override onCreate({ parentClassName, title, content, onClose }: ModalProps): void {
+  protected override onCreate({ parentClass, title, content, onClose }: ModalProps): void {
     const { classList } = this
 
-    const className = buildClass(parentClassName, 'modal')
-    classList.add(className)
+    const classPath = [...parentClass, 'modal'] as const
+    classList.add(buildClass(...classPath, []))
 
     const { body, activeElement } = document
 
@@ -43,8 +43,8 @@ class ModalLifecycle extends Lifecycle<ModalProps> {
 
     van.add(
       this,
-      ModalTopbar({ parentClassName: className, title, onCloseClick: onClose }),
-      ModalContent({ parentClassName: className }, ...(Array.isArray(content) ? content : [content]))
+      ModalTopbar({ parentClass: classPath, title, onCloseClick: onClose }),
+      ModalContent({ parentClass: classPath }, ...(Array.isArray(content) ? content : [content]))
     )
     modalStack.unshift(this)
   }
@@ -72,12 +72,12 @@ class ModalLifecycle extends Lifecycle<ModalProps> {
 
     const { activeElement } = document
 
-    const first = focusable[0]
-    const last = focusable[focusable.length - 1]
+    const first = focusable.at(0)
+    const last = focusable.at(-1)
 
     if (!this.contains(activeElement)) {
       event.preventDefault()
-      first.focus()
+      first?.focus()
       return
     }
 
@@ -86,7 +86,7 @@ class ModalLifecycle extends Lifecycle<ModalProps> {
 
     if (activeElement === end) {
       event.preventDefault()
-      begin.focus()
+      begin?.focus()
     }
   }
 }

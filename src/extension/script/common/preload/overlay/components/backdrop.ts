@@ -7,10 +7,8 @@ export interface OverlayBackdropProps extends ClassNameProps {
   onClick?(): void
 }
 
-const Backdrop = ({ parentClassName, onClick }: OverlayBackdropProps): ChildDom => {
-  const className = buildClass(parentClassName, 'backdrop')
-
-  return div({ class: className, onclick: onClick ?? null })
+const Backdrop = ({ parentClass, onClick }: OverlayBackdropProps): ChildDom => {
+  return div({ class: buildClass(...parentClass, 'backdrop', []), onclick: onClick ?? null })
 }
 
 export default Backdrop

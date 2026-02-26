@@ -10,7 +10,7 @@ import van, { ChildDom } from 'vanjs-core'
 export interface OverlayProps {
   initIndex?: number
 
-  packageProps: Omit<PackagePageProps, 'parentClassName'>
+  packageProps: Omit<PackagePageProps, 'parentClass'>
 
   onTabChange?(index: number): void
   onClose(): void
@@ -42,22 +42,22 @@ class OverlayLifecycle extends Lifecycle<OverlayProps> {
   protected override onCreate({ initIndex, packageProps, onTabChange, onClose }: OverlayProps): void {
     const { classList } = this
 
-    const className = buildClass('bu-overlay')
-    classList.add(className)
+    const classPath = ['bu-overlay'] as const
+    classList.add(buildClass(...classPath, []))
 
     styles.use()
 
     van.add(
       this,
-      Backdrop({ parentClassName: className, onClick: onClose }),
+      Backdrop({ parentClass: classPath, onClick: onClose }),
       Modal({
-        parentClassName: className,
+        parentClass: classPath,
         title: 'Browser Utils',
         onClose,
         content: Tab({
-          parentClassName: className,
+          parentClass: classPath,
           tabs: [
-            { title: 'Package', content: PackagePage.bind(null, { ...packageProps, parentClassName: className }) },
+            { title: 'Package', content: PackagePage.bind(null, { ...packageProps, parentClass: classPath }) },
             ...additionalPageSet.values()
           ],
           initIndex,

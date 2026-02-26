@@ -24,8 +24,8 @@ interface FeatureTableItemProps extends ClassNameProps {
   groupEnabled: State<boolean>
 }
 
-const FeatureGroupTableItem = ({ parentClassName, groupId, group }: FeatureGroupTableItemProps): HTMLTableRowElement[] => {
-  const className = buildClass(parentClassName, 'feature')
+const FeatureGroupTableItem = ({ parentClass, groupId, group }: FeatureGroupTableItemProps): HTMLTableRowElement[] => {
+  const classPath = [...parentClass, 'feature'] as const
   const expanded = van.state(false)
   const enabled = van.state(((getFeatureGroupDisableMask(groupId)[0] ?? 0) & 1) === 0)
 
@@ -41,13 +41,13 @@ const FeatureGroupTableItem = ({ parentClassName, groupId, group }: FeatureGroup
 
   return [
     tr(
-      { class: className },
-      td({ class: buildClass(className, 'shrink'), rowSpan: () => 1 + (expanded.val ? group.featureMap.size : 0) }, groupId),
+      { class: buildClass(...classPath, []) },
+      td({ class: buildClass(...classPath, 'shrink', []), rowSpan: () => 1 + (expanded.val ? group.featureMap.size : 0) }, groupId),
       td(button({ onclick() { expanded.val = !expanded.val } }, () => expanded.val ? 'Collapse' : 'Expand')),
-      td({ class: buildClass(className, 'shrink') }, button({ onclick: handleToggleClick }, () => enabled.val ? 'Disable All' : 'Enable All'))
+      td({ class: buildClass(...classPath, 'shrink', []) }, button({ onclick: handleToggleClick }, () => enabled.val ? 'Disable All' : 'Enable All'))
     ),
     ...Array.from(group.featureMap.entries()).map(e => FeatureTableItem({
-      parentClassName: className,
+      parentClass: classPath,
       groupId,
       featureId: e[0],
       feature: e[1],
@@ -57,7 +57,7 @@ const FeatureGroupTableItem = ({ parentClassName, groupId, group }: FeatureGroup
   ]
 }
 
-const FeatureTableItem = ({ parentClassName, groupId, featureId, feature, visible, groupEnabled }: FeatureTableItemProps): HTMLTableRowElement => {
+const FeatureTableItem = ({ parentClass, groupId, featureId, feature, visible, groupEnabled }: FeatureTableItemProps): HTMLTableRowElement => {
   const enabled = van.state(feature.getState() === FeatureState.ACTIVE)
 
   van.derive(() => enabled.val = groupEnabled.val ? feature.getState() === FeatureState.ACTIVE : false)
@@ -80,18 +80,18 @@ const FeatureTableItem = ({ parentClassName, groupId, featureId, feature, visibl
   }
 
   return tr(
-    { class: buildClass(parentClassName, 'shrink'), style: () => visible.val ? '' : 'display:none;' },
+    { class: buildClass(...parentClass, 'shrink', []), style: () => visible.val ? '' : 'display:none;' },
     td({ style: 'text-align:left!important' }, feature.getName() ?? `ID-${featureId}`),
     td(button({ disabled: feature.getState() === FeatureState.INACTIVE, onclick: handleToggleClick }, () => enabled.val ? 'Disable' : 'Enable'))
   )
 }
 
-const PackagePage = ({ parentClassName, updateStatus, onUpdateClick }: PackagePageProps): Element => {
-  const className = buildClass(parentClassName, 'page', 'package')
+const PackagePage = ({ parentClass, updateStatus, onUpdateClick }: PackagePageProps): Element => {
+  const classPath = [...parentClass, 'page', 'package'] as const
   const featureGroupMap = van.derive(getAllFeatureGroup)
 
   return div(
-    { class: buildClass([parentClassName, 'page'], [className]) },
+    { class: `${buildClass(...parentClass, 'page', [])} ${buildClass(...classPath, [])}` },
     h1('Update'),
     div(
       { style: 'display:flex;flex-direction:row;align-items:center;gap:0.5em' },
@@ -103,7 +103,7 @@ const PackagePage = ({ parentClassName, updateStatus, onUpdateClick }: PackagePa
       thead(
         tr(th('Group'), th('Feature'), th('Action'))
       ),
-      tbody(entries(featureGroupMap.val).flatMap(e => FeatureGroupTableItem({ parentClassName: className, groupId: e[0], group: e[1] })))
+      tbody(entries(featureGroupMap.val).flatMap(e => FeatureGroupTableItem({ parentClass: classPath, groupId: e[0], group: e[1] })))
     )
   )
 }
