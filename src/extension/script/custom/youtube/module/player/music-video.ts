@@ -3,6 +3,7 @@ import { YTCommon, YTRenderer, YTValueData } from '@ext/custom/youtube/api/schem
 import { Feature } from '@ext/lib/feature'
 
 const DISABLE_AUDIO_ONLY_MV_TYPES = new Set<`${YTCommon.enums.MusicVideoType}`>([
+  YTCommon.enums.MusicVideoType.MUSIC_VIDEO_TYPE_OFFICIAL_SOURCE_MUSIC,
   YTCommon.enums.MusicVideoType.MUSIC_VIDEO_TYPE_OMV,
   YTCommon.enums.MusicVideoType.MUSIC_VIDEO_TYPE_UGC
 ])
