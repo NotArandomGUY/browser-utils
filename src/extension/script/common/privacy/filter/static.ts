@@ -468,6 +468,7 @@ export const PRIVACY_STATIC_FILTER_URL_BLOCK_LIST = [
   '/grumi-ip.js',
   '/gs-analytics-init.js',
   '/gs-analytics.js',
+  '/gtag/js',
   '/gtag.js',
   '/gtag.min.js',
   '/GTag/general_tracker.js',
