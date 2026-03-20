@@ -10,7 +10,8 @@ const LIVE_BEHAVIOUR_KEY = 'live-behaviour'
 const SYNC_INTERVAL = 50
 const MIN_SYNC_RATE = 0.95
 const MAX_SYNC_RATE = 1.05
-const HEALTH_AVG_SAMPLE_SIZE = (1e3 / SYNC_INTERVAL) * 5 // ~5s of samples
+// most livestream have a 5s segment length, let's wait for 3 segments, maybe adjust this per stream in the future?
+const HEALTH_AVG_SAMPLE_SIZE = (1e3 / SYNC_INTERVAL) * 15 // ~15s of samples
 const HEALTH_DEV_MUL = 1.05
 const HEALTH_DEV_DECAY_MUL = 1 - ((SYNC_INTERVAL / 5e3) * 0.05) // decay 5% over 5s
 const LATENCY_AVG_SAMPLE_SIZE = (1e3 / SYNC_INTERVAL) * 2 // ~2s of samples
