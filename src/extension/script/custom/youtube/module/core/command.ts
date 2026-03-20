@@ -6,7 +6,7 @@ import Hook, { CallContext, HookResult } from '@ext/lib/intercept/hook'
 import { findMethodEntryByRegexp } from '@ext/lib/regexp'
 
 const RESOLVE_COMMAND_REGEXP = /(navigate.*?handleServiceRequest.*?sendAction)|(\(this,[^(]+\)\.handled)/s
-const BUILD_COMMAND_PAYLOAD_REGEXP = /function\s*\(\w+,\s*\w+\)\s*\{.*\w+\([\w,]+\s*\w+\)\s*\}/s
+const BUILD_COMMAND_PAYLOAD_REGEXP = /(function\s*\(\w+,\s*\w+\)\s*\{.*\w+\([\w,]+\s*\w+\)\s*\})|(form\.abortSignal)/s
 
 export type YTActionHandler = () => void
 
