@@ -364,6 +364,9 @@ export const updateCarouselHeaderCommand = ytv_enp(() => ({
 }))
 export const updateEngagementPanelContentCommand = ytv_enp(() => ({
   contentSourcePanelIdentifier: renderer.components.engagementPanelIdentifier,
+  globalConfiguration: ytv_sch({
+    params: ytv_str()
+  }),
   targetPanelIdentifier: renderer.components.engagementPanelIdentifier
 }))
 export const updateTimedMarkersSyncObserverCommand = ytv_enp(() => ({
@@ -437,6 +440,9 @@ export const getReportFormEndpoint = ytv_enp(() => ({
 export const getTranscriptEndpoint = ytv_enp(() => ({
   params: ytv_str()
 }))
+export const hideEnclosingAction = ytv_enp(() => ({
+  notificationId: ytv_str()
+}))
 export const hideEngagementPanelEndpoint = ytv_enp(() => ({
   identifier: renderer.components.engagementPanelIdentifier,
   panelIdentifier: ytv_str()
@@ -471,6 +477,11 @@ export const modalEndpoint = ytv_enp(() => ({
 }))
 export const modifyChannelNotificationPreferenceEndpoint = ytv_enp(() => ({
   params: ytv_str()
+}))
+export const notificationOptOutEndpoint = ytv_enp(() => ({
+  optOutText: renderer.components.text,
+  serializedOptOut: ytv_str(),
+  serializedRecordInteractionsRequest: ytv_str()
 }))
 export const offlinePlaylistEndpoint = ytv_enp(() => ({
   action: ytv_str(['ACTION_ADD']),
@@ -507,6 +518,10 @@ export const playlistEditEndpoint = ytv_enp(() => ({
 }))
 export const popoutLiveChatEndpoint = ytv_enp(() => ({
   url: ytv_str()
+}))
+export const recordNotificationInteractionsEndpoint = ytv_enp(() => ({
+  actions: ytv_arr(ytv_enp()),
+  serializedInteractionsRequest: ytv_str()
 }))
 export const reelWatchEndpoint = ytv_enp(() => ({
   adClientParams: ytv_sch({

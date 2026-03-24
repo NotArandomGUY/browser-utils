@@ -373,6 +373,7 @@ export const playerVideoDetails = ytv_ren({
   isLowLatencyLiveStream: ytv_bol(),
   isOwnerViewing: ytv_bol(),
   isPrivate: ytv_bol(),
+  isTvfilmVideo: ytv_bol(),
   isUnpluggedCorpus: ytv_bol(),
   isUpcoming: ytv_bol(),
   keywords: ytv_arr(ytv_str()),
@@ -502,6 +503,7 @@ export const videoAdPings = ytv_ren({
 export const SchemaBase = {
   clickTrackingParams: ytv_str(),
   command: ytv_enp(),
+  endpoint: ytv_enp(),
   loggingDirectives,
   trackingParams: ytv_str()
 } as const satisfies YTObjectSchema
