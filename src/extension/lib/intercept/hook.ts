@@ -29,8 +29,9 @@ export interface CallContext<T, A extends unknown[], R, U = unknown> {
 }
 
 export const BoundTargetSymbol = Symbol()
+export const ProxyOriginSymbol = Symbol()
 
-const activeHookMap = new Map<OriginFn, [pre: HookFnSet<any, any[], any, any>, main: HookFnSet<any, any[], any, any>, post: HookFnSet<any, any[], any, any>]>()
+const sharedHooksMap = new Map<OriginFn, [pre: HookFnSet<any, any[], any, any>, main: HookFnSet<any, any[], any, any>, post: HookFnSet<any, any[], any, any>]>()
 
 const invokeHooks = <T, A extends unknown[], R, U = unknown>(ctx: CallContext<T, A, R, U>, hooks: HookFnSet<T, A, R, U>, result: HookResult): HookResult => {
   if (hooks.size === 0 || (result & 0x0F) === HookResult.EXECUTION_THROW) return result
@@ -65,10 +66,12 @@ export default class Hook<T, A extends unknown[], R, U = unknown> {
   public readonly hooks!: [pre: HookFnSet<T, A, R, U>, main: HookFnSet<T, A, R, U>, post: HookFnSet<T, A, R, U>]
 
   public constructor(origin: OriginFn<T, A, R>, isShared = true) {
-    let hooks = isShared ? activeHookMap.get(origin as OriginFn) : null
+    origin = (origin as OriginFn<T, A, R> & { [ProxyOriginSymbol]?: OriginFn<T, A, R> })[ProxyOriginSymbol] ?? origin
+
+    let hooks = isShared ? sharedHooksMap.get(origin as OriginFn) : null
     if (hooks == null) {
       hooks = [new Set(), new Set(), new Set()]
-      if (isShared) activeHookMap.set(origin as OriginFn, hooks)
+      if (isShared) sharedHooksMap.set(origin as OriginFn, hooks)
     }
 
     const { install, uninstall } = this
@@ -79,6 +82,12 @@ export default class Hook<T, A extends unknown[], R, U = unknown> {
       install: install.bind(this),
       uninstall: uninstall.bind(this),
       call: new Proxy(origin, {
+        has(target, p) {
+          return p === ProxyOriginSymbol || Reflect.has(target, p)
+        },
+        get(target, p, receiver) {
+          return p === ProxyOriginSymbol ? origin : Reflect.get(target, p, receiver)
+        },
         apply(origin, self: T, args: A) {
           const ctx: CallContext<T, A, R, U> = {
             origin,
@@ -111,7 +120,7 @@ export default class Hook<T, A extends unknown[], R, U = unknown> {
   }
 }
 
-if (!activeHookMap.has(Function.prototype.bind as OriginFn)) {
+if (ProxyOriginSymbol in Function.prototype.bind) {
   Function.prototype.bind = new Hook(Function.prototype.bind).install(ctx => { // NOSONAR
     const fn = ctx.origin.apply(ctx.self, ctx.args)
     defineProperty(fn, BoundTargetSymbol, { enumerable: false, value: ctx.self })
