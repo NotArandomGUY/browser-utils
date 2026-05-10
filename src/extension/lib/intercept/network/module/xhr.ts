@@ -339,7 +339,7 @@ class InterceptXMLHttpRequest extends XMLHttpRequest {
     if (object != null) return object as T
 
     object = callback()
-    if (this[kiReadyState] > 3) this[kiResponseObject] = object
+    if (typeof object === 'object' && this[kiReadyState] > 3) this[kiResponseObject] = object
 
     return object as T
   }
