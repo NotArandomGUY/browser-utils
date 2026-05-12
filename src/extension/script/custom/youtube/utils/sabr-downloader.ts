@@ -276,11 +276,12 @@ export default class SabrDownloader {
         if (segment.buffering) format.segments.splice(format.segments.indexOf(segment), 1)
       },
       [UMPSliceType.NEXT_REQUEST_POLICY]: (data) => {
-        const { targetAudioReadaheadMs, targetVideoReadaheadMs, backoffTimeMs, playbackCookie } = new UMPNextRequestPolicy().deserialize(data)
+        const { targetAudioReadaheadMs, targetVideoReadaheadMs, backoffTimeMs, minAudioReadaheadMs, minVideoReadaheadMs, playbackCookie } = new UMPNextRequestPolicy().deserialize(data)
 
         this.playbackCookie_ = playbackCookie
         this.backoffUntil_ = Date.now() + (backoffTimeMs ?? 0)
-        this.readaheadMs_ = max(targetAudioReadaheadMs ?? 0, targetVideoReadaheadMs ?? 0)
+        this.minReadaheadMs_ = max(minAudioReadaheadMs ?? 0, minVideoReadaheadMs ?? 0)
+        this.maxReadaheadMs_ = max(targetAudioReadaheadMs ?? 0, targetVideoReadaheadMs ?? 0)
       },
       [UMPSliceType.SABR_REDIRECT]: (data) => {
         this.baseUrl_ = bufferToString(data, 'utf8')
@@ -388,7 +389,8 @@ export default class SabrDownloader {
   private playbackTime_ = 0
   private playbackCookie_: InstanceType<typeof PlaybackCookie> | null = null
   private backoffUntil_ = 0
-  private readaheadMs_ = 0
+  private minReadaheadMs_ = 0
+  private maxReadaheadMs_ = 0
   private baseUrl_: string
   private poToken_: Uint8Array<ArrayBuffer> | null = null
   private timer_: ReturnType<typeof setInterval> | null = null
@@ -485,19 +487,22 @@ export default class SabrDownloader {
   }
 
   private async update_(): Promise<void> {
-    const { mutex_, selectedFormats_, durationMs_, backoffUntil_, readaheadMs_ } = this
+    const { mutex_, selectedFormats_, durationMs_, backoffUntil_, minReadaheadMs_, maxReadaheadMs_ } = this
 
     if (mutex_.isLocked) return
 
     await mutex_.lock()
     try {
       const bufferStartMs = this.getPlayerTimeMs_()
-      const bufferEndMs = bufferStartMs + readaheadMs_
+      const bufferMinEndMs = bufferStartMs + minReadaheadMs_
+      const bufferMaxEndMs = bufferStartMs + maxReadaheadMs_
 
-      const buffering = selectedFormats_.some(f => f.getBufferAt_(PositionType.TIME, bufferStartMs, bufferEndMs) == null)
-      this.setPlaybackState_(buffering)
+      const waitingMinReadahead = selectedFormats_.some(f => f.getBufferAt_(PositionType.TIME, bufferStartMs, bufferMinEndMs) == null)
+      const waitingMaxReadahead = selectedFormats_.some(f => f.getBufferAt_(PositionType.TIME, bufferStartMs, bufferMaxEndMs) == null)
 
-      if (buffering) {
+      this.setPlaybackState_(waitingMinReadahead)
+
+      if (waitingMaxReadahead) {
         if (backoffUntil_ < Date.now()) await this.fetchSegments_()
         return
       }
