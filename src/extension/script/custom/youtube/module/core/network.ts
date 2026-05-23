@@ -77,6 +77,9 @@ export interface YTInnertubeRequestPlaybackContext {
     supportsVp9Encoding: boolean
   }>
   prefetchPlaybackContext?: {}
+  reloadPlaybackContext?: Partial<{
+    reloadPlaybackParams: { token: string }
+  }>
 }
 
 type YTInnertubeRequestBase = {

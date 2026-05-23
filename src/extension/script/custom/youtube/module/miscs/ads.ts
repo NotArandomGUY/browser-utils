@@ -1,11 +1,10 @@
 import { registerYTValueFilter, registerYTValueProcessor, YTValueProcessorType } from '@ext/custom/youtube/api/processor'
 import { YTEndpoint, YTRenderer, YTResponse, YTValueData } from '@ext/custom/youtube/api/schema'
 import { registerYTInnertubeRequestProcessor } from '@ext/custom/youtube/module/core/network'
-import { getAllYTPInstance, YTPInstanceType } from '@ext/custom/youtube/module/player/bootstrap'
+import { YTPLAYER_RELOAD_ID, ytplayerCreateStreamingData } from '@ext/custom/youtube/module/player/network'
 import PlayerParams from '@ext/custom/youtube/proto/player-params'
 import { max, min } from '@ext/global/math'
 import { defineProperty } from '@ext/global/object'
-import { waitMs, waitUntil } from '@ext/lib/async'
 import { bufferFromString } from '@ext/lib/buffer'
 import { Feature } from '@ext/lib/feature'
 import InterceptDOM from '@ext/lib/intercept/dom'
@@ -70,20 +69,11 @@ const updatePlayerResponse = (data: YTValueData<YTResponse.Mapped<'player'>>): v
   }
   logger.debug('switching modifier mode:', modifierMode)
 
-  playabilityStatus.status = 'LIVE_STREAM_OFFLINE'
-  videoDetails!.isLive = true
-  data.heartbeatParams = { intervalMilliseconds: 'Infinity', maxRetries: '1' }
-  delete data.streamingData
-
-  waitMs(500).then(() => waitUntil(() => {
-    const player = getAllYTPInstance(YTPInstanceType.VIDEO_PLAYER).find(({ videoData }) => videoData?.videoId === videoId)
-    if (player == null) return false
-
-    logger.debug('reloading player', player)
-
-    player.publish?.('signatureexpired')
-    return true
-  }))
+  playabilityStatus.status = 'OK'
+  delete playabilityStatus.errorCode
+  delete playabilityStatus.errorScreen
+  delete playabilityStatus.reason
+  data.streamingData = ytplayerCreateStreamingData(YTPLAYER_RELOAD_ID)
 }
 
 const filterReel = (data: YTValueData<YTEndpoint.Mapped<'reelWatchEndpoint'>>): boolean => {

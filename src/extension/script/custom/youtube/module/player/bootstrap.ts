@@ -443,7 +443,13 @@ export default class YTPlayerBootstrapModule extends Feature {
     registerYTValueProcessor(YTRenderer.components.transportControlsAction, updateTransportControlsAction)
 
     registerYTInnertubeRequestProcessor('att/get', processInnertubeRequest.bind(null, false))
-    registerYTInnertubeRequestProcessor('player', processInnertubeRequest.bind(null, true))
+    registerYTInnertubeRequestProcessor('player', (request, headers) => {
+      const { playbackContext } = request
+
+      if (!playbackContext?.reloadPlaybackContext?.['reloadPlaybackParams']?.token) delete playbackContext?.reloadPlaybackContext
+
+      processInnertubeRequest(true, request, headers)
+    })
 
     addInterceptNetworkCallback(async ctx => {
       if (ctx.state === NetworkState.SUCCESS) await processResponse(ctx)

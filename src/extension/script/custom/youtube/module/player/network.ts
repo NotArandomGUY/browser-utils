@@ -1,4 +1,5 @@
 import { processYTResponse } from '@ext/custom/youtube/api/processor'
+import { YTRenderer, YTValueData } from '@ext/custom/youtube/api/schema'
 import { YTPlayerWebPlayerContextConfig } from '@ext/custom/youtube/module/core/bootstrap'
 import { YTPlayerContextConfigCallback } from '@ext/custom/youtube/module/player/bootstrap'
 import ClientAbrState from '@ext/custom/youtube/proto/gvs/common/client-abr-state'
@@ -15,15 +16,16 @@ import UMPMediaHeader from '@ext/custom/youtube/proto/gvs/ump/media-header'
 import UMPNextRequestPolicy from '@ext/custom/youtube/proto/gvs/ump/next-request-policy'
 import UMPOnesieHeader from '@ext/custom/youtube/proto/gvs/ump/onesie-header'
 import UMPPlaybackStartPolicy from '@ext/custom/youtube/proto/gvs/ump/playback-start-policy'
+import UMPReloadPlayerResponse from '@ext/custom/youtube/proto/gvs/ump/reload-player-response'
 import UMPSabrContextUpdate from '@ext/custom/youtube/proto/gvs/ump/sabr-context-update'
 import UMPSabrContextContentAds from '@ext/custom/youtube/proto/gvs/ump/sabr-context/content-ads'
 import UMPSabrError from '@ext/custom/youtube/proto/gvs/ump/sabr-error'
 import UMPSnackbarMessage from '@ext/custom/youtube/proto/gvs/ump/snackbar-message'
 import UMPStreamProtectionStatus from '@ext/custom/youtube/proto/gvs/ump/stream-protection-status'
-import { decryptOnesie, encryptOnesie } from '@ext/custom/youtube/utils/crypto'
-import { UMPContextManager, UMPSliceFlags } from '@ext/custom/youtube/utils/ump'
+import { decryptOnesie, encryptOnesie, getNonce } from '@ext/custom/youtube/utils/crypto'
+import { UMPContextManager, UMPSlice, UMPSliceFlags } from '@ext/custom/youtube/utils/ump'
 import { ytuiShowToast } from '@ext/custom/youtube/utils/ytui'
-import { ceil } from '@ext/global/math'
+import { ceil, random } from '@ext/global/math'
 import { assign, fromEntries } from '@ext/global/object'
 import { bufferFromString, bufferToString } from '@ext/lib/buffer'
 import { Feature } from '@ext/lib/feature'
@@ -34,6 +36,10 @@ const logger = new Logger('YTPLAYER-UMP', true)
 
 const BANDWIDTH_ESTIMATE_DELAY_MS = 5e3
 const UMP_PATHNAME_REGEXP = /^\/(init|video)playback$/
+const UMP_CONTENT_TYPE = 'application/vnd.yt-ump'
+const UMP_RELOAD_PLAYER_RESPONSE = new UMPSlice(UMPSliceType.RELOAD_PLAYER_RESPONSE, new UMPReloadPlayerResponse().serialize()).toBytes()
+
+export const YTPLAYER_RELOAD_ID = random().toString(36).slice(2)
 
 let onesieClientKeys: Uint8Array[] = []
 let onesieHeader: InstanceType<typeof UMPOnesieHeader> | null = null
@@ -190,9 +196,10 @@ const processOnesieInnertubeRequest = async (innertubeRequest: InstanceType<type
 
 const processRequest = async (ctx: NetworkRequestContext): Promise<void> => {
   const { url: { pathname, searchParams }, request } = ctx
+  const { id, expire } = fromEntries(searchParams.entries())
 
-  if (searchParams.has('expire')) {
-    const ttl = Number(searchParams.get('expire')) - (Date.now() / 1e3)
+  if (expire != null) {
+    const ttl = Number(expire) - (Date.now() / 1e3)
     if (isNaN(ttl) || ttl < 0 || ttl > 604800) {
       logger.debug('blocked invalid ump request from sending')
       assign<NetworkContext, NetworkContextState>(ctx, { state: NetworkState.SUCCESS, response: new Response(undefined, { status: 403 }) })
@@ -206,7 +213,6 @@ const processRequest = async (ctx: NetworkRequestContext): Promise<void> => {
     switch (pathname) {
       case '/initplayback': {
         const initPlaybackRequest = new InitPlaybackRequest().deserialize(body)
-
         logger.debug(`init playback request(${/*@__PURE__*/getPlaybackRequestId(searchParams)}):`, initPlaybackRequest)
 
         processClientAbrState(initPlaybackRequest.clientAbrState)
@@ -216,8 +222,9 @@ const processRequest = async (ctx: NetworkRequestContext): Promise<void> => {
         break
       }
       case '/videoplayback': {
-        const videoPlaybackRequest = new VideoPlaybackRequest().deserialize(body)
+        if (id === YTPLAYER_RELOAD_ID) throw new Response(UMP_RELOAD_PLAYER_RESPONSE, { status: 200, headers: { 'content-type': UMP_CONTENT_TYPE } })
 
+        const videoPlaybackRequest = new VideoPlaybackRequest().deserialize(body)
         logger.debug(`video playback request(${/*@__PURE__*/getPlaybackRequestId(searchParams)}):`, videoPlaybackRequest)
 
         processClientAbrState(videoPlaybackRequest.clientAbrState)
@@ -241,7 +248,7 @@ const processRequest = async (ctx: NetworkRequestContext): Promise<void> => {
 const processResponse = async (ctx: NetworkContext<unknown, NetworkState.SUCCESS>): Promise<void> => {
   const { url: { searchParams }, response: { status, headers, body } } = ctx
 
-  if (body == null || headers.get('content-type') !== 'application/vnd.yt-ump') return
+  if (body == null || headers.get('content-type') !== UMP_CONTENT_TYPE) return
 
   return new Promise((resolve: (() => void) | null) => {
     ctx.response = new Response(
@@ -268,6 +275,73 @@ const processResponse = async (ctx: NetworkContext<unknown, NetworkState.SUCCESS
     )
   })
 }
+
+export const ytplayerCreateStreamingData = (id: string): YTValueData<YTRenderer.Component<'playerStreamingData'>> => ({
+  formats: [
+    {
+      itag: 18,
+      mimeType: 'video/mp4; codecs="avc1.42001E, mp4a.40.2"',
+      bitrate: 16384,
+      width: 360,
+      height: 360,
+      lastModified: '0',
+      contentLength: "300",
+      quality: 'medium',
+      fps: 25,
+      qualityLabel: '360p',
+      projectionType: 'RECTANGULAR',
+      averageBitrate: 16384,
+      audioQuality: 'AUDIO_QUALITY_LOW',
+      approxDurationMs: '1000',
+      audioSampleRate: "44100",
+      audioChannels: 2,
+      qualityOrdinal: 'QUALITY_ORDINAL_360P'
+    }
+  ],
+  adaptiveFormats: [
+    {
+      itag: 394,
+      mimeType: 'video/mp4; codecs="av01.0.00M.08"',
+      bitrate: 8192,
+      width: 144,
+      height: 144,
+      initRange: { start: '0', end: '100' },
+      indexRange: { start: '100', end: '200' },
+      lastModified: '0',
+      contentLength: '300',
+      quality: 'tiny',
+      fps: 25,
+      qualityLabel: '144p',
+      projectionType: 'RECTANGULAR',
+      averageBitrate: 8192,
+      colorInfo: {
+        primaries: 'COLOR_PRIMARIES_BT709',
+        transferCharacteristics: 'COLOR_TRANSFER_CHARACTERISTICS_BT709',
+        matrixCoefficients: 'COLOR_MATRIX_COEFFICIENTS_BT709'
+      },
+      approxDurationMs: '1000',
+      qualityOrdinal: 'QUALITY_ORDINAL_144P'
+    },
+    {
+      itag: 140,
+      mimeType: 'audio/mp4; codecs="mp4a.40.2"',
+      bitrate: 1024,
+      initRange: { start: '0', end: '100' },
+      indexRange: { start: '100', end: '200' },
+      lastModified: '0',
+      contentLength: '300',
+      quality: 'tiny',
+      projectionType: 'RECTANGULAR',
+      averageBitrate: 1024,
+      audioQuality: 'AUDIO_QUALITY_MEDIUM',
+      approxDurationMs: '1000',
+      audioSampleRate: '44100',
+      audioChannels: 2,
+      qualityOrdinal: 'QUALITY_ORDINAL_UNKNOWN'
+    }
+  ],
+  serverAbrStreamingUrl: `https://rr1---sn-${getNonce(8).toLowerCase().replace(/[-_]/g, '0')}.googlevideo.com/videoplayback?id=${id}`
+})
 
 export default class YTPlayerNetworkModule extends Feature {
   public constructor() {
