@@ -290,7 +290,7 @@ const onCreateInstanceType = (type: YTPInstanceType, instance: YTPDisposableInst
   return instance
 }
 
-const onCreateInstanceGeneric = (instance: object): boolean => {
+const onCreateInstanceGeneric = (instance: object): void => {
   defineProperty(instance, 'logger', {
     configurable: true,
     set(value) {
@@ -305,8 +305,6 @@ const onCreateInstanceGeneric = (instance: object): boolean => {
       }
     }
   })
-
-  return true
 }
 
 const onCreateYTPlayerWithGlobal = (playerGlobal: Record<string, Function>): void => {
@@ -348,11 +346,9 @@ const onCreateYTPlayer = (container: HTMLElement): void => {
           baseCtor = fn
           result = HookResult.EXECUTION_CONTINUE
         }
+        if (fn === baseCtor) onCreateInstanceGeneric(instance)
 
-        if (fn !== baseCtor || onCreateInstanceGeneric(instance)) return result
-
-        Function.prototype.call = ctx.origin // NOSONAR
-        return HookResult.ACTION_UNINSTALL | result
+        return result
       }).call
     }
 

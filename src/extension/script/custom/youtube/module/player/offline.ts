@@ -1,6 +1,6 @@
 import { registerYTValueProcessor } from '@ext/custom/youtube/api/processor'
 import { YTCommon, YTEndpoint, YTResponse, YTValueData } from '@ext/custom/youtube/api/schema'
-import { YTKevlarMethodDefineCallback, YTPlayerCreateCallback } from '@ext/custom/youtube/module/core/bootstrap'
+import { YTKevlarMethodDefineCallback, YTKevlarProperty, YTPlayerCreateCallback } from '@ext/custom/youtube/module/core/bootstrap'
 import { decodeEntityKey, EntityType } from '@ext/custom/youtube/proto/entity-key'
 import { getNonce } from '@ext/custom/youtube/utils/crypto'
 import { getYTLocalEntitiesByType, getYTLocalEntityByKey, getYTLocalEntityByType, getYTLocalMediaIndex, putYTLocalEntity, YTLocalEntity, YTLocalMediaType } from '@ext/custom/youtube/utils/local'
@@ -13,8 +13,8 @@ import Logger from '@ext/lib/logger'
 
 const logger = new Logger('YTPLAYER-OFFLINE')
 
-const REDUX_METHOD_PATTERNS: [type: YTReduxMethodType, regexp: RegExp, filter?: (fn: Function) => boolean][] = [
-  [YTReduxMethodType.GetStore, /[a-zA-Z_$][\w$]+\|\|\([a-zA-Z_$][\w$]+=[a-zA-Z_$][\w$]+\(\)\);return [a-zA-Z_$][\w$]+/s, fn => 'store' in fn()],
+const REDUX_METHOD_PATTERNS: [type: YTReduxMethodType, regexp: RegExp, filter?: (method: Function) => boolean][] = [
+  [YTReduxMethodType.GetStore, /[a-zA-Z_$][\w$]+\|\|\([a-zA-Z_$][\w$]+=[a-zA-Z_$][\w$]+\(\)\);return [a-zA-Z_$][\w$]+/s, method => 'store' in method()],
   [YTReduxMethodType.GetAllDownloads, /playbackData.*?sort.*?streamDownloadTimestamp.*?map/s],
   [YTReduxMethodType.GetManualDownloads, /filter.*?downloadedVideoEntities.*?videoEntity.*?mainDownloadsListEntity.*?sort.*?addedTimestampMillis.*?map/s],
   [YTReduxMethodType.GetSmartDownloads, /sort.*?addedTimestampMillis.*?map.*?downloadedVideoEntities.*?filter.*?videoEntity/s]
@@ -27,7 +27,7 @@ const TRANSFER_DOWNLOAD_STATE_MAP = {
   'TRANSFER_STATE_TRANSFERRING': 'DOWNLOAD_STATE_DOWNLOAD_IN_PROGRESS'
 } satisfies Partial<Record<YTLocalEntity<EntityType.transfer>['data']['transferState'], YTLocalEntity<EntityType.downloadStatusEntity>['data']['downloadState']>>
 
-const delayedReduxMethodMatches: Array<[kevlar: Record<string, unknown>, name: string, fn: Function]> = []
+const reduxMethodCandidates: YTKevlarProperty<Function>[] = []
 const reduxCache = new Map<YTReduxMethodType, [key: string, value: unknown]>()
 
 const getReduxCacheKey = (entities?: YTReduxEntities): string => {
@@ -97,8 +97,8 @@ const syncVideoEntities = async (): Promise<void> => {
   }))
 }
 
-const matchReduxMethod = (kevlar: Record<string, unknown>, name: string, fn: Function, delayFilterExec = true): void => {
-  const body = String(fn)
+const matchReduxMethod = (kevlar: Record<string, unknown>, name: string, method: Function, delayFilterExec = true): void => {
+  const body = String(method)
 
   const pattern = REDUX_METHOD_PATTERNS.find(pattern => pattern[1].test(body))
   if (pattern == null) return
@@ -107,13 +107,13 @@ const matchReduxMethod = (kevlar: Record<string, unknown>, name: string, fn: Fun
 
   if (filter != null) {
     if (delayFilterExec) {
-      delayedReduxMethodMatches.push([kevlar, name, fn])
+      reduxMethodCandidates.push([kevlar, name, method])
       return
     }
-    if (!filter(fn)) return
+    if (!filter(method)) return
   }
 
-  defineYTReduxMethod(type, fn as (...args: unknown[]) => unknown)
+  defineYTReduxMethod(type, method as (...args: unknown[]) => unknown)
   switch (type) { // NOSONAR
     case YTReduxMethodType.GetStore:
       Promise.all([syncDownloadsListEntity(), syncVideoEntities()]).then(updateYTReduxStoreLocalEntities).catch(error => {
@@ -121,7 +121,7 @@ const matchReduxMethod = (kevlar: Record<string, unknown>, name: string, fn: Fun
       })
       break
     default:
-      kevlar[name] = new Hook(fn as (entities?: YTReduxEntities) => unknown).install(ctx => {
+      kevlar[name] = new Hook(method as (entities?: YTReduxEntities) => unknown).install(ctx => {
         const cacheKey = getReduxCacheKey(ctx.args[0])
 
         let cacheEntry = reduxCache.get(type)
@@ -166,7 +166,7 @@ export default class YTPlayerOfflineModule extends Feature {
 
   protected activate(): boolean {
     YTKevlarMethodDefineCallback.registerCallback(matchReduxMethod)
-    YTPlayerCreateCallback.registerCallback(() => delayedReduxMethodMatches.splice(0).forEach(args => matchReduxMethod(...args, false)))
+    YTPlayerCreateCallback.registerCallback(() => reduxMethodCandidates.splice(0).forEach(args => matchReduxMethod(...args, false)))
 
     registerYTValueProcessor(YTEndpoint.mapped.entityUpdateCommand, updateEntityUpdateCommand)
     registerYTValueProcessor(YTResponse.mapped.player, updatePlayerResponse)

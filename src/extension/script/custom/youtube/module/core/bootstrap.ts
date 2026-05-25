@@ -93,6 +93,8 @@ export interface YTInnertubeContext {
   }>
 }
 
+export type YTKevlarProperty<T = unknown> = [kevlar: Record<string, unknown>, name: string, value: T]
+
 export interface YTPlayerConfig {
   args?: Partial<{
     author: string
@@ -180,11 +182,16 @@ const APP_ELEMENT_PAGE_MAP: Record<string, YTInitDataResponse['page'] | false> =
   'ytlr-app': false,
   'yt-live-chat-app': 'live_chat'
 }
+const KEVLAR_CLASS_QUEUE_SIZE = 8
 
 export const YTConfigInitCallback = new Callback<[ytcfg: YTConfig]>()
-export const YTKevlarMethodDefineCallback = new Callback<[kevlar: Record<string, unknown>, name: string, fn: Function]>()
+export const YTKevlarPropertyDefineCallback = new Callback<YTKevlarProperty>()
+export const YTKevlarMethodDefineCallback = new Callback<YTKevlarProperty<Function>>()
+export const YTKevlarClassDefineCallback = new Callback<YTKevlarProperty<Function>>()
 export const YTPlayerCreateCallback = new Callback<[container: HTMLElement, config?: YTPlayerConfig, webPlayerContextConfig?: YTPlayerWebPlayerContextConfig]>()
 export const YTPolymerCreateCallback = new Callback<[instance: object]>()
+
+const kevlarClassQueue: YTKevlarProperty<Function>[] = []
 
 let environment: YTEnvironment
 let ytcfg: YTConfig
@@ -513,15 +520,24 @@ export default class YTCoreBootstrapModule extends Feature {
             writable: true,
             value: new Proxy(value, {
               set(target, p, newValue, receiver) {
-                if (typeof p === 'string' && typeof newValue === 'function') {
-                  YTKevlarMethodDefineCallback.invoke(target, p, newValue)
-                }
-                return Reflect.set(target, p, newValue, receiver)
+                const set = Reflect.set(target, p, newValue, receiver)
+                if (typeof p === 'string') YTKevlarPropertyDefineCallback.invoke(target, p, newValue)
+                return set
               }
             })
           })
         }
       }]))
+    })
+
+    // Process kevlar properties
+    YTKevlarPropertyDefineCallback.registerCallback((kevlar, name, value) => {
+      if (typeof value !== 'function') return
+
+      kevlarClassQueue.push([kevlar, name, value])
+      if (kevlarClassQueue.length > KEVLAR_CLASS_QUEUE_SIZE) YTKevlarClassDefineCallback.invoke(...kevlarClassQueue.shift()!)
+
+      YTKevlarMethodDefineCallback.invoke(kevlar, name, value)
     })
 
     // Override bootstrap loading functions
@@ -546,6 +562,9 @@ export default class YTCoreBootstrapModule extends Feature {
           return HookResult.EXECUTION_PASSTHROUGH
         }
 
+        // Complete pending kevlar properties processing on app initialize
+        kevlarClassQueue.splice(0).forEach(prop => YTKevlarClassDefineCallback.invoke(...prop))
+
         if (!page) return HookResult.EXECUTION_PASSTHROUGH
 
         processInitialData({ page, response: window.ytInitialData } as YTInitData)
@@ -555,7 +574,7 @@ export default class YTCoreBootstrapModule extends Feature {
         return HookResult.EXECUTION_CONTINUE
       }).call
 
-      return HookResult.EXECUTION_PASSTHROUGH | HookResult.ACTION_UNINSTALL
+      return HookResult.ACTION_UNINSTALL | HookResult.EXECUTION_PASSTHROUGH
     }).call
 
     registerOverlayPage('Device', YTDevicePage)
