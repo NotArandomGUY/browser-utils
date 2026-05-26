@@ -95,14 +95,19 @@ export interface YTInnertubeContext {
 
 export type YTKevlarProperty<T = unknown> = [kevlar: Record<string, unknown>, name: string, value: T]
 
-export interface YTKevlarProviderKey {
+export interface YTKevlarInjector {
+  addProvider(provider: YTKevlarProvider): void
+}
+
+export interface YTKevlarInjectionToken {
   name: string
 }
 
 export interface YTKevlarProvider {
-  provide: YTKevlarProviderKey
+  provide: YTKevlarInjectionToken | Function
   useClass?: Function
   useFactory?: () => unknown
+  useValue?: unknown
 }
 
 export interface YTPlayerConfig {
@@ -557,16 +562,16 @@ export default class YTCoreBootstrapModule extends Feature {
 
       kevlar[name] = new Hook(method as () => object).install(ctx => {
         const { origin, self, args } = ctx
+        const instance = origin.apply(self, args) as YTKevlarInjector
 
-        const instance = origin.apply(self, args)
+        if ('addProvider' in instance) {
+          instance.addProvider = new Hook(instance.addProvider).install(ctx => {
+            YTKevlarAddProviderCallback.invoke(ctx.args[0])
+            return HookResult.EXECUTION_PASSTHROUGH
+          }).call
+        }
+
         ctx.returnValue = instance
-        if (!('addProvider' in instance)) return HookResult.EXECUTION_CONTINUE
-
-        instance.addProvider = new Hook(instance.addProvider as (provider: YTKevlarProvider) => void).install(ctx => {
-          YTKevlarAddProviderCallback.invoke(ctx.args[0])
-          return HookResult.EXECUTION_PASSTHROUGH
-        }).call
-
         return HookResult.ACTION_UNINSTALL | HookResult.EXECUTION_CONTINUE
       }).call
     })
