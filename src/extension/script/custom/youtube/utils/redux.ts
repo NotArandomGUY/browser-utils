@@ -1,4 +1,5 @@
-import { getYTLocalEntities, ReverseEntityType, YTLocalEntityData } from '@ext/custom/youtube/utils/local'
+import { getDataSyncId, getYTLocalEntityByKey, getYTLocalEntityChanges, ReverseEntityType, YTLocalEntityData } from '@ext/custom/youtube/utils/local'
+import { values } from '@ext/global/object'
 
 export const enum YTReduxMethodType {
   GetStore,
@@ -41,13 +42,23 @@ export const invokeYTReduxMethod = <T extends YTReduxMethodType>(type: T, ...arg
 }
 
 export const updateYTReduxStoreLocalEntities = async (): Promise<void> => {
+  const changes = getYTLocalEntityChanges()
+  if (changes == null) return
+
   const store = invokeYTReduxMethod(YTReduxMethodType.GetStore)
-  if (store == null) throw new Error('invalid store')
+  if (store == null) {
+    new BroadcastChannel(`PERSISTENT_ENTITY_STORE_SYNC:${getDataSyncId()}`).postMessage(changes)
+    return
+  }
 
   const payload: Record<string, Record<string, YTLocalEntityData[keyof YTLocalEntityData]>> = {}
-  const entities = await getYTLocalEntities(true)
+  const entities = await Promise.all(values(changes).flat().map(key => getYTLocalEntityByKey<keyof YTLocalEntityData>(key, true)))
 
-  for (const { key, entityType, data } of entities) {
+  for (const entity of entities) {
+    if (entity == null) continue
+
+    const { key, entityType, data } = entity
+
     payload[entityType] ??= {}
     payload[entityType][key] = data
   }

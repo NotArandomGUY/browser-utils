@@ -95,6 +95,16 @@ export interface YTInnertubeContext {
 
 export type YTKevlarProperty<T = unknown> = [kevlar: Record<string, unknown>, name: string, value: T]
 
+export interface YTKevlarProviderKey {
+  name: string
+}
+
+export interface YTKevlarProvider {
+  provide: YTKevlarProviderKey
+  useClass?: Function
+  useFactory?: () => unknown
+}
+
 export interface YTPlayerConfig {
   args?: Partial<{
     author: string
@@ -182,12 +192,14 @@ const APP_ELEMENT_PAGE_MAP: Record<string, YTInitDataResponse['page'] | false> =
   'ytlr-app': false,
   'yt-live-chat-app': 'live_chat'
 }
+const KEVLAR_SINGLETON_REGEXP = /[a-zA-Z_$][\w$]+\|\|\([a-zA-Z_$][\w$]+=new\s+[a-zA-Z_$][\w$]+\);return [a-zA-Z_$][\w$]+/s
 const KEVLAR_CLASS_QUEUE_SIZE = 8
 
 export const YTConfigInitCallback = new Callback<[ytcfg: YTConfig]>()
 export const YTKevlarPropertyDefineCallback = new Callback<YTKevlarProperty>()
 export const YTKevlarMethodDefineCallback = new Callback<YTKevlarProperty<Function>>()
 export const YTKevlarClassDefineCallback = new Callback<YTKevlarProperty<Function>>()
+export const YTKevlarAddProviderCallback = new Callback<[provider: YTKevlarProvider]>()
 export const YTPlayerCreateCallback = new Callback<[container: HTMLElement, config?: YTPlayerConfig, webPlayerContextConfig?: YTPlayerWebPlayerContextConfig]>()
 export const YTPolymerCreateCallback = new Callback<[instance: object]>()
 
@@ -538,6 +550,25 @@ export default class YTCoreBootstrapModule extends Feature {
       if (kevlarClassQueue.length > KEVLAR_CLASS_QUEUE_SIZE) YTKevlarClassDefineCallback.invoke(...kevlarClassQueue.shift()!)
 
       YTKevlarMethodDefineCallback.invoke(kevlar, name, value)
+    })
+    YTKevlarMethodDefineCallback.registerCallback((kevlar, name, method) => {
+      const body = String(method)
+      if (!KEVLAR_SINGLETON_REGEXP.test(body)) return
+
+      kevlar[name] = new Hook(method as () => object).install(ctx => {
+        const { origin, self, args } = ctx
+
+        const instance = origin.apply(self, args)
+        ctx.returnValue = instance
+        if (!('addProvider' in instance)) return HookResult.EXECUTION_CONTINUE
+
+        instance.addProvider = new Hook(instance.addProvider as (provider: YTKevlarProvider) => void).install(ctx => {
+          YTKevlarAddProviderCallback.invoke(ctx.args[0])
+          return HookResult.EXECUTION_PASSTHROUGH
+        }).call
+
+        return HookResult.ACTION_UNINSTALL | HookResult.EXECUTION_CONTINUE
+      }).call
     })
 
     // Override bootstrap loading functions

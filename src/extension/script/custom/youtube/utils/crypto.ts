@@ -79,14 +79,6 @@ const encode = (key: string, chars: string, data: string[]): void => {
   })
 }
 
-const paddedBufferFromString = (data: string, size: number): Uint8Array<ArrayBuffer> => {
-  const buffer = new Uint8Array(size)
-  buffer.set(bufferFromString(data).subarray(0, size))
-  return buffer
-}
-
-const getEntityStoreKey = (): Uint8Array<ArrayBuffer> => paddedBufferFromString(ytcfg?.get('DATASYNC_ID') ?? '', 16)
-
 const getAesCtrCryptoKey = async (key: BufferSource | CryptoKey): Promise<CryptoKey> => {
   return key instanceof CryptoKey ? key : subtle.importKey('raw', key, AES128CTR_PARAMS, false, ['decrypt', 'encrypt'])
 }
@@ -202,12 +194,4 @@ export const encryptOnesie = async (content: Uint8Array<ArrayBuffer>, key: Uint8
   }
 
   return content
-}
-
-export const decryptEntityData = async (entityKey: string, entityData: BufferSource): Promise<Uint8Array<ArrayBuffer>> => {
-  return decryptAesCtr(getEntityStoreKey(), paddedBufferFromString(entityKey, 16), entityData)
-}
-
-export const encryptEntityData = async (entityKey: string, entityData: BufferSource): Promise<Uint8Array<ArrayBuffer>> => {
-  return encryptAesCtr(getEntityStoreKey(), paddedBufferFromString(entityKey, 16), entityData)
 }

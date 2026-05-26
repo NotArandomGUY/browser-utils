@@ -1,7 +1,8 @@
 import { YTCommon, YTEndpoint, YTRenderer, YTValueData } from '@ext/custom/youtube/api/schema'
 import { EntityType } from '@ext/custom/youtube/proto/entity-key'
-import { decryptAesCtr, decryptEntityData, encryptAesCtr, encryptEntityData, getNonce } from '@ext/custom/youtube/utils/crypto'
+import { decryptAesCtr, encryptAesCtr, getNonce } from '@ext/custom/youtube/utils/crypto'
 import { ceil } from '@ext/global/math'
+import { fromEntries } from '@ext/global/object'
 import { PromiseWithProgress, waitAllBatched } from '@ext/lib/async'
 import { bufferFromString, bufferToString } from '@ext/lib/buffer'
 import IndexedDB, { IndexedDBStoreDefinition } from '@ext/lib/idb'
@@ -195,8 +196,8 @@ export interface YTLocalMediaCaption {
   trackData: string
 }
 
-const PLAYER_LMS_KEY = 'yt-player-lv'
-const LOCAL_DATABASE_CONFIGS = [
+const PlayerLmsKey = 'yt-player-lv'
+const IDBConfigs = [
   {
     name: 'PersistentEntityStoreDb',
     stores: [
@@ -214,22 +215,55 @@ const LOCAL_DATABASE_CONFIGS = [
   }
 ] as const satisfies { name: string, stores: IndexedDBStoreDefinition[] }[]
 
-const getDataSyncId = (): string => {
+const changedEntityKeys = new Map<`${keyof typeof EntityType}`, Set<string>>()
+
+export const getDataSyncId = (): string => {
   const datasyncId = ytcfg?.get<string>('DATASYNC_ID')
   if (datasyncId == null) throw new Error('datasync id not set')
 
   return String(datasyncId)
 }
 
+const sizedBufferFromString = (data: string, size: number): Uint8Array<ArrayBuffer> => {
+  const buffer = new Uint8Array(size)
+  buffer.set(bufferFromString(data).subarray(0, size))
+  return buffer
+}
+
+const getEntityStoreKey = (): Uint8Array<ArrayBuffer> => {
+  return sizedBufferFromString(getDataSyncId(), 16)
+}
+
 const getPlayerLocalStorageKey = (key: string): string => {
   return `${getDataSyncId()}::yt-player::${key}`
 }
 
-const getLocalDataDB = <N extends number>(index: N): IndexedDB<typeof LOCAL_DATABASE_CONFIGS[N]['stores']> => {
-  const config = LOCAL_DATABASE_CONFIGS[index]
+const getLocalDataDB = <N extends number>(index: N): IndexedDB<typeof IDBConfigs[N]['stores']> => {
+  const config = IDBConfigs[index]
   if (config == null) throw new Error('database config not found')
 
   return new IndexedDB(`${config.name}:${getDataSyncId()}`, config.stores)
+}
+
+const addChangedEntity = (entity: YTLocalEntity): YTLocalEntity => {
+  const { key, entityType } = entity
+
+  let keys = changedEntityKeys.get(entityType)
+  if (keys == null) {
+    keys = new Set()
+    changedEntityKeys.set(entityType, keys)
+  }
+  keys.add(key)
+
+  return entity
+}
+
+const encryptEntityData = async (entityKey: string, entityData: BufferSource): Promise<Uint8Array<ArrayBuffer>> => {
+  return encryptAesCtr(getEntityStoreKey(), sizedBufferFromString(entityKey, 16), entityData)
+}
+
+const decryptEntityData = async (entityKey: string, entityData: BufferSource): Promise<Uint8Array<ArrayBuffer>> => {
+  return decryptAesCtr(getEntityStoreKey(), sizedBufferFromString(entityKey, 16), entityData)
 }
 
 const encodeYTLocalEntity = async <T extends keyof YTLocalEntityData | void>(entity: YTLocalEntity<T>, encrypt: T extends void ? false : true): Promise<YTLocalEntity> => {
@@ -262,13 +296,13 @@ export const openYTLocalImageCache = async (): Promise<Cache> => {
   return caches.open(`yt-player-local-img:${getDataSyncId()}`)
 }
 
-export const getYTLocalMediaStorage = (): Record<string, number> => {
-  try {
-    const data = JSON.parse(localStorage.getItem(getPlayerLocalStorageKey(PLAYER_LMS_KEY)) ?? '{}')?.data
-    return JSON.parse(data ?? '{}') ?? {}
-  } catch {
-    return {}
-  }
+export const getYTLocalEntityChanges = (): Record<string, string[]> | null => {
+  if (changedEntityKeys.size === 0) return null
+
+  const entries = Array.from(changedEntityKeys.entries())
+  changedEntityKeys.clear()
+
+  return fromEntries(entries.map(([key, value]) => [key, Array.from(value.values())]))
 }
 
 export const getYTLocalEntityByType = async <T extends keyof YTLocalEntityData | void = void>(entityType: T extends void ? EntityType : T, decrypt: T extends void ? false : true): Promise<YTLocalEntity<T> | null> => {
@@ -374,11 +408,20 @@ export const getYTLocalMediaChunks = (
   }
 })
 
+export const getYTLocalMediaStorage = (): Record<string, number> => {
+  try {
+    const data = JSON.parse(localStorage.getItem(getPlayerLocalStorageKey(PlayerLmsKey)) ?? '{}')?.data
+    return JSON.parse(data ?? '{}') ?? {}
+  } catch {
+    return {}
+  }
+}
+
 export const putYTLocalEntity = async <T extends keyof YTLocalEntityData | void = void>(entity: YTLocalEntity<T>, encrypt: T extends void ? false : true): Promise<void> => {
   const encodedEntity = await encodeYTLocalEntity(entity, encrypt)
 
   await getLocalDataDB(0).transaction('EntityStore', trans => {
-    return trans.objectStore('EntityStore').put(encodedEntity)
+    return trans.objectStore('EntityStore').put(addChangedEntity(encodedEntity))
   })
 }
 
@@ -387,7 +430,7 @@ export const putYTLocalEntities = async <T extends keyof YTLocalEntityData | voi
 
   await getLocalDataDB(0).transaction('EntityStore', trans => {
     const store = trans.objectStore('EntityStore')
-    return Promise.all(encodedEntities.map(encodedEntity => store.put(encodedEntity)))
+    return Promise.all(encodedEntities.map(encodedEntity => store.put(addChangedEntity(encodedEntity))))
   })
 }
 
@@ -412,7 +455,7 @@ export const putYTLocalMediaCaptions = async (id: string, captions: YTLocalMedia
 export const putYTLocalMediaStream = (index: YTLocalMediaIndex, reader: YTLocalMediaChunkReader, transforms: YTLocalMediaChunkTransform[] = []) => new PromiseWithProgress<void, number>(async (resolve, reject, progress) => {
   const transactions: string[] = []
 
-  let db: IndexedDB<typeof LOCAL_DATABASE_CONFIGS[1]['stores']> | null = null
+  let db: IndexedDB<typeof IDBConfigs[1]['stores']> | null = null
 
   try {
     db = getLocalDataDB(1)
@@ -499,7 +542,7 @@ export const putYTLocalMediaStream = (index: YTLocalMediaIndex, reader: YTLocalM
 })
 
 export const setYTLocalMediaStorage = (data: Record<string, number>): void => {
-  localStorage.setItem(getPlayerLocalStorageKey(PLAYER_LMS_KEY), JSON.stringify({
+  localStorage.setItem(getPlayerLocalStorageKey(PlayerLmsKey), JSON.stringify({
     creation: Date.now(),
     data: JSON.stringify(data)
   }))

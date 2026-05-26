@@ -1,6 +1,6 @@
 import { registerYTValueProcessor } from '@ext/custom/youtube/api/processor'
 import { YTCommon, YTEndpoint, YTResponse, YTValueData } from '@ext/custom/youtube/api/schema'
-import { YTKevlarMethodDefineCallback, YTKevlarProperty, YTPlayerCreateCallback } from '@ext/custom/youtube/module/core/bootstrap'
+import { YTKevlarAddProviderCallback, YTKevlarMethodDefineCallback, YTKevlarProperty, YTPlayerCreateCallback } from '@ext/custom/youtube/module/core/bootstrap'
 import { decodeEntityKey, EntityType } from '@ext/custom/youtube/proto/entity-key'
 import { getNonce } from '@ext/custom/youtube/utils/crypto'
 import { getYTLocalEntitiesByType, getYTLocalEntityByKey, getYTLocalEntityByType, getYTLocalMediaIndex, putYTLocalEntity, YTLocalEntity, YTLocalMediaType } from '@ext/custom/youtube/utils/local'
@@ -114,27 +114,21 @@ const matchReduxMethod = (kevlar: Record<string, unknown>, name: string, method:
   }
 
   defineYTReduxMethod(type, method as (...args: unknown[]) => unknown)
-  switch (type) { // NOSONAR
-    case YTReduxMethodType.GetStore:
-      Promise.all([syncDownloadsListEntity(), syncVideoEntities()]).then(updateYTReduxStoreLocalEntities).catch(error => {
-        logger.warn('sync entities error:', error)
-      })
-      break
-    default:
-      kevlar[name] = new Hook(method as (entities?: YTReduxEntities) => unknown).install(ctx => {
-        const cacheKey = getReduxCacheKey(ctx.args[0])
 
-        let cacheEntry = reduxCache.get(type)
-        if (cacheEntry?.[0] !== cacheKey) {
-          cacheEntry = [cacheKey, ctx.origin.apply(ctx.self, ctx.args)]
-          reduxCache.set(type, cacheEntry)
-        }
+  if (type === YTReduxMethodType.GetStore) return
 
-        ctx.returnValue = cacheEntry[1]
-        return HookResult.EXECUTION_CONTINUE
-      }).call
-      break
-  }
+  kevlar[name] = new Hook(method as (entities?: YTReduxEntities) => unknown).install(ctx => {
+    const cacheKey = getReduxCacheKey(ctx.args[0])
+
+    let cacheEntry = reduxCache.get(type)
+    if (cacheEntry?.[0] !== cacheKey) {
+      cacheEntry = [cacheKey, ctx.origin.apply(ctx.self, ctx.args)]
+      reduxCache.set(type, cacheEntry)
+    }
+
+    ctx.returnValue = cacheEntry[1]
+    return HookResult.EXECUTION_CONTINUE
+  }).call
 }
 
 const updateEntityUpdateCommand = (data: YTValueData<YTEndpoint.Mapped<'entityUpdateCommand'>>): void => {
@@ -166,7 +160,25 @@ export default class YTPlayerOfflineModule extends Feature {
 
   protected activate(): boolean {
     YTKevlarMethodDefineCallback.registerCallback(matchReduxMethod)
-    YTPlayerCreateCallback.registerCallback(() => reduxMethodCandidates.splice(0).forEach(args => matchReduxMethod(...args, false)))
+    YTKevlarAddProviderCallback.registerCallback(({ provide, useClass }) => {
+      const prototype = useClass?.prototype
+      if (!provide.name.includes('DOWNLOAD') || prototype == null) return
+
+      const isEligible = prototype.isEligible
+      if (!String(isEligible).includes('LOGGED_IN')) return
+
+      prototype.isEligible = new Hook(isEligible as () => boolean).install(ctx => {
+        ctx.returnValue = true
+        return HookResult.EXECUTION_CONTINUE
+      }).call
+    })
+    YTPlayerCreateCallback.registerCallback(() => {
+      reduxMethodCandidates.splice(0).forEach(args => matchReduxMethod(...args, false))
+
+      Promise.all([syncDownloadsListEntity(), syncVideoEntities()]).then(updateYTReduxStoreLocalEntities).catch(error => {
+        logger.warn('sync entities error:', error)
+      })
+    })
 
     registerYTValueProcessor(YTEndpoint.mapped.entityUpdateCommand, updateEntityUpdateCommand)
     registerYTValueProcessor(YTResponse.mapped.player, updatePlayerResponse)
