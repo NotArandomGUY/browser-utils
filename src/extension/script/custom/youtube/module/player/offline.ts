@@ -162,15 +162,9 @@ export default class YTPlayerOfflineModule extends Feature {
     YTKevlarMethodDefineCallback.registerCallback(matchReduxMethod)
     YTKevlarAddProviderCallback.registerCallback(({ provide, useClass }) => {
       const prototype = useClass?.prototype
-      if (!provide.name.includes('DOWNLOAD') || prototype == null) return
+      if (!provide.name.startsWith('DOWNLOAD_') || prototype == null) return
 
-      const isEligible = prototype.isEligible
-      if (!String(isEligible).includes('LOGGED_IN')) return
-
-      prototype.isEligible = new Hook(isEligible as () => boolean).install(ctx => {
-        ctx.returnValue = true
-        return HookResult.EXECUTION_CONTINUE
-      }).call
+      prototype.isEligible = () => true
     })
     YTPlayerCreateCallback.registerCallback(() => {
       reduxMethodCandidates.splice(0).forEach(args => matchReduxMethod(...args, false))
