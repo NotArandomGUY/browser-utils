@@ -16,9 +16,8 @@ const filterEmojiPickerUpsellCategoryRenderer = (data: YTValueData<YTRenderer.Ma
 }
 
 const updateEmojiPickerRenderer = (data: YTValueData<YTRenderer.Mapped<'emojiPickerRenderer'>>): void => {
-  const { categories } = data
-
-  if (!Array.isArray(categories)) return
+  const categories = data.categories
+  if (categories == null) return
 
   for (const [categoryId, emojis] of emojiCache) {
     if (categories.some(({ emojiPickerCategoryRenderer }) => emojiPickerCategoryRenderer?.categoryId === categoryId)) continue

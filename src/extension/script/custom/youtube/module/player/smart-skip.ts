@@ -279,7 +279,7 @@ const addMarkerMutationFromSegmentEntry = (mutations: YTValueData<YTEndpoint.Com
   // Merge overlapping markers to the same segment
   for (const mutation of mutations) {
     const snappingData = mutation.payload?.macroMarkersListEntity?.markersList?.markersMetadata?.timestampMarkerMetadata?.snappingData
-    if (!Array.isArray(snappingData)) continue
+    if (snappingData == null) continue
 
     for (const marker of snappingData) {
       const { startMediaTimeMs, endMediaTimeMs } = marker
@@ -432,7 +432,7 @@ const updateNextResponse = async (data: YTValueData<YTResponse.Mapped<'next'>>):
   data.frameworkUpdates.entityBatchUpdate ??= {}
 
   let mutations = data.frameworkUpdates.entityBatchUpdate.mutations
-  if (!Array.isArray(mutations)) {
+  if (mutations == null) {
     mutations = []
     data.frameworkUpdates.entityBatchUpdate.mutations = mutations
   }

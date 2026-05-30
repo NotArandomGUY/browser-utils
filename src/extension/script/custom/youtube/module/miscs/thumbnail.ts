@@ -34,7 +34,7 @@ const testThumbnail = (src: string) => new Promise<boolean>(resolve => {
 
 const updateThumbnails = async (data?: YTValueData<YTRenderer.Component<'thumbnail'>>): Promise<void> => {
   const thumbnails = data?.thumbnails
-  if (!Array.isArray(thumbnails)) return
+  if (thumbnails == null) return
 
   for (const thumbnail of thumbnails) {
     const { url } = thumbnail

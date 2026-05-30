@@ -133,7 +133,7 @@ const matchReduxMethod = (kevlar: Record<string, unknown>, name: string, method:
 
 const updateEntityUpdateCommand = (data: YTValueData<YTEndpoint.Mapped<'entityUpdateCommand'>>): void => {
   const mutations = data.entityBatchUpdate?.mutations
-  if (!Array.isArray(mutations)) return
+  if (mutations == null) return
 
   for (const mutation of mutations) {
     const policy = mutation?.payload?.offlineVideoPolicy

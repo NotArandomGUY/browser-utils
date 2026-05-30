@@ -17,7 +17,7 @@ const stopControlEvent = (event: Event): void => {
 }
 
 const createArrayFilter = <K extends string>(key: K): (data: { [P in K]?: unknown[] }) => boolean => {
-  return data => Array.isArray(data[key]) && data[key].length > 0
+  return data => data[key] != null && data[key].length > 0
 }
 
 const createObjectFilter = <K extends string>(key: K): (data: { [P in K]?: Record<string, unknown> }) => boolean => {

@@ -384,7 +384,7 @@ const processVideoOwnerRenderer = (data: YTValueData<YTRenderer.Mapped<'videoOwn
 
 const updateVideoPrimaryInfoRenderer = (data: YTValueData<YTRenderer.Mapped<'videoPrimaryInfoRenderer'>>): void => {
   const items = data.videoActions?.menuRenderer?.flexibleItems
-  if (!Array.isArray(items) || downloadButtonContext == null) return
+  if (items == null || downloadButtonContext == null) return
 
   let item = items.find(item => item.menuFlexibleItemRenderer?.topLevelButton?.downloadButtonRenderer != null)
   if (item != null) return
@@ -432,7 +432,7 @@ const updatePlayerResponse = (data: YTValueData<YTResponse.Mapped<'player'>>): v
   if (videoId == null || playabilityStatus?.status !== 'OK' || videoDetails?.isLive) return
 
   const mutations = frameworkUpdates?.entityBatchUpdate?.mutations
-  if (!Array.isArray(mutations)) return
+  if (mutations == null) return
 
   const entity = mutations.map(mutation => mutation.payload?.offlineabilityEntity).find(entity => entity != null)
   if (entity?.key == null || entity.offlineabilityRenderer != null) return
