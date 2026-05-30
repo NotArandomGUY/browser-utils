@@ -1063,7 +1063,7 @@ export const guideSubscriptionsSectionRenderer = ytv_ren(() => ({
   formattedTitle: components.text,
   handlerDatas: ytv_arr(ytv_str(['GUIDE_ACTION_ADD_TO_SUBSCRIPTIONS', 'GUIDE_ACTION_REMOVE_FROM_SUBSCRIPTIONS'])),
   items: ytv_arr(ytv_ren()),
-  sort: ytv_str(['CHANNEL_ALPHABETICAL', 'CHANNEL_ALPHABETICAL'])
+  sort: ytv_str(['CHANNEL_ACTIVITY', 'CHANNEL_ALPHABETICAL', 'CHANNEL_RELEVANCE'])
 }))
 export const hintRenderer = ytv_ren(() => ({
   content: ytv_ren(),

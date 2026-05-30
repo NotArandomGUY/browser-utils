@@ -99,6 +99,9 @@ type YTInnertubeRequestMap = {
     playerRequest: YTInnertubeRequest<'player'>
     watchNextRequest: YTInnertubeRequest<'next'>
   }>
+  'guide': Partial<{
+    fetchLiveState: boolean
+  }>
   'next': Partial<{
     continuation: string
   }>
@@ -204,8 +207,8 @@ const processInnertubeRequest = async (endpoint: string, headers: Headers, reque
 
         response = await invokeProcessors(data, headers, processors)
 
-        await processInnertubeRequest('player', headers, data.playerRequest as YTInnertubeRequest)
-        await processInnertubeRequest('next', headers, data.watchNextRequest as YTInnertubeRequest)
+        await processInnertubeRequest('player', headers, data.playerRequest)
+        await processInnertubeRequest('next', headers, data.watchNextRequest)
         break
       }
       case 'player': {

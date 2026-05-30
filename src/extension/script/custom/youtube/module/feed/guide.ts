@@ -35,6 +35,30 @@ const filterGuideEntry = (data: YTValueData<YTRenderer.Mapped<'guideEntryRendere
   return isYTLoggedIn() || !['FEhistory', 'FElibrary', 'FEsubscriptions', 'SPaccount_overview', 'SPreport_history'].includes(browseId)
 }
 
+const updateGuideSubscriptionsSectionRenderer = (data: YTValueData<YTRenderer.Mapped<'guideSubscriptionsSectionRenderer'>>): void => {
+  const { items, sort } = data
+
+  if (items == null || sort !== 'CHANNEL_ACTIVITY') return
+
+  const header = items.shift()?.guideCollapsibleSectionEntryRenderer, footer = items.pop()?.guideCollapsibleEntryRenderer
+  if (header == null || footer?.expandableItems == null) return
+
+  const visibleItemCount = items.length
+  items.push(...footer.expandableItems)
+
+  let pinnedItemCount = 0
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i]
+    if (!item.guideEntryRenderer?.badges?.liveBroadcasting) continue
+
+    items.splice(pinnedItemCount++, 0, ...items.splice(i, 1))
+  }
+
+  footer.expandableItems = items.splice(visibleItemCount)
+  items.unshift({ guideCollapsibleSectionEntryRenderer: header })
+  items.push({ guideCollapsibleEntryRenderer: footer })
+}
+
 const updateGuideResponse = (data: YTValueData<YTResponse.Mapped<'guide'>>): void => {
   const { responseContext } = data
 
@@ -81,6 +105,7 @@ export default class YTFeedGuideModule extends Feature {
 
     registerYTValueFilter(YTRenderer.mapped.guideEntryRenderer, filterGuideEntry)
     registerYTValueFilter(YTRenderer.mapped.guideSigninPromoRenderer)
+    registerYTValueProcessor(YTRenderer.mapped.guideSubscriptionsSectionRenderer, updateGuideSubscriptionsSectionRenderer)
     registerYTValueProcessor(YTResponse.mapped.guide, updateGuideResponse)
 
     registerYTSignalActionHandler(YTEndpoint.enums.SignalActionType.SOFT_RELOAD_PAGE, reloadYTGuide)
