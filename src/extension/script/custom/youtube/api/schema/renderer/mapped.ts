@@ -1,5 +1,5 @@
 import { ytv_enp, ytv_ren, ytv_rvm } from '../define/extended'
-import { ytv_arr, ytv_bol, ytv_num, ytv_obj, ytv_sch, ytv_str, ytv_unk } from '../define/primitive'
+import { ytv_arr, ytv_bol, ytv_num, ytv_obj, ytv_sto, ytv_str, ytv_unk } from '../define/primitive'
 
 import * as common from '../common'
 import * as endpoint from '../endpoint'
@@ -23,11 +23,11 @@ export const textViewModel = ytv_rvm(() => ({
   alignment: ytv_str(['TEXT_ALIGNMENT_CENTER']),
   attachmentRuns: ytv_arr(ytv_ren({
     alignment: ytv_str(['ALIGNMENT_VERTICAL_CENTER']),
-    element: ytv_sch({
-      properties: ytv_sch({
-        layoutProperties: ytv_sch({
+    element: ytv_sto({
+      properties: ytv_sto({
+        layoutProperties: ytv_sto({
           height: components.dimensionValue,
-          margin: ytv_sch({
+          margin: ytv_sto({
             bottom: components.dimensionValue,
             left: components.dimensionValue,
             right: components.dimensionValue,
@@ -36,8 +36,8 @@ export const textViewModel = ytv_rvm(() => ({
           width: components.dimensionValue
         })
       }),
-      type: ytv_sch({
-        imageType: ytv_sch({
+      type: ytv_sto({
+        imageType: ytv_sto({
           image: components.image
         })
       })
@@ -48,19 +48,19 @@ export const textViewModel = ytv_rvm(() => ({
   commandRuns: ytv_arr(ytv_ren({
     length: ytv_num(),
     onTap: ytv_enp(),
-    onTapOptions: ytv_sch({
-      accessibilityInfo: ytv_sch({
+    onTapOptions: ytv_sto({
+      accessibilityInfo: ytv_sto({
         accessibilityLabel: ytv_str()
       })
     }),
     startIndex: ytv_num()
   })),
   decorationRuns: ytv_arr(ytv_ren({
-    textDecorator: ytv_sch({
-      highlightTextDecorator: ytv_sch({
+    textDecorator: ytv_sto({
+      highlightTextDecorator: ytv_sto({
         backgroundCornerRadius: ytv_num(),
         bottomPadding: ytv_num(),
-        highlightTextDecoratorExtensions: ytv_sch({
+        highlightTextDecoratorExtensions: ytv_sto({
           highlightTextDecoratorColorMapExtension: components.textViewModelColorMapExtension
         }),
         length: ytv_num(),
@@ -70,8 +70,8 @@ export const textViewModel = ytv_rvm(() => ({
   })),
   paragraphStyleRuns: ytv_arr(ytv_ren({
     length: ytv_num(),
-    listGroup: ytv_sch({
-      listItems: ytv_arr(ytv_sch({
+    listGroup: ytv_sto({
+      listItems: ytv_arr(ytv_sto({
         length: ytv_num(),
         listType: ytv_str(['LIST_TYPE_BULLET']),
         startIndex: ytv_num()
@@ -88,9 +88,9 @@ export const textViewModel = ytv_rvm(() => ({
     italic: ytv_bol(),
     length: ytv_num(),
     startIndex: ytv_num(),
-    styleRunExtensions: ytv_sch({
+    styleRunExtensions: ytv_sto({
       styleRunColorMapExtension: components.textViewModelColorMapExtension,
-      styleRunMentionExtension: ytv_sch({
+      styleRunMentionExtension: ytv_sto({
         channelId: ytv_str()
       })
     }),
@@ -221,18 +221,18 @@ export const offlineVideoData = ytv_ren({
 
 // Renderer
 export const aboutThisAdRenderer = ytv_ren(() => ({
-  url: ytv_sch({
+  url: ytv_sto({
     privateDoNotAccessOrElseTrustedResourceUrlWrappedValue: ytv_str()
   })
 }))
 export const aboveFeedAdLayoutRenderer = ytv_ren(() => ({
   adLayoutMetadata: components.adLayoutMetadata,
-  layoutExitNormalTriggers: ytv_arr(ytv_sch({
+  layoutExitNormalTriggers: ytv_arr(ytv_sto({
     id: ytv_str(),
-    layoutIdExitedTrigger: ytv_sch({
+    layoutIdExitedTrigger: ytv_sto({
       triggeringLayoutId: ytv_str()
     }),
-    onDifferentLayoutIdEnteredTrigger: ytv_sch({
+    onDifferentLayoutIdEnteredTrigger: ytv_sto({
       layoutType: ytv_str(enums.AdLayoutType)
     })
   })),
@@ -258,9 +258,9 @@ export const adHoverTextButtonRenderer = ytv_ren(() => ({
 }))
 export const adPlacementRenderer = ytv_ren(() => ({
   adSlotLoggingData: components.adSlotLoggingData,
-  config: ytv_sch({
-    adPlacementConfig: ytv_sch({
-      adTimeOffset: ytv_sch({
+  config: ytv_sto({
+    adPlacementConfig: ytv_sto({
+      adTimeOffset: ytv_sto({
         offsetEndMilliseconds: ytv_str(),
         offsetStartMilliseconds: ytv_str()
       }),
@@ -281,7 +281,7 @@ export const adPlayerOverlayRenderer = ytv_ren(() => ({
   visitAdvertiserText: components.text
 }))
 export const adSlotRenderer = ytv_ren(() => ({
-  adSlotMetadata: ytv_sch({
+  adSlotMetadata: ytv_sto({
     adSlotLoggingData: components.adSlotLoggingData,
     slotId: ytv_str(),
     slotPhysicalPosition: ytv_num(),
@@ -290,31 +290,31 @@ export const adSlotRenderer = ytv_ren(() => ({
     triggeringSourceLayoutId: ytv_str()
   }),
   enablePacfLoggingWeb: ytv_bol(),
-  fulfillmentContent: ytv_sch({
+  fulfillmentContent: ytv_sto({
     fulfilledLayout: ytv_ren()
   }),
-  slotEntryTrigger: ytv_sch({
+  slotEntryTrigger: ytv_sto({
     beforeContentVideoIdStartedTrigger: ytv_unk(),
     id: ytv_str(),
     layoutExitedForReasonTrigger: components.layoutExitedForReasonTrigger,
-    layoutIdEnteredTrigger: ytv_sch({
+    layoutIdEnteredTrigger: ytv_sto({
       triggeringLayoutId: ytv_str()
     })
   }),
-  slotExpirationTriggers: ytv_arr(ytv_sch({
+  slotExpirationTriggers: ytv_arr(ytv_sto({
     id: ytv_str(),
     layoutExitedForReasonTrigger: components.layoutExitedForReasonTrigger,
     onNewPlaybackAfterContentVideoIdTrigger: ytv_unk(),
-    slotIdExitedTrigger: ytv_sch({
+    slotIdExitedTrigger: ytv_sto({
       triggeringSlotId: ytv_str()
     })
   })),
-  slotFulfillmentTriggers: ytv_arr(ytv_sch({
+  slotFulfillmentTriggers: ytv_arr(ytv_sto({
     id: ytv_str(),
-    slotIdEnteredTrigger: ytv_sch({
+    slotIdEnteredTrigger: ytv_sto({
       triggeringSlotId: ytv_str()
     }),
-    slotIdScheduledTrigger: ytv_sch({
+    slotIdScheduledTrigger: ytv_sto({
       triggeringSlotId: ytv_str()
     })
   }))
@@ -402,7 +402,7 @@ export const cardCollectionRenderer = ytv_ren(() => ({
   onIconTapCommand: ytv_enp()
 }))
 export const cardRenderer = ytv_ren(() => ({
-  cueRanges: ytv_arr(ytv_sch({
+  cueRanges: ytv_arr(ytv_sto({
     endCardActiveMs: ytv_str(),
     iconAfterTeaserMs: ytv_str(),
     startCardActiveMs: ytv_str(),
@@ -443,7 +443,7 @@ export const channelRenderer = ytv_ren(() => ({
   shortBylineText: components.text,
   subscribeButton: ytv_ren(),
   subscriberCountText: components.text,
-  subscriptionButton: ytv_sch({
+  subscriptionButton: ytv_sto({
     subscribed: ytv_bol()
   }),
   thumbnail: components.thumbnail,
@@ -483,13 +483,13 @@ export const chipCloudRenderer = ytv_ren(() => ({
   horizontalScrollable: ytv_bol(),
   nextButton: ytv_ren(),
   previousButton: ytv_ren(),
-  style: ytv_sch({
+  style: ytv_sto({
     backgroundStyle: ytv_str(['CHIP_CLOUD_BACKGROUND_STYLE_UNKNOWN'])
   })
 }))
 export const cinematicContainerRenderer = ytv_ren(() => ({
-  config: ytv_sch({
-    animationConfig: ytv_sch({
+  config: ytv_sto({
+    animationConfig: ytv_sto({
       minImageUpdateIntervalMs: ytv_num(),
       crossfadeDurationMs: ytv_num(),
       crossfadeStartOffset: ytv_num(),
@@ -507,12 +507,12 @@ export const cinematicContainerRenderer = ytv_ren(() => ({
     maxBottomColorSourceHeight: ytv_num(),
     pageType: ytv_str(['CINEMATIC_CONTAINER_PAGE_TYPE_SHORTS']),
     settingOnByDefault: ytv_bol(),
-    watchFullscreenConfig: ytv_sch({
+    watchFullscreenConfig: ytv_sto({
       colorSourceWidthMultiplier: ytv_num(),
       colorSourceHeightMultiplier: ytv_num(),
       flatScrimColor: ytv_num(),
-      scrimGradientConfig: ytv_sch({
-        gradientColors: ytv_arr(ytv_sch({
+      scrimGradientConfig: ytv_sto({
+        gradientColors: ytv_arr(ytv_sto({
           darkThemeColor: ytv_num(),
           lightThemeColor: ytv_num(),
           startLocation: ytv_num()
@@ -527,7 +527,7 @@ export const cinematicContainerRenderer = ytv_ren(() => ({
       scrimHeightMultiplier: ytv_num()
     })
   }),
-  gradientColorConfig: ytv_arr(ytv_sch({
+  gradientColorConfig: ytv_arr(ytv_sto({
     darkThemeColor: ytv_num(),
     startLocation: ytv_num()
   })),
@@ -866,10 +866,10 @@ export const entityMetadataRenderer = ytv_ren(() => ({
 }))
 export const expandableMetadataRenderer = ytv_ren(() => ({
   collapseButton: ytv_ren(),
-  colorData: ytv_sch({
+  colorData: ytv_sto({
     darkColorPalette: ytv_obj(ytv_str(), ytv_num()),
     lightColorPalette: ytv_obj(ytv_str(), ytv_num()),
-    saturatedColorPalettes: ytv_sch({
+    saturatedColorPalettes: ytv_sto({
       darkThemePalette: ytv_obj(ytv_str(), ytv_num()),
       lightThemePalette: ytv_obj(ytv_str(), ytv_num())
     }),
@@ -878,7 +878,7 @@ export const expandableMetadataRenderer = ytv_ren(() => ({
   expandButton: ytv_ren(),
   expandedContent: ytv_ren(),
   expandedMenuFooter: ytv_ren(),
-  header: ytv_sch({
+  header: ytv_sto({
     collapsedLabel: components.text,
     collapsedLabelIcon: components.icon,
     collapsedThumbnail: components.thumbnail,
@@ -954,8 +954,8 @@ export const feedTabbedHeaderRenderer = ytv_ren(() => ({
 }))
 export const fusionSearchboxRenderer = ytv_ren(() => ({
   clearButton: ytv_ren(),
-  config: ytv_sch({
-    webSearchboxConfig: ytv_sch({
+  config: ytv_sto({
+    webSearchboxConfig: ytv_sto({
       focusSearchbox: ytv_bol(),
       hasOnscreenKeyboard: ytv_bol(),
       requestDomain: ytv_str(),
@@ -1003,7 +1003,7 @@ export const gridVideoRenderer = ytv_ren(() => ({
   thumbnail: components.thumbnail,
   thumbnailOverlays: ytv_arr(ytv_ren()),
   title: components.text,
-  upcomingEventData: ytv_sch({
+  upcomingEventData: ytv_sto({
     isReminderSet: ytv_bol(),
     startTime: ytv_str(),
     upcomingEventText: components.text
@@ -1034,11 +1034,11 @@ export const guideDownloadsEntryRenderer = ytv_ren(() => ({
 }))
 export const guideEntryRenderer = ytv_ren(() => ({
   accessibility: common.components.accessibility,
-  badges: ytv_sch({
+  badges: ytv_sto({
     liveBroadcasting: ytv_bol()
   }),
-  entryData: ytv_sch({
-    guideEntryData: ytv_sch({
+  entryData: ytv_sto({
+    guideEntryData: ytv_sto({
       guideEntryId: ytv_str()
     })
   }),
@@ -1068,15 +1068,15 @@ export const guideSubscriptionsSectionRenderer = ytv_ren(() => ({
 }))
 export const hintRenderer = ytv_ren(() => ({
   content: ytv_ren(),
-  dismissStrategy: ytv_sch({
+  dismissStrategy: ytv_sto({
     type: ytv_str(['DISMISS_ON_TAP_ONLY'])
   }),
   dwellTimeMs: ytv_str(),
-  hintCap: ytv_sch({
+  hintCap: ytv_sto({
     impressionCap: ytv_str()
   }),
   hintId: ytv_str(),
-  suggestedPosition: ytv_sch({
+  suggestedPosition: ytv_sto({
     type: ytv_str(['HINT_SUGGESTED_POSITION_TYPE_ABOVE', 'HINT_SUGGESTED_POSITION_TYPE_BELOW'])
   })
 }))
@@ -1087,7 +1087,7 @@ export const horizontalCardListRenderer = ytv_ren(() => ({
   header: ytv_ren(),
   nextButton: ytv_ren(),
   previousButton: ytv_ren(),
-  style: ytv_sch({
+  style: ytv_sto({
     type: ytv_str(['HORIZONTAL_CARD_LIST_STYLE_TYPE_ENGAGEMENT_PANEL_SECTION'])
   })
 }))
@@ -1122,9 +1122,9 @@ export const inFeedAdLayoutRenderer = ytv_ren(() => ({
 }))
 export const inPlayerAdLayoutRenderer = ytv_ren(() => ({
   adLayoutMetadata: components.adLayoutMetadata,
-  layoutExitNormalTriggers: ytv_arr(ytv_sch({
+  layoutExitNormalTriggers: ytv_arr(ytv_sto({
     id: ytv_str(),
-    layoutIdExitedTrigger: ytv_sch({
+    layoutIdExitedTrigger: ytv_sto({
       triggeringLayoutId: ytv_str()
     })
   })),
@@ -1140,7 +1140,7 @@ export const inlinePlaybackRenderer = ytv_ren(() => ({
 export const instreamVideoAdRenderer = ytv_ren(() => ({
   adLayoutLoggingData: components.adLayoutLoggingData,
   clickthroughEndpoint: ytv_enp(),
-  csiParameters: ytv_arr(ytv_sch({
+  csiParameters: ytv_arr(ytv_sto({
     key: ytv_str(),
     value: ytv_str()
   })),
@@ -1151,7 +1151,7 @@ export const instreamVideoAdRenderer = ytv_ren(() => ({
   pings: components.videoAdPings,
   playerVars: ytv_str(),
   skipOffsetMilliseconds: ytv_num(),
-  sodarExtensionData: ytv_sch({
+  sodarExtensionData: ytv_sto({
     bgp: ytv_str(),
     bgub: ytv_str(),
     scs: ytv_str(),
@@ -1187,7 +1187,7 @@ export const likeButtonRenderer = ytv_ren(() => ({
   likeStatusEntityKey: ytv_str(),
   likesAllowed: ytv_bol(),
   serviceEndpoints: ytv_arr(ytv_enp()),
-  target: ytv_sch({
+  target: ytv_sto({
     playlistId: ytv_str(),
     videoId: ytv_str()
   })
@@ -1226,7 +1226,7 @@ export const liveChatBannerPollRenderer = ytv_ren(() => ({
   contextMenuButton: ytv_ren(),
   contextMenuEndpoint: ytv_enp(),
   liveChatPollStateEntityKey: ytv_str(),
-  pollChoices: ytv_arr(ytv_sch({
+  pollChoices: ytv_arr(ytv_sto({
     pollOptionId: ytv_num(),
     text: components.text
   })),
@@ -1235,7 +1235,7 @@ export const liveChatBannerPollRenderer = ytv_ren(() => ({
 export const liveChatBannerRenderer = ytv_ren(() => ({
   actionId: ytv_str(),
   backgroundType: ytv_str(['LIVE_CHAT_BANNER_BACKGROUND_TYPE_SHIMMER_ANIMATION', 'LIVE_CHAT_BANNER_BACKGROUND_TYPE_STATIC']),
-  bannerProperties: ytv_sch({
+  bannerProperties: ytv_sto({
     autoCollapseDelay: common.components.highResTime,
     bannerCollapsedStateEntityKey: ytv_str()
   }),
@@ -1343,7 +1343,7 @@ export const liveChatPlaceholderItemRenderer = ytv_ren(() => ({
 export const liveChatRenderer = ytv_ren(() => ({
   actionPanel: ytv_ren(),
   actions: ytv_arr(ytv_enp()),
-  clientMessages: ytv_sch({
+  clientMessages: ytv_sto({
     fatalError: components.text,
     genericError: components.text,
     reconnectMessage: components.text,
@@ -1420,7 +1420,7 @@ export const liveChatTickerPaidMessageItemRenderer = ytv_ren(() => ({
   authorPhoto: components.thumbnail,
   authorUsername: components.text,
   durationSec: ytv_num(),
-  dynamicStateData: ytv_sch({
+  dynamicStateData: ytv_sto({
     emptyStateText: textViewModel,
     engagementStateEntityKey: ytv_str(),
     likeCountEntityKey: ytv_str(),
@@ -1475,7 +1475,7 @@ export const liveStreamOfflineSlateRenderer = ytv_ren(() => ({
 }))
 export const liveStreamabilityRenderer = ytv_ren(() => ({
   broadcastId: ytv_str(),
-  creatorRedirect: ytv_sch({
+  creatorRedirect: ytv_sto({
     hideAutoplayToggle: ytv_bol()
   }),
   displayEndscreen: ytv_bol(),
@@ -1534,7 +1534,7 @@ export const mediaLockupRenderer = ytv_ren(() => ({
   subtitle: components.text,
   thumbnailDetails: components.thumbnail,
   title: components.text,
-  uiTweaks: ytv_sch({
+  uiTweaks: ytv_sto({
     thumbnailHeight: ytv_num(),
     thumbnailWidth: ytv_num(),
     useZeroPadding: ytv_bol()
@@ -1627,7 +1627,7 @@ export const microformatDataRenderer = ytv_ren(() => ({
   familySafe: ytv_bol(),
   iosAppArguments: ytv_str(),
   iosAppStoreId: ytv_str(),
-  linkAlternates: ytv_arr(ytv_sch({
+  linkAlternates: ytv_arr(ytv_sto({
     hrefUrl: ytv_str()
   })),
   noindex: ytv_bol(),
@@ -1646,7 +1646,7 @@ export const microformatDataRenderer = ytv_ren(() => ({
   urlCanonical: ytv_str(),
   urlTwitterAndroid: ytv_str(),
   urlTwitterIos: ytv_str(),
-  videoDetails: ytv_sch({
+  videoDetails: ytv_sto({
     comments: ytv_arr(ytv_unk())
   })
 }))
@@ -1665,7 +1665,7 @@ export const movingThumbnailRenderer = ytv_ren(() => ({
   movingThumbnailDetails: components.thumbnail
 }))
 export const multiMarkersPlayerBarRenderer = ytv_ren(() => ({
-  markersMap: ytv_arr(ytv_sch({
+  markersMap: ytv_arr(ytv_sto({
     key: ytv_str(),
     value: ytv_ren({
       chapters: ytv_arr(ytv_ren()),
@@ -1673,7 +1673,7 @@ export const multiMarkersPlayerBarRenderer = ytv_ren(() => ({
       onChapterRepeat: ytv_enp()
     })
   })),
-  visibleOnLoad: ytv_sch({
+  visibleOnLoad: ytv_sto({
     key: ytv_str()
   })
 }))
@@ -1752,7 +1752,7 @@ export const notificationTopbarButtonRenderer = ytv_ren(() => ({
 export const offlineabilityRenderer = ytv_ren(() => ({
   addToOfflineButtonState: ytv_str(enums.AddToOfflineButtonState),
   contentCheckOk: ytv_bol(),
-  formats: ytv_arr(ytv_sch({
+  formats: ytv_arr(ytv_sto({
     approximateSize: components.text,
     availabilityType: ytv_str(enums.OfflineabilityAvailabilityType),
     formatType: ytv_str(common.enums.OfflineFormatType),
@@ -1843,8 +1843,8 @@ export const playerAnnotationsExpandedRenderer = ytv_ren(() => ({
   })
 }))
 export const playerAttestationRenderer = ytv_ren(() => ({
-  botguardData: ytv_sch({
-    interpreterSafeUrl: ytv_sch({
+  botguardData: ytv_sto({
+    interpreterSafeUrl: ytv_sto({
       privateDoNotAccessOrElseTrustedResourceUrlWrappedValue: ytv_str()
     }),
     program: ytv_str(),
@@ -1854,9 +1854,9 @@ export const playerAttestationRenderer = ytv_ren(() => ({
 }))
 export const playerBytesAdLayoutRenderer = ytv_ren(() => ({
   adLayoutMetadata: components.adLayoutMetadata,
-  layoutExitMuteTriggers: ytv_arr(ytv_sch({
+  layoutExitMuteTriggers: ytv_arr(ytv_sto({
     id: ytv_str(),
-    skipRequestedTrigger: ytv_sch({
+    skipRequestedTrigger: ytv_sto({
       triggeringLayoutId: ytv_str()
     })
   })),
@@ -1873,7 +1873,7 @@ export const playerBytesSequentialLayoutRenderer = ytv_ren(() => ({
   sequentialLayouts: ytv_arr(ytv_ren())
 }))
 export const playerCaptionsTracklistRenderer = ytv_ren(() => ({
-  audioTracks: ytv_arr(ytv_sch({
+  audioTracks: ytv_arr(ytv_sto({
     audioTrackId: ytv_str(),
     captionTrackIndices: ytv_arr(ytv_num()),
     captionsInitialState: ytv_str(['CAPTIONS_INITIAL_STATE_OFF_RECOMMENDED', 'CAPTIONS_INITIAL_STATE_ON_RECOMMENDED', 'CAPTIONS_INITIAL_STATE_ON_REQUIRED']),
@@ -1881,7 +1881,7 @@ export const playerCaptionsTracklistRenderer = ytv_ren(() => ({
     hasDefaultTrack: ytv_bol(),
     visibility: ytv_str(['ON', 'UNKNOWN'])
   })),
-  captionTracks: ytv_arr(ytv_sch({
+  captionTracks: ytv_arr(ytv_sto({
     baseUrl: ytv_str(),
     isTranslatable: ytv_bol(),
     kind: ytv_str(),
@@ -1892,7 +1892,7 @@ export const playerCaptionsTracklistRenderer = ytv_ren(() => ({
     vssId: ytv_str()
   })),
   defaultAudioTrackIndex: ytv_num(),
-  translationLanguages: ytv_arr(ytv_sch({
+  translationLanguages: ytv_arr(ytv_sto({
     languageCode: ytv_str(),
     languageName: components.text
   }))
@@ -1908,10 +1908,10 @@ export const playerErrorMessageRenderer = ytv_ren(() => ({
   thumbnail: components.thumbnail
 }))
 export const playerLegacyDesktopWatchAdsRenderer = ytv_ren(() => ({
-  gutParams: ytv_sch({
+  gutParams: ytv_sto({
     tag: ytv_str()
   }),
-  playerAdParams: ytv_sch({
+  playerAdParams: ytv_sto({
     enabledEngageTypes: ytv_str(),
     showContentThumbnail: ytv_bol()
   }),
@@ -1927,7 +1927,7 @@ export const playerMicroformatRenderer = ytv_ren(() => ({
   canonicalUrl: ytv_str(),
   category: ytv_str(),
   description: components.text,
-  embed: ytv_sch({
+  embed: ytv_sto({
     height: ytv_num(),
     iframeUrl: ytv_str(),
     width: ytv_num()
@@ -1940,7 +1940,7 @@ export const playerMicroformatRenderer = ytv_ren(() => ({
   isUnlisted: ytv_bol(),
   lengthSeconds: ytv_str(),
   likeCount: ytv_str(),
-  liveBroadcastDetails: ytv_sch({
+  liveBroadcastDetails: ytv_sto({
     endTimestamp: ytv_str(),
     isLiveNow: ytv_bol(),
     startTimestamp: ytv_str()
@@ -2050,7 +2050,7 @@ export const playlistPanelVideoRenderer = ytv_ren(() => ({
   videoId: ytv_str()
 }))
 export const playlistPanelVideoWrapperRenderer = ytv_ren(() => ({
-  counterpart: ytv_arr(ytv_sch({
+  counterpart: ytv_arr(ytv_sto({
     counterpartRenderer: ytv_ren()
   })),
   primaryRenderer: ytv_ren()
@@ -2104,7 +2104,7 @@ export const pollHeaderRenderer = ytv_ren(() => ({
   thumbnail: components.thumbnail
 }))
 export const pollRenderer = ytv_ren(() => ({
-  choices: ytv_arr(ytv_sch({
+  choices: ytv_arr(ytv_sto({
     selectServiceEndpoint: ytv_enp(),
     selected: ytv_bol(),
     text: components.text,
@@ -2220,7 +2220,7 @@ export const richGridRenderer = ytv_ren(() => ({
   header: ytv_ren(),
   layoutSizing: ytv_str(['RICH_GRID_LAYOUT_SIZING_STANDARD']),
   masthead: ytv_ren(),
-  reflowOptions: ytv_sch({
+  reflowOptions: ytv_sto({
     minimumRowsOfVideosAtStart: ytv_num(),
     minimumRowsOfVideosBetweenSections: ytv_num()
   }),
@@ -2229,21 +2229,21 @@ export const richGridRenderer = ytv_ren(() => ({
 }))
 export const richItemRenderer = ytv_ren(() => ({
   content: ytv_ren(),
-  onFocusEffect: ytv_sch({
-    onFocusColor: ytv_sch({
+  onFocusEffect: ytv_sto({
+    onFocusColor: ytv_sto({
       darkTheme: ytv_num(),
       lightTheme: ytv_num()
     }),
     onFocusStyle: ytv_str(['ON_FOCUS_STYLE_BACKGROUND']),
-    textPrimaryColor: ytv_sch({
+    textPrimaryColor: ytv_sto({
       darkTheme: ytv_num(),
       lightTheme: ytv_num()
     }),
-    textSecondaryColor: ytv_sch({
+    textSecondaryColor: ytv_sto({
       darkTheme: ytv_num(),
       lightTheme: ytv_num()
     }),
-    touchResponseColor: ytv_sch({
+    touchResponseColor: ytv_sto({
       darkTheme: ytv_num(),
       lightTheme: ytv_num()
     })
@@ -2275,12 +2275,12 @@ export const richShelfRenderer = ytv_ren(() => ({
   isExpanded: ytv_bol(),
   isTopDividerHidden: ytv_bol(),
   menu: ytv_ren(),
-  responsiveContainerConfiguration: ytv_sch({
+  responsiveContainerConfiguration: ytv_sto({
     enableContentSpecificAspectRatio: ytv_bol()
   }),
   showLessButton: ytv_ren(),
   showMoreButton: ytv_ren(),
-  targetingContext: ytv_sch({
+  targetingContext: ytv_sto({
     targetGroupId: ytv_arr(ytv_str()),
     targetId: ytv_str()
   }),
@@ -2333,7 +2333,7 @@ export const sectionListRenderer = ytv_ren(() => ({
   disablePullToRefresh: ytv_bol(),
   hack: ytv_bol(),
   hideBottomSeparator: ytv_bol(),
-  scrollPaneStyle: ytv_sch({
+  scrollPaneStyle: ytv_sto({
     scrollable: ytv_bol()
   }),
   subMenu: ytv_ren(),
@@ -2384,7 +2384,7 @@ export const shelfRenderer = ytv_ren(() => ({
   content: ytv_ren(),
   focusContent: ytv_bol(),
   headerRenderer: ytv_ren(),
-  headerStyle: ytv_sch({
+  headerStyle: ytv_sto({
     styleType: ytv_str(['INLINE_CHIPS'])
   }),
   playAllButton: ytv_ren(),
@@ -2393,8 +2393,8 @@ export const shelfRenderer = ytv_ren(() => ({
   thumbnail: components.thumbnail,
   title: components.text,
   tvhtml5ShelfRendererType: ytv_str(['TVHTML5_SHELF_RENDERER_TYPE_GRID']),
-  tvhtml5Style: ytv_sch({
-    effects: ytv_sch({
+  tvhtml5Style: ytv_sto({
+    effects: ytv_sto({
       enlarge: ytv_bol()
     })
   })
@@ -2409,16 +2409,16 @@ export const shoppingOverlayRenderer = ytv_ren(() => ({
   onClickCommand: ytv_enp(),
   productsData: ytv_arr(ytv_ren()),
   text: components.text,
-  timing: ytv_sch({
-    expanded: ytv_sch({
+  timing: ytv_sto({
+    expanded: ytv_sto({
       endSec: ytv_num(),
       startSec: ytv_num()
     }),
-    preview: ytv_sch({
+    preview: ytv_sto({
       endSec: ytv_num(),
       startSec: ytv_num()
     }),
-    visible: ytv_sch({
+    visible: ytv_sto({
       endSec: ytv_num(),
       startSec: ytv_num()
     }),
@@ -2451,7 +2451,7 @@ export const singleOptionSurveyRenderer = ytv_ren(() => ({
   question: components.text,
   showGfeedbackPrompt: ytv_bol(),
   surveyId: ytv_str(),
-  surveyOrientation: ytv_sch({
+  surveyOrientation: ytv_sto({
     type: ytv_str(['VERTICAL'])
   })
 }))
@@ -2537,7 +2537,7 @@ export const subscriptionNotificationToggleButtonRenderer = ytv_ren(() => ({
   notificationsLabel: components.text,
   onTapBehavior: ytv_str(['ON_TAP_BEHAVIOR_TOGGLE_ICON_WITH_INLINE_MENU']),
   secondaryIcon: components.icon,
-  states: ytv_arr(ytv_sch({
+  states: ytv_arr(ytv_sto({
     inlineMenuButton: ytv_ren(),
     nextStateId: ytv_num(),
     notificationState: ytv_str(['SUBSCRIPTION_NOTIFICATION_STATE_ALL', 'SUBSCRIPTION_NOTIFICATION_STATE_OCCASIONAL', 'SUBSCRIPTION_NOTIFICATION_STATE_OFF']),
@@ -2646,8 +2646,8 @@ export const toggleButtonRenderer = ytv_ren(() => ({
   style: components.style,
   targetId: ytv_str(),
   toggledAccessibilityData: common.components.accessibility,
-  toggleButtonSupportedData: ytv_sch({
-    toggleButtonIdData: ytv_sch({
+  toggleButtonSupportedData: ytv_sto({
+    toggleButtonIdData: ytv_sto({
       id: ytv_str(['TOGGLE_BUTTON_ID_TYPE_DISLIKE', 'TOGGLE_BUTTON_ID_TYPE_LIKE'])
     })
   }),
@@ -2742,7 +2742,7 @@ export const unlinkDevicesRenderer = ytv_ren(() => ({
 }))
 export const uploadTimeFactoidRenderer = ytv_ren(() => ({
   factoid: ytv_ren(),
-  uploadTimeEntity: ytv_sch({
+  uploadTimeEntity: ytv_sto({
     key: ytv_str()
   })
 }))
@@ -2800,7 +2800,7 @@ export const videoOwnerRenderer = ytv_ren(() => ({
   navigationEndpoint: ytv_enp(),
   subscribeButton: ytv_ren(),
   subscriberCountText: components.text,
-  subscriptionButton: ytv_sch({
+  subscriptionButton: ytv_sto({
     subscribed: ytv_bol(),
     type: ytv_str(['FREE'])
   }),
@@ -2841,7 +2841,7 @@ export const videoRenderer = ytv_ren(() => ({
   thumbnail: components.thumbnail,
   thumbnailOverlays: ytv_arr(ytv_ren()),
   title: components.text,
-  upcomingEventData: ytv_sch({
+  upcomingEventData: ytv_sto({
     isReminderSet: ytv_bol(),
     startTime: ytv_str(),
     upcomingEventText: components.text
@@ -2928,8 +2928,8 @@ export const watchNextEndScreenRenderer = ytv_ren(() => ({
   title: components.text
 }))
 export const youThereRenderer = ytv_ren(() => ({
-  configData: ytv_sch({
-    youThereData: ytv_sch({
+  configData: ytv_sto({
+    youThereData: ytv_sto({
       blockingPromptDelayMs: ytv_num(),
       lactServerRequestMs: ytv_str(),
       lactThresholdMs: ytv_str(),
@@ -2974,7 +2974,7 @@ export const adButtonViewModel = ytv_rvm(() => ({
   style: ytv_str(['AD_BUTTON_STYLE_FILLED'])
 }))
 export const adDetailsLineViewModel = ytv_rvm(() => ({
-  attributes: ytv_arr(ytv_sch({
+  attributes: ytv_arr(ytv_sto({
     text: textViewModel
   })),
   style: ytv_str(['AD_DETAILS_LINE_STYLE_STANDARD'])
@@ -2991,7 +2991,7 @@ export const adPreviewViewModel = ytv_rvm(() => ({
   durationMilliseconds: ytv_num(),
   interaction: components.adInteraction,
   previewImage: components.image,
-  previewText: ytv_sch({
+  previewText: ytv_sto({
     text: ytv_str(),
     isTemplated: ytv_bol()
   })
@@ -3014,7 +3014,7 @@ export const avatarViewModel = ytv_rvm(() => ({
   accessibilityText: ytv_str(),
   avatarImageSize: ytv_str(enums.AvatarSize),
   image: components.image,
-  liveData: ytv_sch({
+  liveData: ytv_sto({
     liveBadgeText: ytv_str()
   })
 }))
@@ -3023,13 +3023,13 @@ export const badgeViewModel = ytv_rvm(() => ({
   badgeText: ytv_str()
 }))
 export const basicContentViewModel = ytv_rvm(() => ({
-  paragraphs: ytv_arr(ytv_sch({
+  paragraphs: ytv_arr(ytv_sto({
     text: textViewModel
   }))
 }))
 export const bkaEnforcementMessageViewModel = ytv_rvm(() => ({
-  bulletList: ytv_sch({
-    bulletListItems: ytv_arr(ytv_sch({
+  bulletList: ytv_sto({
+    bulletListItems: ytv_arr(ytv_sto({
       title: textViewModel
     }))
   }),
@@ -3091,9 +3091,9 @@ export const commentViewModel = ytv_rvm(() => ({
 }))
 export const contentMetadataViewModel = ytv_rvm(() => ({
   delimiter: ytv_str(),
-  metadataRows: ytv_arr(ytv_sch({
+  metadataRows: ytv_arr(ytv_sto({
     badges: ytv_arr(ytv_ren()),
-    metadataParts: ytv_arr(ytv_sch({
+    metadataParts: ytv_arr(ytv_sto({
       accessibilityLabel: ytv_str(),
       avatarStack: ytv_ren(),
       enableTruncation: ytv_bol(),
@@ -3119,7 +3119,7 @@ export const creatorHeartViewModel = ytv_rvm(() => ({
 export const decoratedAvatarViewModel = ytv_rvm(() => ({
   a11yLabel: ytv_str(),
   avatar: ytv_ren(),
-  liveData: ytv_sch({
+  liveData: ytv_sto({
     liveBadgeText: ytv_str()
   })
 }))
@@ -3154,16 +3154,16 @@ export const emojiFountainViewModel = ytv_rvm(() => ({
 }))
 export const featuredActionViewModel = ytv_rvm(() => ({
   featuredTransportControlAction: ytv_str(['TRANSPORT_CONTROLS_BUTTON_TYPE_SUBSCRIBE']),
-  videoPlaybackTimeoutTimeMs: ytv_sch({
+  videoPlaybackTimeoutTimeMs: ytv_sto({
     streamTimeMillis: ytv_str()
   }),
-  videoPlaybackTriggerTimeMs: ytv_sch({
+  videoPlaybackTriggerTimeMs: ytv_sto({
     streamTimeMillis: ytv_str()
   })
 }))
 export const firstPartyNetworkSectionViewModel = ytv_rvm(() => ({}))
 export const flexibleActionsViewModel = ytv_rvm(() => ({
-  actionsRows: ytv_arr(ytv_sch({
+  actionsRows: ytv_arr(ytv_sto({
     actions: ytv_arr(ytv_ren())
   })),
   minimumRowHeight: ytv_num()
@@ -3254,8 +3254,8 @@ export const lockupViewModel = ytv_rvm(() => ({
   contentId: ytv_str(),
   contentImage: ytv_ren(),
   contentType: ytv_str(['LOCKUP_CONTENT_TYPE_ALBUM', 'LOCKUP_CONTENT_TYPE_PLAYLIST', 'LOCKUP_CONTENT_TYPE_VIDEO']),
-  itemPlayback: ytv_sch({
-    inlinePlayerData: ytv_sch({
+  itemPlayback: ytv_sto({
+    inlinePlayerData: ytv_sto({
       onSelect: ytv_enp(),
       onVisible: ytv_enp()
     })
@@ -3366,13 +3366,13 @@ export const reelSoundMetadataViewModel = ytv_rvm(() => ({
 }))
 export const sectionHeaderViewModel = ytv_rvm(() => ({
   headline: textViewModel,
-  leadingAccessory: ytv_sch({
+  leadingAccessory: ytv_sto({
     image: components.image
   })
 }))
 export const segmentedLikeDislikeButtonViewModel = ytv_rvm(() => ({
   dislikeButtonViewModel: ytv_ren(),
-  dynamicLikeCountUpdateData: ytv_sch({
+  dynamicLikeCountUpdateData: ytv_sto({
     placeholderLikeCountValuesKey: ytv_str(),
     updateDelayLoopId: ytv_str(),
     updateDelaySec: ytv_num(),
@@ -3390,13 +3390,13 @@ export const shortsLockupViewModel = ytv_rvm(() => ({
   accessibilityText: ytv_str(),
   entityId: ytv_str(),
   indexInCollection: ytv_num(),
-  inlinePlayerData: ytv_sch({
+  inlinePlayerData: ytv_sto({
     onVisible: ytv_enp()
   }),
   menuOnTap: ytv_enp(),
   menuOnTapA11yLabel: ytv_str(),
   onTap: ytv_enp(),
-  overlayMetadata: ytv_sch({
+  overlayMetadata: ytv_sto({
     primaryText: textViewModel,
     secondaryText: textViewModel
   }),
@@ -3422,13 +3422,13 @@ export const speedmasterEduViewModel = ytv_rvm(() => ({
 }))
 export const subscribeButtonViewModel = ytv_rvm(() => ({
   backgroundStyle: ytv_str(['SUBSCRIBE_BUTTON_VIEW_MODEL_BACKGROUND_STYLE_UNKNOWN']),
-  bellAccessibilityData: ytv_sch({
+  bellAccessibilityData: ytv_sto({
     allLabel: ytv_str(),
     disabledLabel: ytv_str(),
     occasionalLabel: ytv_str(),
     offLabel: ytv_str()
   }),
-  buttonStyle: ytv_sch({
+  buttonStyle: ytv_sto({
     buttonSize: ytv_str(['SUBSCRIBE_BUTTON_VIEW_MODEL_SIZE_MEDIUM']),
     subscribedStateStyle: ytv_str(['SUBSCRIBE_BUTTON_VIEW_MODEL_SUBSCRIBED_STATE_STYLE_DROPDOWN']),
     unsubscribedStateStyle: ytv_str(['SUBSCRIBE_BUTTON_VIEW_MODEL_UNSUBSCRIBED_STATE_STYLE_PILL'])
@@ -3437,7 +3437,7 @@ export const subscribeButtonViewModel = ytv_rvm(() => ({
   disableNotificationBell: ytv_bol(),
   disableSubscribeButton: ytv_bol(),
   enableSubscribeButtonPostClickAnimation: ytv_bol(),
-  notificationStateEntityStoreKeys: ytv_sch({
+  notificationStateEntityStoreKeys: ytv_sto({
     subsNotificationStateKey: ytv_str()
   }),
   onShowSubscriptionOptions: ytv_enp(),
@@ -3463,11 +3463,11 @@ export const thumbnailBadgeViewModel = ytv_rvm(() => ({
   backgroundColor: components.themedColor,
   badgeStyle: ytv_str(['THUMBNAIL_OVERLAY_BADGE_STYLE_DEFAULT', 'THUMBNAIL_OVERLAY_BADGE_STYLE_LIVE']),
   icon: components.image,
-  inlinePlaybackBadgeData: ytv_sch({
+  inlinePlaybackBadgeData: ytv_sto({
     replicateAsTimestamp: ytv_bol()
   }),
-  lottieData: ytv_sch({
-    settings: ytv_sch({
+  lottieData: ytv_sto({
+    settings: ytv_sto({
       autoplay: ytv_bol(),
       loop: ytv_bol()
     }),
@@ -3503,8 +3503,8 @@ export const timelyActionsOverlayViewModel = ytv_rvm(() => ({
   timelyActions: ytv_arr(ytv_ren())
 }))
 export const timelyActionViewModel = ytv_rvm(() => ({
-  additionalTrigger: ytv_arr(ytv_sch({
-    args: ytv_sch({
+  additionalTrigger: ytv_arr(ytv_sto({
+    args: ytv_sto({
       seekDirection: ytv_str(['TIMELY_ACTION_TRIGGER_DIRECTION_FORWARD', 'TIMELY_ACTION_TRIGGER_DIRECTION_BACKWARD']),
       seekLengthMilliseconds: ytv_str()
     }),
@@ -3517,8 +3517,8 @@ export const timelyActionViewModel = ytv_rvm(() => ({
   maxVisibleDurationMilliseconds: ytv_str(),
   onCueRangeEnter: ytv_enp(),
   onCueRangeExit: ytv_enp(),
-  smartSkipMetadata: ytv_sch({
-    loggingData: ytv_sch({
+  smartSkipMetadata: ytv_sto({
+    loggingData: ytv_sto({
       algorithmId: ytv_str(),
       endMilliseconds: ytv_str(),
       isCounterfactual: ytv_bol(),

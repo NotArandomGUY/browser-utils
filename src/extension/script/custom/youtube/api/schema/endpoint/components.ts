@@ -1,21 +1,21 @@
 import { ytv_enp, ytv_ren } from '../define/extended'
-import { ytv_arr, ytv_bol, ytv_num, ytv_obj, ytv_sch, ytv_str, ytv_unk } from '../define/primitive'
+import { ytv_arr, ytv_bol, ytv_num, ytv_obj, ytv_sto, ytv_str, ytv_unk } from '../define/primitive'
 
 import * as common from '../common'
 import * as renderer from '../renderer'
 import * as enums from './enums'
 
 // Entities
-export const booleanEntity = ytv_sch(() => ({
+export const booleanEntity = ytv_sto(() => ({
   key: ytv_str(),
   value: ytv_bol()
 }))
-export const chipBarStateEntity = ytv_sch(() => ({
+export const chipBarStateEntity = ytv_sto(() => ({
   key: ytv_str(),
   selectedIndex: ytv_num()
 }))
-export const downloadQualityPickerEntity = ytv_sch(() => ({
-  formats: ytv_arr(ytv_sch({
+export const downloadQualityPickerEntity = ytv_sto(() => ({
+  formats: ytv_arr(ytv_sto({
     approximateSize: ytv_str(),
     availabilityType: ytv_str(renderer.enums.OfflineabilityAvailabilityType),
     format: ytv_str(common.enums.OfflineFormatType),
@@ -25,12 +25,12 @@ export const downloadQualityPickerEntity = ytv_sch(() => ({
   key: ytv_str(),
   rememberSettingString: ytv_str()
 }))
-export const emojiFountainDataEntity = ytv_sch(() => ({
+export const emojiFountainDataEntity = ytv_sto(() => ({
   key: ytv_str(),
-  reactionBuckets: ytv_arr(ytv_sch({
+  reactionBuckets: ytv_arr(ytv_sto({
     duration: common.components.highResTime,
     intensityScore: ytv_num(),
-    reactionsData: ytv_arr(ytv_sch({
+    reactionsData: ytv_arr(ytv_sto({
       reactionCount: ytv_num(),
       unicodeEmojiId: ytv_str()
     })),
@@ -38,11 +38,11 @@ export const emojiFountainDataEntity = ytv_sch(() => ({
   })),
   updateTimeUsec: ytv_str()
 }))
-export const flowStateEntity = ytv_sch(() => ({
+export const flowStateEntity = ytv_sto(() => ({
   currentStepId: ytv_str(),
   key: ytv_str()
 }))
-export const likeCountEntity = ytv_sch(() => ({
+export const likeCountEntity = ytv_sto(() => ({
   expandedLikeCountIfDisliked: renderer.mapped.textViewModel,
   expandedLikeCountIfIndifferent: renderer.mapped.textViewModel,
   expandedLikeCountIfLiked: renderer.mapped.textViewModel,
@@ -59,17 +59,17 @@ export const likeCountEntity = ytv_sch(() => ({
   sentimentFactoidA11yTextIfLiked: renderer.mapped.textViewModel,
   shouldExpandLikeCount: ytv_bol()
 }))
-export const likeStatusEntity = ytv_sch(() => ({
+export const likeStatusEntity = ytv_sto(() => ({
   key: ytv_str(),
   likeStatus: ytv_str(common.enums.LikeStatus)
 }))
-export const liveChatPollStateEntity = ytv_sch(() => ({
+export const liveChatPollStateEntity = ytv_sto(() => ({
   collapsedMetadataText: renderer.components.text,
   key: ytv_str(),
   metadataText: renderer.components.text,
-  pollChoiceStates: ytv_arr(ytv_sch({
+  pollChoiceStates: ytv_arr(ytv_sto({
     key: ytv_num(),
-    value: ytv_sch({
+    value: ytv_sto({
       votePercentage: renderer.components.text,
       voteRatio: ytv_num()
     })
@@ -77,28 +77,28 @@ export const liveChatPollStateEntity = ytv_sch(() => ({
   postVoteCountText: ytv_str(),
   preVoteCountText: ytv_str()
 }))
-export const liveViewerLeaderboardChatEntryPointStateEntity = ytv_sch(() => ({
+export const liveViewerLeaderboardChatEntryPointStateEntity = ytv_sto(() => ({
   key: ytv_str(),
   state: ytv_str(['LIVE_VIEWER_LEADERBOARD_CHAT_ENTRY_POINT_STATE_POINTS_AVAILABLE'])
 }))
-export const liveViewerLeaderboardPointsEntity = ytv_sch(() => ({
+export const liveViewerLeaderboardPointsEntity = ytv_sto(() => ({
   key: ytv_str(),
   pointsCompactText: ytv_str(),
   pointsValue: ytv_num()
 }))
-export const macroMarkersListEntity = ytv_sch(() => ({
+export const macroMarkersListEntity = ytv_sto(() => ({
   externalVideoId: ytv_str(),
   key: ytv_str(),
-  markersList: ytv_sch({
+  markersList: ytv_sto({
     markerType: ytv_str(['MARKER_TYPE_HEATMAP', 'MARKER_TYPE_TIMESTAMPS']),
-    markers: ytv_arr(ytv_sch({
+    markers: ytv_arr(ytv_sto({
       durationMillis: ytv_str(),
       intensityScoreNormalized: ytv_num(),
       sourceType: ytv_str(['SOURCE_TYPE_SMART_SKIP']),
       startMillis: ytv_str()
     })),
-    markersDecoration: ytv_sch({
-      timedMarkerDecorations: ytv_arr(ytv_sch({
+    markersDecoration: ytv_sto({
+      timedMarkerDecorations: ytv_arr(ytv_sto({
         badge: ytv_ren(),
         decorationTimeMillis: ytv_num(),
         icon: ytv_str(renderer.enums.IconType),
@@ -107,14 +107,14 @@ export const macroMarkersListEntity = ytv_sch(() => ({
         visibleTimeRangeStartMillis: ytv_num()
       }))
     }),
-    markersMetadata: ytv_sch({
-      heatmapMetadata: ytv_sch({
+    markersMetadata: ytv_sto({
+      heatmapMetadata: ytv_sto({
         maxHeightDp: ytv_num(),
         minHeightDp: ytv_num(),
         showHideAnimationDurationMillis: ytv_num()
       }),
-      timestampMarkerMetadata: ytv_sch({
-        snappingData: ytv_arr(ytv_sch({
+      timestampMarkerMetadata: ytv_sto({
+        snappingData: ytv_arr(ytv_sto({
           endMediaTimeMs: ytv_num(),
           maxSnappingCount: ytv_num(),
           onSnappingAriaLabel: ytv_str(),
@@ -128,29 +128,29 @@ export const macroMarkersListEntity = ytv_sch(() => ({
     })
   })
 }))
-export const playlistLoopStateEntity = ytv_sch(() => ({
+export const playlistLoopStateEntity = ytv_sto(() => ({
   key: ytv_str(),
   state: ytv_str(['PLAYLIST_LOOP_STATE_ALL', 'PLAYLIST_LOOP_STATE_NONE', 'PLAYLIST_LOOP_STATE_ONE'])
 }))
-export const replyCountEntity = ytv_sch(() => ({
+export const replyCountEntity = ytv_sto(() => ({
   key: ytv_str(),
   replyButtonAccessibilityText: ytv_str(),
   replyCount: renderer.mapped.textViewModel,
   replyCountNumber: ytv_str()
 }))
-export const subscriptionNotificationStateEntity = ytv_sch(() => ({
+export const subscriptionNotificationStateEntity = ytv_sto(() => ({
   key: ytv_str(),
   state: ytv_str(['SUBSCRIPTION_NOTIFICATION_STATE_OCCASIONAL'])
 }))
-export const subscriptionStateEntity = ytv_sch(() => ({
+export const subscriptionStateEntity = ytv_sto(() => ({
   key: ytv_str(),
   subscribed: ytv_bol()
 }))
-export const videoActionButtonEnablementEntity = ytv_sch(() => ({
+export const videoActionButtonEnablementEntity = ytv_sto(() => ({
   enabled: ytv_bol(),
   videoActionButtonEnablementEntityKey: ytv_str()
 }))
-export const viewCountEntity = ytv_sch(() => ({
+export const viewCountEntity = ytv_sto(() => ({
   extraShortViewCount: renderer.components.text,
   key: ytv_str(),
   unlabeledViewCountValue: renderer.components.text,
@@ -161,18 +161,18 @@ export const viewCountEntity = ytv_sch(() => ({
 }))
 
 // Components
-export const entityMutationOption = ytv_sch({
+export const entityMutationOption = ytv_sto({
   persistenceOption: ytv_str(['ENTITY_PERSISTENCE_OPTION_INMEMORY_AND_PERSIST', 'ENTITY_PERSISTENCE_OPTION_PERSIST'])
 })
-export const entityMutationPayload = ytv_sch(() => ({
+export const entityMutationPayload = ytv_sto(() => ({
   booleanEntity,
-  commentEntityPayload: ytv_sch({
+  commentEntityPayload: ytv_sto({
     author: ytv_unk(),
     avatar: ytv_unk(),
     isTranslationAvailable: ytv_bol(),
     key: ytv_str(),
     loggingDirectives: renderer.components.loggingDirectives,
-    properties: ytv_sch({
+    properties: ytv_sto({
       authorButtonA11y: ytv_str(),
       commentId: ytv_str(),
       content: /*ytv_ren(YTTextViewModelSchema)*/ytv_unk(),
@@ -185,12 +185,12 @@ export const entityMutationPayload = ytv_sch(() => ({
     readMoreLogging: ytv_ren({
       loggingDirectives: renderer.components.loggingDirectives
     }),
-    threadLines: ytv_sch({}),
-    toolbar: ytv_sch({
+    threadLines: ytv_sto({}),
+    toolbar: ytv_sto({
       creatorThumbnailUrl: ytv_str(),
       dislikeActiveTooltip: ytv_str(),
       dislikeInactiveTooltip: ytv_str(),
-      engagementToolbarStyle: ytv_sch({
+      engagementToolbarStyle: ytv_sto({
         value: ytv_str(['ENGAGEMENT_TOOLBAR_STYLE_VALUE_DEFAULT'])
       }),
       heartActiveTooltip: ytv_str(),
@@ -203,14 +203,14 @@ export const entityMutationPayload = ytv_sch(() => ({
       replyCount: ytv_str(),
       replyCountA11y: ytv_str()
     }),
-    translateData: ytv_sch({
+    translateData: ytv_sto({
       text: ytv_str(),
       translateComment: ytv_enp()
     })
   }),
-  commentSharedEntityPayload: ytv_sch({
+  commentSharedEntityPayload: ytv_sto({
     key: ytv_str(),
-    strings: ytv_sch({
+    strings: ytv_sto({
       collapseText: ytv_str(),
       discardDialogAction: ytv_str(),
       discardDialogCancel: ytv_str(),
@@ -223,7 +223,7 @@ export const entityMutationPayload = ytv_sch(() => ({
       translatingText: ytv_str(),
       viewAllRepliesButtonA11y: ytv_str()
     }),
-    toolbarShared: ytv_sch({
+    toolbarShared: ytv_sto({
       approveButtonA11y: ytv_str(),
       blockButtonA11y: ytv_str(),
       cancelButtonLabel: ytv_str(),
@@ -231,7 +231,7 @@ export const entityMutationPayload = ytv_sch(() => ({
       dislikeReplyButtonA11y: ytv_str(),
       heartButtonA11y: ytv_str(),
       heartedTooltipA11y: ytv_str(),
-      heartedTooltipCommand: ytv_sch({
+      heartedTooltipCommand: ytv_sto({
         tooltipCommand: ytv_ren()
       }),
       menuButtonA11y: ytv_str(),
@@ -248,20 +248,20 @@ export const entityMutationPayload = ytv_sch(() => ({
     environment: common.components.environment,
     experiments: ytv_obj(ytv_str(), ytv_unk())
   }),
-  commentSurfaceEntityPayload: ytv_sch({
+  commentSurfaceEntityPayload: ytv_sto({
     commentBackgroundColor: ytv_num(),
     commentClickCommand: ytv_enp(),
     commentClickOpensComposer: ytv_bol(),
     composerDraftEntityKey: ytv_str(),
-    inlineReadMoreButton: ytv_sch({
+    inlineReadMoreButton: ytv_sto({
       isExpanded: ytv_bol()
     }),
     key: ytv_str(),
     logTapCommand: ytv_enp(),
     pdgCommentChip: ytv_ren(),
     publishedTimeCommand: ytv_enp(),
-    viewRepliesTooltipData: ytv_sch({
-      tooltipCommand: ytv_sch({
+    viewRepliesTooltipData: ytv_sto({
+      tooltipCommand: ytv_sto({
         tooltipCommand: ytv_ren()
       }),
       viewRepliesTooltipIdentifier: ytv_str()
@@ -270,12 +270,12 @@ export const entityMutationPayload = ytv_sch(() => ({
   chipBarStateEntity,
   downloadQualityPickerEntity,
   emojiFountainDataEntity,
-  engagementToolbarStateEntityPayload: ytv_sch({
+  engagementToolbarStateEntityPayload: ytv_sto({
     heartState: ytv_str(['TOOLBAR_HEART_STATE_HEARTED', 'TOOLBAR_HEART_STATE_UNHEARTED']),
     key: ytv_str(),
     likeState: ytv_str(['TOOLBAR_LIKE_STATE_INDIFFERENT'])
   }),
-  engagementToolbarSurfaceEntityPayload: ytv_sch({
+  engagementToolbarSurfaceEntityPayload: ytv_sto({
     dislikeCommand: ytv_enp(),
     isEngagementToolbar: ytv_bol(),
     key: ytv_str(),
@@ -287,7 +287,7 @@ export const entityMutationPayload = ytv_sch(() => ({
     unlikeCommand: ytv_enp()
   }),
   flowStateEntity,
-  likeButtonAnimationEntity: ytv_sch({
+  likeButtonAnimationEntity: ytv_sto({
     animationDarkUrl: ytv_str(),
     animationLightUrl: ytv_str(),
     key: ytv_str()
@@ -298,7 +298,7 @@ export const entityMutationPayload = ytv_sch(() => ({
   liveViewerLeaderboardChatEntryPointStateEntity,
   liveViewerLeaderboardPointsEntity,
   macroMarkersListEntity,
-  offlineVideoPolicy: ytv_sch({
+  offlineVideoPolicy: ytv_sto({
     action: ytv_str(['OFFLINE_VIDEO_POLICY_ACTION_DISABLE', 'OFFLINE_VIDEO_POLICY_ACTION_DOWNLOAD_FAILED', 'OFFLINE_VIDEO_POLICY_ACTION_OK']),
     expirationTimestamp: ytv_str(),
     key: ytv_str(),
@@ -308,7 +308,7 @@ export const entityMutationPayload = ytv_sch(() => ({
     shortMessageForDisabledAction: ytv_str()
   }),
   offlineabilityEntity: renderer.mapped.offlineabilityRenderer,
-  playbackData: ytv_sch({
+  playbackData: ytv_sto({
     key: ytv_str(),
     offlineVideoPolicy: ytv_str(),
     playerResponseJson: ytv_str(),
@@ -322,38 +322,38 @@ export const entityMutationPayload = ytv_sch(() => ({
   replyCountEntity,
   subscriptionNotificationStateEntity,
   subscriptionStateEntity,
-  triStateButtonStateEntityPayload: ytv_sch({
+  triStateButtonStateEntityPayload: ytv_sto({
     key: ytv_str(),
     stateIdentifier: ytv_str(['TRI_STATE_IDENTIFIER_UNTOGGLED_STATE'])
   }),
   videoActionButtonEnablementEntity,
   viewCountEntity
 }))
-export const entityMutation = ytv_sch({
+export const entityMutation = ytv_sto({
   entityKey: ytv_str(),
   options: entityMutationOption,
   payload: entityMutationPayload,
   type: ytv_str(['ENTITY_MUTATION_TYPE_DELETE', 'ENTITY_MUTATION_TYPE_REPLACE'])
 })
-export const watchEndpointLoggingContext = ytv_sch({
-  qoeLoggingContext: ytv_sch({
+export const watchEndpointLoggingContext = ytv_sto({
+  qoeLoggingContext: ytv_sto({
     serializedContextData: ytv_str()
   }),
-  vssLoggingContext: ytv_sch({
+  vssLoggingContext: ytv_sto({
     serializedContextData: ytv_str()
   })
 })
 
 // Metadata components
 export const interactionLoggingCommandMetadata = ytv_enp({
-  loggingExpectations: ytv_sch({
-    screenCreatedLoggingExpectations: ytv_sch({
-      expectedParentScreens: ytv_arr(ytv_sch({
+  loggingExpectations: ytv_sto({
+    screenCreatedLoggingExpectations: ytv_sto({
+      expectedParentScreens: ytv_arr(ytv_sto({
         screenVeType: ytv_num()
       }))
     })
   }),
-  screenVisualElement: ytv_sch({
+  screenVisualElement: ytv_sto({
     uiType: ytv_num()
   })
 })

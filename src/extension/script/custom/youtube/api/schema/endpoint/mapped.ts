@@ -1,5 +1,5 @@
 import { ytv_enp, ytv_ren } from '../define/extended'
-import { ytv_arr, ytv_bol, ytv_num, ytv_sch, ytv_str, ytv_unk } from '../define/primitive'
+import { ytv_arr, ytv_bol, ytv_num, ytv_sto, ytv_str, ytv_unk } from '../define/primitive'
 
 import * as common from '../common'
 import * as renderer from '../renderer'
@@ -7,7 +7,7 @@ import * as components from './components'
 import * as enums from './enums'
 
 // Outer
-export const commandMetadata = ytv_sch({
+export const commandMetadata = ytv_sto({
   interactionLoggingCommandMetadata: components.interactionLoggingCommandMetadata,
   webCommandMetadata: components.webCommandMetadata
 })
@@ -17,7 +17,7 @@ export const loggingUrls = ytv_arr(common.components.url)
 export const addChatItemAction = ytv_enp(() => ({
   clientId: ytv_str(),
   item: ytv_ren(),
-  stickinessParams: ytv_sch({
+  stickinessParams: ytv_sto({
     dockAtTopDurationMs: ytv_num()
   })
 }))
@@ -62,7 +62,7 @@ export const removeChatItemAction = ytv_enp(() => ({
   targetItemId: ytv_str()
 }))
 export const replaceEnclosingAction = ytv_enp(() => ({
-  groupDismissal: ytv_sch({
+  groupDismissal: ytv_sto({
     behavior: ytv_str(['GROUP_DISMISSAL_BEHAVIOR_REMOVE_SUBSEQUENT_ITEMS']),
     targetGroupId: ytv_str()
   }),
@@ -135,9 +135,9 @@ export const addToPlaylistCommand = ytv_enp(() => ({
   videoIds: ytv_arr(ytv_str())
 }))
 export const adsControlFlowOpportunityReceivedCommand = ytv_enp(() => ({
-  adSlotAndLayoutMetadata: ytv_arr(ytv_sch({
+  adSlotAndLayoutMetadata: ytv_arr(ytv_sto({
     adLayoutMetadata: ytv_arr(ytv_unk()),
-    adSlotMetadata: ytv_sch({
+    adSlotMetadata: ytv_sto({
       adSlotLoggingData: renderer.components.adSlotLoggingData,
       slotId: ytv_str(),
       slotPhysicalPosition: ytv_num(),
@@ -153,7 +153,7 @@ export const authDeterminedCommand = ytv_enp(() => ({
   unauthenticatedCommand: ytv_enp()
 }))
 export const authRequiredCommand = ytv_enp(() => ({
-  identityActionContext: ytv_sch({
+  identityActionContext: ytv_sto({
     eventTrigger: ytv_str(['ACCOUNT_EVENT_TRIGGER_LIKE_DISLIKE', 'ACCOUNT_EVENT_TRIGGER_SAVE_VIDEO', 'ACCOUNT_EVENT_TRIGGER_SUBSCRIBE']),
     nextEndpoint: ytv_enp()
   })
@@ -179,28 +179,28 @@ export const continuationCommand = ytv_enp(() => ({
   token: ytv_str()
 }))
 export const elementsCommand = ytv_enp(() => ({
-  setEntityCommand: ytv_sch({
+  setEntityCommand: ytv_sto({
     entity: ytv_str(),
     identifier: ytv_str()
   })
 }))
 export const entityUpdateCommand = ytv_enp(() => ({
-  elementUpdate: ytv_arr(ytv_sch({
-    resourceStatusInResponseCheck: ytv_sch({
-      resourceStatuses: ytv_arr(ytv_sch({
+  elementUpdate: ytv_arr(ytv_sto({
+    resourceStatusInResponseCheck: ytv_sto({
+      resourceStatuses: ytv_arr(ytv_sto({
         identifier: ytv_str(),
         status: ytv_str(['ELEMENTS_RESOURCE_STATUS_ATTACHED'])
       })),
       serverBuildLabel: ytv_str()
     }),
-    templateUpdate: ytv_sch({
+    templateUpdate: ytv_sto({
       dependencies: ytv_arr(ytv_str()),
       identifier: ytv_str(),
       serializedTemplateConfig: ytv_str(),
       templateType: ytv_str(['TEMPLATE_TYPE_EKO'])
     })
   })),
-  entityBatchUpdate: ytv_sch({
+  entityBatchUpdate: ytv_sto({
     mutations: ytv_arr(components.entityMutation),
     timestamp: common.components.highResTime
   })
@@ -216,14 +216,14 @@ export const getPdgBuyFlowCommand = ytv_enp(() => ({
 }))
 export const getSurveyCommand = ytv_enp(() => ({
   action: ytv_str(['SURVEY_TRIGGER_ACTION_AUTOPLAY_CANCEL', 'SURVEY_TRIGGER_ACTION_SMART_SKIP_JUMP_AHEAD']),
-  endpoint: ytv_sch({
-    watch: ytv_sch({
+  endpoint: ytv_sto({
+    watch: ytv_sto({
       hack: ytv_bol()
     })
   })
 }))
 export const handoffInitiateActionCommand = ytv_enp(() => ({
-  lrDeviceState: ytv_sch({
+  lrDeviceState: ytv_sto({
     canCreateComments: ytv_bol(),
     isPauseCommentsEnabled: ytv_bol()
   }),
@@ -302,7 +302,7 @@ export const scrollToEngagementPanelCommand = ytv_enp(() => ({
 export const showAudioTrackPickerActionCommand = ytv_enp(() => ({}))
 export const showCaptionLanguageSelectActionCommand = ytv_enp(() => ({}))
 export const showDialogCommand = ytv_enp(() => ({
-  panelLoadingStrategy: ytv_sch({
+  panelLoadingStrategy: ytv_sto({
     inlineContent: ytv_ren(),
     screenVe: ytv_num()
   })
@@ -327,18 +327,18 @@ export const showReloadUiCommand = ytv_enp(() => ({
   targetId: ytv_str()
 }))
 export const showSheetCommand = ytv_enp(() => ({
-  contextualSheetPresentationConfig: ytv_sch({
+  contextualSheetPresentationConfig: ytv_sto({
     expandToFullWidth: ytv_bol(),
-    hoverConfig: ytv_sch({
+    hoverConfig: ytv_sto({
       hideDelayMs: ytv_num(),
       preventCloseWhileHovered: ytv_bol(),
       showDelayMs: ytv_num()
     }),
     position: ytv_str(['SHEET_POSITION_BOTTOM_LEFT', 'SHEET_POSITION_RIGHT'])
   }),
-  panelLoadingStrategy: ytv_sch({
+  panelLoadingStrategy: ytv_sto({
     inlineContent: ytv_ren(),
-    requestTemplate: ytv_sch({
+    requestTemplate: ytv_sto({
       panelId: ytv_str(),
       params: ytv_str()
     }),
@@ -363,7 +363,7 @@ export const updateCarouselHeaderCommand = ytv_enp(() => ({
 }))
 export const updateEngagementPanelContentCommand = ytv_enp(() => ({
   contentSourcePanelIdentifier: renderer.components.engagementPanelIdentifier,
-  globalConfiguration: ytv_sch({
+  globalConfiguration: ytv_sto({
     params: ytv_str()
   }),
   targetPanelIdentifier: renderer.components.engagementPanelIdentifier
@@ -390,8 +390,8 @@ export const applicationSettingsEndpoint = ytv_enp(() => ({
   hack: ytv_bol()
 }))
 export const browseEndpoint = ytv_enp(() => ({
-  browseEndpointContextSupportedConfigs: ytv_sch({
-    browseEndpointContextMusicConfig: ytv_sch({
+  browseEndpointContextSupportedConfigs: ytv_sto({
+    browseEndpointContextMusicConfig: ytv_sto({
       pageType: ytv_str(['MUSIC_PAGE_TYPE_ALBUM', 'MUSIC_PAGE_TYPE_PLAYLIST'])
     })
   }),
@@ -426,7 +426,7 @@ export const feedbackEndpoint = ytv_enp(() => ({
   contentId: ytv_str(),
   feedbackToken: ytv_str(),
   onFailureAction: ytv_enp(),
-  uiActions: ytv_sch({
+  uiActions: ytv_sto({
     hideEnclosingContainer: ytv_bol()
   })
 }))
@@ -451,7 +451,7 @@ export const likeEndpoint = ytv_enp(() => ({
   likeParams: ytv_str(),
   removeLikeParams: ytv_str(),
   status: ytv_str(common.enums.LikeStatus),
-  target: ytv_sch({
+  target: ytv_sto({
     playlistId: ytv_str(),
     videoId: ytv_str()
   })
@@ -484,7 +484,7 @@ export const notificationOptOutEndpoint = ytv_enp(() => ({
 }))
 export const offlinePlaylistEndpoint = ytv_enp(() => ({
   action: ytv_str(['ACTION_ADD']),
-  actionParams: ytv_sch({
+  actionParams: ytv_sto({
     formatType: ytv_str(common.enums.OfflineFormatType),
     settingsAction: ytv_str(['DOWNLOAD_QUALITY_SETTINGS_ACTION_ALREADY_SAVED', 'DOWNLOAD_QUALITY_SETTINGS_ACTION_DONT_SAVE', 'DOWNLOAD_QUALITY_SETTINGS_ACTION_EXPIRING_SAVE', 'DOWNLOAD_QUALITY_SETTINGS_ACTION_SAVE'])
   }),
@@ -493,7 +493,7 @@ export const offlinePlaylistEndpoint = ytv_enp(() => ({
 }))
 export const offlineVideoEndpoint = ytv_enp(() => ({
   action: ytv_str(['ACTION_ADD']),
-  actionParams: ytv_sch({
+  actionParams: ytv_sto({
     formatType: ytv_str(common.enums.OfflineFormatType),
     settingsAction: ytv_str(['DOWNLOAD_QUALITY_SETTINGS_ACTION_ALREADY_SAVED', 'DOWNLOAD_QUALITY_SETTINGS_ACTION_DONT_SAVE', 'DOWNLOAD_QUALITY_SETTINGS_ACTION_EXPIRING_SAVE', 'DOWNLOAD_QUALITY_SETTINGS_ACTION_SAVE'])
   }),
@@ -508,7 +508,7 @@ export const pingingEndpoint = ytv_enp(() => ({
   hack: ytv_bol()
 }))
 export const playlistEditEndpoint = ytv_enp(() => ({
-  actions: ytv_arr(ytv_sch({
+  actions: ytv_arr(ytv_sto({
     action: ytv_str(['ACTION_ADD_VIDEO', 'ACTION_REMOVE_VIDEO_BY_VIDEO_ID']),
     addedVideoId: ytv_str(),
     removedVideoId: ytv_str()
@@ -523,7 +523,7 @@ export const recordNotificationInteractionsEndpoint = ytv_enp(() => ({
   serializedInteractionsRequest: ytv_str()
 }))
 export const reelWatchEndpoint = ytv_enp(() => ({
-  adClientParams: ytv_sch({
+  adClientParams: ytv_sto({
     isAd: ytv_bol()
   }),
   identifier: ytv_str(),
@@ -535,7 +535,7 @@ export const reelWatchEndpoint = ytv_enp(() => ({
   sequenceParams: ytv_str(),
   sequenceProvider: ytv_str(['REEL_WATCH_SEQUENCE_PROVIDER_RPC']),
   thumbnail: renderer.components.thumbnail,
-  unserializedPrefetchData: ytv_sch({
+  unserializedPrefetchData: ytv_sto({
     playerResponse: ytv_unk(),
     reelItemWatchResponse: ytv_unk()
   }),
@@ -559,9 +559,9 @@ export const sendLiveChatVoteEndpoint = ytv_enp(() => ({
   params: ytv_str()
 }))
 export const setClientSettingEndpoint = ytv_enp(() => ({
-  settingDatas: ytv_arr(ytv_sch({
+  settingDatas: ytv_arr(ytv_sto({
     boolValue: ytv_bol(),
-    clientSettingEnum: ytv_sch({
+    clientSettingEnum: ytv_sto({
       item: ytv_str(['USER_AUDIO_51_PREFERENCE'])
     })
   }))
@@ -581,19 +581,19 @@ export const shareEntityServiceEndpoint = ytv_enp(() => ({
 }))
 export const showEngagementPanelEndpoint = ytv_enp(() => ({
   engagementPanel: ytv_ren(),
-  engagementPanelExtras: ytv_sch({
-    sectionListEngagementPanelExtras: ytv_sch({
+  engagementPanelExtras: ytv_sto({
+    sectionListEngagementPanelExtras: ytv_sto({
       scrollToItemSectionIdentifier: ytv_str(),
       scrollToItemSectionOffsetDistance: ytv_num()
     })
   }),
-  engagementPanelPresentationConfigs: ytv_sch({
-    engagementPanelPopupPresentationConfig: ytv_sch({
+  engagementPanelPresentationConfigs: ytv_sto({
+    engagementPanelPopupPresentationConfig: ytv_sto({
       popupType: ytv_str(['PANEL_POPUP_TYPE_DIALOG'])
     })
   }),
   forcePortrait: ytv_bol(),
-  globalConfiguration: ytv_sch({
+  globalConfiguration: ytv_sto({
     initialState: ytv_ren(),
     params: ytv_str()
   }),
@@ -655,8 +655,8 @@ export const verifyAgeEndpoint = ytv_enp(() => ({
   nextEndpoint: ytv_enp()
 }))
 export const userFeedbackEndpoint = ytv_enp(() => ({
-  additionalDatas: ytv_arr(ytv_sch({
-    userFeedbackEndpointProductSpecificValueData: ytv_sch({
+  additionalDatas: ytv_arr(ytv_sto({
+    userFeedbackEndpointProductSpecificValueData: ytv_sto({
       key: ytv_str(),
       value: ytv_str()
     })
@@ -670,7 +670,7 @@ export const watchEndpoint = ytv_enp(() => ({
   nofollow: ytv_bol(),
   loggingContext: components.watchEndpointLoggingContext,
   params: ytv_str(),
-  playerExtraUrlParams: ytv_arr(ytv_sch({
+  playerExtraUrlParams: ytv_arr(ytv_sto({
     key: ytv_str(),
     value: ytv_str()
   })),
@@ -681,29 +681,29 @@ export const watchEndpoint = ytv_enp(() => ({
   startTimeSeconds: ytv_num(),
   ustreamerConfig: ytv_str(),
   videoId: ytv_str(),
-  watchEndpointMdxConfig: ytv_sch({
-    mdxPlaybackSourceContext: ytv_sch({})
+  watchEndpointMdxConfig: ytv_sto({
+    mdxPlaybackSourceContext: ytv_sto({})
   }),
-  watchEndpointMusicSupportedConfigs: ytv_sch({
-    watchEndpointMusicConfig: ytv_sch({
+  watchEndpointMusicSupportedConfigs: ytv_sto({
+    watchEndpointMusicConfig: ytv_sto({
       musicVideoType: ytv_str(common.enums.MusicVideoType)
     })
   }),
-  watchEndpointSupportedOnesieConfig: ytv_sch({
-    html5PlaybackOnesieConfig: ytv_sch({
-      commonConfig: ytv_sch({
+  watchEndpointSupportedOnesieConfig: ytv_sto({
+    html5PlaybackOnesieConfig: ytv_sto({
+      commonConfig: ytv_sto({
         url: ytv_str(),
         ustreamerConfig: ytv_str()
       })
     })
   }),
-  watchEndpointSupportedPrefetchConfig: ytv_sch({
-    prefetchHintConfig: ytv_sch({
+  watchEndpointSupportedPrefetchConfig: ytv_sto({
+    prefetchHintConfig: ytv_sto({
       countdownUiRelativeSecondsPrefetchCondition: ytv_num(),
       playbackRelativeSecondsPrefetchCondition: ytv_num(),
       prefetchPriority: ytv_num()
     }),
-    sabrPrefetchEndpointConfig: ytv_sch({
+    sabrPrefetchEndpointConfig: ytv_sto({
       disablePrefetch: ytv_bol(),
       maximumAllowableTimeMsBeforePlaybackToPrefetch: ytv_num()
     })

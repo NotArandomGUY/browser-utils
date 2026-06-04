@@ -13,7 +13,7 @@ export const enum YTValueType {
   NUMBER,
   STRING,
   OBJECT,
-  SCHEMA,
+  STRUCT,
   ARRAY,
   ENDPOINT,
   RENDERER,
@@ -26,11 +26,11 @@ export type YTValueSchema =
   { type: YTValueType.NUMBER } |
   { type: YTValueType.STRING, enum?: string[] | Record<string, unknown> } |
   { type: YTValueType.OBJECT, key: YTValueSchemaOf<YTValueType.NUMBER | YTValueType.STRING>, value: YTValueSchema } |
-  { type: YTValueType.SCHEMA, schema: YTObjectSchema } |
+  { type: YTValueType.STRUCT, body: YTObjectSchema } |
   { type: YTValueType.ARRAY, value: YTValueSchema } |
-  { type: YTValueType.ENDPOINT, schema?: YTObjectSchema } |
-  { type: YTValueType.RENDERER, schema?: YTObjectSchema } |
-  { type: YTValueType.RESPONSE, schema?: YTObjectSchema }
+  { type: YTValueType.ENDPOINT, body?: YTObjectSchema } |
+  { type: YTValueType.RENDERER, body?: YTObjectSchema } |
+  { type: YTValueType.RESPONSE, body?: YTObjectSchema }
 export type YTValueSchemaOf<T extends YTValueSchema['type']> = { [O in T]: Extract<YTValueSchema, { type: O }> }[T]
 
 export type YTValueData<S extends YTValueSchema = YTValueSchema, RL extends number = MaxRecursion> = TOpGT<RL, 0> extends true ? (
@@ -39,11 +39,11 @@ export type YTValueData<S extends YTValueSchema = YTValueSchema, RL extends numb
   S extends YTValueSchemaOf<YTValueType.NUMBER> ? number :
   S extends YTValueSchemaOf<YTValueType.STRING> ? S['enum'] extends string[] ? S['enum'][number] : S['enum'] extends Record<string, unknown> ? keyof S['enum'] : string :
   S extends YTValueSchemaOf<YTValueType.OBJECT> ? Record<YTValueData<S['key'], TOpSub<RL, 1>>, YTValueData<S['value'], TOpSub<RL, 1>>> :
-  S extends YTValueSchemaOf<YTValueType.SCHEMA> ? YTObjectData<S['schema'], TOpSub<RL, 1>> :
+  S extends YTValueSchemaOf<YTValueType.STRUCT> ? YTObjectData<S['body'], TOpSub<RL, 1>> :
   S extends YTValueSchemaOf<YTValueType.ARRAY> ? YTValueData<S['value'], TOpSub<RL, 1>>[] :
-  S extends YTValueSchemaOf<YTValueType.ENDPOINT> ? (S['schema'] extends YTObjectSchema ? YTObjectData<S['schema'], TOpSub<RL, 1>> : { [K in endpoint.MappedKey]?: YTValueData<endpoint.Mapped<K>, TOpSub<RL, 1>> }) :
-  S extends YTValueSchemaOf<YTValueType.RENDERER> ? (S['schema'] extends YTObjectSchema ? YTObjectData<S['schema'], TOpSub<RL, 1>> : { [K in renderer.MappedKey]?: YTValueData<renderer.Mapped<K>, TOpSub<RL, 1>> }) :
-  S extends YTValueSchemaOf<YTValueType.RESPONSE> ? (S['schema'] extends YTObjectSchema ? YTObjectData<S['schema'], TOpSub<RL, 1>> : { [K in response.MappedKey]?: YTValueData<response.Mapped<K>, TOpSub<RL, 1>> }) :
+  S extends YTValueSchemaOf<YTValueType.ENDPOINT> ? (S['body'] extends YTObjectSchema ? YTObjectData<S['body'], TOpSub<RL, 1>> : { [K in endpoint.MappedKey]?: YTValueData<endpoint.Mapped<K>, TOpSub<RL, 1>> }) :
+  S extends YTValueSchemaOf<YTValueType.RENDERER> ? (S['body'] extends YTObjectSchema ? YTObjectData<S['body'], TOpSub<RL, 1>> : { [K in renderer.MappedKey]?: YTValueData<renderer.Mapped<K>, TOpSub<RL, 1>> }) :
+  S extends YTValueSchemaOf<YTValueType.RESPONSE> ? (S['body'] extends YTObjectSchema ? YTObjectData<S['body'], TOpSub<RL, 1>> : { [K in response.MappedKey]?: YTValueData<response.Mapped<K>, TOpSub<RL, 1>> }) :
   never
 ) : any
 export type YTValueParent<S extends YTValueSchema> = S extends { type: YTValueType.ENDPOINT, schema: YTObjectSchema } ? YTValueData<{ type: YTValueType.ENDPOINT }> : (object | null)

@@ -26,14 +26,14 @@ export function ytv_str<const E extends string[] | Record<string, unknown>>(e?: 
 export function ytv_obj<const K extends YTValueSchema, const V extends YTValueSchema>(k: K, v: V): { type: YTValueType.OBJECT, key: K, value: V } {
   return { type: YTValueType.OBJECT, key: k, value: v }
 }
-export function ytv_sch<const S extends YTObjectSchema>(s: S): { type: YTValueType.SCHEMA, schema: S }
-export function ytv_sch<const S extends YTObjectSchema>(s: () => S): { type: YTValueType.SCHEMA, schema: S }
-export function ytv_sch<const S extends YTObjectSchema>(s: S | (() => S)): { type: YTValueType.SCHEMA, schema: S } {
+export function ytv_sto<const S extends YTObjectSchema>(s: S): { type: YTValueType.STRUCT, body: S }
+export function ytv_sto<const S extends YTObjectSchema>(s: () => S): { type: YTValueType.STRUCT, body: S }
+export function ytv_sto<const S extends YTObjectSchema>(s: S | (() => S)): { type: YTValueType.STRUCT, body: S } {
   return {
-    type: YTValueType.SCHEMA,
-    get schema() {
+    type: YTValueType.STRUCT,
+    get body() {
       if (typeof s === 'function') s = s()
-      defineProperty(this, 'schema', { value: s })
+      defineProperty(this, 'body', { value: s })
       return s
     }
   }

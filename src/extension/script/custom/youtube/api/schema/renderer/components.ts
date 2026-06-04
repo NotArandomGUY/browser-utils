@@ -1,5 +1,5 @@
 import { ytv_enp, ytv_ren } from '../define/extended'
-import { ytv_arr, ytv_bol, ytv_num, ytv_obj, ytv_sch, ytv_str, ytv_unk } from '../define/primitive'
+import { ytv_arr, ytv_bol, ytv_num, ytv_obj, ytv_sto, ytv_str, ytv_unk } from '../define/primitive'
 import { YTObjectSchema } from '../define/types'
 
 import * as common from '../common'
@@ -30,7 +30,7 @@ export const thumbnail = ytv_ren({
   sampledThumbnailColor: ytv_obj(ytv_str(), ytv_num()),
   thumbnails: ytv_arr(imageSource),
   vibrantColorPalette: ytv_obj(ytv_str(), ytv_num()),
-  webThumbnailDetailsExtensionData: ytv_sch({
+  webThumbnailDetailsExtensionData: ytv_sto({
     isPreloaded: ytv_bol()
   })
 })
@@ -73,7 +73,7 @@ export const continuationData = ytv_ren({
   autoloadThresholdItemsFromEnd: ytv_num(),
   continuation: ytv_str(),
   disableContinuationClickLogging: ytv_bol(),
-  invalidationId: ytv_sch({
+  invalidationId: ytv_sto({
     objectId: ytv_str(),
     objectSource: ytv_num(),
     protoCreationTimestampMs: ytv_str(),
@@ -92,7 +92,7 @@ export const continuation = ytv_ren({
   reloadContinuationData: continuationData,
   timedContinuationData: continuationData
 })
-export const dimensionValue = ytv_sch({
+export const dimensionValue = ytv_sto({
   unit: ytv_str(['DIMENSION_UNIT_POINT']),
   value: ytv_num()
 })
@@ -101,7 +101,7 @@ export const emoji = ytv_ren({
   image: thumbnail,
   isCustomEmoji: ytv_bol(),
   isLocked: ytv_bol(),
-  multiSelectorThumbnailRow: ytv_arr(ytv_sch({
+  multiSelectorThumbnailRow: ytv_arr(ytv_sto({
     thumbnails: ytv_arr(thumbnail)
   })),
   searchTerms: ytv_arr(ytv_str()),
@@ -109,7 +109,7 @@ export const emoji = ytv_ren({
   supportsSkinTone: ytv_bol(),
   variantIds: ytv_arr(ytv_str())
 })
-export const engagementPanelIdentifier = ytv_sch({
+export const engagementPanelIdentifier = ytv_sto({
   surface: ytv_str(['ENGAGEMENT_PANEL_SURFACE_BROWSE', 'ENGAGEMENT_PANEL_SURFACE_LIVE_CHAT', 'ENGAGEMENT_PANEL_SURFACE_SHORTS', 'ENGAGEMENT_PANEL_SURFACE_WATCH']),
   tag: ytv_str()
 })
@@ -120,31 +120,31 @@ export const layoutExitedForReasonTrigger = ytv_ren({
   layoutExitReason: ytv_str(['LAYOUT_EXIT_REASON_ERROR', 'LAYOUT_EXIT_REASON_NORMAL']),
   triggeringLayoutId: ytv_str()
 })
-export const loggingDirectives = ytv_sch({
+export const loggingDirectives = ytv_sto({
   attentionLogging: ytv_str(['ATTENTION_LOGGING_BASIC', 'ATTENTION_LOGGING_SCROLL']),
-  clientVeSpec: ytv_sch({
+  clientVeSpec: ytv_sto({
     uiType: ytv_num(),
     veCounter: ytv_num()
   }),
-  gestures: ytv_sch({
+  gestures: ytv_sto({
     types: ytv_str()
   }),
   trackingParams: ytv_str(),
   useGreenPath: ytv_bol(),
-  visibility: ytv_sch({
+  visibility: ytv_sto({
     types: ytv_str()
   })
 })
-export const mediaFormatRange = ytv_sch({
+export const mediaFormatRange = ytv_sto({
   start: ytv_str(),
   end: ytv_str()
 })
-export const mediaFormat = ytv_sch({
+export const mediaFormat = ytv_sto({
   approxDurationMs: ytv_str(),
   audioChannels: ytv_num(),
   audioQuality: ytv_str(common.enums.MediaFormatAudioQuality),
   audioSampleRate: ytv_str(),
-  audioTrack: ytv_sch({
+  audioTrack: ytv_sto({
     audioIsDefault: ytv_bol(),
     displayName: ytv_str(),
     id: ytv_str(),
@@ -152,7 +152,7 @@ export const mediaFormat = ytv_sch({
   }),
   averageBitrate: ytv_num(),
   bitrate: ytv_num(),
-  colorInfo: ytv_sch({
+  colorInfo: ytv_sto({
     primaries: ytv_str(['COLOR_PRIMARIES_BT709']),
     transferCharacteristics: ytv_str(['COLOR_TRANSFER_CHARACTERISTICS_BT709']),
     matrixCoefficients: ytv_str(['COLOR_MATRIX_COEFFICIENTS_BT709'])
@@ -203,11 +203,11 @@ export const playbackPosition = ytv_ren({
   utcTimeMillis: ytv_str()
 })
 export const playerConfig = ytv_ren({
-  audioConfig: ytv_sch({
+  audioConfig: ytv_sto({
     audioMuted: ytv_bol(),
     enablePerFormatLoudness: ytv_bol(),
     loudnessDb: ytv_num(),
-    loudnessNormalizationConfig: ytv_sch({
+    loudnessNormalizationConfig: ytv_sto({
       applyStatefulNormalization: ytv_bol(),
       maxStatefulTimeThresholdSec: ytv_num(),
       minimumLoudnessTargetLkfs: ytv_num(),
@@ -219,10 +219,10 @@ export const playerConfig = ytv_ren({
     playAudioOnly: ytv_bol(),
     trackAbsoluteLoudnessLkfs: ytv_num()
   }),
-  daiConfig: ytv_sch({
+  daiConfig: ytv_sto({
     allowUstreamerRequestAdconfig: ytv_bol(),
     daiType: ytv_str(['DAI_TYPE_CLIENT_STITCHED', 'DAI_TYPE_SERVER_STITCHED', 'DAI_TYPE_SS_DISABLED']),
-    debugInfo: ytv_sch({
+    debugInfo: ytv_sto({
       isDisabledUnpluggedChannel: ytv_bol()
     }),
     enableDai: ytv_bol(),
@@ -230,14 +230,14 @@ export const playerConfig = ytv_ren({
     enableServerStitchedDai: ytv_bol(),
     sendSsdaiMissingAdBreakReasons: ytv_bol()
   }),
-  embeddedPlayerConfig: ytv_sch({
+  embeddedPlayerConfig: ytv_sto({
     embeddedPlayerMode: ytv_str(['EMBEDDED_PLAYER_MODE_DEFAULT', 'EMBEDDED_PLAYER_MODE_PFL', 'EMBEDDED_PLAYER_MODE_PFP', 'EMBEDDED_PLAYER_MODE_UNKNOWN']),
-    permissions: ytv_sch({
+    permissions: ytv_sto({
       allowImaMonetization: ytv_bol()
     })
   }),
-  granularVariableSpeedConfig: ytv_sch({
-    defaultPlaybackRateOptions: ytv_arr(ytv_sch({
+  granularVariableSpeedConfig: ytv_sto({
+    defaultPlaybackRateOptions: ytv_arr(ytv_sto({
       isPremiumUpsell: ytv_bol(),
       label: ytv_str(),
       priority: ytv_num(),
@@ -247,39 +247,39 @@ export const playerConfig = ytv_ren({
     minimumPlaybackRate: ytv_num(),
     stepSize: ytv_num()
   }),
-  inlinePlaybackConfig: ytv_sch({
+  inlinePlaybackConfig: ytv_sto({
     showAudioControls: ytv_bol(),
     showScrubbingControls: ytv_bol()
   }),
-  livePlayerConfig: ytv_sch({
+  livePlayerConfig: ytv_sto({
     hasSubfragmentedFmp4: ytv_bol(),
     hasSubfragmentedWebm: ytv_bol(),
     isLiveHeadPlayable: ytv_bol(),
     liveExperimentalContentId: ytv_str(),
     liveReadaheadSeconds: ytv_num()
   }),
-  manifestlessWindowedLiveConfig: ytv_sch({
+  manifestlessWindowedLiveConfig: ytv_sto({
     maxDvrSequence: ytv_num(),
     minDvrSequence: ytv_num(),
     maxDvrMediaTimeMs: ytv_num(),
     minDvrMediaTimeMs: ytv_num(),
     startWalltimeMs: ytv_num()
   }),
-  mediaCommonConfig: ytv_sch({
-    dynamicReadaheadConfig: ytv_sch({
+  mediaCommonConfig: ytv_sto({
+    dynamicReadaheadConfig: ytv_sto({
       maxReadAheadMediaTimeMs: ytv_num(),
       minReadAheadMediaTimeMs: ytv_num(),
       readAheadGrowthRateMs: ytv_num()
     }),
     enableServerDrivenRequestCancellation: ytv_bol(),
     fixLivePlaybackModelDefaultPosition: ytv_bol(),
-    mediaUstreamerRequestConfig: ytv_sch({
+    mediaUstreamerRequestConfig: ytv_sto({
       videoPlaybackUstreamerConfig: ytv_str()
     }),
     platypusUseEnvoyNetFetch: ytv_bol(),
-    serverPlaybackStartConfig: ytv_sch({
+    serverPlaybackStartConfig: ytv_sto({
       enable: ytv_bol(),
-      playbackStartPolicy: ytv_sch({
+      playbackStartPolicy: ytv_sto({
         resumeMinReadaheadPolicy: ytv_arr(minReadaheadPolicy),
         startMinReadaheadPolicy: ytv_arr(minReadaheadPolicy)
       })
@@ -287,11 +287,11 @@ export const playerConfig = ytv_ren({
     splitScreenEligible: ytv_bol(),
     useServerDrivenAbr: ytv_bol()
   }),
-  playbackEndConfig: ytv_sch({
+  playbackEndConfig: ytv_sto({
     endSeconds: ytv_num(),
     limitedPlaybackDurationInSeconds: ytv_num()
   }),
-  playbackStartConfig: ytv_sch({
+  playbackStartConfig: ytv_sto({
     liveUtcStartSeconds: ytv_num(),
     progressBarEndPosition: ytv_num(),
     progressBarStartPosition: ytv_num(),
@@ -299,29 +299,29 @@ export const playerConfig = ytv_ren({
     startPosition: playbackPosition,
     startSeconds: ytv_num()
   }),
-  playerControlsConfig: ytv_sch({
+  playerControlsConfig: ytv_sto({
     showCachedInTimebar: ytv_bol()
   }),
-  skippableIntroConfig: ytv_sch({
+  skippableIntroConfig: ytv_sto({
     endMs: ytv_str(),
     startMs: ytv_str()
   }),
-  skippableSegmentsConfig: ytv_sch({
+  skippableSegmentsConfig: ytv_sto({
     introSkipDurationMs: ytv_str(),
     outroSkipDurationMs: ytv_str()
   }),
-  streamSelectionConfig: ytv_sch({
+  streamSelectionConfig: ytv_sto({
     maxBitrate: ytv_str()
   }),
-  vrConfig: ytv_sch({
+  vrConfig: ytv_sto({
     partialSpherical: ytv_str()
   }),
-  vssClientConfig: ytv_sch({
+  vssClientConfig: ytv_sto({
     vssUsePostRequest: ytv_bol()
   }),
-  webPlayerConfig: ytv_sch({
+  webPlayerConfig: ytv_sto({
     useCobaltTvosDash: ytv_bol(),
-    webPlayerActionsPorting: ytv_sch({
+    webPlayerActionsPorting: ytv_sto({
       addToWatchLaterCommand: ytv_enp(),
       getSharePanelCommand: ytv_enp(),
       removeFromWatchLaterCommand: ytv_enp(),
@@ -334,7 +334,7 @@ export const playerCueRange = ytv_ren({
   duration: common.components.highResTime,
   id: ytv_str(),
   onEnter: ytv_arr(ytv_enp()),
-  playbackRelativePosition: ytv_sch({
+  playbackRelativePosition: ytv_sto({
     utcTimeMs: ytv_str()
   }),
   removeOnTriggered: ytv_bol()
@@ -424,7 +424,7 @@ export const subscribeButtonViewModelContent = ytv_ren({
   buttonText: ytv_str(),
   imageName: ytv_str(),
   onTapCommand: ytv_enp(),
-  subscribeState: ytv_sch({
+  subscribeState: ytv_sto({
     key: ytv_str(),
     subscribed: ytv_bol()
   })
@@ -446,7 +446,7 @@ export const text = ytv_ren({
   simpleText: ytv_str()
 })
 export const textViewModelColorMapExtension = ytv_ren({
-  colorMap: ytv_arr(ytv_sch({
+  colorMap: ytv_arr(ytv_sto({
     key: ytv_str(),
     value: ytv_num()
   }))
@@ -493,7 +493,7 @@ export const videoAdPings = ytv_ren({
   abandonPings: ytv_arr(common.components.url),
   activeViewFullyViewableAudibleHalfDurationPings: ytv_arr(common.components.url),
   activeViewMeasurablePings: ytv_arr(common.components.url),
-  activeViewTracking: ytv_sch({
+  activeViewTracking: ytv_sto({
     identifier: ytv_str(),
     trafficType: ytv_str(['ACTIVE_VIEW_TRAFFIC_TYPE_VIDEO'])
   }),

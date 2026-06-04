@@ -1,5 +1,5 @@
 import { ytv_enp, ytv_ren, ytv_rsp } from '../define/extended'
-import { ytv_arr, ytv_bol, ytv_num, ytv_sch, ytv_str } from '../define/primitive'
+import { ytv_arr, ytv_bol, ytv_num, ytv_sto, ytv_str } from '../define/primitive'
 
 import * as renderer from '../renderer'
 import * as components from './components'
@@ -15,8 +15,8 @@ export const browse = ytv_rsp(() => ({
   topbar: ytv_ren()
 }))
 export const browseEditPlaylist = ytv_rsp(() => ({
-  playlistEditResults: ytv_arr(ytv_sch({
-    playlistEditVideoAddedResultData: ytv_sch({
+  playlistEditResults: ytv_arr(ytv_sto({
+    playlistEditVideoAddedResultData: ytv_sto({
       setVideoId: ytv_str(),
       videoId: ytv_str()
     })
@@ -32,7 +32,7 @@ export const liveChatGetLiveChatReplay = ytv_rsp(() => ({
 }))
 export const liveChatGetLiveChat = ytv_rsp(() => ({
   continuationContents: components.continuationContents,
-  liveChatStreamingResponseExtension: ytv_sch({
+  liveChatStreamingResponseExtension: ytv_sto({
     lastPublishAtUsec: ytv_str()
   })
 }))
@@ -42,7 +42,7 @@ export const next = ytv_rsp(() => ({
   contents: ytv_ren(),
   currentVideoEndpoint: ytv_enp(),
   engagementPanels: ytv_arr(ytv_ren()),
-  mdxExpandedVideoList: ytv_sch({
+  mdxExpandedVideoList: ytv_sto({
     videoIds: ytv_arr(ytv_str())
   }),
   microformat: ytv_ren(),
@@ -57,10 +57,10 @@ export const next = ytv_rsp(() => ({
 export const notificationGetUnseenCount = ytv_rsp(() => ({}))
 export const offlineGetDownloadAction = ytv_rsp(() => ({}))
 export const offlineGetPlaybackDataEntity = ytv_rsp(() => ({
-  orchestrationActions: ytv_arr(ytv_sch({
-    actionMetadata: ytv_sch({
+  orchestrationActions: ytv_arr(ytv_sto({
+    actionMetadata: ytv_sto({
       priority: ytv_num(),
-      transferEntityActionMetadata: ytv_sch({
+      transferEntityActionMetadata: ytv_sto({
         isEnqueuedForPes: ytv_bol(),
         maximumDownloadQuality: ytv_str()
       })
@@ -79,16 +79,16 @@ export const player = ytv_rsp(() => ({
   adSlots: ytv_arr(ytv_ren()),
   annotations: ytv_arr(ytv_ren()),
   attestation: ytv_ren(),
-  auxiliaryUi: ytv_sch({
+  auxiliaryUi: ytv_sto({
     messageRenderers: ytv_ren()
   }),
   captions: ytv_ren(),
   cards: ytv_ren(),
   cotn: ytv_str(),
   endscreen: ytv_ren(),
-  heartbeatParams: ytv_sch({
+  heartbeatParams: ytv_sto({
     drmSessionId: ytv_str(),
-    heartbeatAttestationConfig: ytv_sch({
+    heartbeatAttestationConfig: ytv_sto({
       requiresAttestation: ytv_bol()
     }),
     heartbeatServerData: ytv_str(),
@@ -115,7 +115,7 @@ export const playerHeartbeat = ytv_rsp(() => ({
   authenticationMismatch: ytv_bol(),
   compositeLiveIngestionOffsetToken: ytv_str(),
   compositeLiveStatusToken: ytv_str(),
-  heartbeatAttestationConfig: ytv_sch({
+  heartbeatAttestationConfig: ytv_sto({
     requiresAttestation: ytv_bol()
   }),
   heartbeatLoggingToken: ytv_str(),
@@ -124,7 +124,7 @@ export const playerHeartbeat = ytv_rsp(() => ({
   playerCueRangeSet: ytv_arr(renderer.components.playerCueRangeSet),
   playerCueRanges: ytv_arr(renderer.components.playerCueRange),
   pollDelayMs: ytv_str(),
-  progressBarConfig: ytv_sch({
+  progressBarConfig: ytv_sto({
     progressBarEndPosition: renderer.components.playbackPosition,
     progressBarStartPosition: renderer.components.playbackPosition
   }),

@@ -1,5 +1,5 @@
 import { ytv_enp, ytv_ren } from '../define/extended'
-import { ytv_arr, ytv_bol, ytv_num, ytv_sch, ytv_str } from '../define/primitive'
+import { ytv_arr, ytv_bol, ytv_num, ytv_sto, ytv_str } from '../define/primitive'
 import { YTObjectSchema } from '../define/types'
 
 import * as endpoint from '../endpoint'
@@ -13,34 +13,34 @@ export const continuationContents = ytv_ren(() => ({
   tvSurfaceContentContinuation: renderer.mapped.tvBrowseRenderer
 }))
 export const responseContext = ytv_ren({
-  consistencyTokenJar: ytv_sch({
+  consistencyTokenJar: ytv_sto({
     encryptedTokenJarContents: ytv_str(),
     expirationSeconds: ytv_str()
   }),
-  mainAppWebResponseContext: ytv_sch({
+  mainAppWebResponseContext: ytv_sto({
     datasyncId: ytv_str(),
     loggedOut: ytv_bol(),
     trackingParam: ytv_str()
   }),
   maxAgeSeconds: ytv_num(),
   responseId: ytv_str(),
-  serviceTrackingParams: ytv_arr(ytv_sch({
-    params: ytv_arr(ytv_sch({
+  serviceTrackingParams: ytv_arr(ytv_sto({
+    params: ytv_arr(ytv_sto({
       key: ytv_str(),
       value: ytv_str()
     })),
     service: ytv_str()
   })),
   visitorData: ytv_str(),
-  webResponseContextExtensionData: ytv_sch({
+  webResponseContextExtensionData: ytv_sto({
     hasDecorated: ytv_bol(),
-    webPrefetchData: ytv_sch({
+    webPrefetchData: ytv_sto({
       navigationEndpoints: ytv_arr(ytv_enp())
     }),
-    webResponseContextPreloadData: ytv_sch({
+    webResponseContextPreloadData: ytv_sto({
       preloadMessageNames: ytv_arr(ytv_str())
     }),
-    ytConfigData: ytv_sch({
+    ytConfigData: ytv_sto({
       rootVisualElementType: ytv_num(),
       sessionIndex: ytv_num(),
       visitorData: ytv_str()
