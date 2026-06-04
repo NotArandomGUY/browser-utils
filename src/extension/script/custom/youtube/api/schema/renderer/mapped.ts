@@ -737,6 +737,7 @@ export const desktopTopbarRenderer = ytv_ren(() => ({
 }))
 export const downloadButtonRenderer = ytv_ren(() => ({
   command: ytv_enp(),
+  hasLabel: ytv_bol(),
   size: ytv_str(enums.SizeType),
   style: ytv_str(enums.ButtonStyle),
   targetId: ytv_str()
@@ -1235,9 +1236,7 @@ export const liveChatBannerRenderer = ytv_ren(() => ({
   actionId: ytv_str(),
   backgroundType: ytv_str(['LIVE_CHAT_BANNER_BACKGROUND_TYPE_SHIMMER_ANIMATION', 'LIVE_CHAT_BANNER_BACKGROUND_TYPE_STATIC']),
   bannerProperties: ytv_sch({
-    autoCollapseDelay: ytv_sch({
-      seconds: ytv_str()
-    }),
+    autoCollapseDelay: common.components.highResTime,
     bannerCollapsedStateEntityKey: ytv_str()
   }),
   bannerType: ytv_str(['LIVE_CHAT_BANNER_TYPE_ACTIVE_POLL', 'LIVE_CHAT_BANNER_TYPE_PINNED_MESSAGE']),
@@ -1994,6 +1993,7 @@ export const playerOverlayRenderer = ytv_ren(() => ({
   endScreen: ytv_ren(),
   fullscreenQuickActionsBar: ytv_ren(),
   isAutoplayEnabled: ytv_bol(),
+  liveIndicatorText: components.text,
   productsInVideoOverlayRenderer: ytv_ren(),
   replay: ytv_ren(),
   shareButton: ytv_ren(),
@@ -2810,6 +2810,7 @@ export const videoOwnerRenderer = ytv_ren(() => ({
 export const videoPrimaryInfoRenderer = ytv_ren(() => ({
   dateText: components.text,
   relativeDateText: components.text,
+  subtitle: components.text,
   superTitleLink: components.text,
   title: components.text,
   updatedMetadataEndpoint: ytv_enp(),
@@ -3379,9 +3380,7 @@ export const segmentedLikeDislikeButtonViewModel = ytv_rvm(() => ({
   }),
   iconType: ytv_str(['LIKE_ICON_TYPE_UNKNOWN']),
   likeButtonViewModel: ytv_ren(),
-  likeCountEntity: ytv_sch({
-    key: ytv_str()
-  }),
+  likeCountEntity: endpoint.components.likeCountEntity,
   teasersOrderEntityKey: ytv_str()
 }))
 export const sheetViewModel = ytv_rvm(() => ({
@@ -3535,7 +3534,7 @@ export const toggleButtonViewModel = ytv_rvm(() => ({
   isToggled: ytv_bol(),
   isTogglingDisabled: ytv_bol(),
   toggledButtonViewModel: ytv_ren(),
-  toggledStateEntitySelectorType: ytv_str(['TOGGLE_BUTTON_ENTITY_SELECTOR_TYPE_COMMENTS_PANEL'])
+  toggledStateEntitySelectorType: ytv_str(['TOGGLE_BUTTON_ENTITY_SELECTOR_TYPE_COMMENTS_PANEL', 'TOGGLE_BUTTON_ENTITY_SELECTOR_TYPE_LIVE_CHAT_PANEL'])
 }))
 export const tooltipViewModel = ytv_rvm(() => ({
   placement: ytv_str(['TOOLTIP_VIEW_MODEL_PLACEMENT_TOP']),

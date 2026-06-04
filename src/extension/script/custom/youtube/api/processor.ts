@@ -74,46 +74,46 @@ async function invokeYTValueProcessor<S extends YTValueSchema>(data: YTValueData
   return true
 }
 
-async function processYTArrayEntry(schema: YTValueSchema, index: number, parent: unknown[]): Promise<void> {
+async function processYTArrayEntry(schema: YTValueSchema, index: number, target: unknown[], parent: object | null): Promise<void> {
   try {
-    const value = parent[index]
-    if (!await processYTValue(schema, value, parent)) throw new DeleteChildError('value', parent, index, value, schema)
+    const value = target[index]
+    if (!await processYTValue(schema, value, target)) throw new DeleteChildError('value', target, index, value, schema)
   } catch (error) {
     if (error instanceof DeleteChildError) {
-      parent.splice(index, 1)
+      target.splice(index, 1)
       return error.printDebugLog()
     }
-    logger.debug('array entry error:', errorMessage(error), schema, index, parent)
+    logger.debug('array entry error:', errorMessage(error), schema, index, target, parent)
   }
 }
 
-async function processYTObjectEntry(schema: YTValueSchemaOf<YTValueType.OBJECT>, key: unknown, parent: object): Promise<void> {
+async function processYTObjectEntry(schema: YTValueSchemaOf<YTValueType.OBJECT>, key: unknown, target: object, parent: object | null): Promise<void> {
   try {
-    const value = parent[key as keyof typeof parent]
-    if (!await processYTValue(schema.key, key, parent)) throw new DeleteChildError('key', parent, key, value, schema)
-    if (!await processYTValue(schema.value, value, parent)) throw new DeleteChildError('value', parent, key, value, schema)
+    const value = target[key as keyof typeof target]
+    if (!await processYTValue(schema.key, key, target)) throw new DeleteChildError('key', target, key, value, schema)
+    if (!await processYTValue(schema.value, value, target)) throw new DeleteChildError('value', target, key, value, schema)
   } catch (error) {
     if (error instanceof DeleteChildError) {
-      delete parent[key as keyof typeof parent]
+      delete target[key as keyof typeof target]
       return error.printDebugLog()
     }
-    logger.debug('object entry error:', errorMessage(error), schema, key, parent)
+    logger.debug('object entry error:', errorMessage(error), schema, key, target, parent)
   }
 }
 
-async function processYTSchemaEntry(parentSchema: YTObjectSchema, key: string, parent: object): Promise<void> {
+async function processYTSchemaEntry(parentSchema: YTObjectSchema, key: string, target: object, parent: object | null): Promise<void> {
   try {
     const schema = parentSchema[key]
     if (schema == null) throw new TypeError('unhandled field')
 
-    const value = parent[key as keyof typeof parent]
-    if (!await processYTValue(schema, value, parent)) throw new DeleteChildError('value', parent, key, value, schema)
+    const value = target[key as keyof typeof target]
+    if (!await processYTValue(schema, value, target)) throw new DeleteChildError('value', target, key, value, schema)
   } catch (error) {
     if (error instanceof DeleteChildError) {
-      delete parent[key as keyof typeof parent]
+      delete target[key as keyof typeof target]
       return error.printDebugLog()
     }
-    logger.debug('schema entry error:', errorMessage(error), parentSchema, key, parent)
+    logger.debug('schema entry error:', errorMessage(error), parentSchema, key, target, parent)
   }
 }
 
@@ -123,7 +123,7 @@ async function processYTSchemaEntries(
   parent: object | null
 ): Promise<boolean> {
   if (!await invokeYTValueProcessor(value, schema, parent, YTValueProcessorType.PRE)) return false
-  for (const key in value) await processYTSchemaEntry(schema.schema, key, value)
+  for (const key in value) await processYTSchemaEntry(schema.schema, key, value, parent)
   return await invokeYTValueProcessor(value, schema, parent, YTValueProcessorType.POST)
 }
 
@@ -195,7 +195,7 @@ export async function processYTValue(schema: YTValueSchema, value: unknown, pare
     case YTValueType.OBJECT:
       assertType('object', value)
       if (!await invokeYTValueProcessor(value as Record<string | number, unknown>, schema, parent, YTValueProcessorType.PRE)) return false
-      for (const key in value) await processYTObjectEntry(schema, key, value)
+      for (const key in value) await processYTObjectEntry(schema, key, value, parent)
       return invokeYTValueProcessor(value as Record<string | number, unknown>, schema, parent, YTValueProcessorType.POST)
     case YTValueType.SCHEMA:
       assertType('object', value)
@@ -203,20 +203,20 @@ export async function processYTValue(schema: YTValueSchema, value: unknown, pare
     case YTValueType.ARRAY:
       if (!Array.isArray(value)) throwMismatchTypeError('array', value)
       if (!await invokeYTValueProcessor(value, schema, parent, YTValueProcessorType.PRE)) return false
-      for (let i = value.length - 1; i >= 0; i--) await processYTArrayEntry(schema.value, i, value)
+      for (let i = value.length - 1; i >= 0; i--) await processYTArrayEntry(schema.value, i, value, parent)
       return await invokeYTValueProcessor(value, schema, parent, YTValueProcessorType.POST) && value.length > 0
     case YTValueType.ENDPOINT:
       assertType('object', value)
       if (schema.schema != null) return processYTSchemaEntries(schema as Required<YTValueSchemaOf<YTValueType.ENDPOINT>>, value, parent)
       if (!await invokeYTValueProcessor(value, schema, parent, YTValueProcessorType.PRE)) return false
-      for (const key in value) await processYTSchemaEntry(YTEndpoint.mapped, key, value)
-      return await invokeYTValueProcessor(value, schema, parent, YTValueProcessorType.POST) && keys(value).some(key => !YTEndpoint.MappedOuterKeys.includes(key as typeof YTEndpoint.MappedOuterKeys[number]))
+      for (const key in value) await processYTSchemaEntry(YTEndpoint.mapped, key, value, parent)
+      return await invokeYTValueProcessor(value, schema, parent, YTValueProcessorType.POST) && keys(value).some(key => !YTEndpoint.MappedOuterKeys.has(key as YTEndpoint.MappedKey))
     case YTValueType.RENDERER:
     case YTValueType.RESPONSE:
       assertType('object', value)
       if (schema.schema != null) return processYTSchemaEntries(schema as Required<YTValueSchemaOf<YTValueType.RENDERER | YTValueType.RESPONSE>>, value, parent)
       if (!await invokeYTValueProcessor(value, schema, parent, YTValueProcessorType.PRE)) return false
-      for (const key in value) await processYTSchemaEntry(YTRenderer.mapped, key, value)
+      for (const key in value) await processYTSchemaEntry(YTRenderer.mapped, key, value, parent)
       return await invokeYTValueProcessor(value, schema, parent, YTValueProcessorType.POST) && keys(value).length > 0
     default:
       throw new Error('invalid schema value type')

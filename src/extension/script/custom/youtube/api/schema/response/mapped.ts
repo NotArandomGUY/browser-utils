@@ -1,5 +1,5 @@
 import { ytv_enp, ytv_ren, ytv_rsp } from '../define/extended'
-import { ytv_arr, ytv_bol, ytv_num, ytv_sch, ytv_str, ytv_unk } from '../define/primitive'
+import { ytv_arr, ytv_bol, ytv_num, ytv_sch, ytv_str } from '../define/primitive'
 
 import * as renderer from '../renderer'
 import * as components from './components'
@@ -105,6 +105,7 @@ export const player = ytv_rsp(() => ({
   playbackTracking: renderer.components.playerPlaybackTracking,
   playerAds: ytv_arr(ytv_ren()),
   playerConfig: renderer.components.playerConfig,
+  playerCueRangeSet: ytv_arr(renderer.components.playerCueRangeSet),
   storyboards: ytv_ren(),
   streamingData: renderer.components.playerStreamingData,
   videoDetails: renderer.components.playerVideoDetails
@@ -120,8 +121,8 @@ export const playerHeartbeat = ytv_rsp(() => ({
   heartbeatLoggingToken: ytv_str(),
   heartbeatServerData: ytv_str(),
   playabilityStatus: renderer.components.playerPlayabilityStatus,
-  playerCueRangeSet: ytv_unk(),
-  playerCueRanges: ytv_arr(ytv_unk()),
+  playerCueRangeSet: ytv_arr(renderer.components.playerCueRangeSet),
+  playerCueRanges: ytv_arr(renderer.components.playerCueRange),
   pollDelayMs: ytv_str(),
   progressBarConfig: ytv_sch({
     progressBarEndPosition: renderer.components.playbackPosition,

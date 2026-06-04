@@ -130,6 +130,7 @@ export const loggingDirectives = ytv_sch({
     types: ytv_str()
   }),
   trackingParams: ytv_str(),
+  useGreenPath: ytv_bol(),
   visibility: ytv_sch({
     types: ytv_str()
   })
@@ -298,6 +299,9 @@ export const playerConfig = ytv_ren({
     startPosition: playbackPosition,
     startSeconds: ytv_num()
   }),
+  playerControlsConfig: ytv_sch({
+    showCachedInTimebar: ytv_bol()
+  }),
   skippableIntroConfig: ytv_sch({
     endMs: ytv_str(),
     startMs: ytv_str()
@@ -326,6 +330,19 @@ export const playerConfig = ytv_ren({
     })
   })
 })
+export const playerCueRange = ytv_ren({
+  duration: common.components.highResTime,
+  id: ytv_str(),
+  onEnter: ytv_arr(ytv_enp()),
+  playbackRelativePosition: ytv_sch({
+    utcTimeMs: ytv_str()
+  }),
+  removeOnTriggered: ytv_bol()
+})
+export const playerCueRangeSet = ytv_ren({
+  cueRangeSetIdentifier: ytv_str(['PLAYER_CUE_RANGE_SET_IDENTIFIER_EMBARGO', 'PLAYER_CUE_RANGE_SET_IDENTIFIER_STATION_AIRING_EMBARGO', 'PLAYER_CUE_RANGE_SET_IDENTIFIER_AIRING_METADATA_UPDATE']),
+  playerCueRanges: ytv_arr(playerCueRange)
+})
 export const playerPlayabilityStatus = ytv_ren({
   additionalLoggingData: ytv_str(),
   audioOnlyPlayability: ytv_ren(),
@@ -344,6 +361,7 @@ export const playerPlayabilityStatus = ytv_ren({
 export const playerPlaybackTracking = ytv_ren({
   atrUrl: common.components.url,
   googleRemarketingUrl: common.components.url,
+  heartbeatLoggingToken: ytv_str(),
   ptrackingUrl: common.components.url,
   qoeUrl: common.components.url,
   videostatsDelayplayUrl: common.components.url,

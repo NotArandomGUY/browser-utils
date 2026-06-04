@@ -7,7 +7,6 @@ import * as components from './components'
 import * as enums from './enums'
 
 // Outer
-export const clickTrackingParams = ytv_str()
 export const commandMetadata = ytv_sch({
   interactionLoggingCommandMetadata: components.interactionLoggingCommandMetadata,
   webCommandMetadata: components.webCommandMetadata
@@ -82,7 +81,9 @@ export const setActivePanelItemAction = ytv_enp(() => ({
   itemIndex: ytv_num(),
   panelTargetId: ytv_str()
 }))
-export const setLiveChatCollapsedStateAction = ytv_enp(() => ({}))
+export const setLiveChatCollapsedStateAction = ytv_enp(() => ({
+  collapsed: ytv_bol()
+}))
 export const showEngagementPanelScrimAction = ytv_enp(() => ({
   engagementPanelTargetId: ytv_str(),
   onClickCommands: ytv_arr(ytv_enp())
@@ -201,10 +202,7 @@ export const entityUpdateCommand = ytv_enp(() => ({
   })),
   entityBatchUpdate: ytv_sch({
     mutations: ytv_arr(components.entityMutation),
-    timestamp: ytv_sch({
-      nanos: ytv_num(),
-      seconds: ytv_str()
-    })
+    timestamp: common.components.highResTime
   })
 }))
 export const getDownloadActionCommand = ytv_enp(() => ({
@@ -309,6 +307,7 @@ export const showDialogCommand = ytv_enp(() => ({
     screenVe: ytv_num()
   })
 }))
+export const showFullscreenPlayerControlsCommand = ytv_enp(() => ({}))
 export const showHintCommand = ytv_enp(() => ({
   shouldShowHint: ytv_bol()
 }))

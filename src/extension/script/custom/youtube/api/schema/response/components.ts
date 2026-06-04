@@ -23,6 +23,7 @@ export const responseContext = ytv_ren({
     trackingParam: ytv_str()
   }),
   maxAgeSeconds: ytv_num(),
+  responseId: ytv_str(),
   serviceTrackingParams: ytv_arr(ytv_sch({
     params: ytv_arr(ytv_sch({
       key: ytv_str(),

@@ -11,6 +11,10 @@ export const environment = ytv_sch({
   formFactor: ytv_str(['SMALL_FORM_FACTOR']),
   platformName: ytv_str(['PLATFORM_NAME_IOS'])
 })
+export const highResTime = ytv_sch({
+  nanos: ytv_num(),
+  seconds: ytv_str()
+})
 export const url = ytv_sch({
   attributionSrcMode: ytv_str(['ATTRIBUTION_SRC_MODE_LABEL_CHROME']),
   baseUrl: ytv_str(),

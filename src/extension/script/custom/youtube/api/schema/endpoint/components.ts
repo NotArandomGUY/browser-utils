@@ -28,9 +28,7 @@ export const downloadQualityPickerEntity = ytv_sch(() => ({
 export const emojiFountainDataEntity = ytv_sch(() => ({
   key: ytv_str(),
   reactionBuckets: ytv_arr(ytv_sch({
-    duration: ytv_sch({
-      seconds: ytv_str()
-    }),
+    duration: common.components.highResTime,
     intensityScore: ytv_num(),
     reactionsData: ytv_arr(ytv_sch({
       reactionCount: ytv_num(),
@@ -43,6 +41,23 @@ export const emojiFountainDataEntity = ytv_sch(() => ({
 export const flowStateEntity = ytv_sch(() => ({
   currentStepId: ytv_str(),
   key: ytv_str()
+}))
+export const likeCountEntity = ytv_sch(() => ({
+  expandedLikeCountIfDisliked: renderer.mapped.textViewModel,
+  expandedLikeCountIfIndifferent: renderer.mapped.textViewModel,
+  expandedLikeCountIfLiked: renderer.mapped.textViewModel,
+  key: ytv_str(),
+  likeButtonA11yText: renderer.mapped.textViewModel,
+  likeCountIfDisliked: renderer.mapped.textViewModel,
+  likeCountIfDislikedNumber: ytv_str(),
+  likeCountIfIndifferent: renderer.mapped.textViewModel,
+  likeCountIfIndifferentNumber: ytv_str(),
+  likeCountIfLiked: renderer.mapped.textViewModel,
+  likeCountIfLikedNumber: ytv_str(),
+  likeCountLabel: renderer.mapped.textViewModel,
+  sentimentFactoidA11yTextIfDisliked: renderer.mapped.textViewModel,
+  sentimentFactoidA11yTextIfLiked: renderer.mapped.textViewModel,
+  shouldExpandLikeCount: ytv_bol()
 }))
 export const likeStatusEntity = ytv_sch(() => ({
   key: ytv_str(),
@@ -272,7 +287,12 @@ export const entityMutationPayload = ytv_sch(() => ({
     unlikeCommand: ytv_enp()
   }),
   flowStateEntity,
-  likeCountEntity: ytv_unk(),
+  likeButtonAnimationEntity: ytv_sch({
+    animationDarkUrl: ytv_str(),
+    animationLightUrl: ytv_str(),
+    key: ytv_str()
+  }),
+  likeCountEntity,
   likeStatusEntity,
   liveChatPollStateEntity,
   liveViewerLeaderboardChatEntryPointStateEntity,
