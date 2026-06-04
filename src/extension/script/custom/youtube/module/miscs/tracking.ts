@@ -167,6 +167,7 @@ const updateRenderer = (data: YTValueData<{ type: YTValueType.RENDERER }>): void
 }
 
 const updateLoggingDirectives = (data: YTValueData<YTRenderer.Component<'loggingDirectives'>>): void => {
+  if (data.trackingParams) data.trackingParams = OVERRIDE_TRACKING_PARAMS
   delete data.clientVeSpec
   delete data.visibility
 }
