@@ -1,12 +1,16 @@
 import { registerYTValueProcessor } from '@ext/custom/youtube/api/processor'
-import { YTEndpoint, YTRenderer, YTResponse, YTValueData } from '@ext/custom/youtube/api/schema'
+import { YTEndpoint, YTRenderer, YTResponse, YTValueData, YTValueType } from '@ext/custom/youtube/api/schema'
+import { getYTAppElement } from '@ext/custom/youtube/module/core/bootstrap'
 import { registerYTSignalActionHandler } from '@ext/custom/youtube/module/core/command'
 import { registerYTConfigMenuItemGroup, YTConfigMenuItemType } from '@ext/custom/youtube/module/core/config'
 import { getYTPInstance, YTPInstanceType, YTPVideoPlayerInstance } from '@ext/custom/youtube/module/player/bootstrap'
+import ContinuationToken, { LiveChatContinuationToken } from '@ext/custom/youtube/proto/continuation-token'
+import LiveChatParams, { LiveChatQuery, LiveChatQueryContent } from '@ext/custom/youtube/proto/live-chat-params'
 import { ytuiShowToast } from '@ext/custom/youtube/utils/ytui'
 import { floor, max, random } from '@ext/global/math'
 import { URL } from '@ext/global/network'
 import { getPropertyDescriptor } from '@ext/global/object'
+import { bufferFromString, bufferToString } from '@ext/lib/buffer'
 import { Feature } from '@ext/lib/feature'
 import Logger from '@ext/lib/logger'
 import MessageChannel from '@ext/lib/message/channel'
@@ -19,8 +23,25 @@ const CHANNEL_SOURCE = sessionStorage.getItem(CHANNEL_NAME) || `cs-${(((floor(ra
 const COLD_NAV_IFRAME_DISABLE_DURATION = 5e3 // 5 sec
 const POPOUT_KEEPALIVE_TIMEOUT = 25e3 // 25 sec
 const PLAYER_KEEPALIVE_TIMEOUT = 60e3 // 1 min
-const LIVE_CHAT_PATHNAME = '/live_chat'
-const LIVE_CHAT_REPLAY_PATHNAME = '/live_chat_replay'
+
+const LiveChatPathname = '/live_chat'
+const LiveChatReplayPathname = '/live_chat_replay'
+const LiveChatShellUrl = `${location.origin}${LiveChatPathname}?continuation=${bufferToString(new ContinuationToken({
+  liveChatContinuation: new LiveChatContinuationToken({
+    params: bufferToString(new LiveChatParams({
+      query: new LiveChatQuery({ content: new LiveChatQueryContent() }),
+      b4: 1
+    }).serialize(), 'base64url')
+  })
+}).serialize(), 'base64url')}`
+const LiveChatShellContent = {
+  actionPanel: {
+    messageRenderer: {
+      text: { runs: [{ text: 'Waiting for live stream/live stream replay...' }] }
+    }
+  }
+} satisfies YTValueData<YTRenderer.Mapped<'liveChatRenderer'>>
+const PlayerEventsRelayTagName = 'yt-iframed-player-events-relay'
 
 const documentHidden = getPropertyDescriptor(document, 'hidden')?.get?.bind(document)
 
@@ -34,9 +55,14 @@ const enum ChatPopoutMessageType {
 }
 
 interface YTChatIFrameMessage {
-  'yt-live-chat-buy-flow-callback'?: unknown
+  'yt-live-chat-buy-flow-callback'?: {
+    success: boolean
+    response?: { data?: { command?: YTValueData<{ type: YTValueType.ENDPOINT }> } }
+    errorMessageRenderer?: YTValueData<{ type: YTValueType.RENDERER }>
+  }
   'yt-live-chat-close-buy-flow'?: true
   'yt-live-chat-forward-redux-action'?: unknown
+  'yt-live-chat-keyboard-event'?: { eventType: string, keyCode: number }
   'yt-live-chat-set-dark-theme'?: unknown
   'yt-player-ad-start'?: string
   'yt-player-ad-end'?: true
@@ -56,19 +82,15 @@ type ChatPopoutMessageDataMap = {
 }
 
 class MainAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, ChatPopoutMessageType> {
-  private player_: YTPVideoPlayerInstance | null
-  private binding_: ChatBinding | null
-  private boundTo_: string | null
-  private lastBoundedPopoutAnnounce_: number
+  private player_: YTPVideoPlayerInstance | null = null
+  private binding_: ChatBinding | null = null
+  private boundTo_: string | null = null
+  private lastBoundedPopoutAnnounce_: number = 0
   private lastUnboundPopoutAnnounce_: number
 
   public constructor() {
     super(CHANNEL_NAME)
 
-    this.player_ = null
-    this.binding_ = null
-    this.boundTo_ = null
-    this.lastBoundedPopoutAnnounce_ = 0
     this.lastUnboundPopoutAnnounce_ = Date.now() - POPOUT_KEEPALIVE_TIMEOUT + COLD_NAV_IFRAME_DISABLE_DURATION
 
     registerYTConfigMenuItemGroup('general', [
@@ -81,7 +103,10 @@ class MainAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, Cha
       }
     ])
     registerYTSignalActionHandler(YTEndpoint.enums.SignalActionType.OPEN_POPOUT_CHAT, () => {
-      open(`${location.origin}${LIVE_CHAT_PATHNAME}`, Math.random().toString(36), 'menubar=0,location=0,scrollbars=0,toolbar=0,width=600,height=600')
+      const popoutWindow = open('about:blank', Math.random().toString(36), 'menubar=0,location=0,scrollbars=0,toolbar=0,width=600,height=600')
+      if (popoutWindow == null) return ytuiShowToast('Failed to open popout window', 5e3)
+
+      popoutWindow.location.replace(LiveChatShellUrl)
     })
     registerYTValueProcessor(YTRenderer.mapped.liveChatRenderer, data => {
       const { lastBoundedPopoutAnnounce_, lastUnboundPopoutAnnounce_ } = this
@@ -226,19 +251,31 @@ class MainAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, Cha
 }
 
 class ChatAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, ChatPopoutMessageType> {
-  private boundTo_: string | null
-  private lastKeepalive_: number
+  private boundTo_: string | null = null
+  private lastKeepalive_: number = 0
 
   public constructor() {
     super(CHANNEL_NAME)
 
-    this.boundTo_ = null
-    this.lastKeepalive_ = 0
+    registerYTValueProcessor(YTResponse.mapped.liveChatGetLiveChat, (data) => {
+      this.keepalive_('live_chat')
 
-    registerYTValueProcessor(YTResponse.mapped.liveChatGetLiveChat, () => this.keepalive_('live_chat'))
+      const continuationContents = data.continuationContents
+      if (continuationContents == null) return
 
-    addEventListener('load', this.update_.bind(this))
-    setInterval(this.update_.bind(this), 5e3)
+      const continuation = continuationContents.liveChatContinuation?.continuations?.[0]?.reloadContinuationData?.continuation
+      if (continuation == null) return
+
+      const params = new ContinuationToken().deserialize(bufferFromString(continuation, 'base64url')).liveChatContinuation?.params
+      if (params == null) return
+
+      const query = new LiveChatParams().deserialize(bufferFromString(params, 'base64url')).query?.content
+      if (query == null || query.videoId) return
+
+      continuationContents.liveChatContinuation = LiveChatShellContent
+    })
+
+    setInterval(this.update_.bind(this), 1e3)
   }
 
   protected onMessage(message: MessageDataUnion<ChatPopoutMessageDataMap, ChatPopoutMessageType>): void {
@@ -254,15 +291,16 @@ class ChatAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, Cha
         // Unbind from player if another popout already bounded to it
         if (boundTo != null && boundTo !== CHANNEL_SOURCE) return this.unbind_('race')
 
-        // Load live chat
-        if (this.load_(binding)) return
+        // Load/Switch live chat
+        if (this.load_(binding) || boundTo_ === source) return
 
         logger.debug(`popout bind '${source}'`)
 
         // Update binding
         this.boundTo_ = source
         this.keepalive_('bind')
-        this.update_()
+
+        this.send(ChatPopoutMessageType.TOAST_MESSAGE, [CHANNEL_SOURCE, 'Popout live chat connected'])
         return
       }
       case ChatPopoutMessageType.PLAYER_UNBIND: {
@@ -289,17 +327,37 @@ class ChatAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, Cha
     }
   }
 
+  private setRendererData_(data: YTValueData<YTRenderer.Mapped<'liveChatRenderer'>>, replace?: boolean): boolean {
+    const renderer = document.querySelector<HTMLElement & { data?: typeof data }>('yt-live-chat-renderer')
+    if (renderer == null) return false
+
+    renderer.data = replace ? data : { ...renderer.data, ...data }
+    return true
+  }
+
   private load_([continuation, isReplay]: ChatBinding): boolean {
-    const { origin, pathname, searchParams } = new URL(location.href)
+    const { origin, searchParams } = new URL(location.href)
 
-    const path = isReplay ? LIVE_CHAT_REPLAY_PATHNAME : LIVE_CHAT_PATHNAME
+    if (searchParams.get('continuation') === continuation) return false
 
-    if (pathname === path && searchParams.get('continuation') === continuation) {
-      this.send(ChatPopoutMessageType.TOAST_MESSAGE, [CHANNEL_SOURCE, 'Popout live chat loaded'])
-      return false
+    const url = `${origin}${isReplay ? LiveChatReplayPathname : LiveChatPathname}?continuation=${encodeURIComponent(continuation)}`
+    const app = getYTAppElement()
+    const relay = document.querySelector(PlayerEventsRelayTagName)
+
+    if (this.setRendererData_({ continuations: [{ reloadContinuationData: { continuation } }], isReplay })) {
+      if (!isReplay) {
+        relay?.remove()
+      } else if (app != null && relay == null) {
+        app.append(document.createElement(PlayerEventsRelayTagName))
+      }
+
+      this.lastKeepalive_ = Date.now()
+
+      history.replaceState(null, '', url)
+    } else {
+      location.replace(url)
     }
 
-    location.href = `${origin}${path}?continuation=${encodeURIComponent(continuation)}`
     return true
   }
 
@@ -321,21 +379,20 @@ class ChatAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, Cha
     logger.debug(`popout unbind '${boundTo_}', reason: ${reason}`)
 
     this.boundTo_ = null
+    this.lastKeepalive_ = Date.now() - PLAYER_KEEPALIVE_TIMEOUT + 500
   }
 
   private update_(): void {
     const { boundTo_, lastKeepalive_ } = this
 
-    if (boundTo_ != null) {
-      if ((Date.now() - lastKeepalive_) < PLAYER_KEEPALIVE_TIMEOUT) {
-        this.send(ChatPopoutMessageType.POPOUT_ANNOUNCE, [CHANNEL_SOURCE, boundTo_])
-        return
+    if ((Date.now() - lastKeepalive_) > PLAYER_KEEPALIVE_TIMEOUT) {
+      if (location.href !== LiveChatShellUrl && this.setRendererData_(LiveChatShellContent, true)) {
+        history.replaceState(null, '', LiveChatShellUrl)
       }
-
       this.unbind_('idle')
     }
 
-    this.send(ChatPopoutMessageType.POPOUT_ANNOUNCE, [CHANNEL_SOURCE, null])
+    this.send(ChatPopoutMessageType.POPOUT_ANNOUNCE, [CHANNEL_SOURCE, boundTo_])
   }
 }
 
@@ -352,8 +409,8 @@ export default class YTChatPopoutModule extends Feature {
     const { top } = window
 
     switch (location.pathname) {
-      case LIVE_CHAT_PATHNAME:
-      case LIVE_CHAT_REPLAY_PATHNAME:
+      case LiveChatPathname:
+      case LiveChatReplayPathname:
         if (top != null && top !== window) return false
         this.channel_ = new ChatAppMessageChannel()
         break
