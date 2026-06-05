@@ -28,9 +28,11 @@ export const guide = ytv_rsp(() => ({
   items: ytv_arr(ytv_ren())
 }))
 export const liveChatGetLiveChatReplay = ytv_rsp(() => ({
+  contents: ytv_ren(),
   continuationContents: components.continuationContents
 }))
 export const liveChatGetLiveChat = ytv_rsp(() => ({
+  contents: ytv_ren(),
   continuationContents: components.continuationContents,
   liveChatStreamingResponseExtension: ytv_sto({
     lastPublishAtUsec: ytv_str()
