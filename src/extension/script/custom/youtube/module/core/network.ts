@@ -173,14 +173,14 @@ const protoBase64UrlDecode = <D extends MessageDefinition>(ctor: new (initData?:
   const message = new ctor({})
   if (typeof data !== 'string') return message
 
-  return message.deserialize(bufferFromString(decodeURIComponent(data), 'base64url'))
+  return message.deserialize(bufferFromString(data, 'base64url'))
 }
 
 const protoBase64UrlEncode = <D extends MessageDefinition>(message: Message<D>): string | undefined => {
   const data = message.serialize()
   if (data.length === 0) return undefined
 
-  return encodeURIComponent(bufferToString(data, 'base64url'))
+  return bufferToString(data, 'base64url')
 }
 
 const invokeProcessors = async (request: YTInnertubeRequest, headers: Headers, processors?: Set<YTInnertubeRequestProcessor>): Promise<YTValueData<YTResponse.Mapped> | null> => {

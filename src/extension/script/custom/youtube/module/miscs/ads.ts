@@ -38,7 +38,7 @@ const processWatchEndpoint = (data: YTValueData<YTEndpoint.Mapped<'watchEndpoint
 
   if (params == null || videoId == null) return
 
-  const playerParams = new PlayerParams().deserialize(bufferFromString(decodeURIComponent(params), 'base64url'))
+  const playerParams = new PlayerParams().deserialize(bufferFromString(params, 'base64url'))
   if (!playerParams.isInlinePlaybackV1) return
 
   const now = Date.now()

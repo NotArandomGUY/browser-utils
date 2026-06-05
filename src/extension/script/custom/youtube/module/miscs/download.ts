@@ -397,7 +397,7 @@ const updateVideoPrimaryInfoRenderer = (data: YTValueData<YTRenderer.Mapped<'vid
       onAddCommand: {
         getDownloadActionCommand: {
           videoId,
-          params: encodeURIComponent(bufferToString(new PlayerParams({ i1: 1, b2: false }).serialize(), 'base64url')),
+          params: bufferToString(new PlayerParams({ i1: 1, b2: false }).serialize(), 'base64url'),
           offlineabilityEntityKey: entityKey,
           isCrossDeviceDownload: false
         }

@@ -669,7 +669,7 @@ export const bufferFromString = (input: string, encoding: Encoding = 'utf8'): Ui
     case 'base64':
       return bufferFromString(atob(input), 'latin1')
     case 'base64url':
-      return bufferFromString(input.replace(/-/g, '+').replace(/_/g, '/'), 'base64')
+      return bufferFromString(decodeURIComponent(input).replace(/-/g, '+').replace(/_/g, '/'), 'base64')
     case 'ascii':
     case 'latin1':
       return new Uint8Array(input.split('').map((_, i) => input.charCodeAt(i) & 0xFF))
