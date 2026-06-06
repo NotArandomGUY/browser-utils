@@ -328,9 +328,10 @@ class ChatAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, Cha
   }
 
   private setRendererData_(data: YTValueData<YTRenderer.Mapped<'liveChatRenderer'>>, replace?: boolean): boolean {
-    const renderer = document.querySelector<HTMLElement & { data?: typeof data }>('yt-live-chat-renderer')
+    const renderer = document.querySelector<HTMLElement & { data?: typeof data, bannerManager?: { reset?(): void } }>('yt-live-chat-renderer')
     if (renderer == null) return false
 
+    renderer.bannerManager?.reset?.()
     renderer.data = replace ? data : { ...renderer.data, ...data }
     return true
   }
