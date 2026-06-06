@@ -3,7 +3,7 @@ import { YTRenderer, YTValueData } from '@ext/custom/youtube/api/schema'
 import { isYTLoggedIn, YTConfigInitCallback, YTPlayerCreateCallback, YTPlayerWebPlayerContextConfig } from '@ext/custom/youtube/module/core/bootstrap'
 import { registerYTInnertubeRequestProcessor, YTInnertubeRequest } from '@ext/custom/youtube/module/core/network'
 import { URLSearchParams } from '@ext/global/network'
-import { defineProperty, entries, fromEntries, getOwnPropertyNames, getPrototypeOf, keys, values } from '@ext/global/object'
+import { defineProperty, entries, fromEntries, keys, values } from '@ext/global/object'
 import Callback from '@ext/lib/callback'
 import { Feature } from '@ext/lib/feature'
 import InterceptDOM from '@ext/lib/intercept/dom'
@@ -158,8 +158,10 @@ const instancesByType = {
 let baseCtor: string | null = null
 
 export const YTPlayerContextConfigCallback = new Callback<[config: YTPlayerWebPlayerContextConfig]>()
+export const YTPlayerInstanceCreateCallback = new Callback<YTPInstanceCallbackParams>()
 
 type YTPInstanceOf<T extends YTPInstanceType> = typeof instancesByType[T] extends Set<WeakRef<infer I>> ? I : never
+type YTPInstanceCallbackParams = { [T in YTPInstanceType]: [type: T, instance: YTPInstanceOf<T>] }[YTPInstanceType]
 
 const findPropertyChain = (parent: unknown, child: unknown, depth: number, excludes: string[] = []): string[] | null => {
   if (parent == null || typeof parent !== 'object' || depth < 1) return null
@@ -202,76 +204,8 @@ const observePropertyChain = <T extends object>(parent: unknown, chain: string[]
   }
 }
 
-const onCreateAppInstance = (instance: YTPAppInstance): void => {
-  const playerInstances = getAllYTPInstance(YTPInstanceType.VIDEO_PLAYER)
-
-  for (const playerInstance of playerInstances) {
-    const chain = findPropertyChain(instance, playerInstance, 3, ['mediaElement'])
-    if (chain == null) continue
-
-    observePropertyChain(instance, chain, (playerInstance: YTPVideoPlayerInstance) => {
-      logger.debug('player instance changed')
-      instance.playerRef = new WeakRef(playerInstance)
-    })
-    return
-  }
-
-  logger.warn('failed to locate player instance')
-}
-
-const onCreateVideoPlayerInstance = (instance: YTPVideoPlayerInstance): void => {
-  values(instance).forEach(prop => {
-    if (prop == null || typeof prop !== 'object') return
-
-    for (const key in prop) {
-      const value = prop[key]
-      if (value == null || !(value instanceof Map)) continue
-
-      for (const stat in STAT_METHOD_MAP) {
-        if (!value.has(stat)) continue
-
-        instance[STAT_METHOD_MAP[stat as keyof typeof STAT_METHOD_MAP]] = value.get(stat)
-      }
-    }
-  })
-
-  const prototype = getPrototypeOf(instance.videoData)
-  if (prototype == null) return
-
-  getOwnPropertyNames(prototype).forEach(key => {
-    const value = prototype[key as keyof YTPVideoDataInstance]
-    if (typeof value !== 'function' || !value.toString().includes('.storyboards')) return
-
-    defineProperty(prototype, key, {
-      configurable: true,
-      value: new Hook(value as (this: YTPVideoDataInstance, ...args: unknown[]) => unknown).install(ctx => {
-        const { self, args } = ctx
-
-        const cotn = self.cotn
-        self.cotn = undefined
-        ctx.returnValue = ctx.origin.apply(self, args)
-        self.cotn = cotn
-
-        return HookResult.EXECUTION_RETURN
-      }).call
-    })
-  })
-}
-
 const onCreateInstanceType = (type: YTPInstanceType, instance: YTPDisposableInstance): YTPDisposableInstance => {
-  setTimeout(() => {
-    switch (type) {
-      case YTPInstanceType.APP:
-        onCreateAppInstance(instance as YTPAppInstance)
-        break
-      case YTPInstanceType.VIDEO_PLAYER:
-        onCreateVideoPlayerInstance(instance as YTPVideoPlayerInstance)
-        break
-      default:
-        logger.warn('invalid type')
-        break
-    }
-  }, 1)
+  setTimeout(() => YTPlayerInstanceCreateCallback.invoke(...[type, instance] as YTPInstanceCallbackParams), 1)
 
   if (instance.dispose != null) {
     const instances = instancesByType[type] as Set<WeakRef<YTPDisposableInstance>>
@@ -435,6 +369,38 @@ export default class YTPlayerBootstrapModule extends Feature {
   protected activate(): boolean {
     YTConfigInitCallback.registerCallback(ytcfg => processPlayerContextConfig(ytcfg.get('WEB_PLAYER_CONTEXT_CONFIGS')))
     YTPlayerCreateCallback.registerCallback(onCreateYTPlayer)
+    YTPlayerInstanceCreateCallback.registerCallback((type, instance) => {
+      switch (type) {
+        case YTPInstanceType.APP:
+          getAllYTPInstance(YTPInstanceType.VIDEO_PLAYER).some(playerInstance => {
+            const chain = findPropertyChain(instance, playerInstance, 3, ['mediaElement'])
+            if (chain == null) return false
+
+            observePropertyChain(instance, chain, (playerInstance: YTPVideoPlayerInstance) => {
+              logger.debug('player instance changed')
+              instance.playerRef = new WeakRef(playerInstance)
+            })
+            return true
+          })
+          return
+        case YTPInstanceType.VIDEO_PLAYER:
+          values(instance).forEach(prop => {
+            if (prop == null || typeof prop !== 'object') return
+
+            for (const key in prop) {
+              const value = prop[key]
+              if (value == null || !(value instanceof Map)) continue
+
+              for (const stat in STAT_METHOD_MAP) {
+                if (!value.has(stat)) continue
+
+                instance[STAT_METHOD_MAP[stat as keyof typeof STAT_METHOD_MAP]] = value.get(stat)
+              }
+            }
+          })
+          return
+      }
+    })
 
     registerYTValueProcessor(YTRenderer.components.transportControlsAction, updateTransportControlsAction)
 
