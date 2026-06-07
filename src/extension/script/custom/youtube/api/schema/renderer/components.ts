@@ -10,6 +10,13 @@ export const imageSource = ytv_ren({
   clientResource: ytv_ren({
     imageName: ytv_str()
   }),
+  customImageSource: ytv_ren({
+    youtubeIconSource: ytv_ren({
+      clientResource: ytv_ren({
+        icon: ytv_str() // enums.IconType/YTICON_(FILL|OUTLINE)_(enums.IconType)_S(size)
+      })
+    })
+  }),
   height: ytv_num(),
   url: ytv_str(),
   width: ytv_num()
@@ -189,14 +196,12 @@ export const paygatedQualityDetail = ytv_ren({
   paygatedIndicatorText: ytv_str()
 })
 export const paygatedQualitiesMetadata = ytv_ren({
-  qualityDetails: ytv_obj(ytv_str(), paygatedQualityDetail)
   // TODO: support union type
-  /*
-  qualityDetails: ytv_arr(ytv_sch({
+  //qualityDetails: ytv_obj(ytv_str(), paygatedQualityDetail)
+  qualityDetails: ytv_arr(ytv_sto({
     key: ytv_str(),
     value: paygatedQualityDetail
   }))
-  */
 })
 export const playbackPosition = ytv_ren({
   streamTimeMillis: ytv_str(),
@@ -228,7 +233,8 @@ export const playerConfig = ytv_ren({
     enableDai: ytv_bol(),
     enablePreroll: ytv_bol(),
     enableServerStitchedDai: ytv_bol(),
-    sendSsdaiMissingAdBreakReasons: ytv_bol()
+    sendSsdaiMissingAdBreakReasons: ytv_bol(),
+    ssaEnabledPlayback: ytv_bol()
   }),
   embeddedPlayerConfig: ytv_sto({
     embeddedPlayerMode: ytv_str(['EMBEDDED_PLAYER_MODE_DEFAULT', 'EMBEDDED_PLAYER_MODE_PFL', 'EMBEDDED_PLAYER_MODE_PFP', 'EMBEDDED_PLAYER_MODE_UNKNOWN']),
@@ -412,9 +418,7 @@ export const rendererContext = ytv_ren({
     onTap: ytv_enp(),
     onVisible: ytv_enp()
   }),
-  loggingContext: ytv_ren({
-    loggingDirectives
-  })
+  loggingContext: ytv_ren({})
 })
 export const size = ytv_ren({
   sizeType: ytv_str(enums.SizeType)

@@ -9,6 +9,7 @@ import * as enums from './enums'
 // Outer
 export const commandMetadata = ytv_sto({
   interactionLoggingCommandMetadata: components.interactionLoggingCommandMetadata,
+  resolveUrlCommandMetadata: components.resolveUrlCommandMetadata,
   webCommandMetadata: components.webCommandMetadata
 })
 export const loggingUrls = ytv_arr(common.components.url)
@@ -41,6 +42,9 @@ export const changeEngagementPanelVisibilityAction = ytv_enp(() => ({
 }))
 export const getMultiPageMenuAction = ytv_enp(() => ({
   menu: ytv_ren()
+}))
+export const hideEnclosingAction = ytv_enp(() => ({
+  notificationId: ytv_str()
 }))
 export const hideEngagementPanelScrimAction = ytv_enp(() => ({
   engagementPanelTargetId: ytv_str()
@@ -88,6 +92,9 @@ export const showEngagementPanelScrimAction = ytv_enp(() => ({
   engagementPanelTargetId: ytv_str(),
   onClickCommands: ytv_arr(ytv_enp())
 }))
+export const showLiveChatChannelGuidelinesDialogAction = ytv_enp(() => ({
+  dialog: ytv_ren()
+}))
 export const signalAction = ytv_enp(() => ({
   signal: ytv_str(enums.SignalActionType),
   targetId: ytv_str()
@@ -96,7 +103,14 @@ export const undoFeedbackAction = ytv_enp(() => ({
   hack: ytv_bol(),
   targetId: ytv_str()
 }))
+export const updateBackstagePollAction = ytv_enp(() => ({
+  commentId: ytv_str(),
+  selectedChoiceIndex: ytv_num(),
+  totalVotes: renderer.components.text,
+  updatedPollStatus: ytv_str(common.enums.CommentPollStatus)
+}))
 export const updateCommentVoteAction = ytv_enp(() => ({
+  postId: ytv_str(),
   voteCount: renderer.components.text,
   voteStatus: ytv_str(common.enums.LikeStatus)
 }))
@@ -242,6 +256,16 @@ export const localWatchHistoryCommand = ytv_enp(() => ({
   localWatchHistoryCommandType: ytv_str(['LOCAL_WATCH_HISTORY_COMMAND_TYPE_REMOVE']),
   videoId: ytv_str()
 }))
+export const logFlowLoggingEventCommand = ytv_enp(() => ({
+  flowEventMetadata: ytv_sto({
+    sponsorshipsPurchaseContext: ytv_sto({
+      joinMethod: ytv_str(['SPONSORSHIPS_JOIN_METHOD_CHANNEL_PAGE_BUTTON'])
+    })
+  }),
+  flowEventNamespace: ytv_str(['FLOW_EVENT_NAMESPACE_SPONSORSHIPS_PURCHASE']),
+  flowEventType: ytv_num(),
+  flowType: ytv_str(['FLOW_TYPE_SPONSORSHIPS_PURCHASE'])
+}))
 export const logGestureCommand = ytv_ren(() => ({
   gestureType: ytv_str(['GESTURE_EVENT_TYPE_LOG_GENERIC_CLICK'])
 }))
@@ -280,6 +304,10 @@ export const repeatChapterCommand = ytv_enp(() => ({
 export const resetChannelUnreadCountCommand = ytv_enp(() => ({
   channelId: ytv_str()
 }))
+export const runAttestationCommand = ytv_enp(() => ({
+  engagementType: ytv_str(common.enums.EngagementType),
+  ids: ytv_arr(ytv_unk())
+}))
 export const seekToVideoTimestampCommand = ytv_enp(() => ({
   offsetFromVideoStartMilliseconds: ytv_str(),
   videoId: ytv_str()
@@ -310,6 +338,9 @@ export const showDialogCommand = ytv_enp(() => ({
 export const showFullscreenPlayerControlsCommand = ytv_enp(() => ({}))
 export const showHintCommand = ytv_enp(() => ({
   shouldShowHint: ytv_bol()
+}))
+export const showLiveChatTooltipCommand = ytv_enp(() => ({
+  tooltip: ytv_ren()
 }))
 export const showMenuCommand = ytv_enp(() => ({
   contentId: ytv_str(),
@@ -402,6 +433,10 @@ export const browseEndpoint = ytv_enp(() => ({
 export const captionPickerEndpoint = ytv_enp(() => ({
   videoId: ytv_str()
 }))
+export const channelCreationFormEndpoint = ytv_enp(() => ({
+  channelCreationToken: ytv_str(),
+  source: ytv_str(['COMMENT_CHANNEL_CREATION_SOURCE'])
+}))
 export const confirmDialogEndpoint = ytv_enp(() => ({
   content: ytv_ren()
 }))
@@ -438,9 +473,6 @@ export const getReportFormEndpoint = ytv_enp(() => ({
 }))
 export const getTranscriptEndpoint = ytv_enp(() => ({
   params: ytv_str()
-}))
-export const hideEnclosingAction = ytv_enp(() => ({
-  notificationId: ytv_str()
 }))
 export const hideEngagementPanelEndpoint = ytv_enp(() => ({
   identifier: renderer.components.engagementPanelIdentifier,
@@ -647,6 +679,7 @@ export const uploadEndpoint = ytv_enp(() => ({
 }))
 export const urlEndpoint = ytv_enp(() => ({
   attributionSrcMode: ytv_str(['ATTRIBUTION_SRC_MODE_LABEL_CHROME']),
+  grwOpenInOverride: ytv_str(['GRW_OPEN_IN_OVERRIDE_USE_PREFERRED_APP_NO_PROMPT']),
   nofollow: ytv_bol(),
   target: ytv_str(['TARGET_NEW_WINDOW']),
   url: ytv_str()

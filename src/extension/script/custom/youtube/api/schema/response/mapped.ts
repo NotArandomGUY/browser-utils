@@ -23,6 +23,12 @@ export const browseEditPlaylist = ytv_rsp(() => ({
   })),
   status: ytv_str(['STATUS_SUCCEEDED'])
 }))
+export const commentPerformCommentAction = ytv_rsp(() => ({
+  actionResults: ytv_arr(ytv_sto({
+    feedback: ytv_str(['FEEDBACK_DESELECT', 'FEEDBACK_SELECT']),
+    status: ytv_str(['STATUS_SUCCEEDED'])
+  }))
+}))
 export const guide = ytv_rsp(() => ({
   footer: ytv_ren(),
   items: ytv_arr(ytv_ren())
@@ -56,7 +62,9 @@ export const next = ytv_rsp(() => ({
   transportControls: ytv_ren(),
   videoReporting: ytv_ren()
 }))
+export const notificationAddUpcomingEventReminder = ytv_rsp(() => ({}))
 export const notificationGetUnseenCount = ytv_rsp(() => ({}))
+export const notificationRemoveUpcomingEventReminder = ytv_rsp(() => ({}))
 export const offlineGetDownloadAction = ytv_rsp(() => ({}))
 export const offlineGetPlaybackDataEntity = ytv_rsp(() => ({
   orchestrationActions: ytv_arr(ytv_sto({

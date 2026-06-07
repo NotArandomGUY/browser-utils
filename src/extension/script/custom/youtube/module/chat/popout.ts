@@ -63,7 +63,7 @@ interface YTChatIFrameMessage {
   'yt-live-chat-close-buy-flow'?: true
   'yt-live-chat-forward-redux-action'?: unknown
   'yt-live-chat-keyboard-event'?: { eventType: string, keyCode: number }
-  'yt-live-chat-set-dark-theme'?: unknown
+  'yt-live-chat-set-dark-theme'?: boolean
   'yt-player-ad-start'?: string
   'yt-player-ad-end'?: true
   'yt-player-state-change'?: number

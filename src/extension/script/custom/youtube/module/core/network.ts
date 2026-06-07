@@ -1,5 +1,5 @@
 import { processYTResponse } from '@ext/custom/youtube/api/processor'
-import { YTResponse, YTValueData } from '@ext/custom/youtube/api/schema'
+import { YTCommon, YTResponse, YTValueData } from '@ext/custom/youtube/api/schema'
 import { YTInnertubeContext } from '@ext/custom/youtube/module/core/bootstrap'
 import PlayerParams from '@ext/custom/youtube/proto/player-params'
 import { assign, defineProperty, fromEntries } from '@ext/global/object'
@@ -89,7 +89,7 @@ type YTInnertubeRequestBase = {
 type YTInnertubeRequestMap = {
   '*': {}
   'att/get': Partial<{
-    engagementType: 'ENGAGEMENT_TYPE_PLAYBACK' | 'ENGAGEMENT_TYPE_SHARE' | 'ENGAGEMENT_TYPE_UNBOUND' | 'ENGAGEMENT_TYPE_VIDEO_TRANSCRIPT_REQUEST' | 'ENGAGEMENT_TYPE_YPC_GET_DOWNLOAD_ACTION' | 'ENGAGEMENT_TYPE_YPC_GET_PREMIUM_PAGE'
+    engagementType: YTCommon.enums.EngagementType
   }>
   'browse': Partial<{
     browseId: string

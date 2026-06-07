@@ -14,6 +14,10 @@ export const chipBarStateEntity = ytv_sto(() => ({
   key: ytv_str(),
   selectedIndex: ytv_num()
 }))
+export const chipEntity = ytv_sto(() => ({
+  key: ytv_str(),
+  text: ytv_str()
+}))
 export const downloadQualityPickerEntity = ytv_sto(() => ({
   formats: ytv_arr(ytv_sto({
     approximateSize: ytv_str(),
@@ -42,6 +46,11 @@ export const flowStateEntity = ytv_sto(() => ({
   currentStepId: ytv_str(),
   key: ytv_str()
 }))
+export const likeButtonAnimationEntity = ytv_sto({
+  animationDarkUrl: ytv_str(),
+  animationLightUrl: ytv_str(),
+  key: ytv_str()
+})
 export const likeCountEntity = ytv_sto(() => ({
   expandedLikeCountIfDisliked: renderer.mapped.textViewModel,
   expandedLikeCountIfIndifferent: renderer.mapped.textViewModel,
@@ -79,7 +88,7 @@ export const liveChatPollStateEntity = ytv_sto(() => ({
 }))
 export const liveViewerLeaderboardChatEntryPointStateEntity = ytv_sto(() => ({
   key: ytv_str(),
-  state: ytv_str(['LIVE_VIEWER_LEADERBOARD_CHAT_ENTRY_POINT_STATE_POINTS_AVAILABLE'])
+  state: ytv_str(['LIVE_VIEWER_LEADERBOARD_CHAT_ENTRY_POINT_STATE_POINTS_AVAILABLE', 'LIVE_VIEWER_LEADERBOARD_CHAT_ENTRY_POINT_STATE_DISABLED'])
 }))
 export const liveViewerLeaderboardPointsEntity = ytv_sto(() => ({
   key: ytv_str(),
@@ -140,7 +149,7 @@ export const replyCountEntity = ytv_sto(() => ({
 }))
 export const subscriptionNotificationStateEntity = ytv_sto(() => ({
   key: ytv_str(),
-  state: ytv_str(['SUBSCRIPTION_NOTIFICATION_STATE_OCCASIONAL'])
+  state: ytv_str(['SUBSCRIPTION_NOTIFICATION_STATE_ALL', 'SUBSCRIPTION_NOTIFICATION_STATE_OCCASIONAL'])
 }))
 export const subscriptionStateEntity = ytv_sto(() => ({
   key: ytv_str(),
@@ -166,12 +175,11 @@ export const entityMutationOption = ytv_sto({
 })
 export const entityMutationPayload = ytv_sto(() => ({
   booleanEntity,
-  commentEntityPayload: ytv_sto({
+  commentEntityPayload: ytv_ren({
     author: ytv_unk(),
     avatar: ytv_unk(),
     isTranslationAvailable: ytv_bol(),
     key: ytv_str(),
-    loggingDirectives: renderer.components.loggingDirectives,
     properties: ytv_sto({
       authorButtonA11y: ytv_str(),
       commentId: ytv_str(),
@@ -182,9 +190,7 @@ export const entityMutationPayload = ytv_sto(() => ({
       toolbarStateKey: ytv_str(),
       translateButtonEntityKey: ytv_str()
     }),
-    readMoreLogging: ytv_ren({
-      loggingDirectives: renderer.components.loggingDirectives
-    }),
+    readMoreLogging: ytv_ren({}),
     threadLines: ytv_sto({}),
     toolbar: ytv_sto({
       creatorThumbnailUrl: ytv_str(),
@@ -268,6 +274,7 @@ export const entityMutationPayload = ytv_sto(() => ({
     })
   }),
   chipBarStateEntity,
+  chipEntity,
   downloadQualityPickerEntity,
   emojiFountainDataEntity,
   engagementToolbarStateEntityPayload: ytv_sto({
@@ -287,11 +294,7 @@ export const entityMutationPayload = ytv_sto(() => ({
     unlikeCommand: ytv_enp()
   }),
   flowStateEntity,
-  likeButtonAnimationEntity: ytv_sto({
-    animationDarkUrl: ytv_str(),
-    animationLightUrl: ytv_str(),
-    key: ytv_str()
-  }),
+  likeButtonAnimationEntity,
   likeCountEntity,
   likeStatusEntity,
   liveChatPollStateEntity,
@@ -356,6 +359,9 @@ export const interactionLoggingCommandMetadata = ytv_enp({
   screenVisualElement: ytv_sto({
     uiType: ytv_num()
   })
+})
+export const resolveUrlCommandMetadata = ytv_enp({
+  isVanityUrl: ytv_bol()
 })
 export const webCommandMetadata = ytv_enp({
   apiUrl: ytv_str(),
