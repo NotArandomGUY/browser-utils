@@ -3,12 +3,12 @@ import { YTEndpoint, YTRenderer, YTResponse, YTValueData } from '@ext/custom/you
 import { isYTLoggedIn, YTPolymerCreateCallback } from '@ext/custom/youtube/module/core/bootstrap'
 import { registerYTSignalActionHandler } from '@ext/custom/youtube/module/core/command'
 import { isYTFeedFilterEnable, YTFeedFilterMask } from '@ext/custom/youtube/module/feed/filter'
-import { floor, max, min } from '@ext/global/math'
+import { floor, min } from '@ext/global/math'
 import { Feature } from '@ext/lib/feature'
 
 const REFRESH_INTERVAL_SEC = 15 * 60
-const REFRESH_OFFSET_SEC = 60
-const MIN_REFRESH_SEC = 30
+const REFRESH_COOLDOWN_SEC = 15
+const REFRESH_OFFSETS = [-30, 0, 30, 60, 120]
 
 interface YTGuideManager {
   guidePromise?: object
@@ -67,18 +67,15 @@ const updateGuideSubscriptionsSectionRenderer = (data: YTValueData<YTRenderer.Ma
 }
 
 const updateGuideResponse = (data: YTValueData<YTResponse.Mapped<'guide'>>): void => {
-  const { responseContext } = data
-
-  const maxAgeSec = responseContext?.maxAgeSeconds ?? 0
-  delete responseContext?.maxAgeSeconds
+  delete data.responseContext?.maxAgeSeconds
 
   if (!isYTLoggedIn()) return
 
-  const nextIntervalSec = (REFRESH_INTERVAL_SEC - ((floor(Date.now() / 1e3) - REFRESH_OFFSET_SEC) % REFRESH_INTERVAL_SEC))
-  const nextRefreshSec = max(MIN_REFRESH_SEC, min(maxAgeSec, nextIntervalSec))
+  const base = (REFRESH_INTERVAL_SEC - (floor(Date.now() / 1e3) % REFRESH_INTERVAL_SEC))
+  const delay = min(...REFRESH_OFFSETS.map(offset => base + offset).filter(delay => delay >= REFRESH_COOLDOWN_SEC))
 
   if (refreshTimer != null) clearTimeout(refreshTimer)
-  refreshTimer = setTimeout(reloadYTGuide, nextRefreshSec * 1e3)
+  refreshTimer = setTimeout(reloadYTGuide, delay * 1e3)
 }
 
 const reloadYTGuide = async (): Promise<void> => {
