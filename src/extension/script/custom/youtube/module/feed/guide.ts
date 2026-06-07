@@ -10,7 +10,7 @@ const REFRESH_INTERVAL_SEC = 15 * 60
 const REFRESH_OFFSET_SEC = 60
 const MIN_REFRESH_SEC = 30
 
-interface YTGuidePolymer {
+interface YTGuideManager {
   guidePromise?: object
   guideRenderers: Set<HTMLElement>
 
@@ -19,7 +19,14 @@ interface YTGuidePolymer {
   setGuideDataAfterInit(hostElement: HTMLElement): void
 }
 
-let guidePolymer: YTGuidePolymer | null = null
+interface YTDGuideCollapsibleEntryRenderer extends HTMLElement {
+  expanded?: boolean
+
+  onExpanderItemTapped?(event: MouseEvent): void
+  onCollapserItemTapped?(event: MouseEvent): void
+}
+
+let guideManager: YTGuideManager | null = null
 let refreshTimer: ReturnType<typeof setTimeout> | null = null
 
 const filterGuideEntry = (data: YTValueData<YTRenderer.Mapped<'guideEntryRenderer'>>): boolean => {
@@ -62,11 +69,11 @@ const updateGuideSubscriptionsSectionRenderer = (data: YTValueData<YTRenderer.Ma
 const updateGuideResponse = (data: YTValueData<YTResponse.Mapped<'guide'>>): void => {
   const { responseContext } = data
 
+  const maxAgeSec = responseContext?.maxAgeSeconds ?? 0
   delete responseContext?.maxAgeSeconds
 
   if (!isYTLoggedIn()) return
 
-  const maxAgeSec = responseContext?.maxAgeSeconds ?? 0
   const nextIntervalSec = (REFRESH_INTERVAL_SEC - ((floor(Date.now() / 1e3) - REFRESH_OFFSET_SEC) % REFRESH_INTERVAL_SEC))
   const nextRefreshSec = max(MIN_REFRESH_SEC, min(maxAgeSec, nextIntervalSec))
 
@@ -74,20 +81,24 @@ const updateGuideResponse = (data: YTValueData<YTResponse.Mapped<'guide'>>): voi
   refreshTimer = setTimeout(reloadYTGuide, nextRefreshSec * 1e3)
 }
 
-export const reloadYTGuide = async (): Promise<void> => {
-  if (guidePolymer == null) return
+const reloadYTGuide = async (): Promise<void> => {
+  if (guideManager == null) return
 
   if (refreshTimer != null) {
     clearTimeout(refreshTimer)
     refreshTimer = null
   }
 
-  delete guidePolymer.guidePromise
+  delete guideManager.guidePromise
+  await guideManager.initializeGuideData()
 
-  await guidePolymer.initializeGuideData()
+  for (const guide of guideManager.guideRenderers) {
+    guideManager.setGuideDataAfterInit(guide)
 
-  for (const renderer of guidePolymer.guideRenderers) {
-    guidePolymer.setGuideDataAfterInit(renderer)
+    const collapsibleEntry = guide.querySelector<YTDGuideCollapsibleEntryRenderer>('ytd-guide-collapsible-entry-renderer')
+    if (collapsibleEntry == null) continue
+
+    collapsibleEntry[collapsibleEntry.expanded ? 'onExpanderItemTapped' : 'onCollapserItemTapped']?.(new MouseEvent('click'))
   }
 }
 
@@ -100,7 +111,7 @@ export default class YTFeedGuideModule extends Feature {
     YTPolymerCreateCallback.registerCallback(instance => {
       if (!('initializeGuideData' in instance)) return
 
-      guidePolymer = instance as YTGuidePolymer
+      guideManager = instance as YTGuideManager
     })
 
     registerYTValueFilter(YTRenderer.mapped.guideEntryRenderer, filterGuideEntry)
