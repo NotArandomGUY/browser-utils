@@ -262,8 +262,11 @@ class ChatAppMessageChannel extends MessageChannel<ChatPopoutMessageDataMap, Cha
 
       const continuationContents = data.continuationContents
       if (continuationContents == null) return
+      const renderer = continuationContents.liveChatContinuation
 
-      const continuation = continuationContents.liveChatContinuation?.continuations?.[0]?.reloadContinuationData?.continuation
+      delete renderer?.header?.liveChatHeaderRenderer?.collapseButton
+
+      const continuation = renderer?.continuations?.[0]?.reloadContinuationData?.continuation
       if (continuation == null) return
 
       const params = new ContinuationToken().deserialize(bufferFromString(continuation, 'base64url')).liveChatContinuation?.params
@@ -412,7 +415,7 @@ export default class YTChatPopoutModule extends Feature {
     switch (location.pathname) {
       case LiveChatPathname:
       case LiveChatReplayPathname:
-        if (top != null && top !== window) return false
+        if ((top != null && top !== window) || new URLSearchParams(location.search).has('is_popout')) return false
         this.channel_ = new ChatAppMessageChannel()
         break
       default:
