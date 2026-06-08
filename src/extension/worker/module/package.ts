@@ -97,7 +97,7 @@ const decryptScriptPackage = async (branch: InstanceType<typeof RemoteBranch>, d
 const verifyScriptPackage = async (spk: InstanceType<typeof ScriptPackage>, branch?: InstanceType<typeof RemoteBranch>): Promise<boolean> => {
   if (spk.sign == null) throw new Error('missing sign')
 
-  if (branch == null) branch = await getRemoteBranch()
+  branch ??= await getRemoteBranch()
   if (branch.publicKey == null) throw new Error('missing public key')
 
   const key = await subtle.importKey('spki', branch.publicKey, { name: 'Ed25519' }, false, ['verify'])
@@ -158,7 +158,7 @@ const onStartup = async (): Promise<void> => {
   chrome.alarms.clear(ALARM_NAME)
   chrome.alarms.create(ALARM_NAME, { when: Date.now() + (isOpen ? 10e3 : 0), periodInMinutes: AUTO_UPDATE_INTERVAL })
 
-  if (isOpen) PackageLoadCallback.invoke()
+  if (isOpen) await PackageLoadCallback.invokeAsync()
 }
 
 const onAlarm = (alarm: chrome.alarms.Alarm): void => {
@@ -191,7 +191,7 @@ export const updateScriptPackage = async (): Promise<boolean> => {
 
     // Check if this is a new package
     const versions = await getCachedPackageVersions(branch.id)
-    if (versions.find(cacheVersion => compareVersion(version, cacheVersion) <= 0)) {
+    if (versions.some(cacheVersion => compareVersion(version, cacheVersion) <= 0)) {
       setPackageUpdateStatus(`package '${version}' is up to date`)
       return false
     }
@@ -217,7 +217,7 @@ export const updateScriptPackage = async (): Promise<boolean> => {
     closeScriptPackage()
     if (!await openScriptPackage()) return false
 
-    PackageLoadCallback.invoke()
+    await PackageLoadCallback.invokeAsync()
     return true
   } catch (error) {
     setPackageUpdateStatus(`fetch package error: ${error instanceof Error ? error.message : String(error)}`)
@@ -230,7 +230,7 @@ export const updateScriptPackage = async (): Promise<boolean> => {
 
 export const reloadScriptPackage = async (): Promise<void> => {
   closeScriptPackage()
-  if (await openScriptPackage()) PackageLoadCallback.invoke()
+  if (await openScriptPackage()) await PackageLoadCallback.invokeAsync()
 }
 
 export const getPackageMessageKey = async (): Promise<Uint8Array | null> => {

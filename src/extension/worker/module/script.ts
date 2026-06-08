@@ -25,7 +25,7 @@ const USER_SCRIPT_CONFIG = {
   runAt: 'document_start',
   world: 'MAIN'
 } satisfies Omit<US.RegisteredUserScript, 'id' | 'js'>
-const USER_SCRIPT_FIELDS = ['allFrames', 'excludeGlobs', 'excludeMatches', 'includeGlobs', 'matches', 'runAt', 'world']
+const USER_SCRIPT_FIELDS = new Set(['allFrames', 'excludeGlobs', 'excludeMatches', 'includeGlobs', 'matches', 'runAt', 'world'])
 
 const RunAt = {
   [ScriptRunAt.DOCUMENT_START]: 'document_start',
@@ -50,13 +50,13 @@ const updateContentScripts = (): void => {
   chrome.scripting.getRegisteredContentScripts().then(registeredScripts => {
     const registerScripts: CS.RegisteredContentScript[] = []
     const updateScripts: CS.RegisteredContentScript[] = []
-    const unregisterScripts = registeredScripts.filter(s => scripts.find(({ id }) => id === s.id) == null)
+    const unregisterScripts = registeredScripts.filter(s => !scripts.some(({ id }) => id === s.id))
 
     for (const script of scripts) {
-      if (registeredScripts.find(({ id }) => id === script.id) == null) {
-        registerScripts.push(script)
-      } else {
+      if (registeredScripts.some(({ id }) => id === script.id)) {
         updateScripts.push(script)
+      } else {
+        registerScripts.push(script)
       }
     }
 
@@ -124,7 +124,7 @@ const updateUserScripts = async (): Promise<void> => {
         ...parsed,
         runAt: RunAt[parsed.runAt as ScriptRunAt],
         world: UserScriptExecutionWorld[parsed.world as ScriptWorld]
-      }).filter(e => USER_SCRIPT_FIELDS.includes(e[0]) && e[1] != null)),
+      }).filter(e => USER_SCRIPT_FIELDS.has(e[0]) && e[1] != null)),
       id: `package-${entry.id}`,
       js
     })
@@ -134,13 +134,13 @@ const updateUserScripts = async (): Promise<void> => {
 
   const registerScripts: US.RegisteredUserScript[] = []
   const updateScripts: US.RegisteredUserScript[] = []
-  const unregisterScripts = registeredScripts.filter(s => scripts.find(({ id }) => id === s.id) == null)
+  const unregisterScripts = registeredScripts.filter(s => !scripts.some(({ id }) => id === s.id))
 
   for (const script of scripts) {
-    if (registeredScripts.find(({ id }) => id === script.id) == null) {
-      registerScripts.push(script)
-    } else {
+    if (registeredScripts.some(({ id }) => id === script.id)) {
       updateScripts.push(script)
+    } else {
+      registerScripts.push(script)
     }
   }
 

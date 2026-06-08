@@ -257,7 +257,7 @@ const createPlayer = async (create: (...args: unknown[]) => void, container: HTM
   logger.debug('create player:', container, config, webPlayerContextConfig)
 
   try {
-    YTPlayerCreateCallback.invoke(container, config, webPlayerContextConfig)
+    await YTPlayerCreateCallback.invokeAsync(container, config, webPlayerContextConfig)
   } catch (error) {
     logger.warn('create player callback error:', error)
   }
