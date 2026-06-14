@@ -155,7 +155,7 @@ export const adsControlFlowOpportunityReceivedCommand = ytv_enp(() => ({
       adSlotLoggingData: renderer.components.adSlotLoggingData,
       slotId: ytv_str(),
       slotPhysicalPosition: ytv_num(),
-      slotType: ytv_str(['SLOT_TYPE_IN_FEED'])
+      slotType: ytv_str(renderer.enums.AdSlotType)
     })
   })),
   enablePacfLoggingWeb: ytv_bol(),
@@ -555,6 +555,7 @@ export const recordNotificationInteractionsEndpoint = ytv_enp(() => ({
   serializedInteractionsRequest: ytv_str()
 }))
 export const reelWatchEndpoint = ytv_enp(() => ({
+  accessibilityRenderer: ytv_ren(),
   adClientParams: ytv_sto({
     isAd: ytv_bol()
   }),

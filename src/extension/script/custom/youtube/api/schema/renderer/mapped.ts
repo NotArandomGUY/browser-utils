@@ -229,11 +229,17 @@ export const aboveFeedAdLayoutRenderer = ytv_ren(() => ({
   adLayoutMetadata: components.adLayoutMetadata,
   layoutExitNormalTriggers: ytv_arr(ytv_sto({
     id: ytv_str(),
+    layoutExitedForReasonTrigger: ytv_sto({
+      layoutExitReason: ytv_str(['LAYOUT_EXIT_REASON_NORMAL']),
+      triggeringLayoutId: ytv_str()
+    }),
     layoutIdExitedTrigger: ytv_sto({
       triggeringLayoutId: ytv_str()
     }),
     onDifferentLayoutIdEnteredTrigger: ytv_sto({
-      layoutType: ytv_str(enums.AdLayoutType)
+      layoutType: ytv_str(enums.AdLayoutType),
+      slotType: ytv_str(enums.AdSlotType),
+      triggeringLayoutId: ytv_str()
     })
   })),
   renderingContent: ytv_ren()
@@ -285,7 +291,7 @@ export const adSlotRenderer = ytv_ren(() => ({
     adSlotLoggingData: components.adSlotLoggingData,
     slotId: ytv_str(),
     slotPhysicalPosition: ytv_num(),
-    slotType: ytv_str(['SLOT_TYPE_ABOVE_FEED', 'SLOT_TYPE_IN_FEED', 'SLOT_TYPE_IN_PLAYER', 'SLOT_TYPE_PLAYER_BYTES', 'SLOT_TYPE_PLAYER_BYTES_SEQUENCE_ITEM']),
+    slotType: ytv_str(enums.AdSlotType),
     triggerEvent: ytv_str(['SLOT_TRIGGER_EVENT_BEFORE_CONTENT', 'SLOT_TRIGGER_EVENT_LAYOUT_ID_ENTERED', 'SLOT_TRIGGER_EVENT_LAYOUT_ID_EXITED_NORMAL']),
     triggeringSourceLayoutId: ytv_str()
   }),
@@ -667,6 +673,7 @@ export const commentsHeaderRenderer = ytv_ren(() => ({
   createRenderer: ytv_ren(),
   customEmojis: ytv_arr(components.emoji),
   isBackstageContent: ytv_bol(),
+  screenReaderOnly: ytv_bol(),
   showSeparator: ytv_bol(),
   sortMenu: ytv_ren(),
   titleText: components.text,
@@ -726,7 +733,7 @@ export const copyLinkRenderer = ytv_ren(() => ({
   shortUrl: ytv_str()
 }))
 export const decoratedPlayerBarRenderer = ytv_ren(() => ({
-  buttonType: ytv_str(['DECORATED_PLAYER_BAR_BUTTON_TYPE_CHAPTERS']),
+  buttonType: ytv_str(['DECORATED_PLAYER_BAR_BUTTON_TYPE_CHAPTERS', 'DECORATED_PLAYER_BAR_BUTTON_TYPE_TIMELINE']),
   playerBar: ytv_ren(),
   playerBarActionButton: ytv_ren()
 }))
@@ -2046,6 +2053,7 @@ export const playerOverlayRenderer = ytv_ren(() => ({
   productsInVideoOverlayRenderer: ytv_ren(),
   replay: ytv_ren(),
   shareButton: ytv_ren(),
+  showPlaybackRateUpsellPanelCommand: ytv_enp(),
   showShareButtonFullscreen: ytv_bol(),
   showShareButtonSmallscreen: ytv_bol(),
   speedmasterUserEdu: ytv_ren(),
@@ -2289,6 +2297,9 @@ export const reelShelfRenderer = ytv_ren(() => ({
   nextButton: ytv_ren(),
   previousButton: ytv_ren(),
   title: components.text
+}))
+export const reelWatchAccessibilityRenderer = ytv_ren(() => ({
+  enablePlayPauseA11yButton: ytv_bol()
 }))
 export const relatedChipCloudRenderer = ytv_ren(() => ({
   content: ytv_ren(),
@@ -2889,6 +2900,8 @@ export const videoDescriptionTranscriptSectionRenderer = ytv_ren(() => ({
   subHeaderText: components.text
 }))
 export const videoOwnerRenderer = ytv_ren(() => ({
+  attributedTitle: textViewModel,
+  avatarStack: ytv_ren(),
   badges: ytv_arr(ytv_ren()),
   hideMembershipButtonIfUnsubscribed: ytv_bol(),
   membershipButton: ytv_ren(),
@@ -3066,7 +3079,7 @@ export const adButtonViewModel = ytv_rvm(() => ({
   interaction: components.adInteraction,
   label: textViewModel,
   size: ytv_str(['AD_BUTTON_SIZE_DEFAULT']),
-  style: ytv_str(['AD_BUTTON_STYLE_FILLED'])
+  style: ytv_str(['AD_BUTTON_STYLE_FILLED', 'AD_BUTTON_STYLE_MONO_TONAL', 'AD_BUTTON_STYLE_FILLED_WHITE'])
 }))
 export const adDetailsLineViewModel = ytv_rvm(() => ({
   attributes: ytv_arr(ytv_sto({
@@ -3321,6 +3334,9 @@ export const listItemViewModel = ytv_rvm(() => ({
   selectionText: textViewModel,
   subtitle: textViewModel,
   title: textViewModel,
+  trailingButtons: ytv_sto({
+    buttons: ytv_arr(ytv_ren())
+  }),
   trailingImage: components.image
 }))
 export const liveChatProductPickerPanelItemViewModel = ytv_rvm(() => ({
@@ -3495,6 +3511,7 @@ export const shortsLockupViewModel = ytv_rvm(() => ({
   inlinePlayerData: ytv_sto({
     onVisible: ytv_enp()
   }),
+  inlinePopStateEntityKey: ytv_str(),
   menuOnTap: ytv_enp(),
   menuOnTapA11yLabel: ytv_str(),
   onTap: ytv_enp(),
@@ -3502,7 +3519,9 @@ export const shortsLockupViewModel = ytv_rvm(() => ({
     primaryText: textViewModel,
     secondaryText: textViewModel
   }),
-  thumbnail: components.image
+  thumbnail: components.image,
+  thumbnailViewModel: ytv_ren(),
+  titleTruncationStyle: ytv_str(['SHORTS_LOCKUP_TITLE_TRUNCATION_STYLE_UNKNOWN'])
 }))
 export const shortsVideoTitleViewModel = ytv_rvm(() => ({
   maxLines: ytv_num(),

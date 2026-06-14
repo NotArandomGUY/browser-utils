@@ -90,7 +90,7 @@ export const continuationData = ytv_ren({
   timeUntilLastMessageMsec: ytv_num(),
   timeoutMs: ytv_num()
 })
-export const continuation = ytv_ren({
+export const continuation = ytv_sto({
   invalidationContinuationData: continuationData,
   liveChatReplayContinuationData: continuationData,
   nextContinuationData: continuationData,
