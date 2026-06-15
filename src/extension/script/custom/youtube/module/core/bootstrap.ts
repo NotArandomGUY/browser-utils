@@ -192,7 +192,7 @@ export interface YTSearchboxSettings {
   HIDE_REMOVE_LINK: false
 }
 
-const APP_ELEMENT_PAGE_MAP: Record<string, YTInitDataResponse['page'] | false> = {
+const APP_POLYMER_PAGE_MAP: Record<string, YTInitDataResponse['page'] | false> = {
   'ytd-app': false,
   'ytlr-app': false,
   'yt-live-chat-app': 'live_chat'
@@ -200,6 +200,7 @@ const APP_ELEMENT_PAGE_MAP: Record<string, YTInitDataResponse['page'] | false> =
 const KEVLAR_SINGLETON_REGEXP = /[a-zA-Z_$][\w$]+\|\|\([a-zA-Z_$][\w$]+=new\s+[a-zA-Z_$][\w$]+\);return [a-zA-Z_$][\w$]+/s
 const KEVLAR_CLASS_QUEUE_SIZE = 8
 
+export const YTAppPolymerCallback = new Callback<[element: HTMLElement & { is: string }]>()
 export const YTConfigInitCallback = new Callback<[ytcfg: YTConfig]>()
 export const YTKevlarPropertyDefineCallback = new Callback<YTKevlarProperty>()
 export const YTKevlarMethodDefineCallback = new Callback<YTKevlarProperty<Function>>()
@@ -208,11 +209,12 @@ export const YTKevlarAddProviderCallback = new Callback<[provider: YTKevlarProvi
 export const YTPlayerCreateCallback = new Callback<[container: HTMLElement, config?: YTPlayerConfig, webPlayerContextConfig?: YTPlayerWebPlayerContextConfig]>()
 export const YTPolymerCreateCallback = new Callback<[instance: object]>()
 
+const CustomElementConnectedSymbol = Symbol()
+
 const kevlarClassQueue: YTKevlarProperty<Function>[] = []
 
 let environment: YTEnvironment
 let ytcfg: YTConfig
-let appElement: HTMLElement | null = null
 
 const getDeviceLabel = (): string => {
   const customDeviceLabel = localStorage.getItem('bu-device-label')
@@ -276,35 +278,43 @@ const createPolymer = (instance: object): void => {
 }
 
 const processInitialCommand = async (initCommand: YTValueData<{ type: YTValueType.ENDPOINT }>): Promise<void> => {
-  await processYTValue(ytv_enp(), initCommand, null)
-  logger.debug('initial command:', initCommand)
+  try {
+    await processYTValue(ytv_enp(), initCommand, null)
+    logger.debug('initial command:', initCommand)
+  } catch (error) {
+    logger.warn('process initial command error:', error)
+  }
 }
 
 const processInitialData = async (initData: YTInitData): Promise<void> => {
-  switch (initData.page) {
-    case 'browse':
-    case 'channel':
-    case 'playlist':
-      await processYTResponse('browse', initData.response)
-      break
-    case 'search':
-      await processYTResponse('search', initData.response)
-      break
-    case 'shorts':
-      await processYTResponse('reelReelItemWatch', initData.response)
-      await processYTResponse('reelReelWatchSequence', initData.reelWatchSequenceResponse)
-      break
-    case 'watch':
-      await processYTResponse('next', initData.response)
-      break
-    case 'live_chat':
-      await processYTResponse('liveChatGetLiveChat', initData.response)
-      break
-    default:
-      logger.warn('unhandled page type', initData)
-      break
+  try {
+    switch (initData.page) {
+      case 'browse':
+      case 'channel':
+      case 'playlist':
+        await processYTResponse('browse', initData.response)
+        break
+      case 'search':
+        await processYTResponse('search', initData.response)
+        break
+      case 'shorts':
+        await processYTResponse('reelReelItemWatch', initData.response)
+        await processYTResponse('reelReelWatchSequence', initData.reelWatchSequenceResponse)
+        break
+      case 'watch':
+        await processYTResponse('next', initData.response)
+        break
+      case 'live_chat':
+        await processYTResponse('liveChatGetLiveChat', initData.response)
+        break
+      default:
+        logger.warn('unhandled page type', initData)
+        break
+    }
+    logger.debug('initial data:', initData)
+  } catch (error) {
+    logger.warn('process initial data error:', error)
   }
-  logger.debug('initial data:', initData)
 }
 
 const overrideBootstrapLoader = <T>(type: string, processor: (data: T) => Promise<void>): void => {
@@ -326,24 +336,18 @@ const overrideBootstrapLoader = <T>(type: string, processor: (data: T) => Promis
         }
 
         const data = fn() as T
-        processor(data)
-          .catch(error => logger.warn('process bootstrap data error:', error))
-          .finally(() => {
-            defineProperty(window, `getInitial${suffix}`, {
-              configurable: true,
-              writable: true,
-              value: () => data
-            })
-
-            if (typeof onBootstrapLoaded === 'function') onBootstrapLoaded(data)
+        processor(data).finally(() => {
+          defineProperty(window, `getInitial${suffix}`, {
+            configurable: true,
+            writable: true,
+            value: () => data
           })
+
+          if (typeof onBootstrapLoaded === 'function') onBootstrapLoaded(data)
+        })
       }
     }
   })
-}
-
-export const getYTAppElement = (): HTMLElement | null => {
-  return appElement
 }
 
 export const isYTLoggedIn = (): boolean => {
@@ -548,6 +552,9 @@ export default class YTCoreBootstrapModule extends Feature {
     })
 
     // Process kevlar properties
+    YTAppPolymerCallback.registerCallback(() => {
+      kevlarClassQueue.splice(0).forEach(prop => YTKevlarClassDefineCallback.invoke(...prop))
+    })
     YTKevlarPropertyDefineCallback.registerCallback((kevlar, name, value) => {
       if (typeof value !== 'function') return
 
@@ -580,37 +587,60 @@ export default class YTCoreBootstrapModule extends Feature {
     overrideBootstrapLoader('command', processInitialCommand)
     overrideBootstrapLoader('data', processInitialData)
 
-    // Process initial data for app element
     customElements.define = new Hook(customElements.define).install(ctx => {
-      const page = APP_ELEMENT_PAGE_MAP[ctx.args[0].toLowerCase()]
-      const customElement = ctx.args[1]
-      if (page == null || customElement == null) return HookResult.EXECUTION_PASSTHROUGH
+      const { args: [name, ctor] } = ctx
 
-      const connectedCallback = customElement.prototype?.connectedCallback
-      if (typeof connectedCallback !== 'function') return HookResult.EXECUTION_PASSTHROUGH
+      const prototype = ctor?.prototype as Record<string, (this: HTMLElement & { is: string, [CustomElementConnectedSymbol]?: boolean }) => void>
+      if (prototype == null) return HookResult.EXECUTION_PASSTHROUGH
 
-      customElement.prototype.connectedCallback = new Hook(connectedCallback).install(ctx => {
-        if (ctx.self instanceof HTMLElement) {
-          appElement = ctx.self
-          logger.debug('app element connected', customElement, appElement)
-        } else {
-          logger.warn('invalid app element type', ctx.self)
-          return HookResult.EXECUTION_PASSTHROUGH
-        }
+      const { connectedCallback, disconnectedCallback } = prototype
 
-        // Complete pending kevlar properties processing on app initialize
-        kevlarClassQueue.splice(0).forEach(prop => YTKevlarClassDefineCallback.invoke(...prop))
+      if (typeof connectedCallback === 'function') {
+        const page = APP_POLYMER_PAGE_MAP[name.toLowerCase()]
 
-        if (!page) return HookResult.EXECUTION_PASSTHROUGH
+        let pageReadyPromise: Promise<void> | undefined
 
-        processInitialData({ page, response: window.ytInitialData } as YTInitData)
-          .catch(error => logger.warn('process initial data error:', error))
-          .finally(() => ctx.origin.apply(ctx.self, ctx.args))
+        prototype.connectedCallback = new Hook(connectedCallback, false).install(({ origin, self, args }) => {
+          // Ignore callbacks during move
+          const connected = CustomElementConnectedSymbol in self
+          self[CustomElementConnectedSymbol] = true
+          if (connected) return HookResult.EXECUTION_CONTINUE
 
-        return HookResult.EXECUTION_CONTINUE
-      }).call
+          // Handle app polymer
+          if (page == null) return HookResult.EXECUTION_PASSTHROUGH
 
-      return HookResult.ACTION_UNINSTALL | HookResult.EXECUTION_PASSTHROUGH
+          logger.debug('app polymer connected, element:', self)
+
+          YTAppPolymerCallback.invokeAsync(self).then(() => {
+            pageReadyPromise ??= page ? processInitialData({ page, response: window.ytInitialData } as YTInitData) : Promise.resolve()
+            return pageReadyPromise
+          }).catch(error => {
+            logger.warn('app polymer callback error:', error)
+          }).finally(() => {
+            origin.apply(self, args)
+          })
+
+          return HookResult.EXECUTION_CONTINUE
+        }).call
+      }
+
+      if (typeof disconnectedCallback === 'function') {
+        prototype.disconnectedCallback = new Hook(disconnectedCallback, false).install(({ origin, self, args }) => {
+          self[CustomElementConnectedSymbol] = false
+
+          requestAnimationFrame(() => {
+            // Ignore callbacks during move
+            if (self[CustomElementConnectedSymbol] !== false) return
+
+            origin.apply(self, args)
+            delete self[CustomElementConnectedSymbol]
+          })
+
+          return HookResult.EXECUTION_CONTINUE
+        }).call
+      }
+
+      return HookResult.EXECUTION_PASSTHROUGH
     }).call
 
     registerOverlayPage('Device', YTDevicePage)
