@@ -8,19 +8,19 @@ import { findMethodEntryByRegexp } from '@ext/lib/regexp'
 const RESOLVE_COMMAND_REGEXP = /(navigate.*?handleServiceRequest.*?sendAction)|(\(this,[^(]+\)\.handled)/s
 const BUILD_COMMAND_PAYLOAD_REGEXP = /(function\s*\(\w+,\s*\w+\)\s*\{.*\w+\([\w,]+\s*\w+\)\s*\})|(form\.abortSignal)/s
 
-export type YTActionHandler = () => void
+export type YTSignalActionHandler = () => void
 
-interface YTCommandResolver {
+interface YTCommandHandler {
   buildCommandPayload(command: YTValueData<{ type: YTValueType.ENDPOINT }>, ...args: unknown[]): void
   resolveCommand(command: YTValueData<{ type: YTValueType.ENDPOINT }>, ...args: unknown[]): boolean
 }
 
 const IgnoreSignalActionSymbol = Symbol()
 
-const signalActionHandlerMap = new Map<YTEndpoint.enums.SignalActionType, YTActionHandler>()
+const signalActionHandlerMap = new Map<YTEndpoint.enums.SignalActionType, YTSignalActionHandler>()
 const commandQueue: Array<YTValueData<{ type: YTValueType.ENDPOINT }>> = []
 
-let instance: YTCommandResolver | null = null
+let instance: YTCommandHandler | null = null
 
 const handleCommand = (ctx: CallContext<unknown, [command: YTValueData<{ type: YTValueType.ENDPOINT }>, ...args: unknown[]], unknown>): HookResult => {
   const signalAction = ctx.args[0]?.signalAction
@@ -46,7 +46,7 @@ export const dispatchYTSignalAction = (signal: YTEndpoint.enums.SignalActionType
   executeYTCommand({ signalServiceEndpoint: { signal: 'CLIENT_SIGNAL', actions: [{ signalAction: { signal } }] } })
 }
 
-export const registerYTSignalActionHandler = (signal: YTEndpoint.enums.SignalActionType, handler: YTActionHandler): () => void => {
+export const registerYTSignalActionHandler = (signal: YTEndpoint.enums.SignalActionType, handler: YTSignalActionHandler): () => void => {
   signalActionHandlerMap.set(signal, handler)
 
   return () => {
@@ -64,17 +64,17 @@ export default class YTCoreCommandModule extends Feature {
       const prototype = typeof value === 'function' ? value.prototype : null
       if (prototype == null) return
 
-      const resolveMethod = prototype.resolveCommand as (...args: Parameters<YTCommandResolver['resolveCommand']>) => void
+      const resolveMethod = prototype.resolveCommand as (...args: Parameters<YTCommandHandler['resolveCommand']>) => void
       if (typeof resolveMethod !== 'function' || !RESOLVE_COMMAND_REGEXP.test(String(resolveMethod))) return
 
       defineProperty(value, 'instance', {
         configurable: true,
         enumerable: true,
         get() { return instance },
-        set(v: YTCommandResolver) {
+        set(v: YTCommandHandler) {
           instance = v
 
-          const buildMethodEntry = findMethodEntryByRegexp<YTCommandResolver, 'buildCommandPayload'>(instance, BUILD_COMMAND_PAYLOAD_REGEXP)
+          const buildMethodEntry = findMethodEntryByRegexp<YTCommandHandler, 'buildCommandPayload'>(instance, BUILD_COMMAND_PAYLOAD_REGEXP)
           if (buildMethodEntry != null) {
             instance[buildMethodEntry[0]] = new Hook(buildMethodEntry[1]).install(handleCommand).call
           }

@@ -3,7 +3,7 @@ import { YTRenderer, YTValueData } from '@ext/custom/youtube/api/schema'
 import { isYTLoggedIn, YTConfigInitCallback, YTPlayerCreateCallback, YTPlayerWebPlayerContextConfig } from '@ext/custom/youtube/module/core/bootstrap'
 import { registerYTInnertubeRequestProcessor, YTInnertubeRequest } from '@ext/custom/youtube/module/core/network'
 import { URLSearchParams } from '@ext/global/network'
-import { defineProperty, entries, fromEntries, keys, values } from '@ext/global/object'
+import { defineProperty, findPropertyChain, fromEntries, keys, observePropertyChain, values } from '@ext/global/object'
 import Callback from '@ext/lib/callback'
 import { Feature } from '@ext/lib/feature'
 import InterceptDOM from '@ext/lib/intercept/dom'
@@ -162,47 +162,6 @@ export const YTPlayerInstanceCreateCallback = new Callback<YTPInstanceCallbackPa
 
 type YTPInstanceOf<T extends YTPInstanceType> = typeof instancesByType[T] extends Set<WeakRef<infer I>> ? I : never
 type YTPInstanceCallbackParams = { [T in YTPInstanceType]: [type: T, instance: YTPInstanceOf<T>] }[YTPInstanceType]
-
-const findPropertyChain = (parent: unknown, child: unknown, depth: number, excludes: string[] = []): string[] | null => {
-  if (parent == null || typeof parent !== 'object' || depth < 1) return null
-
-  for (const [key, value] of entries(parent)) {
-    if (excludes.includes(key)) continue
-
-    if (value === child) return [key]
-
-    const chain = findPropertyChain(value, child, depth - 1, excludes)
-    if (chain != null) return [key, ...chain]
-  }
-
-  return null
-}
-
-const observePropertyChain = <T extends object>(parent: unknown, chain: string[], callback: (value: T) => void): void => {
-  if (parent == null || typeof parent !== 'object') return
-
-  const key = chain[0]
-  if (key == null) return
-
-  let value: unknown
-
-  const get = (): unknown => value
-  const set = (v: unknown): void => {
-    value = v
-    observePropertyChain(value, chain.slice(1), callback)
-  }
-
-  set(parent[key as keyof typeof parent])
-  defineProperty(parent, key, { configurable: true, enumerable: true, get, set })
-
-  if (chain.length > 1) return
-
-  try {
-    callback(value as T)
-  } catch (error) {
-    logger.warn('property callback error:', error)
-  }
-}
 
 const onCreateInstanceType = (type: YTPInstanceType, instance: YTPDisposableInstance): YTPDisposableInstance => {
   setTimeout(() => YTPlayerInstanceCreateCallback.invoke(...[type, instance] as YTPInstanceCallbackParams), 1)
@@ -373,7 +332,7 @@ export default class YTPlayerBootstrapModule extends Feature {
       switch (type) {
         case YTPInstanceType.APP:
           getAllYTPInstance(YTPInstanceType.VIDEO_PLAYER).some(playerInstance => {
-            const chain = findPropertyChain(instance, playerInstance, 3, ['mediaElement'])
+            const chain = findPropertyChain(instance, playerInstance, 3, key => key !== 'mediaElement')
             if (chain == null) return false
 
             observePropertyChain(instance, chain, (playerInstance: YTPVideoPlayerInstance) => {
