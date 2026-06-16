@@ -69,17 +69,14 @@ const updateGuideSubscriptionsSectionRenderer = (data: YTValueData<YTRenderer.Ma
 const updateGuideResponse = (data: YTValueData<YTResponse.Mapped<'guide'>>): void => {
   delete data.responseContext?.maxAgeSeconds
 
-  if (!isYTLoggedIn()) return
-
-  const base = (REFRESH_INTERVAL_SEC - (floor(Date.now() / 1e3) % REFRESH_INTERVAL_SEC))
-  const delay = min(...REFRESH_OFFSETS.map(offset => base + offset).filter(delay => delay >= REFRESH_COOLDOWN_SEC))
-
-  if (refreshTimer != null) clearTimeout(refreshTimer)
-  refreshTimer = setTimeout(reloadYTGuide, delay * 1e3)
+  scheduleReloadGuideEntries()
 }
 
-const reloadYTGuide = async (): Promise<void> => {
-  if (guideManager == null) return
+const reloadGuideEntries = async (): Promise<void> => {
+  if (guideManager == null || !isYTLoggedIn()) {
+    scheduleReloadGuideEntries()
+    return
+  }
 
   if (refreshTimer != null) {
     clearTimeout(refreshTimer)
@@ -99,6 +96,14 @@ const reloadYTGuide = async (): Promise<void> => {
   }
 }
 
+const scheduleReloadGuideEntries = (): void => {
+  const base = (REFRESH_INTERVAL_SEC - (floor(Date.now() / 1e3) % REFRESH_INTERVAL_SEC))
+  const delay = min(...REFRESH_OFFSETS.map(offset => base + offset).filter(delay => delay >= REFRESH_COOLDOWN_SEC))
+
+  if (refreshTimer != null) clearTimeout(refreshTimer)
+  refreshTimer = setTimeout(reloadGuideEntries, delay * 1e3)
+}
+
 export default class YTFeedGuideModule extends Feature {
   public constructor() {
     super('guide')
@@ -116,7 +121,7 @@ export default class YTFeedGuideModule extends Feature {
     registerYTValueProcessor(YTRenderer.mapped.guideSubscriptionsSectionRenderer, updateGuideSubscriptionsSectionRenderer)
     registerYTValueProcessor(YTResponse.mapped.guide, updateGuideResponse)
 
-    registerYTSignalActionHandler(YTEndpoint.enums.SignalActionType.SOFT_RELOAD_PAGE, reloadYTGuide)
+    registerYTSignalActionHandler(YTEndpoint.enums.SignalActionType.SOFT_RELOAD_PAGE, reloadGuideEntries)
 
     return true
   }
