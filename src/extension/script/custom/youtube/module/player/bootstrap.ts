@@ -42,7 +42,7 @@ const PLAYER_EXPERIMENT_FLAGS: [key: string, value?: string][] = [
   ['html5_use_shared_owl_instance'],
   ['html5_web_po_token_disable_caching']
 ]
-const STYLE_SHEET = [
+const PLAYER_STYLE_SHEET = [
   // FIX: leanback animated overlay virtual list bug
   '.app-quality-root .ytLrAnimatedOverlayHiding .ytLrAnimatedOverlayContainer,.app-quality-root .frHKed .AmQJbe{opacity:0!important;display:block!important}',
   // player stats
@@ -68,20 +68,20 @@ const STYLE_SHEET = [
   '.ytLrLiveChatPaidMessageRendererHasImage .ytLrLiveChatPaidMessageRendererHeader,.ytLrLiveChatPaidMessageRendererHasImage .ytLrLiveChatPaidMessageRendererBody,.g01YTe .LxxQOb,.g01YTe .a8Dqxe{padding-left:1.5rem}',
   '.ytLrLiveChatTextMessageRendererContentHasImage,.LRs4Af{margin-left:1.5rem}'
 ].join('\n')
-const JSON_PREFIX = ')]}\'\n'
 
-const CTOR_REGEXP_LIST = [
+const MainPlayerParentSelector = 'ytd-player,ytlr-player'
+const CtorRegexpList = [
   [YTPInstanceType.APP, /(logger[A-Za-z("'._=\s]+App)|(publish\(["']applicationInitialized)/],
   [YTPInstanceType.VIDEO_PLAYER, /(logger[A-Za-z("'._=\s]+VideoPlayer)|(new\s+Map.*?bufferhealth)/]
 ] satisfies [YTPInstanceType, RegExp][]
-
-const STAT_METHOD_MAP = {
+const StatMethodMap = {
   bandwidth: 'getBandWidth',
   bufferhealth: 'getBufferHealth',
   networkactivity: 'getNetworkActivity',
   livelatency: 'getLiveLatency',
   rawlivelatency: 'getRawLiveLatency'
 } satisfies Record<string, keyof YTPVideoPlayerInstance>
+const JsonPrefix = ')]}\'\n'
 
 export const enum YTPInstanceType {
   APP,
@@ -113,7 +113,10 @@ export interface YTPVideoDataInstance extends YTPDisposableInstance {
 export interface YTPAppInstance extends YTPDisposableInstance {
   playerRef?: WeakRef<YTPVideoPlayerInstance>
 
-  mediaElement: object | null
+  mediaElement?: object | null
+  template?: {
+    element?: HTMLElement
+  }
 
   enqueueVideoByPlayerVars?(...args: unknown[]): void
   getInternalApi(): Record<string, (...args: unknown[]) => unknown>
@@ -155,7 +158,8 @@ const instancesByType = {
   [YTPInstanceType.VIDEO_PLAYER]: new Set<WeakRef<YTPVideoPlayerInstance>>()
 }
 
-let baseCtor: string | null = null
+let baseCtor: string | undefined
+let mainApp: YTPInstanceOf<YTPInstanceType.APP> | undefined
 
 export const YTPlayerContextConfigCallback = new Callback<[config: YTPlayerWebPlayerContextConfig]>()
 export const YTPlayerInstanceCreateCallback = new Callback<YTPInstanceCallbackParams>()
@@ -205,7 +209,7 @@ const onCreateYTPlayerWithGlobal = (playerGlobal: Record<string, Function>): voi
     const value = playerGlobal[key]
     if (typeof value !== 'function') continue
 
-    for (const [type, regexp] of CTOR_REGEXP_LIST) {
+    for (const [type, regexp] of CtorRegexpList) {
       if (!regexp.test(value.toString())) continue
 
       playerGlobal[key] = new Proxy(value, {
@@ -289,8 +293,8 @@ const processResponse = async (ctx: NetworkContext<unknown, NetworkState.SUCCESS
 
   try {
     const data = await response.clone().text()
-    const isPrefixed = data.startsWith(JSON_PREFIX)
-    const config = JSON.parse(isPrefixed ? data.slice(JSON_PREFIX.length) : data)
+    const isPrefixed = data.startsWith(JsonPrefix)
+    const config = JSON.parse(isPrefixed ? data.slice(JsonPrefix.length) : data)
 
     if (searchParams.has('action_get_config')) {
       const { webPlayerContextConfig } = config
@@ -298,7 +302,7 @@ const processResponse = async (ctx: NetworkContext<unknown, NetworkState.SUCCESS
       processPlayerContextConfig(webPlayerContextConfig)
     }
 
-    ctx.response = new Response(`${isPrefixed ? JSON_PREFIX : ''}${JSON.stringify(data)}`, {
+    ctx.response = new Response(`${isPrefixed ? JsonPrefix : ''}${JSON.stringify(data)}`, {
       status: response.status,
       headers: fromEntries(response.headers.entries())
     })
@@ -312,12 +316,19 @@ const updateTransportControlsAction = (data: YTValueData<YTRenderer.Component<'t
   if (button && data.type === 'TRANSPORT_CONTROLS_BUTTON_TYPE_SPEED_BUTTON') button.isDisabled = false
 }
 
-export const getAllYTPInstance = <T extends YTPInstanceType>(type: T): YTPInstanceOf<T>[] => {
+export const getYTPInstances = <T extends YTPInstanceType>(type: T): YTPInstanceOf<T>[] => {
   return Array.from(instancesByType[type]?.values() as SetIterator<WeakRef<YTPInstanceOf<T>>> ?? []).map(ref => ref.deref()).filter(value => value != null)
 }
 
-export const getYTPInstance = <T extends YTPInstanceType>(type: T): YTPInstanceOf<T> | null => {
-  return instancesByType[type]?.values().next().value?.deref() as YTPInstanceOf<T> ?? null
+export const getYTPMainApp = (): YTPInstanceOf<YTPInstanceType.APP> | undefined => {
+  if (mainApp?.template?.element?.closest(MainPlayerParentSelector) == null) {
+    mainApp = getYTPInstances(YTPInstanceType.APP).find(app => app.template?.element?.closest(MainPlayerParentSelector) != null)
+  }
+  return mainApp
+}
+
+export const getYTPMainPlayer = (): YTPInstanceOf<YTPInstanceType.VIDEO_PLAYER> | undefined => {
+  return getYTPMainApp()?.playerRef?.deref()
 }
 
 export default class YTPlayerBootstrapModule extends Feature {
@@ -331,7 +342,7 @@ export default class YTPlayerBootstrapModule extends Feature {
     YTPlayerInstanceCreateCallback.registerCallback((type, instance) => {
       switch (type) {
         case YTPInstanceType.APP:
-          getAllYTPInstance(YTPInstanceType.VIDEO_PLAYER).some(playerInstance => {
+          getYTPInstances(YTPInstanceType.VIDEO_PLAYER).some(playerInstance => {
             const chain = findPropertyChain(instance, playerInstance, 3, key => key !== 'mediaElement')
             if (chain == null) return false
 
@@ -350,10 +361,10 @@ export default class YTPlayerBootstrapModule extends Feature {
               const value = prop[key]
               if (value == null || !(value instanceof Map)) continue
 
-              for (const stat in STAT_METHOD_MAP) {
+              for (const stat in StatMethodMap) {
                 if (!value.has(stat)) continue
 
-                instance[STAT_METHOD_MAP[stat as keyof typeof STAT_METHOD_MAP]] = value.get(stat)
+                instance[StatMethodMap[stat as keyof typeof StatMethodMap]] = value.get(stat)
               }
             }
           })
@@ -378,7 +389,7 @@ export default class YTPlayerBootstrapModule extends Feature {
 
     addEventListener('DOMContentLoaded', () => {
       const style = document.createElement('style')
-      style.textContent = STYLE_SHEET
+      style.textContent = PLAYER_STYLE_SHEET
       document.body.appendChild(style)
     })
 

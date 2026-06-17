@@ -3,7 +3,7 @@ import { YTEndpoint, YTRenderer, YTResponse, YTValueData, YTValueType } from '@e
 import { YTPolymerConnectCallback } from '@ext/custom/youtube/module/core/bootstrap'
 import { registerYTSignalActionHandler } from '@ext/custom/youtube/module/core/command'
 import { registerYTConfigMenuItemGroup, YTConfigMenuItemType } from '@ext/custom/youtube/module/core/config'
-import { getYTPInstance, YTPInstanceType, YTPVideoPlayerInstance } from '@ext/custom/youtube/module/player/bootstrap'
+import { getYTPMainPlayer, YTPVideoPlayerInstance } from '@ext/custom/youtube/module/player/bootstrap'
 import ContinuationToken, { LiveChatContinuationToken } from '@ext/custom/youtube/proto/continuation-token'
 import LiveChatParams, { LiveChatQuery, LiveChatQueryContent } from '@ext/custom/youtube/proto/live-chat-params'
 import { getNonce } from '@ext/custom/youtube/utils/crypto'
@@ -349,7 +349,7 @@ class MainAppMessageChannel extends MessageChannel<PopoutMessageDataMap, PopoutM
   private update_(): void {
     const { boundTo, binding_, boundedPopoutTimeout_ } = this
 
-    if (binding_ != null) this.setPlayer_(getYTPInstance(YTPInstanceType.APP)?.playerRef?.deref())
+    if (binding_ != null) this.setPlayer_(getYTPMainPlayer())
 
     if (boundTo == null) {
       // Notify popout to assign an app to this player

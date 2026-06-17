@@ -1,7 +1,7 @@
 import { registerYTValueProcessor } from '@ext/custom/youtube/api/processor'
 import { YTEndpoint, YTRenderer, YTResponse, YTValueData } from '@ext/custom/youtube/api/schema'
 import { getYTConfigBool, registerYTConfigMenuItemGroup, YTConfigMenuItemType } from '@ext/custom/youtube/module/core/config'
-import { getYTPInstance, YTPInstanceType } from '@ext/custom/youtube/module/player/bootstrap'
+import { getYTPMainPlayer } from '@ext/custom/youtube/module/player/bootstrap'
 import { abs, max, min, round } from '@ext/global/math'
 import { defineProperty } from '@ext/global/object'
 import { Feature } from '@ext/lib/feature'
@@ -45,7 +45,7 @@ const liveHeadUpdate = (): void => {
   liveHeadUpdateDeltaTime = (liveHeadUpdateDeltaTime + delta) / 2
   lastLiveHeadUpdateTime = now
 
-  const player = getYTPInstance(YTPInstanceType.APP)?.playerRef?.deref()
+  const player = getYTPMainPlayer()
   if (!player?.isPlaying?.()) return
 
   healthDev *= HEALTH_DEV_DECAY_MUL
@@ -117,7 +117,7 @@ const stopLiveHeadUpdate = (): void => {
   clearInterval(liveHeadUpdateTimer)
   liveHeadUpdateTimer = null
 
-  const player = getYTPInstance(YTPInstanceType.APP)?.playerRef?.deref()
+  const player = getYTPMainPlayer()
   if (player == null) return
 
   // Reset playback rate for normal playback
