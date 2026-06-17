@@ -272,7 +272,7 @@ const encodeYTLocalEntity = async <T extends keyof YTLocalEntityData | void>(ent
   return {
     ...entity,
     data: await encryptEntityData(entity.key, bufferFromString(JSON.stringify(entity.data)))
-  } as YTLocalEntity
+  }
 }
 
 const encodeYTLocalEntities = async <T extends keyof YTLocalEntityData | void>(entities: YTLocalEntity<T>[], encrypt: T extends void ? false : true): Promise<YTLocalEntity[]> => {
