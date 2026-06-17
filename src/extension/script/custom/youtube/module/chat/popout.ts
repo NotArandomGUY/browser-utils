@@ -1,6 +1,6 @@
 import { registerYTValueProcessor } from '@ext/custom/youtube/api/processor'
 import { YTEndpoint, YTRenderer, YTResponse, YTValueData, YTValueType } from '@ext/custom/youtube/api/schema'
-import { YTAppPolymerCallback } from '@ext/custom/youtube/module/core/bootstrap'
+import { YTPolymerConnectCallback } from '@ext/custom/youtube/module/core/bootstrap'
 import { registerYTSignalActionHandler } from '@ext/custom/youtube/module/core/command'
 import { registerYTConfigMenuItemGroup, YTConfigMenuItemType } from '@ext/custom/youtube/module/core/config'
 import { getYTPInstance, YTPInstanceType, YTPVideoPlayerInstance } from '@ext/custom/youtube/module/player/bootstrap'
@@ -9,7 +9,7 @@ import LiveChatParams, { LiveChatQuery, LiveChatQueryContent } from '@ext/custom
 import { getNonce } from '@ext/custom/youtube/utils/crypto'
 import { ytuiShowToast } from '@ext/custom/youtube/utils/ytui'
 import { ceil, floor, max, min, sqrt } from '@ext/global/math'
-import { assign, getPropertyDescriptor, getPrototypeOf } from '@ext/global/object'
+import { assign, defineProperty, getPropertyDescriptor, getPrototypeOf } from '@ext/global/object'
 import { bufferFromString, bufferToString } from '@ext/lib/buffer'
 import { Feature } from '@ext/lib/feature'
 import Hook, { HookResult } from '@ext/lib/intercept/hook'
@@ -46,6 +46,11 @@ const LiveChatShellContent = {
     }
   }
 } satisfies YTValueData<YTRenderer.Mapped<'liveChatRenderer'>>
+const LiveChatShellBootstrap = {
+  contents: {
+    liveChatRenderer: LiveChatShellContent
+  }
+} satisfies YTValueData<YTResponse.Mapped<'liveChatGetLiveChat'>>
 
 interface YTActionMap {
   'yt-live-chat-buy-flow-callback': {
@@ -159,22 +164,7 @@ const getContinuationParams = (encodedToken = ''): string | null => {
 }
 
 const updateGetLiveChatResponse = (data: YTValueData<YTResponse.Mapped<'liveChatGetLiveChat' | 'liveChatGetLiveChatReplay'>>) => {
-  const continuationContents = data.continuationContents
-  if (continuationContents == null) return
-  const renderer = continuationContents.liveChatContinuation
-
-  delete renderer?.header?.liveChatHeaderRenderer?.collapseButton
-
-  const continuation = renderer?.continuations?.[0]?.reloadContinuationData?.continuation
-  if (continuation == null) return
-
-  const params = new ContinuationToken().deserialize(bufferFromString(continuation, 'base64url')).liveChatContinuation?.params
-  if (params == null) return
-
-  const query = new LiveChatParams().deserialize(bufferFromString(params, 'base64url')).query?.content
-  if (query == null || query.videoId) return
-
-  continuationContents.liveChatContinuation = LiveChatShellContent
+  delete data.continuationContents?.liveChatContinuation?.header?.liveChatHeaderRenderer?.collapseButton
 }
 
 class MainAppMessageChannel extends MessageChannel<PopoutMessageDataMap, PopoutMessageType> {
@@ -605,7 +595,14 @@ class ChatShellMessageChannel extends MessageChannel<PopoutMessageDataMap, Popou
   public constructor() {
     super(CHANNEL_NAME, true)
 
-    YTAppPolymerCallback.registerCallback(element => {
+    defineProperty(window, 'ytInitialData', {
+      configurable: true,
+      enumerable: true,
+      get() { return LiveChatShellBootstrap },
+      set() { return }
+    })
+
+    YTPolymerConnectCallback.registerCallback(element => {
       if (element.is !== YTLiveChatAppTagName || YTLiveChatAppChannel in element) return
 
       const channel = this.initApp_(element as YTLiveChatApp)

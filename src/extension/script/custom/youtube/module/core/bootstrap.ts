@@ -5,7 +5,7 @@ import YTDevicePage from '@ext/custom/youtube/pages/device'
 import { assign, defineProperties, defineProperty, fromEntries } from '@ext/global/object'
 import Callback from '@ext/lib/callback'
 import { Feature } from '@ext/lib/feature'
-import Hook, { HookResult } from '@ext/lib/intercept/hook'
+import Hook, { CallContext, HookResult } from '@ext/lib/intercept/hook'
 import Logger from '@ext/lib/logger'
 
 const logger = new Logger('YTCORE-BOOTSTRAP')
@@ -192,26 +192,38 @@ export interface YTSearchboxSettings {
   HIDE_REMOVE_LINK: false
 }
 
-const APP_POLYMER_PAGE_MAP: Record<string, YTInitDataResponse['page'] | false> = {
-  'ytd-app': false,
-  'ytlr-app': false,
-  'yt-live-chat-app': 'live_chat'
+export interface YTPolymerController<Tag extends string = string> {
+  is: Tag
+  hostElement: YTPolymerElement<Tag>
 }
-const KEVLAR_SINGLETON_REGEXP = /[a-zA-Z_$][\w$]+\|\|\([a-zA-Z_$][\w$]+=new\s+[a-zA-Z_$][\w$]+\);return [a-zA-Z_$][\w$]+/s
-const KEVLAR_CLASS_QUEUE_SIZE = 8
 
-export const YTAppPolymerCallback = new Callback<[element: HTMLElement & { is: string }]>()
+export interface YTPolymerElement<Tag extends string = string> extends HTMLElement {
+  is: Tag
+  polymerController?: YTPolymerController<Tag>
+
+  [PolymerElementConnectedSymbol]?: boolean
+}
+
+const AppTagNameRegexp = /^yt.*-app$/i
+const KevlarSingletonRegexp = /[a-zA-Z_$][\w$]+\|\|\([a-zA-Z_$][\w$]+=new\s+[a-zA-Z_$][\w$]+\);return [a-zA-Z_$][\w$]+/s
+const KevlarClassDeferCount = 8
+
+const PolymerElementConnectedSymbol = Symbol()
+
 export const YTConfigInitCallback = new Callback<[ytcfg: YTConfig]>()
 export const YTKevlarPropertyDefineCallback = new Callback<YTKevlarProperty>()
 export const YTKevlarMethodDefineCallback = new Callback<YTKevlarProperty<Function>>()
 export const YTKevlarClassDefineCallback = new Callback<YTKevlarProperty<Function>>()
 export const YTKevlarAddProviderCallback = new Callback<[provider: YTKevlarProvider]>()
 export const YTPlayerCreateCallback = new Callback<[container: HTMLElement, config?: YTPlayerConfig, webPlayerContextConfig?: YTPlayerWebPlayerContextConfig]>()
-export const YTPolymerCreateCallback = new Callback<[instance: object]>()
-
-const CustomElementConnectedSymbol = Symbol()
+export const YTPolymerCreateCallback = new Callback<[controller: YTPolymerController]>()
+export const YTPolymerConnectCallback = new Callback<[element: YTPolymerElement]>()
+export const YTPolymerDisconnectCallback = new Callback<[element: YTPolymerElement]>()
 
 const kevlarClassQueue: YTKevlarProperty<Function>[] = []
+
+let PolymerFakeBaseClass: ((this: YTPolymerController) => void) | undefined
+let PolymerFakeBaseClassWithoutHtml: ((this: YTPolymerController) => void) | undefined
 
 let environment: YTEnvironment
 let ytcfg: YTConfig
@@ -265,16 +277,6 @@ const createPlayer = async (create: (...args: unknown[]) => void, container: HTM
   }
 
   create(container, config, webPlayerContextConfig)
-}
-
-const createPolymer = (instance: object): void => {
-  if (instance == null) return
-
-  try {
-    YTPolymerCreateCallback.invoke(instance)
-  } catch (error) {
-    logger.warn('create polymer callback error:', error)
-  }
 }
 
 const processInitialCommand = async (initCommand: YTValueData<{ type: YTValueType.ENDPOINT }>): Promise<void> => {
@@ -348,6 +350,55 @@ const overrideBootstrapLoader = <T>(type: string, processor: (data: T) => Promis
       }
     }
   })
+}
+
+const onPolymerCreate = (controller: YTPolymerController): void => {
+  if (typeof controller?.is !== 'string') return
+
+  try {
+    YTPolymerCreateCallback.invoke(controller)
+  } catch (error) {
+    logger.warn('polymer create callback error:', error)
+  }
+}
+
+const onPolymerConnected = ({ self }: CallContext<YTPolymerElement, unknown[], void>): HookResult => {
+  if (typeof self.is !== 'string') return HookResult.EXECUTION_PASSTHROUGH
+
+  // Ignore callbacks during move
+  const connected = PolymerElementConnectedSymbol in self
+  self[PolymerElementConnectedSymbol] = true
+  if (connected) return HookResult.EXECUTION_CONTINUE
+
+  try {
+    YTPolymerConnectCallback.invoke(self)
+  } catch (error) {
+    logger.warn('polymer connect callback error:', error)
+  }
+
+  return HookResult.EXECUTION_PASSTHROUGH
+}
+
+const onPolymerDisconnected = ({ origin, self, args }: CallContext<YTPolymerElement, unknown[], void>): HookResult => {
+  if (typeof self.is !== 'string') return HookResult.EXECUTION_PASSTHROUGH
+
+  self[PolymerElementConnectedSymbol] = false
+
+  requestAnimationFrame(() => {
+    // Ignore callbacks during move
+    if (self[PolymerElementConnectedSymbol] !== false) return
+    delete self[PolymerElementConnectedSymbol]
+
+    try {
+      YTPolymerDisconnectCallback.invoke(self)
+    } catch (error) {
+      logger.warn('polymer disconnect callback error:', error)
+    }
+
+    origin.apply(self, args)
+  })
+
+  return HookResult.EXECUTION_CONTINUE
 }
 
 export const isYTLoggedIn = (): boolean => {
@@ -441,9 +492,6 @@ export default class YTCoreBootstrapModule extends Feature {
       }
     } as YTConfig)
 
-    let PolymerFakeBaseClass: ((this: object) => void) | null = null
-    let PolymerFakeBaseClassWithoutHtml: ((this: object) => void) | null = null
-
     defineProperties(window, {
       // FIXME: remove this when it's not broken
       documentPictureInPicture: {
@@ -499,7 +547,7 @@ export default class YTCoreBootstrapModule extends Feature {
         }
       },
 
-      // Override polymer class create
+      // Override polymer controller constructor
       PolymerFakeBaseClass: {
         configurable: true,
         get() {
@@ -509,8 +557,8 @@ export default class YTCoreBootstrapModule extends Feature {
           if (typeof fn !== 'function') return
 
           PolymerFakeBaseClass = function () {
-            fn.apply<object, void>(this)
-            createPolymer(this)
+            fn.apply<YTPolymerController, void>(this)
+            onPolymerCreate(this)
           }
           PolymerFakeBaseClass.prototype = fn.prototype
         }
@@ -524,8 +572,8 @@ export default class YTCoreBootstrapModule extends Feature {
           if (typeof fn !== 'function') return
 
           PolymerFakeBaseClassWithoutHtml = function () {
-            fn.apply<object, void>(this)
-            createPolymer(this)
+            fn.apply<YTPolymerController, void>(this)
+            onPolymerCreate(this)
           }
           PolymerFakeBaseClassWithoutHtml.prototype = fn.prototype
         }
@@ -551,21 +599,17 @@ export default class YTCoreBootstrapModule extends Feature {
       }]))
     })
 
-    // Process kevlar properties
-    YTAppPolymerCallback.registerCallback(() => {
-      kevlarClassQueue.splice(0).forEach(prop => YTKevlarClassDefineCallback.invoke(...prop))
-    })
     YTKevlarPropertyDefineCallback.registerCallback((kevlar, name, value) => {
       if (typeof value !== 'function') return
 
       kevlarClassQueue.push([kevlar, name, value])
-      if (kevlarClassQueue.length > KEVLAR_CLASS_QUEUE_SIZE) YTKevlarClassDefineCallback.invoke(...kevlarClassQueue.shift()!)
+      if (kevlarClassQueue.length > KevlarClassDeferCount) YTKevlarClassDefineCallback.invoke(...kevlarClassQueue.shift()!)
 
       YTKevlarMethodDefineCallback.invoke(kevlar, name, value)
     })
     YTKevlarMethodDefineCallback.registerCallback((kevlar, name, method) => {
       const body = String(method)
-      if (!KEVLAR_SINGLETON_REGEXP.test(body)) return
+      if (!KevlarSingletonRegexp.test(body)) return
 
       kevlar[name] = new Hook(method as () => object).install(ctx => {
         const { origin, self, args } = ctx
@@ -582,62 +626,31 @@ export default class YTCoreBootstrapModule extends Feature {
         return HookResult.ACTION_UNINSTALL | HookResult.EXECUTION_CONTINUE
       }).call
     })
+    YTPolymerConnectCallback.registerCallback(element => {
+      if (!AppTagNameRegexp.test(element.tagName)) return
+
+      logger.debug('app polymer connected, element:', element)
+
+      // Process remaining kevlar class
+      kevlarClassQueue.splice(0).forEach(prop => YTKevlarClassDefineCallback.invoke(...prop))
+    })
 
     // Override bootstrap loading functions
     overrideBootstrapLoader('command', processInitialCommand)
     overrideBootstrapLoader('data', processInitialData)
 
-    customElements.define = new Hook(customElements.define).install(ctx => {
-      const { args: [name, ctor] } = ctx
-
-      const prototype = ctor?.prototype as Record<string, (this: HTMLElement & { is: string, [CustomElementConnectedSymbol]?: boolean }) => void>
+    customElements.define = new Hook(customElements.define).install(({ args }) => {
+      const prototype = args[1]?.prototype as Record<string, (this: YTPolymerElement, ...args: unknown[]) => void>
       if (prototype == null) return HookResult.EXECUTION_PASSTHROUGH
 
       const { connectedCallback, disconnectedCallback } = prototype
 
       if (typeof connectedCallback === 'function') {
-        const page = APP_POLYMER_PAGE_MAP[name.toLowerCase()]
-
-        let pageReadyPromise: Promise<void> | undefined
-
-        prototype.connectedCallback = new Hook(connectedCallback, false).install(({ origin, self, args }) => {
-          // Ignore callbacks during move
-          const connected = CustomElementConnectedSymbol in self
-          self[CustomElementConnectedSymbol] = true
-          if (connected) return HookResult.EXECUTION_CONTINUE
-
-          // Handle app polymer
-          if (page == null) return HookResult.EXECUTION_PASSTHROUGH
-
-          logger.debug('app polymer connected, element:', self)
-
-          YTAppPolymerCallback.invokeAsync(self).then(() => {
-            pageReadyPromise ??= page ? processInitialData({ page, response: window.ytInitialData } as YTInitData) : Promise.resolve()
-            return pageReadyPromise
-          }).catch(error => {
-            logger.warn('app polymer callback error:', error)
-          }).finally(() => {
-            origin.apply(self, args)
-          })
-
-          return HookResult.EXECUTION_CONTINUE
-        }).call
+        prototype.connectedCallback = new Hook(connectedCallback).install(onPolymerConnected).call
       }
 
       if (typeof disconnectedCallback === 'function') {
-        prototype.disconnectedCallback = new Hook(disconnectedCallback, false).install(({ origin, self, args }) => {
-          self[CustomElementConnectedSymbol] = false
-
-          requestAnimationFrame(() => {
-            // Ignore callbacks during move
-            if (self[CustomElementConnectedSymbol] !== false) return
-
-            origin.apply(self, args)
-            delete self[CustomElementConnectedSymbol]
-          })
-
-          return HookResult.EXECUTION_CONTINUE
-        }).call
+        prototype.disconnectedCallback = new Hook(disconnectedCallback).install(onPolymerDisconnected).call
       }
 
       return HookResult.EXECUTION_PASSTHROUGH

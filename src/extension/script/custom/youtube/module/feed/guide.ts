@@ -1,6 +1,6 @@
 import { registerYTValueFilter, registerYTValueProcessor } from '@ext/custom/youtube/api/processor'
 import { YTEndpoint, YTRenderer, YTResponse, YTValueData } from '@ext/custom/youtube/api/schema'
-import { isYTLoggedIn, YTPolymerCreateCallback } from '@ext/custom/youtube/module/core/bootstrap'
+import { isYTLoggedIn, YTPolymerController, YTPolymerCreateCallback, YTPolymerElement } from '@ext/custom/youtube/module/core/bootstrap'
 import { registerYTSignalActionHandler } from '@ext/custom/youtube/module/core/command'
 import { isYTFeedFilterEnable, YTFeedFilterMask } from '@ext/custom/youtube/module/feed/filter'
 import { floor, min } from '@ext/global/math'
@@ -10,7 +10,7 @@ const REFRESH_INTERVAL_SEC = 15 * 60
 const REFRESH_COOLDOWN_SEC = 15
 const REFRESH_OFFSETS = [-30, 0, 30, 60, 120]
 
-interface YTGuideManager {
+interface YTGuideManagerController extends YTPolymerController<'yt-guide-manager'> {
   guidePromise?: object
   guideRenderers: Set<HTMLElement>
 
@@ -19,14 +19,14 @@ interface YTGuideManager {
   setGuideDataAfterInit(hostElement: HTMLElement): void
 }
 
-interface YTDGuideCollapsibleEntryRenderer extends HTMLElement {
+interface YTDGuideCollapsibleEntryRendererElement extends YTPolymerElement<'ytd-guide-collapsible-entry-renderer'> {
   expanded?: boolean
 
   onExpanderItemTapped?(event: MouseEvent): void
   onCollapserItemTapped?(event: MouseEvent): void
 }
 
-let guideManager: YTGuideManager | null = null
+let guideManager: YTGuideManagerController | null = null
 let refreshTimer: ReturnType<typeof setTimeout> | null = null
 
 const filterGuideEntry = (data: YTValueData<YTRenderer.Mapped<'guideEntryRenderer'>>): boolean => {
@@ -89,7 +89,7 @@ const reloadGuideEntries = async (): Promise<void> => {
   for (const guide of guideManager.guideRenderers) {
     guideManager.setGuideDataAfterInit(guide)
 
-    const collapsibleEntry = guide.querySelector<YTDGuideCollapsibleEntryRenderer>('ytd-guide-collapsible-entry-renderer')
+    const collapsibleEntry = guide.querySelector<YTDGuideCollapsibleEntryRendererElement>('ytd-guide-collapsible-entry-renderer')
     if (collapsibleEntry == null) continue
 
     collapsibleEntry[collapsibleEntry.expanded ? 'onExpanderItemTapped' : 'onCollapserItemTapped']?.(new MouseEvent('click'))
@@ -110,10 +110,8 @@ export default class YTFeedGuideModule extends Feature {
   }
 
   protected activate(): boolean {
-    YTPolymerCreateCallback.registerCallback(instance => {
-      if (!('initializeGuideData' in instance)) return
-
-      guideManager = instance as YTGuideManager
+    YTPolymerCreateCallback.registerCallback(controller => {
+      if (controller.is === 'yt-guide-manager') guideManager = controller as YTGuideManagerController
     })
 
     registerYTValueFilter(YTRenderer.mapped.guideEntryRenderer, filterGuideEntry)
