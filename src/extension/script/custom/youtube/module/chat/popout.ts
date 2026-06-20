@@ -1,15 +1,16 @@
-import { registerYTValueProcessor } from '@ext/custom/youtube/api/processor'
+import { registerYTValueProcessor, YTValueCallbackType, YTValueProcessorContext } from '@ext/custom/youtube/api/processor'
 import { YTEndpoint, YTRenderer, YTResponse, YTValueData, YTValueType } from '@ext/custom/youtube/api/schema'
 import { YTPolymerConnectCallback } from '@ext/custom/youtube/module/core/bootstrap'
 import { registerYTSignalActionHandler } from '@ext/custom/youtube/module/core/command'
 import { registerYTConfigMenuItemGroup, YTConfigMenuItemType } from '@ext/custom/youtube/module/core/config'
 import { getYTPMainPlayer, YTPVideoPlayerInstance } from '@ext/custom/youtube/module/player/bootstrap'
 import ContinuationToken, { LiveChatContinuationToken } from '@ext/custom/youtube/proto/continuation-token'
+import { decodeEntityKey, encodeEntityKey } from '@ext/custom/youtube/proto/entity-key'
 import LiveChatParams, { LiveChatQuery, LiveChatQueryContent } from '@ext/custom/youtube/proto/live-chat-params'
 import { getNonce } from '@ext/custom/youtube/utils/crypto'
 import { ytuiShowToast } from '@ext/custom/youtube/utils/ytui'
 import { ceil, floor, max, min, sqrt } from '@ext/global/math'
-import { assign, defineProperty, getPropertyDescriptor, getPrototypeOf } from '@ext/global/object'
+import { assign, defineProperty, getPropertyDescriptor, getPrototypeOf, values } from '@ext/global/object'
 import { bufferFromString, bufferToString } from '@ext/lib/buffer'
 import { Feature } from '@ext/lib/feature'
 import Hook, { HookResult } from '@ext/lib/intercept/hook'
@@ -153,18 +154,53 @@ const getGridSize = (width: number, height: number, items: number): [cols: numbe
   return [cols, rows, (width / cols) < LIVE_CHAT_MIN_W || (height / rows) < LIVE_CHAT_MIN_H]
 }
 
-const getContinuationParams = (encodedToken = ''): string | null => {
+const getLiveChatIdByToken = (encodedToken?: string | null): string | null => {
   try {
-    const { liveChatContinuation, liveChatReplayContinuation } = new ContinuationToken().deserialize(bufferFromString(encodedToken, 'base64url'))
+    if (encodedToken == null) return null
+    const token = new ContinuationToken().deserialize(bufferFromString(encodedToken, 'base64url'))
 
-    return (liveChatContinuation ?? liveChatReplayContinuation)?.params ?? null
+    const encodedParams = (token.liveChatContinuation ?? token.liveChatReplayContinuation)?.params
+    if (encodedParams == null) return encodedToken
+    const params = new LiveChatParams().deserialize(bufferFromString(encodedParams, 'base64url'))
+
+    return params.query?.content?.videoId ?? encodedParams
   } catch {
     return null
   }
 }
 
-const updateGetLiveChatResponse = (data: YTValueData<YTResponse.Mapped<'liveChatGetLiveChat' | 'liveChatGetLiveChatReplay'>>) => {
-  delete data.continuationContents?.liveChatContinuation?.header?.liveChatHeaderRenderer?.collapseButton
+const updateGetLiveChatResponse = ({ continuationContents }: YTValueData<YTResponse.Mapped<'liveChatGetLiveChat' | 'liveChatGetLiveChatReplay'>>, ctx: YTValueProcessorContext) => {
+  const renderer = continuationContents?.liveChatContinuation
+  if (renderer == null) return
+
+  delete renderer.header?.liveChatHeaderRenderer?.collapseButton
+
+  const id = getLiveChatIdByToken(renderer.continuations?.flatMap(entry => values(entry))[0]?.continuation)
+  if (id == null) return
+
+  registerYTValueProcessor(YTEndpoint.components.entityMutation, data => {
+    const entity = data.payload?.emojiFountainDataEntity
+    if (entity == null) return
+
+    const entityKey = data.entityKey ?? entity.key
+    if (entityKey == null) return
+
+    const decodedKey = decodeEntityKey(entityKey)
+    decodedKey.entityId += `/${id}`
+    const encodedKey = encodeEntityKey(decodedKey)
+
+    data.entityKey = entity.key = encodedKey
+  }, YTValueCallbackType.PRE, ctx)
+  registerYTValueProcessor(YTRenderer.mapped.emojiFountainViewModel, data => {
+    const entityKey = data.emojiFountainDataEntityKey
+    if (entityKey == null) return
+
+    const decodedKey = decodeEntityKey(entityKey)
+    decodedKey.entityId += `/${id}`
+    const encodedKey = encodeEntityKey(decodedKey)
+
+    data.emojiFountainDataEntityKey = encodedKey
+  }, YTValueCallbackType.PRE, ctx)
 }
 
 class MainAppMessageChannel extends MessageChannel<PopoutMessageDataMap, PopoutMessageType> {
@@ -517,11 +553,11 @@ class ChatAppMessageChannel extends MessageChannel<PopoutMessageDataMap, PopoutM
     const { source, shell_, binding_ } = this
     const [continuation, isReplay] = binding
 
-    const oldParams = getContinuationParams(binding_?.[0])
-    const newParams = getContinuationParams(continuation)
-    if (newParams === oldParams) return true
+    const oldId = getLiveChatIdByToken(binding_?.[0])
+    const newId = getLiveChatIdByToken(continuation)
+    if (newId === oldId) return true
 
-    logger.debug(`popout '${source}' load content by params:`, newParams)
+    logger.debug(`popout '${source}' load content id:`, newId)
 
     this.binding_ = binding
     shell_.setVisibility(this, true)
