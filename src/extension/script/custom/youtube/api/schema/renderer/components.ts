@@ -123,6 +123,11 @@ export const engagementPanelIdentifier = ytv_sto({
 export const icon = ytv_ren({
   iconType: ytv_str(enums.IconType)
 })
+export const inlinePlayerData = ytv_ren({
+  forceImpAutoplay: ytv_bol(),
+  onSelect: ytv_enp(),
+  onVisible: ytv_enp()
+})
 export const layoutExitedForReasonTrigger = ytv_ren({
   layoutExitReason: ytv_str(['LAYOUT_EXIT_REASON_ERROR', 'LAYOUT_EXIT_REASON_NORMAL']),
   triggeringLayoutId: ytv_str()
@@ -383,6 +388,7 @@ export const playerStreamingData = ytv_ren({
   expiresInSeconds: ytv_str(),
   formats: ytv_arr(mediaFormat),
   hlsManifestUrl: ytv_str(),
+  probeUrl: ytv_str(),
   serverAbrStreamingUrl: ytv_str()
 })
 export const playerVideoDetails = ytv_ren({

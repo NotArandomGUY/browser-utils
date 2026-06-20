@@ -192,12 +192,7 @@ export const continuationCommand = ytv_enp(() => ({
   request: ytv_str(['CONTINUATION_REQUEST_TYPE_ACCOUNTS_LIST', 'CONTINUATION_REQUEST_TYPE_BROWSE', 'CONTINUATION_REQUEST_TYPE_COMMENTS_NOTIFICATION_MENU', 'CONTINUATION_REQUEST_TYPE_COMMENT_REPLIES', 'CONTINUATION_REQUEST_TYPE_GET_PANEL', 'CONTINUATION_REQUEST_TYPE_REEL_WATCH_SEQUENCE', 'CONTINUATION_REQUEST_TYPE_SEARCH', 'CONTINUATION_REQUEST_TYPE_WATCH_NEXT']),
   token: ytv_str()
 }))
-export const elementsCommand = ytv_enp(() => ({
-  setEntityCommand: ytv_sto({
-    entity: ytv_str(),
-    identifier: ytv_str()
-  })
-}))
+export const elementsCommand = ytv_enp()
 export const entityUpdateCommand = ytv_enp(() => ({
   elementUpdate: ytv_arr(ytv_sto({
     resourceStatusInResponseCheck: ytv_sto({
@@ -258,13 +253,19 @@ export const localWatchHistoryCommand = ytv_enp(() => ({
 }))
 export const logFlowLoggingEventCommand = ytv_enp(() => ({
   flowEventMetadata: ytv_sto({
+    pdgBuyFlowContext: ytv_sto({
+      entryPointClickedContext: ytv_sto({
+        superChatBuyFlowEntryPoint: ytv_str(['SUPER_CHAT_BUY_FLOW_ENTRY_POINT_TICKER_CHIP'])
+      }),
+      productType: ytv_str(['PRODUCT_TYPE_BUY_BUCKET'])
+    }),
     sponsorshipsPurchaseContext: ytv_sto({
       joinMethod: ytv_str(['SPONSORSHIPS_JOIN_METHOD_CHANNEL_PAGE_BUTTON'])
     })
   }),
-  flowEventNamespace: ytv_str(['FLOW_EVENT_NAMESPACE_SPONSORSHIPS_PURCHASE']),
+  flowEventNamespace: ytv_str(['FLOW_EVENT_NAMESPACE_PDG_BUY_FLOW', 'FLOW_EVENT_NAMESPACE_SPONSORSHIPS_PURCHASE']),
   flowEventType: ytv_num(),
-  flowType: ytv_str(['FLOW_TYPE_SPONSORSHIPS_PURCHASE'])
+  flowType: ytv_str(['FLOW_TYPE_PDG_BUY_FLOW', 'FLOW_TYPE_SPONSORSHIPS_PURCHASE'])
 }))
 export const logGestureCommand = ytv_ren(() => ({
   gestureType: ytv_str(['GESTURE_EVENT_TYPE_LOG_GENERIC_CLICK'])
@@ -323,6 +324,10 @@ export const setAppBackgroundCommand = ytv_enp(() => ({
   scrimStyle: ytv_str(['SCRIM_STYLE_CAROUSEL']),
   target: ytv_str(['APP_BACKGROUND_TARGET_ACCOUNTS', 'APP_BACKGROUND_TARGET_BROWSE', 'APP_BACKGROUND_TARGET_OVERLAY', 'APP_BACKGROUND_TARGET_SEARCH', 'APP_BACKGROUND_TARGET_WATCH_SQUEEZEBACK', 'APP_BACKGROUND_TARGET_WELCOME'])
 }))
+export const setEntityCommand = ytv_enp(() => ({
+  entity: ytv_str(),
+  identifier: ytv_str()
+}))
 export const scrollToEngagementPanelCommand = ytv_enp(() => ({
   panelIdentifier: renderer.components.engagementPanelIdentifier,
   targetId: ytv_str()
@@ -330,10 +335,7 @@ export const scrollToEngagementPanelCommand = ytv_enp(() => ({
 export const showAudioTrackPickerActionCommand = ytv_enp(() => ({}))
 export const showCaptionLanguageSelectActionCommand = ytv_enp(() => ({}))
 export const showDialogCommand = ytv_enp(() => ({
-  panelLoadingStrategy: ytv_sto({
-    inlineContent: ytv_ren(),
-    screenVe: ytv_num()
-  })
+  panelLoadingStrategy: components.panelLoadingStrategy
 }))
 export const showFullscreenPlayerControlsCommand = ytv_enp(() => ({}))
 export const showHintCommand = ytv_enp(() => ({
@@ -367,14 +369,7 @@ export const showSheetCommand = ytv_enp(() => ({
     }),
     position: ytv_str(['SHEET_POSITION_BOTTOM_LEFT', 'SHEET_POSITION_RIGHT'])
   }),
-  panelLoadingStrategy: ytv_sto({
-    inlineContent: ytv_ren(),
-    requestTemplate: ytv_sto({
-      panelId: ytv_str(),
-      params: ytv_str()
-    }),
-    screenVe: ytv_num()
-  })
+  panelLoadingStrategy: components.panelLoadingStrategy
 }))
 export const showSponsorshipsGiftOfferDialogCommand = ytv_enp(() => ({
   contentCommand: ytv_enp()
@@ -388,6 +383,19 @@ export const showTransientPlayerScrimOverlayCommand = ytv_enp(() => ({
 export const startAccountSelectorCommand = ytv_enp(() => ({}))
 export const toggleLiveReactionsMuteCommand = ytv_enp(() => ({
   hack: ytv_bol()
+}))
+export const transformEntityCommand = ytv_enp(() => ({
+  identifier: ytv_str(),
+  transform: ytv_sto({
+    types: ytv_arr(ytv_sto({
+      fieldType: ytv_str(['EKO_FIELD_TYPE_BOOL']),
+      typeId: ytv_num()
+    })),
+    variables: ytv_arr(ytv_sto({
+      variableId: ytv_num(),
+      variableType: ytv_str(['EKO_VARIABLE_TYPE_INPUT', 'EKO_VARIABLE_TYPE_OUTPUT'])
+    }))
+  })
 }))
 export const updateCarouselHeaderCommand = ytv_enp(() => ({
   spotlight: ytv_ren()

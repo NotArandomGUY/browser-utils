@@ -996,6 +996,7 @@ export const fusionSearchboxRenderer = ytv_ren(() => ({
       requestLanguage: ytv_str()
     })
   }),
+  disableAiAppearance: ytv_bol(),
   icon: components.icon,
   placeholderText: components.text,
   searchEndpoint: ytv_enp(),
@@ -1529,6 +1530,8 @@ export const liveStreamabilityRenderer = ytv_ren(() => ({
   displayEndscreen: ytv_bol(),
   offlineSlate: ytv_ren(),
   pollDelayMs: ytv_str(),
+  streamTransitionEndpoint: ytv_enp(),
+  transitionTiming: ytv_str(['STREAM_TRANSITION_TIMING_AT_STREAM_END']),
   videoId: ytv_str()
 }))
 export const macroMarkersInfoItemRenderer = ytv_ren(() => ({
@@ -2010,6 +2013,7 @@ export const playerMicroformatRenderer = ytv_ren(() => ({
   viewCount: ytv_str()
 }))
 export const playerOverlayAutoplayRenderer = ytv_ren(() => ({
+  alternativeTitle: components.text,
   background: components.thumbnail,
   byline: components.text,
   cancelButton: ytv_ren(),
@@ -2021,6 +2025,7 @@ export const playerOverlayAutoplayRenderer = ytv_ren(() => ({
   preferImmediateRedirect: ytv_bol(),
   publishedTimeText: components.text,
   shortViewCountText: components.text,
+  showPausedWhenDisabled: ytv_bol(),
   thumbnailOverlays: ytv_arr(ytv_ren()),
   title: components.text,
   videoId: ytv_str(),
@@ -2774,10 +2779,16 @@ export const toggleMenuServiceItemRenderer = ytv_ren(() => ({
 export const tooltipRenderer = ytv_ren(() => ({
   detailsText: components.text,
   dismissStrategy: ytv_sto({
-    type: ytv_str(['TOOLTIP_DISMISS_TYPE_TAP_INTERNAL'])
+    type: ytv_str(['TOOLTIP_DISMISS_TYPE_TAP_ANYWHERE', 'TOOLTIP_DISMISS_TYPE_TAP_INTERNAL'])
   }),
   dwellTimeMs: ytv_str(),
   maxWidthPercentage: ytv_num(),
+  promoConfig: ytv_sto({
+    acceptCommand: ytv_enp(),
+    dismissCommand: ytv_enp(),
+    impressionEndpoints: ytv_arr(ytv_enp()),
+    promoId: ytv_str()
+  }),
   suggestedPosition: ytv_sto({
     type: ytv_str(['TOOLTIP_POSITION_TYPE_ABOVE_START', 'TOOLTIP_POSITION_TYPE_BELOW', 'TOOLTIP_POSITION_TYPE_BELOW_START', 'TOOLTIP_POSITION_TYPE_BELOW_END'])
   }),
@@ -2919,6 +2930,7 @@ export const videoPrimaryInfoRenderer = ytv_ren(() => ({
   dateText: components.text,
   relativeDateText: components.text,
   subtitle: components.text,
+  superTitleIcon: components.icon,
   superTitleLink: components.text,
   title: components.text,
   updatedMetadataEndpoint: ytv_enp(),
@@ -2961,6 +2973,7 @@ export const videoSecondaryInfoRenderer = ytv_ren(() => ({
   attributedDescription: ytv_obj(ytv_str(), ytv_unk()),
   defaultExpanded: ytv_bol(),
   descriptionCollapsedLines: ytv_num(),
+  descriptionPlaceholder: components.text,
   headerRuns: ytv_arr(ytv_unk()),
   metadataRowContainer: ytv_ren(),
   owner: ytv_ren(),
@@ -3275,6 +3288,16 @@ export const featuredActionViewModel = ytv_rvm(() => ({
     streamTimeMillis: ytv_str()
   })
 }))
+export const feedAdMetadataViewModel = ytv_rvm(() => ({
+  adBadge: ytv_ren(),
+  adRenderingContextType: ytv_str(enums.AdRenderingContextType),
+  description: textViewModel,
+  headline: textViewModel,
+  interaction: components.adInteraction,
+  menu: ytv_ren(),
+  secondaryDescription: textViewModel,
+  style: ytv_str(['FEED_AD_METADATA_STYLE_COMPACT'])
+}))
 export const firstPartyNetworkSectionViewModel = ytv_rvm(() => ({}))
 export const flexibleActionsViewModel = ytv_rvm(() => ({
   actionsRows: ytv_arr(ytv_sto({
@@ -3373,12 +3396,13 @@ export const lockupViewModel = ytv_rvm(() => ({
   contentImage: ytv_ren(),
   contentType: ytv_str(['LOCKUP_CONTENT_TYPE_ALBUM', 'LOCKUP_CONTENT_TYPE_PLAYLIST', 'LOCKUP_CONTENT_TYPE_SHORT', 'LOCKUP_CONTENT_TYPE_STATION', 'LOCKUP_CONTENT_TYPE_VIDEO']),
   itemPlayback: ytv_sto({
-    inlinePlayerData: ytv_sto({
-      onSelect: ytv_enp(),
-      onVisible: ytv_enp()
-    })
+    inlinePlayerData: components.inlinePlayerData
   }),
-  metadata: ytv_ren()
+  metadata: ytv_ren(),
+  themedPalette: ytv_sto({
+    darkThemePalette: ytv_obj(ytv_str(), ytv_num()),
+    lightThemePalette: ytv_obj(ytv_str(), ytv_num())
+  })
 }))
 export const officialCardViewModel = ytv_rvm(() => ({
   backgroundColor: components.themedColor,
@@ -3508,9 +3532,7 @@ export const shortsLockupViewModel = ytv_rvm(() => ({
   accessibilityText: ytv_str(),
   entityId: ytv_str(),
   indexInCollection: ytv_num(),
-  inlinePlayerData: ytv_sto({
-    onVisible: ytv_enp()
-  }),
+  inlinePlayerData: components.inlinePlayerData,
   inlinePopStateEntityKey: ytv_str(),
   menuOnTap: ytv_enp(),
   menuOnTapA11yLabel: ytv_str(),
@@ -3677,6 +3699,7 @@ export const triStateButtonViewModel = ytv_rvm(() => ({
   untoggledStateData: ytv_ren({})
 }))
 export const videoAttributesSectionViewModel = ytv_rvm(() => ({
+  footerButton: ytv_ren(),
   headerInfoButton: ytv_ren(),
   headerInfoButtonOnTap: ytv_enp(),
   headerSubtitle: ytv_str(),
@@ -3688,7 +3711,7 @@ export const videoAttributesSectionViewModel = ytv_rvm(() => ({
 export const videoAttributeViewModel = ytv_rvm(() => ({
   image: components.image,
   imageSize: ytv_str(['VIDEO_ATTRIBUTE_IMAGE_SIZE_LARGE']),
-  imageStyle: ytv_str(['VIDEO_ATTRIBUTE_IMAGE_STYLE_SQUARE']),
+  imageStyle: ytv_str(['VIDEO_ATTRIBUTE_IMAGE_STYLE_PORTRAIT', 'VIDEO_ATTRIBUTE_IMAGE_STYLE_SQUARE']),
   onTap: ytv_enp(),
   orientation: ytv_str(['VIDEO_ATTRIBUTE_ORIENTATION_HORIZONTAL', 'VIDEO_ATTRIBUTE_ORIENTATION_VERTICAL']),
   overflowMenuA11yLabel: ytv_str(),
@@ -3703,6 +3726,21 @@ export const videoBadgeViewModel = ytv_rvm(() => ({
   iconName: ytv_str(enums.IconType),
   label: ytv_str(),
   mayTruncateText: ytv_bol()
+}))
+export const videoDisplayCompactLayoutViewModel = ytv_rvm(() => ({
+  adLayoutData: ytv_sto({
+    activeViewData: ytv_sto({
+      endOfSessionCommand: ytv_enp(),
+      identifier: ytv_str(),
+      regexUriMacroValidator: ytv_sto({
+        emptyMap: ytv_bol()
+      }),
+      viewableCommand: ytv_enp()
+    })
+  }),
+  adRenderingContextType: ytv_str(enums.AdRenderingContextType),
+  interaction: components.adInteraction,
+  videoLockup: ytv_ren()
 }))
 export const videoMetadataCarouselViewModel = ytv_rvm(() => ({
   carouselItems: ytv_arr(ytv_ren()),

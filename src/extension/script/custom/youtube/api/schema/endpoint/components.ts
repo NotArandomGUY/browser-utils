@@ -42,6 +42,41 @@ export const emojiFountainDataEntity = ytv_sto(() => ({
   })),
   updateTimeUsec: ytv_str()
 }))
+export const featuredProductsEntity = ytv_sto(() => ({
+  key: ytv_str(),
+  productsData: ytv_arr(ytv_sto({
+    bannerData: ytv_sto({
+      bannerDismissCommand: ytv_enp(),
+      dismissedStatusKey: ytv_str(),
+      droppedProductItemDataEntityKey: ytv_str(),
+      itemData: ytv_ren({
+        accessibilityLabel: ytv_str(),
+        ctaDescriptionText: ytv_str(),
+        dealsData: ytv_sto({
+          currentPrice: ytv_str()
+        }),
+        encodedOfferSkuId: ytv_str(),
+        featuredProductIdentifier: ytv_str(),
+        menuOnTap: ytv_enp(),
+        offerDocId: ytv_str(),
+        onTapCommand: ytv_enp(),
+        price: ytv_str(),
+        priceReplacementText: ytv_str(),
+        productDescription: ytv_str(),
+        productTitle: ytv_str(),
+        stayInApp: ytv_bol(),
+        thumbnailSources: ytv_arr(renderer.components.imageSource),
+        vendorLogoUrl: ytv_str(),
+        vendorName: ytv_str()
+      })
+    }),
+    featuredSegments: ytv_arr(ytv_sto({
+      endTimeSec: ytv_str(),
+      startTimeSec: ytv_str()
+    })),
+    identifier: ytv_str()
+  }))
+}))
 export const flowStateEntity = ytv_sto(() => ({
   currentStepId: ytv_str(),
   key: ytv_str()
@@ -91,6 +126,7 @@ export const liveViewerLeaderboardChatEntryPointStateEntity = ytv_sto(() => ({
   state: ytv_str(['LIVE_VIEWER_LEADERBOARD_CHAT_ENTRY_POINT_STATE_POINTS_AVAILABLE', 'LIVE_VIEWER_LEADERBOARD_CHAT_ENTRY_POINT_STATE_DISABLED'])
 }))
 export const liveViewerLeaderboardPointsEntity = ytv_sto(() => ({
+  isOptimisticUpdate: ytv_bol(),
   key: ytv_str(),
   pointsCompactText: ytv_str(),
   pointsValue: ytv_num()
@@ -293,6 +329,7 @@ export const entityMutationPayload = ytv_sto(() => ({
     undislikeCommand: ytv_enp(),
     unlikeCommand: ytv_enp()
   }),
+  featuredProductsEntity,
   flowStateEntity,
   likeButtonAnimationEntity,
   likeCountEntity,
@@ -337,6 +374,14 @@ export const entityMutation = ytv_sto({
   options: entityMutationOption,
   payload: entityMutationPayload,
   type: ytv_str(['ENTITY_MUTATION_TYPE_DELETE', 'ENTITY_MUTATION_TYPE_REPLACE'])
+})
+export const panelLoadingStrategy = ytv_sto({
+  inlineContent: ytv_ren(),
+  requestTemplate: ytv_sto({
+    panelId: ytv_str(),
+    params: ytv_str()
+  }),
+  screenVe: ytv_num()
 })
 export const watchEndpointLoggingContext = ytv_sto({
   qoeLoggingContext: ytv_sto({

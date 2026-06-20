@@ -54,6 +54,7 @@ export const next = ytv_rsp(() => ({
     videoIds: ytv_arr(ytv_str())
   }),
   microformat: ytv_ren(),
+  overlay: ytv_ren(),
   pageVisualEffects: ytv_arr(ytv_ren()),
   playerOverlays: ytv_ren(),
   queueContextParams: ytv_str(),
