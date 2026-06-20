@@ -1,4 +1,4 @@
-import { registerYTValueProcessor, YTValueProcessorType } from '@ext/custom/youtube/api/processor'
+import { registerYTValueProcessor, YTValueCallbackType } from '@ext/custom/youtube/api/processor'
 import { YTEndpoint, YTRenderer, YTValueData, YTValueType } from '@ext/custom/youtube/api/schema'
 import { registerYTSignalActionHandler } from '@ext/custom/youtube/module/core/command'
 import { Feature } from '@ext/lib/feature'
@@ -345,9 +345,9 @@ export default class YTCoreConfigModule extends Feature {
 
   protected activate(cleanupCallbacks: Function[]): boolean {
     cleanupCallbacks.push(
-      registerYTValueProcessor(YTRenderer.mapped.transportControlsRenderer, updateTransportControlsRenderer, YTValueProcessorType.POST),
-      registerYTValueProcessor(YTRenderer.mapped.tvSurfaceContentRenderer, updateTvSurfaceContentRenderer, YTValueProcessorType.POST),
-      registerYTValueProcessor(YTRenderer.mapped.desktopTopbarRenderer, updateDesktopTopbarRenderer, YTValueProcessorType.POST)
+      registerYTValueProcessor(YTRenderer.mapped.transportControlsRenderer, updateTransportControlsRenderer, YTValueCallbackType.POST),
+      registerYTValueProcessor(YTRenderer.mapped.tvSurfaceContentRenderer, updateTvSurfaceContentRenderer, YTValueCallbackType.POST),
+      registerYTValueProcessor(YTRenderer.mapped.desktopTopbarRenderer, updateDesktopTopbarRenderer, YTValueCallbackType.POST)
     )
 
     return true

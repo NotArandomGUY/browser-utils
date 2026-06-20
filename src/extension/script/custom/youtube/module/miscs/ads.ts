@@ -1,4 +1,4 @@
-import { registerYTValueFilter, registerYTValueProcessor, YTValueProcessorType } from '@ext/custom/youtube/api/processor'
+import { registerYTValueFilter, registerYTValueProcessor, YTValueCallbackType } from '@ext/custom/youtube/api/processor'
 import { YTEndpoint, YTRenderer, YTResponse, YTValueData } from '@ext/custom/youtube/api/schema'
 import { registerYTInnertubeRequestProcessor } from '@ext/custom/youtube/module/core/network'
 import { YTPLAYER_RELOAD_ID, ytplayerCreateStreamingData } from '@ext/custom/youtube/module/player/network'
@@ -96,9 +96,9 @@ export default class YTMiscsAdsModule extends Feature {
     registerYTValueFilter(YTRenderer.mapped.bannerPromoRenderer)
     registerYTValueFilter(YTRenderer.mapped.bkaEnforcementMessageViewModel)
     registerYTValueFilter(YTRenderer.mapped.playerLegacyDesktopWatchAdsRenderer)
-    registerYTValueFilter(YTRenderer.mapped.adPlayerOverlayRenderer, null, YTValueProcessorType.POST)
-    registerYTValueFilter(YTRenderer.mapped.adSlotRenderer, null, YTValueProcessorType.POST)
-    registerYTValueFilter(YTRenderer.mapped.topBannerImageTextIconButtonedLayoutViewModel, null, YTValueProcessorType.POST)
+    registerYTValueFilter(YTRenderer.mapped.adPlayerOverlayRenderer, null, YTValueCallbackType.POST)
+    registerYTValueFilter(YTRenderer.mapped.adSlotRenderer, null, YTValueCallbackType.POST)
+    registerYTValueFilter(YTRenderer.mapped.topBannerImageTextIconButtonedLayoutViewModel, null, YTValueCallbackType.POST)
     registerYTValueProcessor(YTEndpoint.mapped.watchEndpoint, processWatchEndpoint)
     registerYTValueProcessor(YTResponse.mapped.next, updateNextResponse)
     registerYTValueProcessor(YTResponse.mapped.player, updatePlayerResponse)

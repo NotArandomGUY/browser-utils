@@ -1,6 +1,6 @@
 import { registerOverlayPage } from '@ext/common/preload/overlay'
-import { processYTResponse, processYTValue } from '@ext/custom/youtube/api/processor'
-import { YTResponse, ytv_enp, YTValueData, YTValueType } from '@ext/custom/youtube/api/schema'
+import { processYTEndpoint, processYTResponse } from '@ext/custom/youtube/api/processor'
+import { YTResponse, YTValueData, YTValueType } from '@ext/custom/youtube/api/schema'
 import YTDevicePage from '@ext/custom/youtube/pages/device'
 import { assign, defineProperties, defineProperty, fromEntries } from '@ext/global/object'
 import Callback from '@ext/lib/callback'
@@ -280,43 +280,35 @@ const createPlayer = async (create: (...args: unknown[]) => void, container: HTM
 }
 
 const processInitialCommand = async (initCommand: YTValueData<{ type: YTValueType.ENDPOINT }>): Promise<void> => {
-  try {
-    await processYTValue(ytv_enp(), initCommand, null)
-    logger.debug('initial command:', initCommand)
-  } catch (error) {
-    logger.warn('process initial command error:', error)
-  }
+  await processYTEndpoint(initCommand)
+  logger.debug('initial command:', initCommand)
 }
 
 const processInitialData = async (initData: YTInitData): Promise<void> => {
-  try {
-    switch (initData.page) {
-      case 'browse':
-      case 'channel':
-      case 'playlist':
-        await processYTResponse('browse', initData.response)
-        break
-      case 'search':
-        await processYTResponse('search', initData.response)
-        break
-      case 'shorts':
-        await processYTResponse('reelReelItemWatch', initData.response)
-        await processYTResponse('reelReelWatchSequence', initData.reelWatchSequenceResponse)
-        break
-      case 'watch':
-        await processYTResponse('next', initData.response)
-        break
-      case 'live_chat':
-        await processYTResponse('liveChatGetLiveChat', initData.response)
-        break
-      default:
-        logger.warn('unhandled page type', initData)
-        break
-    }
-    logger.debug('initial data:', initData)
-  } catch (error) {
-    logger.warn('process initial data error:', error)
+  switch (initData.page) {
+    case 'browse':
+    case 'channel':
+    case 'playlist':
+      await processYTResponse('browse', initData.response)
+      break
+    case 'search':
+      await processYTResponse('search', initData.response)
+      break
+    case 'shorts':
+      await processYTResponse('reelReelItemWatch', initData.response)
+      await processYTResponse('reelReelWatchSequence', initData.reelWatchSequenceResponse)
+      break
+    case 'watch':
+      await processYTResponse('next', initData.response)
+      break
+    case 'live_chat':
+      await processYTResponse('liveChatGetLiveChat', initData.response)
+      break
+    default:
+      logger.warn('unhandled page type', initData)
+      break
   }
+  logger.debug('initial data:', initData)
 }
 
 const overrideBootstrapLoader = <T>(type: string, processor: (data: T) => Promise<void>): void => {

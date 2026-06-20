@@ -1,4 +1,4 @@
-import { defineProperty } from '@ext/global/object'
+import { defineProperty, keys } from '@ext/global/object'
 import { YTObjectSchema, YTValueSchema, YTValueType } from './types'
 
 export const YT_VALUE_UNKNOWN = { type: YTValueType.UNKNOWN } as const
@@ -19,9 +19,9 @@ export function ytv_num(): { type: YTValueType.NUMBER } {
   return YT_VALUE_NUMBER
 }
 export function ytv_str<const E extends string[] | Record<string, unknown>>(): { type: YTValueType.STRING }
-export function ytv_str<const E extends string[] | Record<string, unknown>>(e: E): { type: YTValueType.STRING, enum: E }
-export function ytv_str<const E extends string[] | Record<string, unknown>>(e?: E): { type: YTValueType.STRING, enum?: E } {
-  return e == null ? YT_VALUE_STRING : { type: YTValueType.STRING, enum: e }
+export function ytv_str<const E extends string[] | Record<string, unknown>>(e: E): { type: YTValueType.STRING, enum: Set<E extends string[] ? E[number] : keyof E> }
+export function ytv_str<const E extends string[] | Record<string, unknown>>(e?: E): { type: YTValueType.STRING, enum?: Set<E extends string[] ? E[number] : keyof E> } {
+  return e == null ? YT_VALUE_STRING : { type: YTValueType.STRING, enum: new Set(Array.isArray(e) ? e : keys(e)) }
 }
 export function ytv_obj<const K extends YTValueSchema, const V extends YTValueSchema>(k: K, v: V): { type: YTValueType.OBJECT, key: K, value: V } {
   return { type: YTValueType.OBJECT, key: k, value: v }

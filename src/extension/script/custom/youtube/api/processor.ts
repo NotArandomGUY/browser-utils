@@ -1,15 +1,22 @@
-import { YTEndpoint, YTObjectSchema, YTRenderer, YTResponse, YTValueData, YTValueParent, YTValueSchema, YTValueSchemaOf, YTValueType } from '@ext/custom/youtube/api/schema'
-import { keys } from '@ext/global/object'
+import { YT_VALUE_ENDPOINT, YTEndpoint, YTObjectSchema, YTRenderer, YTResponse, YTValueData, YTValueSchema, YTValueSchemaOf, YTValueType } from '@ext/custom/youtube/api/schema'
+import { assign, keys, setPrototypeOf } from '@ext/global/object'
 import Logger from '@ext/lib/logger'
 
-const logger = new Logger('YTAPI-PROCESSOR')
+const logger = new Logger('YTAPI-PROCESSOR', true)
 
-export type YTValueFilter<S extends YTValueSchema = YTValueSchema> = (data: YTValueData<S>, schema: S, parent: YTValueParent<S>) => boolean
-export type YTValueProcessor<S extends YTValueSchema = YTValueSchema> = (data: YTValueData<S>, schema: S, parent: YTValueParent<S>) => Promise<void> | void
-
-export const enum YTValueProcessorType {
+export const enum YTValueCallbackType {
   PRE = 0,
   POST = 1
+}
+
+export type YTValueStack = Array<[key: unknown, value: unknown]>
+export type YTValueCallbackMapping<T> = [pre: Map<YTValueSchema, Array<T>>, post: Map<YTValueSchema, Array<T>>]
+export type YTValueFilter<S extends YTValueSchema = YTValueSchema> = (data: YTValueData<S>, ctx: YTValueProcessorContext<S>) => boolean
+export type YTValueProcessor<S extends YTValueSchema = YTValueSchema> = (data: YTValueData<S>, ctx: YTValueProcessorContext<S>) => Promise<void> | void
+
+export interface YTValueProcessorConfig {
+  fmapping: YTValueCallbackMapping<YTValueFilter>
+  pmapping: YTValueCallbackMapping<YTValueProcessor>
 }
 
 type TypeOf<T = void> = T extends void ? {
@@ -19,24 +26,7 @@ type TypeOf<T = void> = T extends void ? {
   'string': string
 } : T extends keyof TypeOf ? TypeOf[T] : never
 
-const filterMap = new Map<YTValueSchema, [pre: Array<YTValueFilter>, post: Array<YTValueFilter>]>()
-const processorMap = new Map<YTValueSchema, [pre: Array<YTValueProcessor>, post: Array<YTValueProcessor>]>()
-
-class DeleteChildError extends Error {
-  private readonly params_: unknown[]
-
-  public constructor(reason: string, parent: unknown, key: unknown, value: unknown, schema: YTValueSchema) {
-    super(`delete child [${key}] reason: ${reason}`)
-
-    this.params_ = [value, schema, parent]
-  }
-
-  /*@__MANGLE_PROP__*/public printDebugLog(): void {
-    const { message, params_ } = this
-
-    logger.trace(message, ...params_)
-  }
-}
+const defaultConfig = createYTValueProcessorConfig(null)
 
 class MismatchTypeError extends TypeError {
   public constructor(expectedType: string, actualType: string) {
@@ -52,178 +42,256 @@ function assertType<T extends keyof TypeOf>(type: T, value: unknown): asserts va
   if (typeof value !== type) throwMismatchTypeError(type, value)
 }
 
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
+const copyMapping = <K, V>(src: [pre: Map<K, Array<V>>, post: Map<K, Array<V>>]): typeof src => {
+  return src.map(mapping => new Map(Array.from(mapping, ([key, value]) => [key, value.slice()]))) as typeof src
 }
 
-function deleteYTValueProcessor<S extends YTValueSchema>(data: YTValueData<S>, schema: S, parent: YTValueParent<S>): boolean {
-  logger.trace('filtered value:', data, schema, parent)
+export function createYTValueProcessorConfig(base: YTValueProcessorConfig | null = defaultConfig): YTValueProcessorConfig {
+  if (base) {
+    return {
+      fmapping: copyMapping(base.fmapping),
+      pmapping: copyMapping(base.pmapping)
+    }
+  } else {
+    return {
+      fmapping: [new Map(), new Map()],
+      pmapping: [new Map(), new Map()]
+    }
+  }
+}
+
+export class YTValueProcessorContext<S extends YTValueSchema = YTValueSchema> implements YTValueProcessorConfig {
+  /*@__MANGLE_PROP__*/public readonly fmapping: YTValueCallbackMapping<YTValueFilter>
+  /*@__MANGLE_PROP__*/public readonly pmapping: YTValueCallbackMapping<YTValueProcessor>
+  public readonly stack: YTValueStack = []
+
+  public constructor({ fmapping, pmapping }: YTValueProcessorConfig) {
+    this.fmapping = fmapping
+    this.pmapping = pmapping
+  }
+
+  /*@__MANGLE_PROP__*/public mutable(): YTValueProcessorContextMutable<S> {
+    setPrototypeOf(this, YTValueProcessorContextMutable.prototype)
+    assign(this, createYTValueProcessorConfig(this))
+
+    return this
+  }
+
+  public push(value: unknown, key?: unknown): this {
+    this.stack.push([key, value])
+    return this
+  }
+
+  public pop(): this {
+    this.stack.pop()
+    return this
+  }
+
+  public catch(value: unknown): boolean {
+    logger.debug(
+      () => `[${this.stack.map(entry => String(entry[0] ?? '<value>')).join('.')}] error:`, // NOSONAR
+      () => value instanceof Error ? value.message : String(value),
+      () => this.stack.slice()
+    )
+    return true
+  }
+}
+
+export class YTValueProcessorContextMutable<S extends YTValueSchema = YTValueSchema> extends YTValueProcessorContext<S> {
+  /*@__MANGLE_PROP__*/public override mutable(): this {
+    return this
+  }
+}
+
+const deleteYTValueProcessor = <S extends YTValueSchema>(data: YTValueData<S>, ctx: YTValueProcessorContext<S>): boolean => {
+  logger.trace('filtered value:', data, ctx)
   return false
 }
 
-function filterYTValueProcessor<S extends YTValueSchema>(filter: (data: YTValueData<S>) => boolean, data: YTValueData<S>, schema: S, parent: YTValueParent<S>): boolean {
-  return filter(data) ? true : deleteYTValueProcessor<S>(data, schema, parent)
+const filterYTValueProcessor = <S extends YTValueSchema>(filter: (data: YTValueData<S>) => boolean, data: YTValueData<S>, ctx: YTValueProcessorContext<S>): boolean => {
+  return filter(data) ? true : deleteYTValueProcessor<S>(data, ctx)
 }
 
-async function invokeYTValueProcessor<S extends YTValueSchema>(data: YTValueData<S>, schema: S, parent: YTValueParent<S>, type = YTValueProcessorType.PRE): Promise<boolean> {
-  if (filterMap.get(schema)?.[type].some(filter => !filter(data, schema, parent))) return false
+const invokeYTValueProcessor = async <S extends YTValueSchema>(
+  ctx: YTValueProcessorContext,
+  data: YTValueData<S>,
+  schema: S,
+  type: YTValueCallbackType
+): Promise<boolean> => {
+  if (ctx.fmapping[type].get(schema)?.some(callback => !callback(data, ctx))) return false
 
-  const processors = processorMap.get(schema)?.[type]
-  if (processors != null) await Promise.all(processors.map(processor => Promise.resolve(processor(data, schema, parent))))
+  const promises = ctx.pmapping[type].get(schema)?.map(callback => Promise.resolve(callback(data, ctx)))
+  if (promises != null) await Promise.all(promises)
 
   return true
 }
 
-async function processYTArrayEntry(schema: YTValueSchema, index: number, target: unknown[], parent: object | null): Promise<void> {
-  try {
-    const value = target[index]
-    if (!await processYTValue(schema, value, target)) throw new DeleteChildError('value', target, index, value, schema)
-  } catch (error) {
-    if (error instanceof DeleteChildError) {
-      target.splice(index, 1)
-      return error.printDebugLog()
-    }
-    logger.debug('array entry error:', errorMessage(error), schema, index, target, parent)
-  }
+const processYTArrayEntry = async (
+  ctx: YTValueProcessorContext,
+  schema: YTValueSchema,
+  array: unknown[],
+  index: number
+): Promise<void> => {
+  if (await processYTValue(ctx, schema, array[index], index)) return
+
+  array.splice(index, 1)
 }
 
-async function processYTObjectEntry(schema: YTValueSchemaOf<YTValueType.OBJECT>, key: unknown, target: object, parent: object | null): Promise<void> {
-  try {
-    const value = target[key as keyof typeof target]
-    if (!await processYTValue(schema.key, key, target)) throw new DeleteChildError('key', target, key, value, schema)
-    if (!await processYTValue(schema.value, value, target)) throw new DeleteChildError('value', target, key, value, schema)
-  } catch (error) {
-    if (error instanceof DeleteChildError) {
-      delete target[key as keyof typeof target]
-      return error.printDebugLog()
-    }
-    logger.debug('object entry error:', errorMessage(error), schema, key, target, parent)
-  }
+const processYTObjectEntry = async (
+  ctx: YTValueProcessorContext,
+  schema: YTValueSchemaOf<YTValueType.OBJECT>,
+  object: object,
+  key: keyof typeof object
+): Promise<void> => {
+  if (await processYTValue(ctx, schema.key, key, key) && await processYTValue(ctx, schema.value, object[key], key)) return
+
+  delete object[key]
 }
 
-async function processYTSchemaEntry(body: YTObjectSchema, key: string, target: object, parent: object | null): Promise<void> {
-  try {
-    const schema = body[key]
-    if (schema == null) throw new TypeError('unhandled field')
+const processYTSchemaEntry = async (
+  ctx: YTValueProcessorContext,
+  body: YTObjectSchema,
+  object: object,
+  key: keyof typeof object
+): Promise<void> => {
+  const schema = body[key]
+  if (schema == null) throw new TypeError(`unhandled field '${key}'`)
 
-    const value = target[key as keyof typeof target]
-    if (!await processYTValue(schema, value, target)) throw new DeleteChildError('value', target, key, value, schema)
-  } catch (error) {
-    if (error instanceof DeleteChildError) {
-      delete target[key as keyof typeof target]
-      return error.printDebugLog()
-    }
-    logger.debug('schema entry error:', errorMessage(error), body, key, target, parent)
-  }
+  if (await processYTValue(ctx, schema, object[key], key)) return
+
+  delete object[key]
 }
 
-async function processYTSchemaEntries(
+const processYTSchemaEntries = async (
+  ctx: YTValueProcessorContext,
   schema: Required<YTValueSchemaOf<YTValueType.STRUCT | YTValueType.ENDPOINT | YTValueType.RENDERER | YTValueType.RESPONSE>>,
-  value: object,
-  parent: object | null
-): Promise<boolean> {
-  if (!await invokeYTValueProcessor(value, schema, parent, YTValueProcessorType.PRE)) return false
-  for (const key in value) await processYTSchemaEntry(schema.body, key, value, parent)
-  return await invokeYTValueProcessor(value, schema, parent, YTValueProcessorType.POST)
+  value: object
+): Promise<boolean> => {
+  if (!await invokeYTValueProcessor(ctx, value, schema, YTValueCallbackType.PRE)) return false
+  for (const key in value) await processYTSchemaEntry(ctx, schema.body, value, key as keyof typeof value)
+  return await invokeYTValueProcessor(ctx, value, schema, YTValueCallbackType.POST)
 }
 
-export function registerYTValueProcessor<S extends YTValueSchema>(schema: S, processor: YTValueProcessor<S>, type = YTValueProcessorType.PRE): () => void {
-  let pair = processorMap.get(schema)
-  if (pair == null) {
-    pair = [[], []]
-    processorMap.set(schema, pair)
-  }
-
-  let processors: YTValueProcessor[] | null = pair[type]
-  if (processors == null) throw new Error('invalid processor type')
-
-  processors.push(processor as YTValueProcessor)
-
-  return () => {
-    if (processors == null) return
-
-    processors.splice(processors.indexOf(processor as YTValueProcessor), 1)
-    processors = null
-  }
-}
-
-export function registerYTValueFilter<S extends YTValueSchema>(schema: S, filter?: ((data: YTValueData<S>) => boolean) | null, type = YTValueProcessorType.PRE): () => void {
-  let pair = filterMap.get(schema)
-  if (pair == null) {
-    pair = [[], []]
-    filterMap.set(schema, pair)
-  }
-
-  let filters: YTValueFilter[] | null = pair[type]
-  if (filters == null) throw new Error('invalid filter type')
-
-  const wrappedFilter = (filter == null ? deleteYTValueProcessor<S> : filterYTValueProcessor.bind(null, filter as (data: YTValueData) => boolean)) as YTValueFilter
-  filters.push(wrappedFilter)
-
-  return () => {
-    if (filters == null) return
-
-    filters.splice(filters.indexOf(wrappedFilter), 1)
-    filters = null
-  }
-}
-
-export async function processYTValue(schema: YTValueSchema, value: unknown, parent: YTValueParent<typeof schema>): Promise<boolean> { // NOSONAR
+const processYTValue = async (ctx: YTValueProcessorContext, schema: YTValueSchema, value: unknown, key?: unknown): Promise<boolean> => { // NOSONAR
   if (value == null) return false
 
-  switch (schema.type) {
-    case YTValueType.UNKNOWN:
-      return invokeYTValueProcessor(value, schema, parent)
-    case YTValueType.BOOLEAN:
-      assertType('boolean', value)
-      return invokeYTValueProcessor(value, schema, parent)
-    case YTValueType.NUMBER:
-      assertType('number', value)
-      return invokeYTValueProcessor(value, schema, parent)
-    case YTValueType.STRING:
-      assertType('string', value)
-      if (schema.enum != null) {
-        if (Array.isArray(schema.enum)) {
-          if (!schema.enum.includes(value)) throwMismatchTypeError(schema.enum.join('|'), value, true)
-        } else if (typeof schema.enum === 'object') {
-          if (schema.enum[value.split(':')[0]] == null) throwMismatchTypeError(keys(schema.enum).filter((v, i, a) => a.indexOf(v) === i).join('|'), value, true)
-        } else {
-          throw new TypeError('invalid schema enum definition')
-        }
-      }
-      return invokeYTValueProcessor(value, schema, parent)
-    case YTValueType.OBJECT:
-      assertType('object', value)
-      if (!await invokeYTValueProcessor(value as Record<string | number, unknown>, schema, parent, YTValueProcessorType.PRE)) return false
-      for (const key in value) await processYTObjectEntry(schema, key, value, parent)
-      return invokeYTValueProcessor(value as Record<string | number, unknown>, schema, parent, YTValueProcessorType.POST)
-    case YTValueType.STRUCT:
-      assertType('object', value)
-      return await processYTSchemaEntries(schema, value, parent) && keys(value).length > 0
-    case YTValueType.ARRAY:
-      if (!Array.isArray(value)) throwMismatchTypeError('array', value)
-      if (!await invokeYTValueProcessor(value, schema, parent, YTValueProcessorType.PRE)) return false
-      for (let i = value.length - 1; i >= 0; i--) await processYTArrayEntry(schema.value, i, value, parent)
-      return await invokeYTValueProcessor(value, schema, parent, YTValueProcessorType.POST) && value.length > 0
-    case YTValueType.ENDPOINT:
-      assertType('object', value)
-      if (schema.body != null) return processYTSchemaEntries(schema as Required<YTValueSchemaOf<YTValueType.ENDPOINT>>, value, parent)
-      if (!await invokeYTValueProcessor(value, schema, parent, YTValueProcessorType.PRE)) return false
-      for (const key in value) await processYTSchemaEntry(YTEndpoint.mapped, key, value, parent)
-      return await invokeYTValueProcessor(value, schema, parent, YTValueProcessorType.POST) && keys(value).some(key => !YTEndpoint.MappedOuterKeys.has(key as YTEndpoint.MappedKey))
-    case YTValueType.RENDERER:
-    case YTValueType.RESPONSE:
-      assertType('object', value)
-      if (schema.body != null) return processYTSchemaEntries(schema as Required<YTValueSchemaOf<YTValueType.RENDERER | YTValueType.RESPONSE>>, value, parent)
-      if (!await invokeYTValueProcessor(value, schema, parent, YTValueProcessorType.PRE)) return false
-      for (const key in value) await processYTSchemaEntry(YTRenderer.mapped, key, value, parent)
-      return await invokeYTValueProcessor(value, schema, parent, YTValueProcessorType.POST) && keys(value).length > 0
-    default:
-      throw new Error('invalid schema value type')
+  try {
+    ctx.push(value, key)
+
+    switch (schema.type) {
+      case YTValueType.UNKNOWN:
+        return await invokeYTValueProcessor(ctx, value, schema, YTValueCallbackType.PRE)
+      case YTValueType.BOOLEAN:
+        assertType('boolean', value)
+        return await invokeYTValueProcessor(ctx, value, schema, YTValueCallbackType.PRE)
+      case YTValueType.NUMBER:
+        assertType('number', value)
+        return await invokeYTValueProcessor(ctx, value, schema, YTValueCallbackType.PRE)
+      case YTValueType.STRING:
+        assertType('string', value)
+        if (schema.enum != null && !schema.enum.has(value.split(':', 1)[0])) throwMismatchTypeError(Array.from(schema.enum).join('|'), value, true)
+        return await invokeYTValueProcessor(ctx, value, schema, YTValueCallbackType.PRE)
+      case YTValueType.OBJECT:
+        assertType('object', value)
+        if (!await invokeYTValueProcessor(ctx, value as Record<string | number, unknown>, schema, YTValueCallbackType.PRE)) return false
+        for (const key in value) await processYTObjectEntry(ctx, schema, value, key as keyof typeof value)
+        return await invokeYTValueProcessor(ctx, value as Record<string | number, unknown>, schema, YTValueCallbackType.POST)
+      case YTValueType.STRUCT:
+        assertType('object', value)
+        return await processYTSchemaEntries(ctx, schema, value) && keys(value).length > 0
+      case YTValueType.ARRAY:
+        if (!Array.isArray(value)) throwMismatchTypeError('array', value)
+        if (!await invokeYTValueProcessor(ctx, value, schema, YTValueCallbackType.PRE)) return false
+        for (let i = value.length - 1; i >= 0; i--) await processYTArrayEntry(ctx, schema.value, value, i)
+        return await invokeYTValueProcessor(ctx, value, schema, YTValueCallbackType.POST) && value.length > 0
+      case YTValueType.ENDPOINT:
+        assertType('object', value)
+        if (schema.body != null) return await processYTSchemaEntries(ctx, schema as Required<YTValueSchemaOf<YTValueType.ENDPOINT>>, value)
+        if (!await invokeYTValueProcessor(ctx, value, schema, YTValueCallbackType.PRE)) return false
+        for (const key in value) await processYTSchemaEntry(ctx, YTEndpoint.mapped, value, key as keyof typeof value)
+        return await invokeYTValueProcessor(ctx, value, schema, YTValueCallbackType.POST) && keys(value).some(key => !YTEndpoint.MappedOuterKeys.has(key as YTEndpoint.MappedKey))
+      case YTValueType.RENDERER:
+      case YTValueType.RESPONSE:
+        assertType('object', value)
+        if (schema.body != null) return await processYTSchemaEntries(ctx, schema as Required<YTValueSchemaOf<YTValueType.RENDERER | YTValueType.RESPONSE>>, value)
+        if (!await invokeYTValueProcessor(ctx, value, schema, YTValueCallbackType.PRE)) return false
+        for (const key in value) await processYTSchemaEntry(ctx, YTRenderer.mapped, value, key as keyof typeof value)
+        return await invokeYTValueProcessor(ctx, value, schema, YTValueCallbackType.POST) && keys(value).length > 0
+      default:
+        throw new TypeError('invalid schema value type')
+    }
+  } catch (error) {
+    return ctx.catch(error)
+  } finally {
+    ctx.pop()
   }
 }
 
-export async function processYTResponse(key: YTResponse.MappedKey, value: unknown): Promise<void> {
+export const registerYTValueFilter = <S extends YTValueSchema>(
+  schema: S,
+  filter?: ((data: YTValueData<S>) => boolean) | null,
+  type = YTValueCallbackType.PRE,
+  config: YTValueProcessorConfig | YTValueProcessorContext = defaultConfig
+): () => void => {
+  if (config instanceof YTValueProcessorContext) config.mutable()
+
+  const mapping = config.fmapping[type]
+  if (mapping == null) throw new TypeError('invalid callback type')
+
+  const wrappedFilter = filter == null ? deleteYTValueProcessor<S> : filterYTValueProcessor.bind(null, filter as (data: YTValueData) => boolean)
+
+  let callbacks: Array<YTValueFilter<S>> | null | undefined = mapping.get(schema)
+  if (callbacks == null) {
+    callbacks = []
+    mapping.set(schema, callbacks)
+  }
+  callbacks.push(wrappedFilter)
+
+  return () => {
+    if (callbacks == null) return
+
+    callbacks.splice(callbacks.indexOf(wrappedFilter), 1)
+    callbacks = null
+  }
+}
+
+export const registerYTValueProcessor = <S extends YTValueSchema>(
+  schema: S,
+  processor: YTValueProcessor<S>,
+  type = YTValueCallbackType.PRE,
+  config: YTValueProcessorConfig | YTValueProcessorContext = defaultConfig
+): () => void => {
+  if (config instanceof YTValueProcessorContext) config.mutable()
+
+  const mapping = config.pmapping[type]
+  if (mapping == null) throw new TypeError('invalid callback type')
+
+  let callbacks: Array<YTValueProcessor<S>> | null | undefined = mapping.get(schema)
+  if (callbacks == null) {
+    callbacks = []
+    mapping.set(schema, callbacks)
+  }
+  callbacks.push(processor)
+
+  return () => {
+    if (callbacks == null) return
+
+    callbacks.splice(callbacks.indexOf(processor), 1)
+    callbacks = null
+  }
+}
+
+export const processYTEndpoint = async (value: unknown, config = defaultConfig): Promise<void> => {
+  const begin = performance.now()
+
+  const ctx = new YTValueProcessorContext(config)
+  await processYTValue(ctx, YT_VALUE_ENDPOINT, value, null)
+
+  const delta = performance.now() - begin
+  logger.debug(`endpoint processor took: ${delta.toFixed(2)}ms`)
+}
+
+export const processYTResponse = async (key: YTResponse.MappedKey, value: unknown, config = defaultConfig): Promise<void> => {
   const schema = YTResponse.mapped[key]
   if (schema == null) {
     logger.debug('schema not found for response:', key)
@@ -231,16 +299,14 @@ export async function processYTResponse(key: YTResponse.MappedKey, value: unknow
   }
 
   const begin = performance.now()
-  try {
-    if (Array.isArray(value)) {
-      for (const entry of value) await processYTValue(schema, entry, value)
-    } else {
-      await processYTValue(schema, value, null)
-    }
-  } catch (error) {
-    logger.warn('response processor error:', errorMessage(error), key, value)
-  } finally {
-    const delta = performance.now() - begin
-    logger.debug(`response processor took: ${delta.toFixed(2)}ms`)
+
+  const ctx = new YTValueProcessorContext(config)
+  if (Array.isArray(value)) {
+    for (let i = value.length - 1; i >= 0; i--) await processYTValue(ctx, schema, value[i], i)
+  } else {
+    await processYTValue(ctx, schema, value)
   }
+
+  const delta = performance.now() - begin
+  logger.debug(`response '${key}' processor took: ${delta.toFixed(2)}ms`)
 }

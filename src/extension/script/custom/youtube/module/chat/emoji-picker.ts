@@ -1,4 +1,4 @@
-import { registerYTValueFilter, registerYTValueProcessor, YTValueProcessorType } from '@ext/custom/youtube/api/processor'
+import { registerYTValueFilter, registerYTValueProcessor, YTValueCallbackType } from '@ext/custom/youtube/api/processor'
 import { YTRenderer, YTValueData } from '@ext/custom/youtube/api/schema'
 import { Feature } from '@ext/lib/feature'
 
@@ -60,7 +60,7 @@ export default class YTChatEmojiPickerModule extends Feature {
     cleanupCallbacks.push(
       registerYTValueFilter(YTRenderer.mapped.emojiPickerUpsellCategoryRenderer, filterEmojiPickerUpsellCategoryRenderer),
       registerYTValueProcessor(YTRenderer.mapped.liveChatRenderer, updateLiveChatRenderer),
-      registerYTValueProcessor(YTRenderer.mapped.emojiPickerRenderer, updateEmojiPickerRenderer, YTValueProcessorType.POST)
+      registerYTValueProcessor(YTRenderer.mapped.emojiPickerRenderer, updateEmojiPickerRenderer, YTValueCallbackType.POST)
     )
 
     return true

@@ -1,4 +1,4 @@
-import { registerYTValueFilter, YTValueProcessorType } from '@ext/custom/youtube/api/processor'
+import { registerYTValueFilter, YTValueCallbackType } from '@ext/custom/youtube/api/processor'
 import { YTRenderer, YTValueData } from '@ext/custom/youtube/api/schema'
 import { defineProperty, getOwnPropertyDescriptor, getOwnPropertyDescriptors, getPropertyDescriptor, keys } from '@ext/global/object'
 import { Feature } from '@ext/lib/feature'
@@ -39,14 +39,14 @@ export default class YTMiscsFixupModule extends Feature {
   }
 
   protected activate(): boolean {
-    registerYTValueFilter(YTRenderer.mapped.gridShelfViewModel, filterContents, YTValueProcessorType.POST)
-    registerYTValueFilter(YTRenderer.mapped.guideSectionRenderer, filterItems, YTValueProcessorType.POST)
-    registerYTValueFilter(YTRenderer.mapped.horizontalListRenderer, filterItems, YTValueProcessorType.POST)
-    registerYTValueFilter(YTRenderer.mapped.playlistSidebarRenderer, filterItems, YTValueProcessorType.POST)
-    registerYTValueFilter(YTRenderer.mapped.reelShelfRenderer, filterItems, YTValueProcessorType.POST)
-    registerYTValueFilter(YTRenderer.mapped.richItemRenderer, filterContent, YTValueProcessorType.POST)
-    registerYTValueFilter(YTRenderer.mapped.shelfRenderer, filterShelfRenderer, YTValueProcessorType.POST)
-    registerYTValueFilter(YTRenderer.mapped.shoppingOverlayRenderer, filterProductsData, YTValueProcessorType.POST)
+    registerYTValueFilter(YTRenderer.mapped.gridShelfViewModel, filterContents, YTValueCallbackType.POST)
+    registerYTValueFilter(YTRenderer.mapped.guideSectionRenderer, filterItems, YTValueCallbackType.POST)
+    registerYTValueFilter(YTRenderer.mapped.horizontalListRenderer, filterItems, YTValueCallbackType.POST)
+    registerYTValueFilter(YTRenderer.mapped.playlistSidebarRenderer, filterItems, YTValueCallbackType.POST)
+    registerYTValueFilter(YTRenderer.mapped.reelShelfRenderer, filterItems, YTValueCallbackType.POST)
+    registerYTValueFilter(YTRenderer.mapped.richItemRenderer, filterContent, YTValueCallbackType.POST)
+    registerYTValueFilter(YTRenderer.mapped.shelfRenderer, filterShelfRenderer, YTValueCallbackType.POST)
+    registerYTValueFilter(YTRenderer.mapped.shoppingOverlayRenderer, filterProductsData, YTValueCallbackType.POST)
 
     InterceptDOM.setAppendChildCallback(ctx => {
       const node = ctx.args[0]
