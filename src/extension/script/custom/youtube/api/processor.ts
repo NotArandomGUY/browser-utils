@@ -155,7 +155,10 @@ const processYTSchemaEntry = async (
   key: keyof typeof object
 ): Promise<void> => {
   const schema = body[key]
-  if (schema == null) throw new TypeError(`unhandled field '${key}'`)
+  if (schema == null) {
+    ctx.catch(`unhandled field '${key}'`)
+    return
+  }
 
   if (await processYTValue(ctx, schema, object[key], key)) return
 
