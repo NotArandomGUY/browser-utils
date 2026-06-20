@@ -129,7 +129,8 @@ export const autoplay = ytv_ren(() => ({
   countDownSecs: ytv_num(),
   modifiedSets: ytv_arr(components.autoplaySet),
   replayVideoRenderer: ytv_ren(),
-  sets: ytv_arr(components.autoplaySet)
+  sets: ytv_arr(components.autoplaySet),
+  title: components.text
 }))
 export const playlist = ytv_ren(() => ({
   contents: ytv_arr(ytv_ren()),
@@ -328,11 +329,23 @@ export const adSlotRenderer = ytv_ren(() => ({
 export const adsEngagementPanelContentRenderer = ytv_ren(() => ({
   hack: ytv_bol()
 }))
+export const alertWithActionsRenderer = ytv_ren(() => ({
+  actionButtons: ytv_arr(ytv_ren()),
+  alertType: ytv_sto({
+    type: ytv_str(['ALERT_TYPE_PROMPT'])
+  }),
+  icon: components.icon,
+  title: components.text
+}))
 export const audioOnlyPlayabilityRenderer = ytv_ren(() => ({
   audioOnlyAvailability: ytv_str(['FEATURE_AVAILABILITY_ALLOWED', 'FEATURE_AVAILABILITY_BLOCKED'])
 }))
+export const autonavEndpointRenderer = ytv_ren(() => ({
+  prefetchTime: components.prefetchTime
+}))
 export const autoplayEndpointRenderer = ytv_ren(() => ({
-  item: ytv_ren()
+  item: ytv_ren(),
+  prefetchTime: components.prefetchTime
 }))
 export const autoplaySwitchButtonRenderer = ytv_ren(() => ({
   disabledAccessibilityData: common.components.accessibility,
@@ -400,13 +413,14 @@ export const bubbleHintRenderer = ytv_ren(() => ({
 export const buttonRenderer = ytv_ren(() => ({
   accessibility: common.components.accessibilityData,
   accessibilityData: common.components.accessibility,
-  command: ytv_enp(),
   hint: ytv_ren(),
   icon: components.icon,
   iconPosition: ytv_str(['BUTTON_ICON_POSITION_TYPE_LEFT_OF_TEXT', 'BUTTON_ICON_POSITION_TYPE_RIGHT_OF_TEXT']),
   isDisabled: ytv_bol(),
   isSelected: ytv_bol(),
   navigationEndpoint: ytv_enp(),
+  onFocusCommand: ytv_enp(),
+  secondaryIcon: components.icon,
   serviceEndpoint: ytv_enp(),
   size: ytv_str(enums.SizeType),
   style: ytv_str(enums.ButtonStyle),
@@ -447,6 +461,11 @@ export const carouselItemRenderer = ytv_ren(() => ({
 export const channelFeaturedContentRenderer = ytv_ren(() => ({
   items: ytv_arr(ytv_ren()),
   title: components.text
+}))
+export const channelMembershipRenderer = ytv_ren(() => ({
+  avatar: components.thumbnail,
+  byline: components.text,
+  channelName: components.text
 }))
 export const channelMetadataRenderer = ytv_ren(() => ({
   androidAppindexingLink: ytv_str(),
@@ -566,7 +585,6 @@ export const cinematicContainerRenderer = ytv_ren(() => ({
   presentationStyle: ytv_str(['CINEMATIC_CONTAINER_PRESENTATION_STYLE_DYNAMIC_BLURRED', 'CINEMATIC_CONTAINER_PRESENTATION_STYLE_STATIC_SINGLE_COLOR'])
 }))
 export const clientSideToggleMenuItemRenderer = ytv_ren(() => ({
-  command: ytv_enp(),
   defaultIcon: components.icon,
   defaultText: components.text,
   isToggled: ytv_bol(),
@@ -770,8 +788,8 @@ export const desktopTopbarRenderer = ytv_ren(() => ({
   voiceSearchButton: ytv_ren()
 }))
 export const downloadButtonRenderer = ytv_ren(() => ({
-  command: ytv_enp(),
   hasLabel: ytv_bol(),
+  playerStateEntityKey: ytv_str(),
   size: ytv_str(enums.SizeType),
   style: ytv_str(enums.ButtonStyle),
   targetId: ytv_str()
@@ -813,7 +831,6 @@ export const emojiPickerRenderer = ytv_ren(() => ({
 }))
 export const emojiPickerUpsellCategoryRenderer = ytv_ren(() => ({
   categoryId: ytv_str(),
-  command: ytv_enp(),
   emojiIds: ytv_arr(ytv_str()),
   emojiTooltip: ytv_str(),
   title: components.text,
@@ -870,7 +887,9 @@ export const engagementPanelSectionListRenderer = ytv_ren(() => ({
   content: ytv_ren(),
   continuationService: ytv_str(['ENGAGEMENT_PANEL_CONTINUATION_SERVICE_BROWSE']),
   darkColorPalette: ytv_obj(ytv_str(), ytv_num()),
+  defaultFocusTarget: ytv_str(['ENGAGEMENT_PANEL_DEFAULT_FOCUS_TARGET_FOOTER']),
   disablePullRefresh: ytv_bol(),
+  footer: ytv_ren(),
   header: ytv_ren(),
   identifier: components.engagementPanelIdentifier,
   onCloseCommand: ytv_enp(),
@@ -893,10 +912,16 @@ export const engagementPanelTitleHeaderRenderer = ytv_ren(() => ({
   title: components.text,
   visibilityButton: ytv_ren()
 }))
+export const entityButtonDetailsRenderer = ytv_ren(() => ({
+  renderers: ytv_arr(ytv_ren()),
+  selectedIndex: ytv_num()
+}))
 export const entityMetadataRenderer = ytv_ren(() => ({
   bylines: ytv_arr(ytv_ren()),
   layout: ytv_str(['ENTITY_METADATA_LAYOUT_IMMERSIVE_CAROUSEL']),
-  title: components.text
+  messages: ytv_arr(ytv_ren()),
+  title: components.text,
+  titleArt: components.thumbnail
 }))
 export const expandableMetadataRenderer = ytv_ren(() => ({
   collapseButton: ytv_ren(),
@@ -934,16 +959,17 @@ export const expandableTabRenderer = ytv_ren(() => ({
 export const expandableVideoDescriptionBodyRenderer = ytv_ren(() => ({
   attributedDescriptionBodyText: textViewModel,
   backgroundColorStyle: ytv_str(enums.BackgroundColorStyle),
-  collapseLoggingData: ytv_ren(),
+  collapseLoggingData: ytv_ren({}),
   colorSampledDescriptionBodyText: textViewModel,
   darkThemeColorPalette: ytv_obj(ytv_str(), ytv_num()),
   descriptionBodyText: components.text,
   enableColorSampledDescriptionBodyText: ytv_bol(),
-  expandLoggingData: ytv_ren(),
+  expandLoggingData: ytv_ren({}),
   headerRuns: ytv_arr(ytv_unk()),
   label: components.text,
   lightThemeColorPalette: ytv_obj(ytv_str(), ytv_num()),
-  loggingData: ytv_ren(),
+  loggingData: ytv_ren({}),
+  onSelectCommand: ytv_enp(),
   showLessText: components.text,
   showMoreText: components.text
 }))
@@ -1226,7 +1252,8 @@ export const likeButtonRenderer = ytv_ren(() => ({
   target: ytv_sto({
     playlistId: ytv_str(),
     videoId: ytv_str()
-  })
+  }),
+  targetId: ytv_str()
 }))
 export const lineItemRenderer = ytv_ren(() => ({
   badge: ytv_ren(),
@@ -1563,8 +1590,15 @@ export const macroMarkersListRenderer = ytv_ren(() => ({
   syncModelEntityKey: ytv_str()
 }))
 export const markerRenderer = ytv_ren(() => ({
+  onActiveCommand: ytv_enp(),
+  thumbnail: components.thumbnail,
   timeRangeStartMillis: ytv_num(),
   title: components.text
+}))
+export const maybeHistoryEndpointRenderer = ytv_ren(() => ({
+  item: ytv_ren(),
+  useNextHistoryItem: ytv_bol(),
+  usePrevHistoryItem: ytv_bol()
 }))
 export const mealbarPromoRenderer = ytv_ren(() => ({
   actionButton: ytv_ren(),
@@ -1824,8 +1858,9 @@ export const offlineabilityRenderer = ytv_ren(() => ({
   racyCheckOk: ytv_bol()
 }))
 export const overlayMessageRenderer = ytv_ren(() => ({
+  image: components.thumbnail,
   label: components.text,
-  style: ytv_str(['OVERLAY_MESSAGE_STYLE_NUMBERED_SENTENCE']),
+  style: ytv_str(['OVERLAY_MESSAGE_STYLE_CENTERED', 'OVERLAY_MESSAGE_STYLE_NUMBERED_SENTENCE']),
   subtitle: components.text,
   title: components.text
 }))
@@ -1846,6 +1881,7 @@ export const overlayPanelRenderer = ytv_ren(() => ({
 }))
 export const overlaySectionRenderer = ytv_ren(() => ({
   dismissalCommand: ytv_enp(),
+  onOpenCommand: ytv_enp(),
   overlay: ytv_ren()
 }))
 export const overlayToastRenderer = ytv_ren(() => ({
@@ -1874,8 +1910,7 @@ export const paidContentOverlayRenderer = ytv_ren(() => ({
 export const pdgCommentChipRenderer = ytv_ren(() => ({
   chipColorPalette: ytv_obj(ytv_str(), ytv_num()),
   chipIcon: components.icon,
-  chipText: components.text,
-  command: ytv_enp()
+  chipText: components.text
 }))
 export const pivotVideoRenderer = ytv_ren(() => ({
   lengthText: components.text,
@@ -1956,9 +1991,7 @@ export const playerCaptionsTracklistRenderer = ytv_ren(() => ({
     languageName: components.text
   }))
 }))
-export const playerErrorCommandRenderer = ytv_ren(() => ({
-  command: ytv_enp()
-}))
+export const playerErrorCommandRenderer = ytv_ren(() => ({}))
 export const playerErrorMessageRenderer = ytv_ren(() => ({
   icon: components.icon,
   proceedButton: ytv_ren(),
@@ -2017,6 +2050,7 @@ export const playerOverlayAutoplayRenderer = ytv_ren(() => ({
   background: components.thumbnail,
   byline: components.text,
   cancelButton: ytv_ren(),
+  cancelText: components.text,
   closeButton: ytv_ren(),
   countDownSecs: ytv_num(),
   countDownSecsForFullscreen: ytv_num(),
@@ -2062,6 +2096,7 @@ export const playerOverlayRenderer = ytv_ren(() => ({
   showShareButtonFullscreen: ytv_bol(),
   showShareButtonSmallscreen: ytv_bol(),
   speedmasterUserEdu: ytv_ren(),
+  timelyActionRenderers: ytv_arr(ytv_ren()),
   timelyActionsOverlayViewModel: ytv_ren(),
   videoDetails: ytv_ren()
 }))
@@ -2246,9 +2281,20 @@ export const promotedVideoRenderer = ytv_ren(() => ({
   videoId: ytv_str(),
   watchButtonRenderer: ytv_ren()
 }))
+export const purchaseMetadataRenderer = ytv_ren(() => ({
+  buttons: ytv_arr(ytv_ren()),
+  logo: components.thumbnail,
+  metadata: ytv_ren(),
+  title: components.text
+}))
 export const qrCodeRenderer = ytv_ren(() => ({
+  deleteEntityOnDismiss: ytv_bol(),
   qrCodeImage: components.thumbnail,
-  style: ytv_str(['QR_CODE_RENDERER_STYLE_MAIN_SIDESHEET_CONTENT'])
+  qrEntityKey: ytv_str(),
+  spinner: ytv_sto({
+    delayMs: ytv_num()
+  }),
+  style: ytv_str(['QR_CODE_RENDERER_STYLE_MAIN_SIDESHEET_CONTENT', 'QR_CODE_RENDERER_STYLE_TWO_COLUMN'])
 }))
 export const quizRenderer = ytv_ren(() => ({
   accessibilityData: common.components.accessibility,
@@ -2488,11 +2534,16 @@ export const shelfRenderer = ytv_ren(() => ({
   subtitle: components.text,
   thumbnail: components.thumbnail,
   title: components.text,
+  tvhtml5Metadata: ytv_sto({
+    retainShelfIndex: ytv_bol()
+  }),
   tvhtml5ShelfRendererType: ytv_str(['TVHTML5_SHELF_RENDERER_TYPE_GRID']),
   tvhtml5Style: ytv_sto({
     effects: ytv_sto({
       enlarge: ytv_bol()
-    })
+    }),
+    sizeStrategy: ytv_str(['TV_SHELF_SIZE_STRATEGY_FIXED']),
+    style: ytv_str(['TV_SHELF_STYLE_DEFAULT'])
   })
 }))
 export const shoppingOverlayRenderer = ytv_ren(() => ({
@@ -2630,7 +2681,6 @@ export const subscribeButtonRenderer = ytv_ren(() => ({
   unsubscribedButtonText: components.text
 }))
 export const subscriptionNotificationToggleButtonRenderer = ytv_ren(() => ({
-  command: ytv_enp(),
   currentStateId: ytv_num(),
   notificationStateEntityKey: ytv_str(),
   notificationsLabel: components.text,
@@ -2680,7 +2730,8 @@ export const thumbnailOverlayNowPlayingRenderer = ytv_ren(() => ({
   text: components.text
 }))
 export const thumbnailOverlayResumePlaybackRenderer = ytv_ren(() => ({
-  percentDurationWatched: ytv_num()
+  percentDurationWatched: ytv_num(),
+  videoPlaybackPositionToggleEntityKey: ytv_str()
 }))
 export const thumbnailOverlaySidePanelRenderer = ytv_ren(() => ({
   icon: components.icon,
@@ -2727,6 +2778,12 @@ export const tileRenderer = ytv_ren(() => ({
 }))
 export const timedAnimationButtonRenderer = ytv_ren(() => ({
   buttonRenderer: ytv_ren()
+}))
+export const timelyActionRenderer = ytv_ren(() => ({
+  actionButtons: ytv_arr(ytv_ren()),
+  timeoutMs: ytv_num(),
+  triggerTimeMs: ytv_num(),
+  type: ytv_str(['TIMELY_ACTION_TYPE_SHOPPING'])
 }))
 export const titleAndButtonListHeaderRenderer = ytv_ren(() => ({
   title: components.text
@@ -2836,6 +2893,11 @@ export const twoColumnBrowseResultsRenderer = ytv_ren(() => ({
   secondaryContents: ytv_ren(),
   tabs: ytv_arr(ytv_ren())
 }))
+export const twoColumnRenderer = ytv_ren(() => ({
+  leftColumn: ytv_ren(),
+  rightColumn: ytv_ren(),
+  style: ytv_str(['TWO_COLUMN_RENDERER_STYLE_TVOD_HANDOFF'])
+}))
 export const twoColumnSearchResultsRenderer = ytv_ren(() => ({
   primaryContents: ytv_ren(),
   secondaryContents: ytv_ren()
@@ -2862,6 +2924,11 @@ export const uploadTimeFactoidRenderer = ytv_ren(() => ({
   uploadTimeEntity: ytv_sto({
     key: ytv_str()
   })
+}))
+export const urlSignInRenderer = ytv_ren(() => ({
+  identityActionContext: components.identityActionContext,
+  qrCode: ytv_ren(),
+  signInStyle: ytv_str(['SIGN_IN_STYLE_TWO_COLUMN'])
 }))
 export const verticalListRenderer = ytv_ren(() => ({
   collapsedItemCount: ytv_num(),
@@ -2909,6 +2976,16 @@ export const videoDescriptionTranscriptSectionRenderer = ytv_ren(() => ({
   primaryButton: ytv_ren(),
   sectionTitle: components.text,
   subHeaderText: components.text
+}))
+export const videoMetadataRenderer = ytv_ren(() => ({
+  dateText: components.text,
+  isLimitedState: ytv_bol(),
+  mayTruncateChannelName: ytv_bol(),
+  owner: ytv_ren(),
+  publishedTimeText: components.text,
+  title: components.text,
+  videoId: ytv_str(),
+  viewCount: ytv_ren()
 }))
 export const videoOwnerRenderer = ytv_ren(() => ({
   attributedTitle: textViewModel,
@@ -3388,21 +3465,34 @@ export const lockupMetadataViewModel = ytv_rvm(() => ({
   image: ytv_ren(),
   menuButton: ytv_ren(),
   metadata: ytv_ren(),
+  metadataStyling: ytv_sto({
+    secondaryFontSize: ytv_str(['LOCKUP_METADATA_FONT_SIZE_SMALL'])
+  }),
   title: textViewModel
 }))
 export const lockupViewModel = ytv_rvm(() => ({
   attachmentSlot: ytv_ren(),
   contentId: ytv_str(),
   contentImage: ytv_ren(),
-  contentType: ytv_str(['LOCKUP_CONTENT_TYPE_ALBUM', 'LOCKUP_CONTENT_TYPE_PLAYLIST', 'LOCKUP_CONTENT_TYPE_SHORT', 'LOCKUP_CONTENT_TYPE_STATION', 'LOCKUP_CONTENT_TYPE_VIDEO']),
+  contentType: ytv_str(['LOCKUP_CONTENT_TYPE_ALBUM', 'LOCKUP_CONTENT_TYPE_MUSIC', 'LOCKUP_CONTENT_TYPE_PLAYLIST', 'LOCKUP_CONTENT_TYPE_SHORT', 'LOCKUP_CONTENT_TYPE_STATION', 'LOCKUP_CONTENT_TYPE_VIDEO']),
   itemPlayback: ytv_sto({
     inlinePlayerData: components.inlinePlayerData
   }),
   metadata: ytv_ren(),
+  styling: ytv_sto({
+    contentImageAspectRatio: ytv_str(['LOCKUP_CONTENT_IMAGE_ASPECT_RATIO_WIDESCREEN']),
+    layout: ytv_str(['LOCKUP_LAYOUT_VERTICAL'])
+  }),
   themedPalette: ytv_sto({
     darkThemePalette: ytv_obj(ytv_str(), ytv_num()),
     lightThemePalette: ytv_obj(ytv_str(), ytv_num())
   })
+}))
+export const macroMarkersListViewModel = ytv_rvm(() => ({
+  context: ytv_str(['MACRO_MARKERS_LIST_VIEW_MODEL_CONTEXT_DETAIL_VIEW']),
+  macroMarkerListEntityKey: ytv_str(),
+  markersEngagementPanelSyncEntityKey: ytv_str(),
+  title: textViewModel
 }))
 export const officialCardViewModel = ytv_rvm(() => ({
   backgroundColor: components.themedColor,
@@ -3506,6 +3596,11 @@ export const reelSoundMetadataViewModel = ytv_rvm(() => ({
   soundMetadata: textViewModel,
   useDefaultPadding: ytv_bol()
 }))
+export const richTextListViewModel = ytv_rvm(() => ({
+  segments: ytv_arr(ytv_sto({
+    sectionString: textViewModel
+  }))
+}))
 export const sectionHeaderViewModel = ytv_rvm(() => ({
   headline: textViewModel,
   leadingAccessory: ytv_sto({
@@ -3562,6 +3657,10 @@ export const skipAdViewModel = ytv_rvm(() => ({
 }))
 export const speedmasterEduViewModel = ytv_rvm(() => ({
   bodyText: textViewModel
+}))
+export const sponsorshipsButtonViewModel = ytv_rvm(() => ({
+  sponsorshipsButton: ytv_ren(),
+  subscriptionStateEntityKey: ytv_str()
 }))
 export const subscribeButtonViewModel = ytv_rvm(() => ({
   backgroundStyle: ytv_str(['SUBSCRIBE_BUTTON_VIEW_MODEL_BACKGROUND_STYLE_UNKNOWN']),
@@ -3641,7 +3740,13 @@ export const thumbnailOverlayProgressBarViewModel = ytv_rvm(() => ({
 export const thumbnailViewModel = ytv_rvm(() => ({
   backgroundColor: components.themedColor,
   image: components.image,
-  overlays: ytv_arr(ytv_ren())
+  overlays: ytv_arr(ytv_ren()),
+  styling: ytv_sto({
+    effects: ytv_sto({
+      focusAppearance: ytv_str(['FOCUS_APPEARANCE_RING']),
+      hoverAppearance: ytv_str(['HOVER_APPEARANCE_RING'])
+    })
+  })
 }))
 export const timelyActionsOverlayViewModel = ytv_rvm(() => ({
   timelyActions: ytv_arr(ytv_ren())

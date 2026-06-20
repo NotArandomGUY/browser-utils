@@ -8,6 +8,7 @@ import * as renderer from '../renderer'
 // Components
 export const continuationContents = ytv_ren(() => ({
   horizontalListContinuation: renderer.mapped.horizontalListRenderer,
+  itemSectionContinuation: renderer.mapped.itemSectionRenderer,
   liveChatContinuation: renderer.mapped.liveChatRenderer,
   sectionListContinuation: renderer.mapped.sectionListRenderer,
   tvSurfaceContentContinuation: renderer.mapped.tvBrowseRenderer
@@ -52,7 +53,6 @@ export const responseContext = ytv_ren({
 export const SchemaBase = {
   ...renderer.components.SchemaBase,
   actions: ytv_arr(ytv_enp()),
-  command: ytv_enp(),
   frameworkUpdates: endpoint.mapped.entityUpdateCommand,
   onResponseReceivedAction: ytv_enp(),
   onResponseReceivedCommand: ytv_enp(),

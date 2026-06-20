@@ -167,10 +167,9 @@ export const authDeterminedCommand = ytv_enp(() => ({
   unauthenticatedCommand: ytv_enp()
 }))
 export const authRequiredCommand = ytv_enp(() => ({
-  identityActionContext: ytv_sto({
-    eventTrigger: ytv_str(['ACCOUNT_EVENT_TRIGGER_LIKE_DISLIKE', 'ACCOUNT_EVENT_TRIGGER_SAVE_VIDEO', 'ACCOUNT_EVENT_TRIGGER_SUBSCRIBE']),
-    nextEndpoint: ytv_enp()
-  })
+  hideInterstitial: ytv_bol(),
+  identityActionContext: renderer.components.identityActionContext,
+  startSignInCommand: ytv_enp()
 }))
 export const changeCreatorEndscreenVisibilityCommand = ytv_enp(() => ({
   hide: ytv_bol()
@@ -273,6 +272,10 @@ export const logGestureCommand = ytv_ren(() => ({
 export const logLyricEventCommand = ytv_enp(() => ({
   serializedLyricInfo: ytv_str()
 }))
+export const logYpcFlowStartCommand = ytv_enp(() => ({
+  flowAttribute: ytv_str(['FLOW_ATTRIBUTE_INITIATE_SIGNED_OUT_SECOND_SCREEN']),
+  serializedTransactionFlowLoggingParams: ytv_str()
+}))
 export const loopCommand = ytv_enp(() => ({
   loop: ytv_bol()
 }))
@@ -285,6 +288,39 @@ export const parallelCommand = ytv_enp(() => ({ // Same as commandExecutorComman
 export const performOnceCommand = ytv_enp(() => ({
   identifier: ytv_str(),
   command: ytv_enp()
+}))
+export const prefetchWatchCommand = ytv_enp(() => ({
+  index: ytv_num(),
+  playerParams: ytv_str(),
+  prebufferConfig: ytv_sto({
+    millisecondsToFetch: ytv_num()
+  }),
+  prefetchPlaybackContext: ytv_sto({
+    isAutonav: ytv_bol(),
+    isAutoplay: ytv_bol()
+  }),
+  taskId: ytv_str(),
+  ustreamerConfig: ytv_str(),
+  videoId: ytv_str(),
+  watchEndpointSupportedOnesieConfig: components.watchEndpointSupportedOnesieConfig
+}))
+export const registerTasksCommand = ytv_enp(() => ({
+  tasks: ytv_arr(ytv_ren({
+    cancelOn: ytv_sto({
+      screenExit: ytv_sto({
+        screen: ytv_str(['SCREEN_WATCH_PAGE'])
+      })
+    }),
+    id: ytv_str(),
+    prefetchConfig: ytv_sto({
+      fetchAction: ytv_str(['LATENCY_ACTION_WATCH']),
+      prefetchAction: ytv_str(['LATENCY_ACTION_PREBUFFER_VIDEO']),
+      priority: ytv_str(['PREFETCH_PRIORITY_HIGH'])
+    }),
+    triggerOn: ytv_sto({
+      taskRegistered: ytv_sto({})
+    })
+  }))
 }))
 export const relatedChipCommand = ytv_enp(() => ({
   contents: ytv_arr(ytv_ren()),
@@ -381,6 +417,10 @@ export const showTransientPlayerScrimOverlayCommand = ytv_enp(() => ({
   overlayRenderer: ytv_ren()
 }))
 export const startAccountSelectorCommand = ytv_enp(() => ({}))
+export const startSignInCommand = ytv_enp(() => ({
+  identityActionContext: renderer.components.identityActionContext,
+  signInType: ytv_str(['SIGN_IN_METHOD_TYPE_DIRECT'])
+}))
 export const toggleLiveReactionsMuteCommand = ytv_enp(() => ({
   hack: ytv_bol()
 }))
@@ -406,6 +446,9 @@ export const updateEngagementPanelContentCommand = ytv_enp(() => ({
     params: ytv_str()
   }),
   targetPanelIdentifier: renderer.components.engagementPanelIdentifier
+}))
+export const updateEntityButtonDetailsCommand = ytv_enp(() => ({
+  selectedIndex: ytv_num()
 }))
 export const updateTimedMarkersSyncObserverCommand = ytv_enp(() => ({
   isEnabled: ytv_bol(),
@@ -481,6 +524,18 @@ export const getReportFormEndpoint = ytv_enp(() => ({
 }))
 export const getTranscriptEndpoint = ytv_enp(() => ({
   params: ytv_str()
+}))
+export const handoffEndpoint = ytv_enp(() => ({
+  handoffParams: ytv_sto({
+    actionType: ytv_str(['HANDOFF_FEATURE_TYPE_YTC_LR_PURCHASE']),
+    callType: ytv_str(['HANDOFF_CALL_TYPE_INITIATE_ACTION']),
+    featureData: ytv_sto({
+      ytcPurchaseData: ytv_sto({
+        urlPath: ytv_str(),
+        ytDeeplinkPurchaseParams: ytv_str()
+      })
+    })
+  })
 }))
 export const hideEngagementPanelEndpoint = ytv_enp(() => ({
   identifier: renderer.components.engagementPanelIdentifier,
@@ -582,7 +637,10 @@ export const reelWatchEndpoint = ytv_enp(() => ({
   }),
   updateKey: ytv_str(),
   ustreamerConfig: ytv_str(),
-  videoId: ytv_str()
+  videoId: ytv_str(),
+  videoType: ytv_str(['REEL_VIDEO_TYPE_VIDEO']),
+  watchEndpointSource: ytv_str(['REEL_WATCH_ENDPOINT_SOURCE_SEARCH', 'REEL_WATCH_ENDPOINT_SOURCE_SHORTS_PIVOT_BAR_RESUME_TO_SHORTS']),
+  watchEndpointSupportedOnesieConfig: components.watchEndpointSupportedOnesieConfig
 }))
 export const removeUpcomingEventReminderEndpoint = ytv_enp(() => ({
   params: ytv_str()
@@ -719,6 +777,7 @@ export const watchEndpoint = ytv_enp(() => ({
   playerParams: ytv_str(),
   playlistId: ytv_str(),
   playlistSetVideoId: ytv_str(),
+  prefetchTaskId: ytv_str(),
   replayIfSameVideo: ytv_bol(),
   startTimeSeconds: ytv_num(),
   ustreamerConfig: ytv_str(),
@@ -731,14 +790,7 @@ export const watchEndpoint = ytv_enp(() => ({
       musicVideoType: ytv_str(common.enums.MusicVideoType)
     })
   }),
-  watchEndpointSupportedOnesieConfig: ytv_sto({
-    html5PlaybackOnesieConfig: ytv_sto({
-      commonConfig: ytv_sto({
-        url: ytv_str(),
-        ustreamerConfig: ytv_str()
-      })
-    })
-  }),
+  watchEndpointSupportedOnesieConfig: components.watchEndpointSupportedOnesieConfig,
   watchEndpointSupportedPrefetchConfig: ytv_sto({
     prefetchHintConfig: ytv_sto({
       countdownUiRelativeSecondsPrefetchCondition: ytv_num(),

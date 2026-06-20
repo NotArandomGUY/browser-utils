@@ -31,7 +31,12 @@ export const commentPerformCommentAction = ytv_rsp(() => ({
 }))
 export const guide = ytv_rsp(() => ({
   footer: ytv_ren(),
-  items: ytv_arr(ytv_ren())
+  items: ytv_arr(ytv_ren()),
+  startupBehaviours: ytv_arr(ytv_sto({
+    launchToShorts: ytv_sto({
+      resumeToShorts: ytv_enp()
+    })
+  }))
 }))
 export const liveChatGetLiveChatReplay = ytv_rsp(() => ({
   contents: ytv_ren(),
@@ -48,7 +53,9 @@ export const next = ytv_rsp(() => ({
   adEngagementPanels: ytv_arr(ytv_ren()),
   cards: ytv_ren(),
   contents: ytv_ren(),
+  continuationContents: components.continuationContents,
   currentVideoEndpoint: ytv_enp(),
+  currentVideoThumbnail: renderer.components.thumbnail,
   engagementPanels: ytv_arr(ytv_ren()),
   mdxExpandedVideoList: ytv_sto({
     videoIds: ytv_arr(ytv_str())

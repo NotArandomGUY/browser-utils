@@ -134,13 +134,18 @@ export const liveViewerLeaderboardPointsEntity = ytv_sto(() => ({
 export const macroMarkersListEntity = ytv_sto(() => ({
   externalVideoId: ytv_str(),
   key: ytv_str(),
-  markersList: ytv_sto({
-    markerType: ytv_str(['MARKER_TYPE_HEATMAP', 'MARKER_TYPE_TIMESTAMPS']),
+  markersList: ytv_ren({
+    headerTitle: renderer.components.text,
+    markerType: ytv_str(['MARKER_TYPE_CHAPTERS', 'MARKER_TYPE_HEATMAP', 'MARKER_TYPE_TIMESTAMPS']),
     markers: ytv_arr(ytv_sto({
       durationMillis: ytv_str(),
       intensityScoreNormalized: ytv_num(),
+      onActive: ytv_enp(),
+      onTap: ytv_enp(),
       sourceType: ytv_str(['SOURCE_TYPE_SMART_SKIP']),
-      startMillis: ytv_str()
+      startMillis: ytv_str(),
+      thumbnailDetails: renderer.components.thumbnail,
+      title: renderer.components.text
     })),
     markersDecoration: ytv_sto({
       timedMarkerDecorations: ytv_arr(ytv_sto({
@@ -151,6 +156,12 @@ export const macroMarkersListEntity = ytv_sto(() => ({
         visibleTimeRangeEndMillis: ytv_num(),
         visibleTimeRangeStartMillis: ytv_num()
       }))
+    }),
+    markersEdu: ytv_sto({
+      enterNudgeA11yText: ytv_str(),
+      enterNudgeText: renderer.components.text,
+      navNudgeA11yText: ytv_str(),
+      navNudgeText: renderer.components.text
     }),
     markersMetadata: ytv_sto({
       heatmapMetadata: ytv_sto({
@@ -170,8 +181,15 @@ export const macroMarkersListEntity = ytv_sto(() => ({
           targetMediaTimeMs: ytv_num()
         }))
       })
-    })
+    }),
+    onTap: ytv_enp()
   })
+}))
+export const markersEngagementPanelSyncEntity = ytv_sto(() => ({
+  activeItemIndex: ytv_num(),
+  key: ytv_str(),
+  panelId: ytv_str(),
+  syncEnabled: ytv_bol()
 }))
 export const playlistLoopStateEntity = ytv_sto(() => ({
   key: ytv_str(),
@@ -197,8 +215,12 @@ export const videoActionButtonEnablementEntity = ytv_sto(() => ({
 }))
 export const viewCountEntity = ytv_sto(() => ({
   extraShortViewCount: renderer.components.text,
+  extraShortViewCountLength: ytv_num(),
   key: ytv_str(),
+  shortViewCount: renderer.components.text,
+  shortViewCountLength: ytv_num(),
   unlabeledViewCountValue: renderer.components.text,
+  videoType: ytv_str(['VIEW_COUNT_VIDEO_TYPE_VOD']),
   viewCount: renderer.components.text,
   viewCountLabel: renderer.components.text,
   viewCountLength: ytv_num(),
@@ -338,6 +360,7 @@ export const entityMutationPayload = ytv_sto(() => ({
   liveViewerLeaderboardChatEntryPointStateEntity,
   liveViewerLeaderboardPointsEntity,
   macroMarkersListEntity,
+  markersEngagementPanelSyncEntity,
   offlineVideoPolicy: ytv_sto({
     action: ytv_str(['OFFLINE_VIDEO_POLICY_ACTION_DISABLE', 'OFFLINE_VIDEO_POLICY_ACTION_DOWNLOAD_FAILED', 'OFFLINE_VIDEO_POLICY_ACTION_OK']),
     expirationTimestamp: ytv_str(),
@@ -359,6 +382,7 @@ export const entityMutationPayload = ytv_sto(() => ({
     videoDownloadContextEntity: ytv_str()
   }),
   playlistLoopStateEntity,
+  qrCodeEntity: renderer.mapped.qrCodeRenderer,
   replyCountEntity,
   subscriptionNotificationStateEntity,
   subscriptionStateEntity,
@@ -389,6 +413,14 @@ export const watchEndpointLoggingContext = ytv_sto({
   }),
   vssLoggingContext: ytv_sto({
     serializedContextData: ytv_str()
+  })
+})
+export const watchEndpointSupportedOnesieConfig = ytv_sto({
+  html5PlaybackOnesieConfig: ytv_sto({
+    commonConfig: ytv_sto({
+      url: ytv_str(),
+      ustreamerConfig: ytv_str()
+    })
   })
 })
 

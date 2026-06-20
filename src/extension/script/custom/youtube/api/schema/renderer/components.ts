@@ -123,6 +123,12 @@ export const engagementPanelIdentifier = ytv_sto({
 export const icon = ytv_ren({
   iconType: ytv_str(enums.IconType)
 })
+export const identityActionContext = ytv_ren({
+  eventTrigger: ytv_str(['ACCOUNT_EVENT_TRIGGER_LIKE_DISLIKE', 'ACCOUNT_EVENT_TRIGGER_PAYMENT', 'ACCOUNT_EVENT_TRIGGER_SAVE_VIDEO', 'ACCOUNT_EVENT_TRIGGER_SUBSCRIBE', 'ACCOUNT_EVENT_TRIGGER_SUPER_THANKS', 'ACCOUNT_EVENT_TRIGGER_WATCH_PROMO']),
+  nextEndpoint: ytv_enp(),
+  rapidQrFeature: ytv_str(['RAPID_QR_FEATURE_PURCHASE']),
+  secondScreenRedirectUrl: ytv_str()
+})
 export const inlinePlayerData = ytv_ren({
   forceImpAutoplay: ytv_bol(),
   onSelect: ytv_enp(),
@@ -176,6 +182,7 @@ export const mediaFormat = ytv_sto({
   indexRange: mediaFormatRange,
   initRange: mediaFormatRange,
   isDrc: ytv_bol(),
+  isSelectable: ytv_bol(),
   isVb: ytv_bol(),
   itag: ytv_num(),
   lastModified: ytv_str(),
@@ -417,10 +424,18 @@ export const playerVideoDetails = ytv_ren({
   videoId: ytv_str(),
   viewCount: ytv_str()
 })
+export const prefetchTime = ytv_ren({
+  onEnter: ytv_arr(ytv_enp()),
+  playbackRelativePosition: ytv_sto({
+    streamTimeMs: ytv_str()
+  }),
+  removeOnTriggered: ytv_bol()
+})
 export const rendererContext = ytv_ren({
   accessibilityContext: common.components.accessibilityData,
   commandContext: ytv_ren({
     onHidden: ytv_enp(),
+    onLongPress: ytv_enp(),
     onTap: ytv_enp(),
     onVisible: ytv_enp()
   }),
@@ -491,11 +506,14 @@ export const transportControlsAction = ytv_ren({
     'TRANSPORT_CONTROLS_BUTTON_TYPE_PLAYBACK_SETTINGS',
     'TRANSPORT_CONTROLS_BUTTON_TYPE_QUALITY',
     'TRANSPORT_CONTROLS_BUTTON_TYPE_REPORT_VIDEO',
+    'TRANSPORT_CONTROLS_BUTTON_TYPE_SHOPPING',
     'TRANSPORT_CONTROLS_BUTTON_TYPE_SKIP_NEXT',
     'TRANSPORT_CONTROLS_BUTTON_TYPE_SKIP_PREVIOUS',
     'TRANSPORT_CONTROLS_BUTTON_TYPE_SPEED_BUTTON',
+    'TRANSPORT_CONTROLS_BUTTON_TYPE_SPONSORSHIPS',
     'TRANSPORT_CONTROLS_BUTTON_TYPE_STATS_FOR_NERDS',
     'TRANSPORT_CONTROLS_BUTTON_TYPE_SUBSCRIBE',
+    'TRANSPORT_CONTROLS_BUTTON_TYPE_SUPER_THANKS',
     'TRANSPORT_CONTROLS_BUTTON_TYPE_SURROUND_SOUND'
   ])
 })
