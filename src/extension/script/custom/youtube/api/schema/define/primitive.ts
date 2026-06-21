@@ -18,9 +18,9 @@ export function ytv_bol(): { type: YTValueType.BOOLEAN } {
 export function ytv_num(): { type: YTValueType.NUMBER } {
   return YT_VALUE_NUMBER
 }
-export function ytv_str<const E extends string[] | Record<string, unknown>>(): { type: YTValueType.STRING }
-export function ytv_str<const E extends string[] | Record<string, unknown>>(e: E): { type: YTValueType.STRING, enum: Set<E extends string[] ? E[number] : keyof E> }
-export function ytv_str<const E extends string[] | Record<string, unknown>>(e?: E): { type: YTValueType.STRING, enum?: Set<E extends string[] ? E[number] : keyof E> } {
+export function ytv_str<const E extends readonly string[] | Record<string, unknown>>(): { type: YTValueType.STRING }
+export function ytv_str<const E extends readonly string[] | Record<string, unknown>>(e: E): { type: YTValueType.STRING, enum: Set<E extends readonly string[] ? E[number] : keyof E> }
+export function ytv_str<const E extends readonly string[] | Record<string, unknown>>(e?: E): { type: YTValueType.STRING, enum?: Set<E extends readonly string[] ? E[number] : keyof E> } {
   return e == null ? YT_VALUE_STRING : { type: YTValueType.STRING, enum: new Set(Array.isArray(e) ? e : keys(e)) }
 }
 export function ytv_obj<const K extends YTValueSchema, const V extends YTValueSchema>(k: K, v: V): { type: YTValueType.OBJECT, key: K, value: V } {
