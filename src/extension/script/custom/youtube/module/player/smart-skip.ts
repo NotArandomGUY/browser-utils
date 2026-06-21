@@ -416,6 +416,10 @@ const updateTimelyActionsOverlayViewModel = async (data: YTValueData<YTRenderer.
   if (state != null) state.val = entries
 }
 
+const processGetWatchResponse = async ({ playerResponse }: YTValueData<YTResponse.Mapped<'getWatch'>>): Promise<void> => {
+  if (playerResponse != null) await processPlayerResponse(playerResponse)
+}
+
 const processPlayerResponse = async (data: YTValueData<YTResponse.Mapped<'player'>>): Promise<void> => {
   const { videoDetails } = data
 
@@ -521,6 +525,7 @@ export default class YTPlayerSmartSkipModule extends Feature {
       ]),
       registerYTValueProcessor(YTRenderer.mapped.playerOverlayRenderer, updatePlayerOverlayRenderer),
       registerYTValueProcessor(YTRenderer.mapped.timelyActionsOverlayViewModel, updateTimelyActionsOverlayViewModel),
+      registerYTValueProcessor(YTResponse.mapped.getWatch, processGetWatchResponse),
       registerYTValueProcessor(YTResponse.mapped.next, updateNextResponse),
       registerYTValueProcessor(YTResponse.mapped.player, processPlayerResponse)
     )
