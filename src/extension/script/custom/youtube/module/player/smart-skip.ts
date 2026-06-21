@@ -134,6 +134,27 @@ const buildChangeTimelyActionVisibilityCommand = (id: number, isVisible: boolean
   })
 }
 
+const buildPlayerScrimOverlayCommand = (icon: YTRenderer.enums.IconType, text: string): YTValueData<{ type: YTValueType.ENDPOINT }> => {
+  return buildInnertubeCommand(location.pathname === '/tv' ? {
+    openPopupAction: {
+      popup: { overlayToastRenderer: { title: { simpleText: text } } },
+      popupType: 'TOAST'
+    }
+  } : {
+    showTransientPlayerScrimOverlayCommand: {
+      durationMs: 650,
+      fadeInDurationMs: 175,
+      fadeOutDurationMs: 175,
+      overlayRenderer: {
+        smartSkipPlayerScrimOverlayRenderer: {
+          icon: { iconType: icon },
+          text: { simpleText: text }
+        }
+      }
+    }
+  })
+}
+
 const buildMarkerMutationFromSegmentEntry = (entry: SkipSegmentEntry, startTimeMs?: number, endTimeMs?: number): YTValueData<YTEndpoint.Component<'entityMutation'>> => {
   startTimeMs ??= entry.startTimeMs
   endTimeMs ??= entry.endTimeMs
@@ -209,15 +230,7 @@ const buildAutoTimelyActionFromSegmentEntry = (entry: SkipSegmentEntry): YTValue
         serialCommand: {
           commands: [
             buildInnertubeCommand({ seekToVideoTimestampCommand: { videoId, offsetFromVideoStartMilliseconds: endTimeMs.toString() } }),
-            buildInnertubeCommand({
-              openPopupAction: {
-                popup: {
-                  notificationActionRenderer: { responseText: { simpleText: title } },
-                  overlayToastRenderer: { title: { simpleText: title } }
-                },
-                popupType: 'TOAST'
-              }
-            })
+            buildPlayerScrimOverlayCommand(YTRenderer.enums.IconType.SKIP_NEXT, title)
           ]
         }
       }
@@ -263,6 +276,7 @@ const buildManualTimelyActionFromSegmentEntry = (entry: SkipSegmentEntry): YTVal
               commands: [
                 buildChangeMarkersVisibilityCommand(entityKey, false),
                 buildInnertubeCommand({ seekToVideoTimestampCommand: { videoId, offsetFromVideoStartMilliseconds: endTimeMs.toString() } }),
+                buildPlayerScrimOverlayCommand(YTRenderer.enums.IconType.SKIP_NEXT, title),
                 buildChangeTimelyActionVisibilityCommand(segmentId, false)
               ]
             }
