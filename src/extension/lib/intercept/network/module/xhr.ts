@@ -264,7 +264,7 @@ class InterceptXMLHttpRequest extends XMLHttpRequest {
   public open(method: string, url: string | URL, async = true, username?: string | null, password?: string | null): void {
     if (typeof url === 'string') url = parseUrl(url)
 
-    logger.trace(`open ${method} request '${url.toString()}'`)
+    logger.trace(`(${url.toString()}) open ${method} request`)
 
     this[kiRequestHeaders].clear()
     assign(this, {
@@ -311,7 +311,7 @@ class InterceptXMLHttpRequest extends XMLHttpRequest {
   }
 
   public abort(): void {
-    logger.trace(`abort request '${this[kiRequestURL].toString()}'`)
+    logger.trace(`(${this[kiRequestURL].toString()}) abort request`)
 
     super.abort()
 
@@ -353,7 +353,7 @@ class InterceptXMLHttpRequest extends XMLHttpRequest {
 
     if (targetReadyState < currentReadyState) return
 
-    logger.trace(`change request '${url.toString()}' ready state ${currentReadyState} -> ${targetReadyState}`)
+    logger.trace(`(${url.toString()}) change ready state ${currentReadyState} -> ${targetReadyState}`)
 
     if (targetReadyState === currentReadyState) {
       // Only allow multiple ready state change on LOADING
@@ -381,13 +381,15 @@ class InterceptXMLHttpRequest extends XMLHttpRequest {
   }
 
   private async [kmCompleteRequest](): Promise<void> {
-    const { [kiContext]: ctx } = this
+    const { [kiContext]: ctx, [kiRequestMethod]: method, [kiRequestURL]: url } = this
 
     // Sync ready state
     if (ctx == null) {
       this[kmChangeReadyState](super.readyState)
       return
     }
+
+    logger.trace(`(${url.toString()}) complete ${method} request`)
 
     if (super.readyState < 4) {
       // Change ready state to LOADING
@@ -419,13 +421,18 @@ class InterceptXMLHttpRequest extends XMLHttpRequest {
 
   private [kmHandleXHRReadyStateChange](): void {
     const readyState = super.readyState
+
+    logger.trace(`(${this[kiRequestURL].toString()}) internal ready state ${readyState}`)
+
     if (readyState < 4) this[kmChangeReadyState](readyState)
   }
 
   private async [kmHandleXHRSend](): Promise<boolean> {
-    if (onRequestCallback == null) return false
-
     const { [kiRequestId]: requestId, [kiRequestMethod]: method, [kiRequestURL]: url, [kiRequestHeaders]: headers, [kiRequestBody]: body } = this
+
+    logger.trace(`(${url.toString()}) send ${method} request`)
+
+    if (onRequestCallback == null) return false
 
     const init: RequestInit = { method, headers: Array.from(headers.entries()) }
     switch (method.toUpperCase()) {
@@ -467,6 +474,8 @@ class InterceptXMLHttpRequest extends XMLHttpRequest {
     // Complete sync request
     if (this[kiRequestSync]) return this[kmCompleteRequest]()
 
+    logger.trace(`(${this[kiRequestURL].toString()}) triggered load event`)
+
     const ctx = this[kiContext]
     if (ctx == null || ctx.passthrough || onResponseCallback == null) return
 
@@ -474,17 +483,21 @@ class InterceptXMLHttpRequest extends XMLHttpRequest {
     if (ctx.state === NetworkState.UNSENT) {
       const getResponsePart = (pos: number) => responseBlob(super.status, super.responseType, super.response)?.slice(pos)
       const getReadyState = () => super.readyState
+
+      let part = getResponsePart(0)
       assign<NetworkContext, NetworkContextState>(ctx, {
         state: NetworkState.SUCCESS,
         response: new Response(
-          new ReadableStream({
+          part && new ReadableStream({
             async start(controller) {
               try {
-                for (let pos = 0, part: Blob | undefined; ; pos += part.size) {
-                  part = getResponsePart(pos)
-                  if (part == null || (part.size === 0 && getReadyState() > 3)) break
+                for (let pos = 0; part != null; pos += part.size, part = getResponsePart(pos)) {
+                  if (part.size > 0) {
+                    controller.enqueue(new Uint8Array(await part.arrayBuffer()))
+                    continue
+                  }
+                  if (getReadyState() > 3) break
 
-                  controller.enqueue(new Uint8Array(await part.arrayBuffer()))
                   await waitTick()
                 }
                 controller.close()
@@ -508,6 +521,8 @@ class InterceptXMLHttpRequest extends XMLHttpRequest {
   private async [kmHandleXHRError](): Promise<void> {
     // Complete sync request
     if (this[kiRequestSync]) return this[kmCompleteRequest]()
+
+    logger.trace(`(${this[kiRequestURL].toString()}) triggered error event`)
 
     const ctx = this[kiContext]
     if (ctx == null || ctx.passthrough || onResponseCallback == null) return
