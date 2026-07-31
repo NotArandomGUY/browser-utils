@@ -52,6 +52,10 @@ const INJECT_ACCESS_TOKEN_PATH_REGEXP = buildPathnameRegexp([
   '/youtubei/v\\d+/player'
 ])
 
+const ResponseError = { state: NetworkState.FAILED, error: new Error('Failed') } satisfies NetworkContextState
+const Response200 = { state: NetworkState.SUCCESS, response: new Response(null, { status: 200 }) } satisfies NetworkContextState
+const Response204 = { state: NetworkState.SUCCESS, response: new Response(null, { status: 204 }) } satisfies NetworkContextState
+
 const enum YTTrackingSwitchMask {
   GUEST_STATS = 0x01,
   LOGIN_STATS = 0x02,
@@ -140,7 +144,7 @@ const processRequest = async (ctx: NetworkRequestContext): Promise<void> => {
   // Block stats requests unless switch is enabled
   const isLoggedIn = isYTLoggedIn() || (searchParams.has('cttype') && searchParams.has('ctt')) || headers.has('authorization')
   if (!isYTTrackingSwitchEnabled(isLoggedIn ? YTTrackingSwitchMask.LOGIN_STATS : YTTrackingSwitchMask.GUEST_STATS) || !STATS_WHITELIST_PATH_REGEXP.test(path)) {
-    assign<NetworkContext, NetworkContextState>(ctx, { state: NetworkState.FAILED, error: new Error('Failed') })
+    assign<NetworkContext, NetworkContextState>(ctx, Response204)
     return
   }
 
@@ -296,9 +300,9 @@ export default class YTMiscsTrackingModule extends Feature {
     addInterceptNetworkCallback(async ctx => {
       if (ctx.state === NetworkState.UNSENT) await processRequest(ctx)
     })
-    addInterceptNetworkUrlFilter(HOST_REGEXP, FORBID_PATH_REGEXP, { state: NetworkState.FAILED, error: new Error('Failed') })
-    addInterceptNetworkUrlFilter(HOST_REGEXP, FAKE_200_PATH_REGEXP, { state: NetworkState.SUCCESS, response: new Response(null, { status: 200 }) })
-    addInterceptNetworkUrlFilter(HOST_REGEXP, FAKE_204_PATH_REGEXP, { state: NetworkState.SUCCESS, response: new Response(null, { status: 204 }) })
+    addInterceptNetworkUrlFilter(HOST_REGEXP, FORBID_PATH_REGEXP, ResponseError)
+    addInterceptNetworkUrlFilter(HOST_REGEXP, FAKE_200_PATH_REGEXP, Response200)
+    addInterceptNetworkUrlFilter(HOST_REGEXP, FAKE_204_PATH_REGEXP, Response204)
 
     const { get, set } = getOwnPropertyDescriptor(Document.prototype, 'cookie') ?? getOwnPropertyDescriptor(HTMLDocument.prototype, 'cookie') ?? {}
     defineProperty(document, 'cookie', {
