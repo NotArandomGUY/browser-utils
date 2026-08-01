@@ -158,6 +158,8 @@ export const mediaFormatRange = ytv_sto({
   end: ytv_str()
 })
 export const mediaFormat = ytv_sto({
+  appliedDrcTargetCenterForBackgroundDb: ytv_num(),
+  appliedVocalsGainFactor: ytv_num(),
   approxDurationMs: ytv_str(),
   audioChannels: ytv_num(),
   audioQuality: ytv_str(common.enums.MediaFormatAudioQuality),
@@ -170,10 +172,16 @@ export const mediaFormat = ytv_sto({
   }),
   averageBitrate: ytv_num(),
   bitrate: ytv_num(),
+  captionTrack: ytv_sto({
+    displayName: ytv_str(),
+    id: ytv_str(),
+    languageCode: ytv_str(),
+    vssId: ytv_str()
+  }),
   colorInfo: ytv_sto({
-    primaries: ytv_str(['COLOR_PRIMARIES_BT709']),
-    transferCharacteristics: ytv_str(['COLOR_TRANSFER_CHARACTERISTICS_BT709']),
-    matrixCoefficients: ytv_str(['COLOR_MATRIX_COEFFICIENTS_BT709'])
+    primaries: ytv_str(['COLOR_PRIMARIES_BT2020', 'COLOR_PRIMARIES_BT709']),
+    transferCharacteristics: ytv_str(['COLOR_TRANSFER_CHARACTERISTICS_ARIB_STD_B67', 'COLOR_TRANSFER_CHARACTERISTICS_BT709']),
+    matrixCoefficients: ytv_str(['COLOR_MATRIX_COEFFICIENTS_BT2020_NCL', 'COLOR_MATRIX_COEFFICIENTS_BT709'])
   }),
   contentLength: ytv_str(),
   fps: ytv_num(),
@@ -197,6 +205,7 @@ export const mediaFormat = ytv_sto({
   targetDurationSec: ytv_num(),
   trackAbsoluteLoudnessLkfs: ytv_num(),
   url: ytv_str(),
+  vocalsBackgroundLoudnessDifferenceDb: ytv_num(),
   width: ytv_num(),
   xtags: ytv_str()
 })
@@ -431,15 +440,17 @@ export const prefetchTime = ytv_ren({
   }),
   removeOnTriggered: ytv_bol()
 })
-export const rendererContext = ytv_ren({
+export const rendererContext = ytv_sto({
   accessibilityContext: common.components.accessibilityData,
-  commandContext: ytv_ren({
+  commandContext: ytv_sto({
     onHidden: ytv_enp(),
     onLongPress: ytv_enp(),
     onTap: ytv_enp(),
     onVisible: ytv_enp()
   }),
-  loggingContext: ytv_ren({})
+  loggingContext: ytv_sto({
+    loggingDirectives
+  })
 })
 export const size = ytv_ren({
   sizeType: ytv_str(enums.SizeType)
@@ -551,9 +562,9 @@ export const SchemaBase = {
   command: ytv_enp(),
   endpoint: ytv_enp(),
   loggingDirectives,
+  rendererContext,
   trackingParams: ytv_str()
 } as const satisfies YTObjectSchema
 export const ViewModelBase = {
-  ...SchemaBase,
-  rendererContext
+  ...SchemaBase
 } as const satisfies YTObjectSchema

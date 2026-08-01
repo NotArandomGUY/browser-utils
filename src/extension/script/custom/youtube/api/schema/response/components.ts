@@ -18,6 +18,14 @@ export const responseContext = ytv_ren({
     encryptedTokenJarContents: ytv_str(),
     expirationSeconds: ytv_str()
   }),
+  innertubeTokenJar: ytv_sto({
+    userTokens: ytv_arr(ytv_sto({
+      creationTimeUsec: ytv_str(),
+      maxAgeSeconds: ytv_num(),
+      type: ytv_num(),
+      value: ytv_str()
+    }))
+  }),
   mainAppWebResponseContext: ytv_sto({
     datasyncId: ytv_str(),
     loggedOut: ytv_bol(),

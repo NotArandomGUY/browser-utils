@@ -65,6 +65,9 @@ export const openPopupAction = ytv_enp(() => ({
 export const removeChatItemAction = ytv_enp(() => ({
   targetItemId: ytv_str()
 }))
+export const removeChatItemByAuthorAction = ytv_enp(() => ({
+  externalChannelId: ytv_str()
+}))
 export const replaceEnclosingAction = ytv_enp(() => ({
   groupDismissal: ytv_sto({
     behavior: ytv_str(['GROUP_DISMISSAL_BEHAVIOR_REMOVE_SUBSEQUENT_ITEMS']),
@@ -193,21 +196,26 @@ export const continuationCommand = ytv_enp(() => ({
 }))
 export const elementsCommand = ytv_enp()
 export const entityUpdateCommand = ytv_enp(() => ({
-  elementUpdate: ytv_arr(ytv_sto({
-    resourceStatusInResponseCheck: ytv_sto({
-      resourceStatuses: ytv_arr(ytv_sto({
-        identifier: ytv_str(),
-        status: ytv_str(['ELEMENTS_RESOURCE_STATUS_ATTACHED'])
-      })),
-      serverBuildLabel: ytv_str()
+  elementUpdate: ytv_sto({
+    metadata: ytv_sto({
+      servingCreationDate: common.components.highResTime
     }),
-    templateUpdate: ytv_sto({
-      dependencies: ytv_arr(ytv_str()),
-      identifier: ytv_str(),
-      serializedTemplateConfig: ytv_str(),
-      templateType: ytv_str(['TEMPLATE_TYPE_EKO'])
-    })
-  })),
+    updates: ytv_arr(ytv_sto({
+      resourceStatusInResponseCheck: ytv_sto({
+        resourceStatuses: ytv_arr(ytv_sto({
+          identifier: ytv_str(),
+          status: ytv_str(['ELEMENTS_RESOURCE_STATUS_ATTACHED'])
+        })),
+        serverBuildLabel: ytv_str()
+      }),
+      templateUpdate: ytv_sto({
+        dependencies: ytv_arr(ytv_str()),
+        identifier: ytv_str(),
+        serializedTemplateConfig: ytv_str(),
+        templateType: ytv_str(['TEMPLATE_TYPE_EKO'])
+      })
+    }))
+  }),
   entityBatchUpdate: ytv_sto({
     mutations: ytv_arr(components.entityMutation),
     timestamp: common.components.highResTime
@@ -303,6 +311,11 @@ export const prefetchWatchCommand = ytv_enp(() => ({
   ustreamerConfig: ytv_str(),
   videoId: ytv_str(),
   watchEndpointSupportedOnesieConfig: components.watchEndpointSupportedOnesieConfig
+}))
+export const profileCardCommand = ytv_enp(() => ({
+  profileCardContext: ytv_str(),
+  profileOwnerExternalChannelId: ytv_str(),
+  shouldUseProfileBottomSheet: ytv_bol()
 }))
 export const registerTasksCommand = ytv_enp(() => ({
   tasks: ytv_arr(ytv_ren({

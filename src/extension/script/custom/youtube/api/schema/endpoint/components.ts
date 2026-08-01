@@ -313,6 +313,7 @@ export const entityMutationPayload = ytv_sto(() => ({
     experiments: ytv_obj(ytv_str(), ytv_unk())
   }),
   commentSurfaceEntityPayload: ytv_sto({
+    avatar: ytv_ren(),
     commentBackgroundColor: ytv_num(),
     commentClickCommand: ytv_enp(),
     commentClickOpensComposer: ytv_bol(),
@@ -324,6 +325,8 @@ export const entityMutationPayload = ytv_sto(() => ({
     logTapCommand: ytv_enp(),
     pdgCommentChip: ytv_ren(),
     publishedTimeCommand: ytv_enp(),
+    relativeNestingLevel: ytv_num(),
+    threadLines: ytv_sto({}),
     viewRepliesTooltipData: ytv_sto({
       tooltipCommand: ytv_sto({
         tooltipCommand: ytv_ren()

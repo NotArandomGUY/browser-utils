@@ -113,7 +113,7 @@ export const buttonViewModel = ytv_rvm(() => ({
   onTap: ytv_enp(),
   onVisible: ytv_enp(),
   shouldLogGestures: ytv_bol(),
-  state: ytv_str(['BUTTON_VIEW_MODEL_STATE_ACTIVE', 'BUTTON_VIEW_MODEL_STATE_DISABLED']),
+  state: ytv_str(['BUTTON_VIEW_MODEL_STATE_ACTIVE', 'BUTTON_VIEW_MODEL_STATE_DISABLED', 'BUTTON_VIEW_MODEL_STATE_UNKNOWN']),
   style: ytv_str(['BUTTON_VIEW_MODEL_STYLE_CUSTOM', 'BUTTON_VIEW_MODEL_STYLE_MONO', 'BUTTON_VIEW_MODEL_STYLE_OVERLAY', 'BUTTON_VIEW_MODEL_STYLE_OVERLAY_DARK', 'BUTTON_VIEW_MODEL_STYLE_UNKNOWN']),
   targetId: ytv_str(),
   title: ytv_str(),
@@ -737,6 +737,9 @@ export const confirmDialogRenderer = ytv_ren(() => ({
   primaryIsCancel: ytv_bol(),
   title: components.text
 }))
+export const contentLoadingRenderer = ytv_ren(() => ({
+  useSpinner: ytv_bol()
+}))
 export const continuationItemRenderer = ytv_ren(() => ({
   button: ytv_ren(),
   continuationEndpoint: ytv_enp(),
@@ -893,6 +896,7 @@ export const engagementPanelSectionListRenderer = ytv_ren(() => ({
   header: ytv_ren(),
   identifier: components.engagementPanelIdentifier,
   onCloseCommand: ytv_enp(),
+  onHideCommands: ytv_arr(ytv_enp()),
   onShowCommands: ytv_arr(ytv_enp()),
   panelIdentifier: ytv_str(),
   resizability: ytv_str(['ENGAGEMENT_PANEL_RESIZABILITY_SNAP']),
@@ -1110,7 +1114,8 @@ export const guideEntryRenderer = ytv_ren(() => ({
   presentationStyle: ytv_str(['GUIDE_ENTRY_PRESENTATION_STYLE_NEW_CONTENT', 'GUIDE_ENTRY_PRESENTATION_STYLE_NONE']),
   serviceEndpoint: ytv_enp(),
   targetId: ytv_str(),
-  thumbnail: components.thumbnail
+  thumbnail: components.thumbnail,
+  ytIcon: ytv_str() // YTICON_(FILL|OUTLINE)_(enums.IconType)_S(size)
 }))
 export const guideSectionRenderer = ytv_ren(() => ({
   formattedTitle: components.text,
@@ -1708,6 +1713,9 @@ export const microformatDataRenderer = ytv_ren(() => ({
   androidPackage: ytv_str(),
   appName: ytv_str(),
   availableCountries: ytv_arr(ytv_str()),
+  channelProfileMicroformatDetails: ytv_sto({
+    profilePage: ytv_obj(ytv_str(), ytv_unk())
+  }),
   description: ytv_str(),
   familySafe: ytv_bol(),
   iosAppArguments: ytv_str(),
@@ -2232,7 +2240,7 @@ export const postRenderer = ytv_ren(() => ({
   pollStatus: ytv_str(common.enums.CommentPollStatus),
   postId: ytv_str(),
   publishedTimeText: components.text,
-  surface: ytv_str(['BACKSTAGE_SURFACE_TYPE_CHANNEL_HOME', 'BACKSTAGE_SURFACE_TYPE_SEARCH']),
+  surface: ytv_str(['BACKSTAGE_SURFACE_TYPE_CHANNEL_HOME', 'BACKSTAGE_SURFACE_TYPE_SEARCH', 'BACKSTAGE_SURFACE_TYPE_STRUCTURED_DESCRIPTION']),
   voteButton: ytv_ren(),
   voteCount: components.text,
   voteStatus: ytv_str(common.enums.LikeStatus)
@@ -2361,6 +2369,7 @@ export const richGridRenderer = ytv_ren(() => ({
   header: ytv_ren(),
   layoutSizing: ytv_str(['RICH_GRID_LAYOUT_SIZING_STANDARD']),
   masthead: ytv_ren(),
+  minItemWidth: ytv_num(),
   reflowOptions: ytv_sto({
     minimumRowsOfVideosAtStart: ytv_num(),
     minimumRowsOfVideosBetweenSections: ytv_num()
@@ -3253,11 +3262,14 @@ export const buttonCardViewModel = ytv_rvm(() => ({
 }))
 export const carouselItemViewModel = ytv_rvm(() => ({
   carouselItem: ytv_ren(),
-  itemType: ytv_str(['VIDEO_METADATA_CAROUSEL_PAGINATION_TYPE_LIVE_CHAT_STATIC_TEXT'])
+  itemType: ytv_str(['VIDEO_METADATA_CAROUSEL_PAGINATION_TYPE_LIVE_CHAT_STATIC_TEXT', 'VIDEO_METADATA_CAROUSEL_PAGINATION_TYPE_QUIZ_TEASER_STATIC_TEXT']),
+  teaserType: ytv_str(['WATCH_UI_TEASER_TYPE_LIVE_CHAT', 'WATCH_UI_TEASER_TYPE_QUIZZES'])
 }))
 export const carouselTitleViewModel = ytv_rvm(() => ({
   nextButton: ytv_ren(),
   previousButton: ytv_ren(),
+  subtitle: ytv_str(),
+  subtitleAccessibilityText: ytv_str(),
   title: ytv_str()
 }))
 export const chipBarViewModel = ytv_rvm(() => ({
@@ -3275,6 +3287,10 @@ export const chipViewModel = ytv_rvm(() => ({
 export const collectionThumbnailViewModel = ytv_rvm(() => ({
   primaryThumbnail: ytv_ren(),
   stackColor: components.themedColor
+}))
+export const commentFilterContextViewModel = ytv_rvm(() => ({
+  accessibility: common.components.accessibility,
+  text: textViewModel
 }))
 export const commentViewModel = ytv_rvm(() => ({
   allowProfileCard: ytv_bol(),
@@ -3300,6 +3316,11 @@ export const contentMetadataViewModel = ytv_rvm(() => ({
       accessibilityLabel: ytv_str(),
       avatarStack: ytv_ren(),
       enableTruncation: ytv_bol(),
+      leadingIcon: ytv_sto({
+        height: ytv_num(),
+        name: ytv_str(enums.IconType),
+        width: ytv_num()
+      }),
       maxLines: ytv_num(),
       text: textViewModel
     })),

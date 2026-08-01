@@ -30,6 +30,7 @@ export enum AddToOfflineButtonState {
 }
 
 export enum AvatarSize {
+  AVATAR_SIZE_40 = 'AVATAR_SIZE_40',
   AVATAR_SIZE_XS = 'AVATAR_SIZE_XS',
   AVATAR_SIZE_S = 'AVATAR_SIZE_S',
   AVATAR_SIZE_M = 'AVATAR_SIZE_M',
