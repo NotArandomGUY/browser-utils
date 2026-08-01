@@ -824,9 +824,9 @@ class ChatShellMessageChannel extends MessageChannel<PopoutMessageDataMap, Popou
     const { offsetWidth, offsetHeight } = document.body
 
     if (app == null) {
-      // Check if grid can fit more items
+      // Check if document is visible & grid can fit more items
       const count = background_.length + foreground_.length
-      if (getGridSize(offsetWidth, offsetHeight, count + 1)[2]) return null
+      if (documentHidden?.() || getGridSize(offsetWidth, offsetHeight, count + 1)[2]) return null
 
       app = document.createElement(YTLiveChatAppTagName) as YTLiveChatApp
     }
