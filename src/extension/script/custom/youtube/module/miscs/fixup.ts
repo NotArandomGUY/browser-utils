@@ -42,6 +42,7 @@ export default class YTMiscsFixupModule extends Feature {
     registerYTValueFilter(YTRenderer.mapped.gridShelfViewModel, filterContents, YTValueCallbackType.POST)
     registerYTValueFilter(YTRenderer.mapped.guideSectionRenderer, filterItems, YTValueCallbackType.POST)
     registerYTValueFilter(YTRenderer.mapped.horizontalListRenderer, filterItems, YTValueCallbackType.POST)
+    registerYTValueFilter(YTRenderer.mapped.itemSectionRenderer, filterContents, YTValueCallbackType.POST)
     registerYTValueFilter(YTRenderer.mapped.playlistSidebarRenderer, filterItems, YTValueCallbackType.POST)
     registerYTValueFilter(YTRenderer.mapped.reelShelfRenderer, filterItems, YTValueCallbackType.POST)
     registerYTValueFilter(YTRenderer.mapped.richItemRenderer, filterContent, YTValueCallbackType.POST)

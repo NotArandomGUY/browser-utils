@@ -3644,6 +3644,47 @@ export const segmentedLikeDislikeButtonViewModel = ytv_rvm(() => ({
 export const sheetViewModel = ytv_rvm(() => ({
   content: ytv_ren()
 }))
+export const shoppingContentLineItemViewModel = ytv_rvm(() => ({
+  canShrink: ytv_bol(),
+  text: ytv_sto({
+    attributedString: textViewModel,
+    fontAttributes: ytv_obj(ytv_str(), ytv_str())
+  })
+}))
+export const shoppingContentLineViewModel = ytv_rvm(() => ({
+  itemGap: ytv_num(),
+  items: ytv_arr(ytv_ren()),
+  lineHeight: ytv_num(),
+  wrapContent: ytv_bol()
+}))
+export const shoppingTimelyShelfContentViewModel = ytv_rvm(() => ({
+  backgroundColor: ytv_num(),
+  button: ytv_arr(ytv_ren()),
+  image: ytv_sto({
+    backgroundColor: ytv_num(),
+    cornerRadius: ytv_num(),
+    height: ytv_num(),
+    image: components.image,
+    width: ytv_num()
+  }),
+  line1: ytv_ren(),
+  line2: ytv_ren(),
+  padding: ytv_obj(ytv_str(), ytv_sto({ value: ytv_num(), unit: ytv_str() }))
+}))
+export const shoppingTimelyShelfViewModel = ytv_rvm(() => ({
+  cueRanges: ytv_arr(ytv_sto({
+    endTime: common.components.highResTime,
+    id: ytv_str(),
+    onEnter: ytv_enp(),
+    startTime: common.components.highResTime
+  })),
+  shoppingTimelyShelfViewModel: ytv_arr(ytv_sto({
+    key: ytv_str(),
+    value: ytv_sto({
+      shelf: ytv_ren()
+    })
+  }))
+}))
 export const shortsLockupViewModel = ytv_rvm(() => ({
   accessibilityText: ytv_str(),
   entityId: ytv_str(),

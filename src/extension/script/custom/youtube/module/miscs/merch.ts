@@ -21,6 +21,7 @@ export default class YTMiscsMerchModule extends Feature {
       registerYTValueFilter(YTRenderer.mapped.merchandiseShelfRenderer),
       registerYTValueFilter(YTRenderer.mapped.productListHeaderRenderer),
       registerYTValueFilter(YTRenderer.mapped.productListItemRenderer),
+      registerYTValueFilter(YTRenderer.mapped.shoppingTimelyShelfViewModel),
       registerYTValueFilter(YTRenderer.mapped.timelyActionRenderer, filterTimelyActionRenderer)
     )
 
