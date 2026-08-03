@@ -1,5 +1,5 @@
 import { registerOverlayPage } from '@ext/common/preload/overlay'
-import { registerYTValueProcessor } from '@ext/custom/youtube/api/processor'
+import { registerYTValueProcessor, YTValueCallbackType, YTValueProcessorContext } from '@ext/custom/youtube/api/processor'
 import { YTEndpoint, YTRenderer, YTResponse, YTValueData, YTValueType } from '@ext/custom/youtube/api/schema'
 import { getYTConfigBool, getYTConfigInt, registerYTConfigMenuItemGroup, setYTConfigInt, YTConfigMenuItemType } from '@ext/custom/youtube/module/core/config'
 import YTSkipSegmentPage from '@ext/custom/youtube/pages/skip-segments'
@@ -104,7 +104,6 @@ const SKIP_SEGMENT_CATEGORIES = {
 const segmentEntriesCacheMap = new Map<string, SkipSegmentEntry[]>()
 const segmentFetchMutex = new Mutex()
 
-let lastLoadedVideoId: string | null = null
 let state: State<SkipSegmentEntry[]> | null = null
 
 const getSkipSegmentEntityKey = (id: number): string => encodeEntityKey({
@@ -155,12 +154,11 @@ const buildPlayerScrimOverlayCommand = (icon: YTRenderer.enums.IconType, text: s
   })
 }
 
-const buildMarkerMutationFromSegmentEntry = (entry: SkipSegmentEntry, startTimeMs?: number, endTimeMs?: number): YTValueData<YTEndpoint.Component<'entityMutation'>> => {
-  startTimeMs ??= entry.startTimeMs
-  endTimeMs ??= entry.endTimeMs
+const buildMarkerMutationFromSegmentEntry = (entry: SkipSegmentEntry): YTValueData<YTEndpoint.Component<'entityMutation'>> => {
+  const { videoId, segmentId, startTimeMs, endTimeMs } = entry
 
   const duration = endTimeMs - startTimeMs
-  const entityKey = getSkipSegmentEntityKey(entry.segmentId)
+  const entityKey = getSkipSegmentEntityKey(segmentId)
   const title = ['Skip', entry.category, 'segment', `(${floor(duration / 1e3)}s)`].join(' ')
 
   return {
@@ -168,7 +166,7 @@ const buildMarkerMutationFromSegmentEntry = (entry: SkipSegmentEntry, startTimeM
     type: 'ENTITY_MUTATION_TYPE_REPLACE',
     payload: {
       macroMarkersListEntity: {
-        externalVideoId: lastLoadedVideoId ?? undefined,
+        externalVideoId: videoId,
         key: entityKey,
         markersList: {
           markerType: 'MARKER_TYPE_TIMESTAMPS',
@@ -321,7 +319,7 @@ const addMarkerMutationFromSegmentEntry = (mutations: YTValueData<YTEndpoint.Com
   const duration = endTimeMs - startTimeMs
   if (duration < 5e3) return
 
-  mutations.push(buildMarkerMutationFromSegmentEntry(entry))
+  mutations.push(buildMarkerMutationFromSegmentEntry({ ...entry, startTimeMs, endTimeMs }))
 }
 
 const addTimelyActionFromSegmentEntry = (timelyActions: YTValueData<{ type: YTValueType.RENDERER }>[], entry: SkipSegmentEntry): void => {
@@ -410,41 +408,12 @@ const fetchSegmentEntries = async (videoId: string | null): Promise<SkipSegmentE
   }
 }
 
-const updatePlayerOverlayRenderer = (data: YTValueData<YTRenderer.Mapped<'playerOverlayRenderer'>>): void => {
-  data.timelyActionsOverlayViewModel ??= { timelyActionsOverlayViewModel: {} }
-}
+const updateNextResponse = async (data: YTValueData<YTResponse.Mapped<'next'>>, ctx: YTValueProcessorContext): Promise<void> => {
+  const videoId = data.currentVideoEndpoint?.watchEndpoint?.videoId
+  if (videoId == null) return
 
-const updateTimelyActionsOverlayViewModel = async (data: YTValueData<YTRenderer.Mapped<'timelyActionsOverlayViewModel'>>): Promise<void> => {
-  const entries = await fetchSegmentEntries(lastLoadedVideoId)
-
-  let timelyActions = data.timelyActions
-  if (!Array.isArray(timelyActions)) {
-    timelyActions = []
-    data.timelyActions = timelyActions
-  }
-
-  for (const entry of entries) {
-    addTimelyActionFromSegmentEntry(timelyActions, entry)
-  }
-
-  if (state != null) state.val = entries
-}
-
-const processGetWatchResponse = async ({ playerResponse }: YTValueData<YTResponse.Mapped<'getWatch'>>): Promise<void> => {
-  if (playerResponse != null) await processPlayerResponse(playerResponse)
-}
-
-const processPlayerResponse = async (data: YTValueData<YTResponse.Mapped<'player'>>): Promise<void> => {
-  const { videoDetails } = data
-
-  lastLoadedVideoId = videoDetails?.isLive ? null : (videoDetails?.videoId ?? null)
-
-  // Prefetch without blocking player
-  fetchSegmentEntries(lastLoadedVideoId)
-}
-
-const updateNextResponse = async (data: YTValueData<YTResponse.Mapped<'next'>>): Promise<void> => {
-  const entries = await fetchSegmentEntries(lastLoadedVideoId)
+  const entries = await fetchSegmentEntries(videoId)
+  const entityKeys = entries.map(entry => getSkipSegmentEntityKey(entry.segmentId))
 
   data.frameworkUpdates ??= {}
   data.frameworkUpdates.entityBatchUpdate ??= {}
@@ -454,12 +423,7 @@ const updateNextResponse = async (data: YTValueData<YTResponse.Mapped<'next'>>):
     mutations = []
     data.frameworkUpdates.entityBatchUpdate.mutations = mutations
   }
-
-  for (const entry of entries) {
-    addMarkerMutationFromSegmentEntry(mutations, entry)
-  }
-
-  const entityKeys = entries.map(entry => getSkipSegmentEntityKey(entry.segmentId))
+  for (const entry of entries) addMarkerMutationFromSegmentEntry(mutations, entry)
 
   if (data.onUiReady == null || data.onUiReady.loadMarkersCommand != null) {
     data.onUiReady = { loadMarkersCommand: { entityKeys: [...data.onUiReady?.loadMarkersCommand?.entityKeys ?? [], ...entityKeys] } }
@@ -467,6 +431,20 @@ const updateNextResponse = async (data: YTValueData<YTResponse.Mapped<'next'>>):
     data.onResponseReceivedEndpoints ??= []
     data.onResponseReceivedEndpoints.push({ loadMarkersCommand: { entityKeys } })
   }
+
+  registerYTValueProcessor(YTRenderer.mapped.playerOverlayRenderer, data => {
+    data.timelyActionsOverlayViewModel ??= { timelyActionsOverlayViewModel: {} }
+  }, YTValueCallbackType.PRE, ctx)
+  registerYTValueProcessor(YTRenderer.mapped.timelyActionsOverlayViewModel, data => {
+    let timelyActions = data.timelyActions
+    if (!Array.isArray(timelyActions)) {
+      timelyActions = []
+      data.timelyActions = timelyActions
+    }
+    for (const entry of entries) addTimelyActionFromSegmentEntry(timelyActions, entry)
+  }, YTValueCallbackType.PRE, ctx)
+
+  if (state != null) state.val = entries
 }
 
 export default class YTPlayerSmartSkipModule extends Feature {
@@ -537,11 +515,7 @@ export default class YTPlayerSmartSkipModule extends Feature {
           mask: YTAutoSkipCategoryMask.FILLER
         }
       ]),
-      registerYTValueProcessor(YTRenderer.mapped.playerOverlayRenderer, updatePlayerOverlayRenderer),
-      registerYTValueProcessor(YTRenderer.mapped.timelyActionsOverlayViewModel, updateTimelyActionsOverlayViewModel),
-      registerYTValueProcessor(YTResponse.mapped.getWatch, processGetWatchResponse),
-      registerYTValueProcessor(YTResponse.mapped.next, updateNextResponse),
-      registerYTValueProcessor(YTResponse.mapped.player, processPlayerResponse)
+      registerYTValueProcessor(YTResponse.mapped.next, updateNextResponse)
     )
 
     // Default enable auto skip for sponsor segments
