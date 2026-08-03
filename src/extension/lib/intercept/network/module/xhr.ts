@@ -1,5 +1,5 @@
 import { URL, XMLHttpRequest } from '@ext/global/network'
-import { assign, defineProperties, defineProperty, fromEntries, getOwnPropertyDescriptor, keys } from '@ext/global/object'
+import { assign, defineProperties, defineProperty, fromEntries, syncPropertyDescriptors } from '@ext/global/object'
 import { waitTick } from '@ext/lib/async'
 import { bufferToString } from '@ext/lib/buffer'
 import { unsafePolicy } from '@ext/lib/dom'
@@ -545,22 +545,8 @@ class InterceptXMLHttpRequest extends XMLHttpRequest {
 
 const HookPrototype = InterceptXMLHttpRequest.prototype
 
-defineProperties(HookPrototype, fromEntries(keys(NativePrototype).map(key => {
-  const descriptor = getOwnPropertyDescriptor(HookPrototype, key)
-  if (descriptor == null) return null
-
-  const { writable, value, get, set } = descriptor
-  return [key, {
-    ...(getOwnPropertyDescriptor(NativePrototype, key) ?? { configurable: true, enumerable: true }),
-    ...((get != null || set != null) ? { get, set } : { writable, value })
-  }]
-}).filter(e => e != null)))
-defineProperties(InterceptXMLHttpRequest, fromEntries(keys(XMLHttpRequest).map(key => {
-  return [key, {
-    ...(getOwnPropertyDescriptor(XMLHttpRequest, key) ?? { configurable: true, enumerable: true }),
-    value: InterceptXMLHttpRequest[key as keyof typeof InterceptXMLHttpRequest]
-  }]
-}).filter(e => e != null)))
+syncPropertyDescriptors(NativePrototype, HookPrototype)
+syncPropertyDescriptors(XMLHttpRequest, InterceptXMLHttpRequest)
 
 export const registerInterceptNetworkXHRModule = (onRequest: NetworkRequestCallback, onResponse: NetworkResponseCallback): void => {
   if (nativeXHR != null) return

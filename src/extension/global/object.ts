@@ -11,6 +11,22 @@ export function getPropertyDescriptor(o: object, p: PropertyKey): PropertyDescri
   }
 }
 
+export function syncPropertyDescriptors(source: object, target: object): void {
+  defineProperties(target, fromEntries(entries(getOwnPropertyDescriptors(source)).map(([key, ndesc]) => {
+    const hdesc = getOwnPropertyDescriptor(target, key)
+    if (hdesc?.configurable === false) return null
+
+    const { configurable, enumerable } = ndesc
+    const { writable, value, get, set } = hdesc ?? ndesc
+
+    return [key, {
+      configurable,
+      enumerable,
+      ...((get != null || set != null) ? { get, set } : { writable, value })
+    }]
+  }).filter(e => e != null)))
+}
+
 export function findPropertyChain(root: unknown, target: unknown, maxDepth: number, filter?: (key: string) => boolean): string[] | null {
   if (typeof root !== 'object' || root == null || maxDepth < 1) return null
 
