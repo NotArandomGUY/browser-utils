@@ -1,7 +1,7 @@
 import { registerYTValueProcessor } from '@ext/custom/youtube/api/processor'
 import { YTRenderer, YTValueData } from '@ext/custom/youtube/api/schema'
-import { isYTLoggedIn, YTConfigInitCallback, YTPlayerCreateCallback, YTPlayerWebPlayerContextConfig } from '@ext/custom/youtube/module/core/bootstrap'
-import { registerYTInnertubeRequestProcessor, YTInnertubeRequest } from '@ext/custom/youtube/module/core/network'
+import { YTConfigInitCallback, YTPlayerCreateCallback, YTPlayerWebPlayerContextConfig } from '@ext/custom/youtube/module/core/bootstrap'
+import { registerYTInnertubeRequestProcessor } from '@ext/custom/youtube/module/core/network'
 import { URLSearchParams } from '@ext/global/network'
 import { defineProperty, findPropertyChain, fromEntries, keys, observePropertyChain, values } from '@ext/global/object'
 import Callback from '@ext/lib/callback'
@@ -13,9 +13,6 @@ import Logger from '@ext/lib/logger'
 
 const logger = new Logger('YTPLAYER-BOOTSTRAP')
 
-const PLAYER_CLIENT_OVERRIDE: Record<string, [name: string, version: string]> = {
-  'TVHTML5': ['WEB', '2.20260128.05.00']
-}
 const PLAYER_EXPERIMENT_FLAGS: [key: string, value?: string][] = [
   // prefer sticky resolution
   ['html5_perf_cap_override_sticky', 'false'],
@@ -32,15 +29,7 @@ const PLAYER_EXPERIMENT_FLAGS: [key: string, value?: string][] = [
 
   // enable miniplayer & pip context menu buttons
   ['web_player_miniplayer_in_context_menu'],
-  ['web_watch_pip_context_menu_button'],
-
-  // use WEB po token on TVHTML5
-  ['html5_generate_content_po_token'],
-  ['html5_generate_session_po_token'],
-  ['html5_onesie_attach_po_token'],
-  ['html5_non_onesie_attach_po_token'],
-  ['html5_use_shared_owl_instance'],
-  ['html5_web_po_token_disable_caching']
+  ['web_watch_pip_context_menu_button']
 ]
 const PLAYER_STYLE_SHEET = [
   // FIX: leanback animated overlay virtual list bug
@@ -270,22 +259,6 @@ const processPlayerContextConfig = (webPlayerContextConfig: Record<string, YTPla
   }
 }
 
-const processInnertubeRequest = (isGuestOnly: boolean, { context }: YTInnertubeRequest, headers: Headers): void => {
-  if (isGuestOnly && isYTLoggedIn()) return
-
-  const client = context?.client
-  if (client == null) return
-
-  const override = PLAYER_CLIENT_OVERRIDE[client.clientName!]
-  if (override == null) return
-
-  const [name, version] = override
-  client.clientName = name
-  client.clientVersion = version
-
-  headers.delete('authorization')
-}
-
 const processResponse = async (ctx: NetworkContext<unknown, NetworkState.SUCCESS>): Promise<void> => {
   const { url: { pathname, searchParams }, response } = ctx
 
@@ -374,13 +347,10 @@ export default class YTPlayerBootstrapModule extends Feature {
 
     registerYTValueProcessor(YTRenderer.components.transportControlsAction, updateTransportControlsAction)
 
-    registerYTInnertubeRequestProcessor('att/get', processInnertubeRequest.bind(null, false))
-    registerYTInnertubeRequestProcessor('player', (request, headers) => {
+    registerYTInnertubeRequestProcessor('player', (request) => {
       const { playbackContext } = request
 
       if (!playbackContext?.reloadPlaybackContext?.['reloadPlaybackParams']?.token) delete playbackContext?.reloadPlaybackContext
-
-      processInnertubeRequest(true, request, headers)
     })
 
     addInterceptNetworkCallback(async ctx => {
