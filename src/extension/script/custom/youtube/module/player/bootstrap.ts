@@ -89,6 +89,18 @@ export interface YTPEventTarget extends YTPObject {
   publish?<A extends unknown[]>(event: string, ...args: A): void
 }
 
+export interface YTPPlayerState extends YTPObject {
+  state?: number
+
+  isPaused?(): boolean
+  isPlaying?(): boolean
+  isOrWillBePlaying?(): boolean
+  isCued?(): boolean
+  isBuffering?(): boolean
+  isError?(): boolean
+  isSuspended?(): boolean
+}
+
 export interface YTPVideoData extends YTPObject {
   videoId?: string
   cotn?: string
@@ -123,6 +135,7 @@ export interface YTPApp extends YTPObject {
 export interface YTPVideoPlayer extends YTPEventTarget {
   loop: boolean
   playbackRate: number
+  playerState: YTPPlayerState
   playerType: number
   videoData?: YTPVideoData
 

@@ -31,6 +31,7 @@ export const enum YTLiveBehaviourMask {
 const enum ActiveLiveHeadState {
   UNINIT = 0,
   PAUSED,
+  BUFFER,
   DESYNC,
   INSYNC
 }
@@ -41,6 +42,7 @@ class ActiveLiveHead {
   private state_: ActiveLiveHeadState = ActiveLiveHeadState.UNINIT
   private updateTimestamp_: number = 0
   private updateInterval_: number = 0
+  private bufferMin_: number = 0
   private bufferAvg_: number = 0
   private bufferDev_: number = 0
   private bufferTarget_: number = 0
@@ -70,11 +72,18 @@ class ActiveLiveHead {
     this.updateInterval_ = interval
 
     const player = this.app_.playerRef?.deref()
-    if (!player?.videoData?.isLivePlayback || !player.isPlaying?.() || !isYTLiveBehaviourEnabled(YTLiveBehaviourMask.LOW_LATENCY)) return this.changeState_(ActiveLiveHeadState.PAUSED, player)
+    const state = player?.['playerState']
+
+    // Pause if video is paused or not live playback or low latency option is disabled
+    if (!player?.videoData?.isLivePlayback || !state?.isPlaying?.() || !isYTLiveBehaviourEnabled(YTLiveBehaviourMask.LOW_LATENCY)) return this.changeState_(ActiveLiveHeadState.PAUSED, player)
+
+    // Wait for buffering
+    if (state.isBuffering?.()) return this.changeState_(ActiveLiveHeadState.BUFFER, player)
 
     switch (this.state_) {
       case ActiveLiveHeadState.UNINIT:
       case ActiveLiveHeadState.PAUSED:
+      case ActiveLiveHeadState.BUFFER:
         this.changeState_(player.isAtLiveHead?.() ? ActiveLiveHeadState.INSYNC : ActiveLiveHeadState.DESYNC, player)
         return
       case ActiveLiveHeadState.DESYNC:
@@ -100,7 +109,7 @@ class ActiveLiveHead {
         this.updatePlaybackRate_(player)
         break
       default:
-        this.changeState_(ActiveLiveHeadState.UNINIT)
+        this.changeState_(ActiveLiveHeadState.UNINIT, player)
         return
     }
 
@@ -111,13 +120,13 @@ class ActiveLiveHead {
     const debugInfo = this.app_.ytpsfnRef?.deref()
     if (debugInfo == null) return
 
-    const { state_, bufferAvg_, bufferDev_, bufferTarget_, latencyAvg_, latencyDev_, latencyTarget_, playbackRate_ } = this
+    const { state_, bufferMin_, bufferAvg_, bufferDev_, bufferTarget_, latencyAvg_, latencyDev_, latencyTarget_, playbackRate_ } = this
     debugInfo.update?.({
       bu_alh_style: '',
       bu_alh: [
         `S${state_}`,
         `x${playbackRate_.toFixed(2)}`,
-        `B:${(bufferTarget_ / 1e3).toFixed(2)} ~B:${(bufferAvg_ / 1e3).toFixed(2)} ±B:${(bufferDev_ / 1e3).toFixed(2)}`,
+        `B:${(bufferTarget_ / 1e3).toFixed(2)} ~B:${(bufferAvg_ / 1e3).toFixed(2)} ±B:${(bufferDev_ / 1e3).toFixed(2)} <B:${(bufferMin_ / 1e3).toFixed(2)}`,
         `L:${(latencyTarget_ / 1e3).toFixed(2)} ~L:${(latencyAvg_ / 1e3).toFixed(2)} ±L:${(latencyDev_ / 1e3).toFixed(2)}`
       ].join('/')
     })
@@ -135,9 +144,9 @@ class ActiveLiveHead {
   }
 
   private updateBufferTarget_(): void {
-    const { updateInterval_, bufferDev_ } = this
+    const { updateInterval_, bufferMin_, bufferDev_ } = this
 
-    this.bufferTarget_ = max(updateInterval_ * 2, bufferDev_) + bufferDev_
+    this.bufferTarget_ = max(updateInterval_ * 2, bufferMin_, bufferDev_) + bufferDev_
   }
 
   private updateLatencySamples_(player: YTPVideoPlayer): void {
@@ -194,6 +203,16 @@ class ActiveLiveHead {
 
     if (state_ === state) return
 
+    // Reset buffer on unpause
+    if (state_ <= ActiveLiveHeadState.PAUSED && state > ActiveLiveHeadState.PAUSED) {
+      const buffer = Number(player?.getBufferHealth?.()) * 1e3
+      if (!isNaN(buffer) && isFinite(buffer)) {
+        this.bufferMin_ = 0
+        this.bufferAvg_ = buffer
+        this.bufferDev_ = 0
+      }
+    }
+
     switch (state) {
       case ActiveLiveHeadState.PAUSED:
         // Reset playback rate back to normal
@@ -201,6 +220,12 @@ class ActiveLiveHead {
 
         // Hide debug info
         app_.ytpsfnRef?.deref()?.updateValue('bu_alh_style', 'display:none')
+        break
+      case ActiveLiveHeadState.BUFFER:
+        // Only update min buffer on transition from playing to buffering
+        if (state_ < ActiveLiveHeadState.BUFFER) break
+
+        this.bufferMin_ = (this.bufferMin_ + this.bufferAvg_) / 2
         break
       case ActiveLiveHeadState.DESYNC:
         // Attempt to catch back up to live head
@@ -212,15 +237,6 @@ class ActiveLiveHead {
           this.latencyAvg_ = latency
           this.latencyDev_ = 0
           this.latencyTarget_ = latency
-        }
-
-        // Keep track of buffer health for smoother resync
-        if (state_ === ActiveLiveHeadState.DESYNC) break
-
-        const buffer = Number(player?.getBufferHealth?.()) * 1e3
-        if (!isNaN(buffer) && isFinite(buffer)) {
-          this.bufferAvg_ = buffer
-          this.bufferDev_ = 0
         }
         break
       }
