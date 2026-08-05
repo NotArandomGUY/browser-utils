@@ -85,40 +85,42 @@ class ActiveLiveHead {
       return this.changeState_(ActiveLiveHeadState.UNINIT, player)
     }
 
-    // Wait for buffering
-    if (state.isBuffering?.()) return this.changeState_(ActiveLiveHeadState.BUFFER, player)
+    if (state.isBuffering?.()) {
+      // Wait for buffering
+      this.changeState_(ActiveLiveHeadState.BUFFER, player)
+    } else {
+      switch (this.state_) {
+        case ActiveLiveHeadState.UNINIT:
+        case ActiveLiveHeadState.PAUSED:
+        case ActiveLiveHeadState.BUFFER:
+          this.changeState_(player.isAtLiveHead?.() ? ActiveLiveHeadState.INSYNC : ActiveLiveHeadState.DESYNC, player)
+          return
+        case ActiveLiveHeadState.DESYNC:
+          this.updateBufferSamples_(player)
+          if (player.isAtLiveHead?.()) {
+            this.changeState_(ActiveLiveHeadState.INSYNC, player)
+            break
+          }
 
-    switch (this.state_) {
-      case ActiveLiveHeadState.UNINIT:
-      case ActiveLiveHeadState.PAUSED:
-      case ActiveLiveHeadState.BUFFER:
-        this.changeState_(player.isAtLiveHead?.() ? ActiveLiveHeadState.INSYNC : ActiveLiveHeadState.DESYNC, player)
-        return
-      case ActiveLiveHeadState.DESYNC:
-        this.updateBufferSamples_(player)
-        if (player.isAtLiveHead?.()) {
-          this.changeState_(ActiveLiveHeadState.INSYNC, player)
+          // TODO: pause on manual seek?
           break
-        }
+        case ActiveLiveHeadState.INSYNC:
+          this.updateBufferSamples_(player)
+          if (!player.isAtLiveHead?.()) {
+            this.changeState_(ActiveLiveHeadState.DESYNC, player)
+            break
+          }
+          this.updateLatencySamples_(player)
 
-        // TODO: pause on manual seek?
-        break
-      case ActiveLiveHeadState.INSYNC:
-        this.updateBufferSamples_(player)
-        if (!player.isAtLiveHead?.()) {
-          this.changeState_(ActiveLiveHeadState.DESYNC, player)
+          this.updateBufferTarget_()
+          this.updateLatencyTarget_()
+
+          this.updatePlaybackRate_(player)
           break
-        }
-        this.updateLatencySamples_(player)
-
-        this.updateBufferTarget_()
-        this.updateLatencyTarget_()
-
-        this.updatePlaybackRate_(player)
-        break
-      default:
-        this.changeState_(ActiveLiveHeadState.UNINIT, player)
-        return
+        default:
+          this.changeState_(ActiveLiveHeadState.UNINIT, player)
+          return
+      }
     }
 
     this.updateDebugInfo_()
