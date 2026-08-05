@@ -1,7 +1,7 @@
 import { registerYTValueFilter, registerYTValueProcessor, YTValueCallbackType } from '@ext/custom/youtube/api/processor'
 import { YTEndpoint, YTRenderer, YTResponse, YTValueData } from '@ext/custom/youtube/api/schema'
 import { registerYTInnertubeRequestProcessor } from '@ext/custom/youtube/module/core/network'
-import { YTPLAYER_RELOAD_ID, ytplayerCreateStreamingData } from '@ext/custom/youtube/module/player/network'
+import { ytplayerCreateStreamActionResponse as ytplayerBuildStreamActionResponse, YTPlayerStreamAction } from '@ext/custom/youtube/module/player/network'
 import PlayerParams from '@ext/custom/youtube/proto/player-params'
 import { max, min } from '@ext/global/math'
 import { defineProperty } from '@ext/global/object'
@@ -69,11 +69,7 @@ const updatePlayerResponse = (data: YTValueData<YTResponse.Mapped<'player'>>): v
   }
   logger.debug('switching modifier mode:', modifierMode)
 
-  playabilityStatus.status = 'OK'
-  delete playabilityStatus.errorCode
-  delete playabilityStatus.errorScreen
-  delete playabilityStatus.reason
-  data.streamingData = ytplayerCreateStreamingData(YTPLAYER_RELOAD_ID)
+  ytplayerBuildStreamActionResponse(YTPlayerStreamAction.RELOAD, data)
 }
 
 const filterReel = (data: YTValueData<YTEndpoint.Mapped<'reelWatchEndpoint'>>): boolean => {

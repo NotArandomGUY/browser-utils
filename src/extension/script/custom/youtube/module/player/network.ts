@@ -1,5 +1,5 @@
 import { processYTResponse } from '@ext/custom/youtube/api/processor'
-import { YTRenderer, YTValueData } from '@ext/custom/youtube/api/schema'
+import { YTResponse, YTValueData } from '@ext/custom/youtube/api/schema'
 import { YTPlayerWebPlayerContextConfig } from '@ext/custom/youtube/module/core/bootstrap'
 import { YTPlayerContextConfigCallback } from '@ext/custom/youtube/module/player/bootstrap'
 import ClientAbrState from '@ext/custom/youtube/proto/gvs/common/client-abr-state'
@@ -39,7 +39,13 @@ const UMP_PATHNAME_REGEXP = /^\/(init|video)playback$/
 const UMP_CONTENT_TYPE = 'application/vnd.yt-ump'
 const UMP_RELOAD_PLAYER_RESPONSE = new UMPSlice(UMPSliceType.RELOAD_PLAYER_RESPONSE, new UMPReloadPlayerResponse().serialize()).toBytes()
 
-export const YTPLAYER_RELOAD_ID = random().toString(36).slice(2)
+export const enum YTPlayerStreamAction {
+  RELOAD
+}
+
+const StreamActionID = {
+  [YTPlayerStreamAction.RELOAD]: random().toString(36).slice(2)
+} as const
 
 let onesieClientKeys: Uint8Array[] = []
 let onesieHeader: InstanceType<typeof UMPOnesieHeader> | null = null
@@ -222,7 +228,7 @@ const processRequest = async (ctx: NetworkRequestContext): Promise<void> => {
         break
       }
       case '/videoplayback': {
-        if (id === YTPLAYER_RELOAD_ID) throw new Response(UMP_RELOAD_PLAYER_RESPONSE, { status: 200, headers: { 'content-type': UMP_CONTENT_TYPE } })
+        if (id === StreamActionID[YTPlayerStreamAction.RELOAD]) throw new Response(UMP_RELOAD_PLAYER_RESPONSE, { status: 200, headers: { 'content-type': UMP_CONTENT_TYPE } })
 
         const videoPlaybackRequest = new VideoPlaybackRequest().deserialize(body)
         logger.debug(`video playback request(${/*@__PURE__*/getPlaybackRequestId(searchParams)}):`, videoPlaybackRequest)
@@ -276,72 +282,84 @@ const processResponse = async (ctx: NetworkContext<unknown, NetworkState.SUCCESS
   })
 }
 
-export const ytplayerCreateStreamingData = (id: string): YTValueData<YTRenderer.Component<'playerStreamingData'>> => ({
-  formats: [
-    {
-      itag: 18,
-      mimeType: 'video/mp4; codecs="avc1.42001E, mp4a.40.2"',
-      bitrate: 16384,
-      width: 360,
-      height: 360,
-      lastModified: '0',
-      contentLength: "300",
-      quality: 'medium',
-      fps: 25,
-      qualityLabel: '360p',
-      projectionType: 'RECTANGULAR',
-      averageBitrate: 16384,
-      audioQuality: 'AUDIO_QUALITY_LOW',
-      approxDurationMs: '1000',
-      audioSampleRate: "44100",
-      audioChannels: 2,
-      qualityOrdinal: 'QUALITY_ORDINAL_360P'
-    }
-  ],
-  adaptiveFormats: [
-    {
-      itag: 394,
-      mimeType: 'video/mp4; codecs="av01.0.00M.08"',
-      bitrate: 8192,
-      width: 144,
-      height: 144,
-      initRange: { start: '0', end: '100' },
-      indexRange: { start: '100', end: '200' },
-      lastModified: '0',
-      contentLength: '300',
-      quality: 'tiny',
-      fps: 25,
-      qualityLabel: '144p',
-      projectionType: 'RECTANGULAR',
-      averageBitrate: 8192,
-      colorInfo: {
-        primaries: 'COLOR_PRIMARIES_BT709',
-        transferCharacteristics: 'COLOR_TRANSFER_CHARACTERISTICS_BT709',
-        matrixCoefficients: 'COLOR_MATRIX_COEFFICIENTS_BT709'
-      },
-      approxDurationMs: '1000',
-      qualityOrdinal: 'QUALITY_ORDINAL_144P'
+export const ytplayerCreateStreamActionResponse = (action: YTPlayerStreamAction, response: YTValueData<YTResponse.Mapped<'player'>>): void => {
+  assign<typeof response, typeof response>(response, {
+    playabilityStatus: {
+      status: 'OK'
     },
-    {
-      itag: 140,
-      mimeType: 'audio/mp4; codecs="mp4a.40.2"',
-      bitrate: 1024,
-      initRange: { start: '0', end: '100' },
-      indexRange: { start: '100', end: '200' },
-      lastModified: '0',
-      contentLength: '300',
-      quality: 'tiny',
-      projectionType: 'RECTANGULAR',
-      averageBitrate: 1024,
-      audioQuality: 'AUDIO_QUALITY_MEDIUM',
-      approxDurationMs: '1000',
-      audioSampleRate: '44100',
-      audioChannels: 2,
-      qualityOrdinal: 'QUALITY_ORDINAL_UNKNOWN'
+    playerConfig: {
+      mediaCommonConfig: {
+        useServerDrivenAbr: true
+      }
+    },
+    streamingData: {
+      formats: [
+        {
+          itag: 18,
+          mimeType: 'video/mp4; codecs="avc1.42001E, mp4a.40.2"',
+          bitrate: 16384,
+          width: 360,
+          height: 360,
+          lastModified: '0',
+          contentLength: "300",
+          quality: 'medium',
+          fps: 25,
+          qualityLabel: '360p',
+          projectionType: 'RECTANGULAR',
+          averageBitrate: 16384,
+          audioQuality: 'AUDIO_QUALITY_LOW',
+          approxDurationMs: '1000',
+          audioSampleRate: "44100",
+          audioChannels: 2,
+          qualityOrdinal: 'QUALITY_ORDINAL_360P'
+        }
+      ],
+      adaptiveFormats: [
+        {
+          itag: 394,
+          mimeType: 'video/mp4; codecs="av01.0.00M.08"',
+          bitrate: 8192,
+          width: 144,
+          height: 144,
+          initRange: { start: '0', end: '100' },
+          indexRange: { start: '100', end: '200' },
+          lastModified: '0',
+          contentLength: '300',
+          quality: 'tiny',
+          fps: 25,
+          qualityLabel: '144p',
+          projectionType: 'RECTANGULAR',
+          averageBitrate: 8192,
+          colorInfo: {
+            primaries: 'COLOR_PRIMARIES_BT709',
+            transferCharacteristics: 'COLOR_TRANSFER_CHARACTERISTICS_BT709',
+            matrixCoefficients: 'COLOR_MATRIX_COEFFICIENTS_BT709'
+          },
+          approxDurationMs: '1000',
+          qualityOrdinal: 'QUALITY_ORDINAL_144P'
+        },
+        {
+          itag: 140,
+          mimeType: 'audio/mp4; codecs="mp4a.40.2"',
+          bitrate: 1024,
+          initRange: { start: '0', end: '100' },
+          indexRange: { start: '100', end: '200' },
+          lastModified: '0',
+          contentLength: '300',
+          quality: 'tiny',
+          projectionType: 'RECTANGULAR',
+          averageBitrate: 1024,
+          audioQuality: 'AUDIO_QUALITY_MEDIUM',
+          approxDurationMs: '1000',
+          audioSampleRate: '44100',
+          audioChannels: 2,
+          qualityOrdinal: 'QUALITY_ORDINAL_UNKNOWN'
+        }
+      ],
+      serverAbrStreamingUrl: `https://rr1---sn-${getNonce(8).toLowerCase().replace(/[-_]/g, '0')}.googlevideo.com/videoplayback?id=${StreamActionID[action]}`
     }
-  ],
-  serverAbrStreamingUrl: `https://rr1---sn-${getNonce(8).toLowerCase().replace(/[-_]/g, '0')}.googlevideo.com/videoplayback?id=${id}`
-})
+  })
+}
 
 export default class YTPlayerNetworkModule extends Feature {
   public constructor() {
