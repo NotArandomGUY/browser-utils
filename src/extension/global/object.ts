@@ -1,5 +1,7 @@
 const { assign, create, defineProperties, defineProperty, entries, freeze, fromEntries, getOwnPropertyDescriptor, getOwnPropertyDescriptors, getOwnPropertyNames, getOwnPropertySymbols, getPrototypeOf, is, isExtensible, isFrozen, isSealed, keys, preventExtensions, seal, setPrototypeOf, values } = Object
 
+export type FindPropertyPathPredicate = (value: unknown, key: string, depth: number) => boolean
+
 export function getPropertyDescriptor(o: object, p: PropertyKey): PropertyDescriptor | undefined {
   const parents = new Set<object>()
   while (!parents.has(o)) {
@@ -27,29 +29,33 @@ export function syncPropertyDescriptors(source: object, target: object): void {
   }).filter(e => e != null)))
 }
 
-export function findPropertyChain(root: unknown, target: unknown, maxDepth: number, filter?: (key: string) => boolean): string[] | null {
-  if (typeof root !== 'object' || root == null || maxDepth < 1) return null
+export function findPropertyPath(root: object, matcher: FindPropertyPathPredicate, maxDepth: number, filter?: FindPropertyPathPredicate): string[] | null {
+  const walkObject = (object: unknown, depth: number): string[] | null => {
+    if (typeof object !== 'object' || object == null || depth >= maxDepth) return null
 
-  let pairs = entries(root)
-  if (filter != null) {
-    pairs = pairs.filter(([key]) => filter(key))
+    let pairs = entries(object)
+    if (filter != null) {
+      pairs = pairs.filter(([key, value]) => filter(value, key, depth))
+    }
+
+    const pair = pairs.find(([key, value]) => matcher(value, key, depth))
+    if (pair != null) return [pair[0]]
+
+    for (const [key, value] of pairs) {
+      const path = walkObject(value, depth + 1)
+      if (path != null) return [key, ...path]
+    }
+
+    return null
   }
 
-  const pair = pairs.find(entry => entry[1] === target)
-  if (pair != null) return [pair[0]]
-
-  for (const [key, value] of pairs) {
-    const chain = findPropertyChain(value, target, maxDepth - 1, filter)
-    if (chain != null) return [key, ...chain]
-  }
-
-  return null
+  return walkObject(root, 0)
 }
 
-export function observePropertyChain<T extends object>(root: unknown, chain: string[], callback: (value: T) => void): void {
+export function observePropertyPath<T extends object>(root: unknown, path: string[], callback: (value: T) => void): void {
   if (typeof root !== 'object' || root == null) return
 
-  const key = chain[0]
+  const key = path[0]
   if (key == null) return
 
   let value: unknown
@@ -57,13 +63,13 @@ export function observePropertyChain<T extends object>(root: unknown, chain: str
   const get = (): unknown => value
   const set = (v: unknown): void => {
     value = v
-    observePropertyChain(value, chain.slice(1), callback)
+    observePropertyPath(value, path.slice(1), callback)
   }
 
   set(root[key as keyof typeof root])
   defineProperty(root, key, { configurable: true, enumerable: true, get, set })
 
-  if (chain.length > 1) return
+  if (path.length > 1) return
 
   callback(value as T)
 }

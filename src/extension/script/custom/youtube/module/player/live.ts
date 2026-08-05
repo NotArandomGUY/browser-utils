@@ -1,7 +1,7 @@
 import { registerYTValueProcessor } from '@ext/custom/youtube/api/processor'
 import { YTEndpoint, YTRenderer, YTResponse, YTValueData } from '@ext/custom/youtube/api/schema'
 import { getYTConfigBool, registerYTConfigMenuItemGroup, YTConfigMenuItemType } from '@ext/custom/youtube/module/core/config'
-import { YTPApp, YTPObjectCreateCallback, YTPObjectType, YTPVideoPlayer } from '@ext/custom/youtube/module/player/bootstrap'
+import { YTPApp, YTPObjectCreateCallback, YTPObjectType, YTPVideoPlayer, YTPVideoPlayerSymbol } from '@ext/custom/youtube/module/player/bootstrap'
 import { abs, max, min, round } from '@ext/global/math'
 import { defineProperty } from '@ext/global/object'
 import { Feature } from '@ext/lib/feature'
@@ -72,62 +72,67 @@ class ActiveLiveHead {
     this.updateTimestamp_ = now
     this.updateInterval_ = interval
 
-    const player = this.app_.playerRef?.deref()
-    const state = player?.['playerState']
+    const player = this.app_[YTPVideoPlayerSymbol]
+    if (player == null) return
+
+    const videoData = player.getVideoData?.()
+    const playerState = player.getPlayerState?.()
 
     // Pause if video is paused or not live playback or low latency option is disabled
-    if (!player?.videoData?.isLivePlayback || !state?.isPlaying?.() || !isYTLiveBehaviourEnabled(YTLiveBehaviourMask.LOW_LATENCY)) return this.changeState_(ActiveLiveHeadState.PAUSED, player)
+    if (!videoData?.isLivePlayback || !playerState?.isPlaying?.() || !isYTLiveBehaviourEnabled(YTLiveBehaviourMask.LOW_LATENCY)) return this.changeState_(ActiveLiveHeadState.PAUSED, player)
 
     // Reinitialize on video change
-    const videoId = player.videoData.videoId
+    const videoId = videoData.videoId
     if (videoId !== this.videoId_) {
       this.videoId_ = videoId
-      return this.changeState_(ActiveLiveHeadState.UNINIT, player)
+      this.changeState_(ActiveLiveHeadState.UNINIT, player)
+      return
     }
 
-    if (state.isBuffering?.()) {
-      // Wait for buffering
+    // Wait for buffering
+    if (playerState.isBuffering?.()) {
       this.changeState_(ActiveLiveHeadState.BUFFER, player)
-    } else {
-      switch (this.state_) {
-        case ActiveLiveHeadState.UNINIT:
-        case ActiveLiveHeadState.PAUSED:
-        case ActiveLiveHeadState.BUFFER:
-          this.changeState_(player.isAtLiveHead?.() ? ActiveLiveHeadState.INSYNC : ActiveLiveHeadState.DESYNC, player)
-          return
-        case ActiveLiveHeadState.DESYNC:
-          this.updateBufferSamples_(player)
-          if (player.isAtLiveHead?.()) {
-            this.changeState_(ActiveLiveHeadState.INSYNC, player)
-            break
-          }
-
-          // TODO: pause on manual seek?
-          break
-        case ActiveLiveHeadState.INSYNC:
-          this.updateBufferSamples_(player)
-          if (!player.isAtLiveHead?.()) {
-            this.changeState_(ActiveLiveHeadState.DESYNC, player)
-            break
-          }
-          this.updateLatencySamples_(player)
-
-          this.updateBufferTarget_()
-          this.updateLatencyTarget_()
-
-          this.updatePlaybackRate_(player)
-          break
-        default:
-          this.changeState_(ActiveLiveHeadState.UNINIT, player)
-          return
-      }
+      this.updateDebugInfo_()
+      return
     }
 
+    switch (this.state_) {
+      case ActiveLiveHeadState.UNINIT:
+      case ActiveLiveHeadState.PAUSED:
+      case ActiveLiveHeadState.BUFFER:
+        this.changeState_(player.isAtLiveHead?.() ? ActiveLiveHeadState.INSYNC : ActiveLiveHeadState.DESYNC, player)
+        return
+      case ActiveLiveHeadState.DESYNC:
+        this.updateBufferSamples_(player)
+        if (player.isAtLiveHead?.()) {
+          this.changeState_(ActiveLiveHeadState.INSYNC, player)
+          break
+        }
+
+        // TODO: pause on manual seek?
+        break
+      case ActiveLiveHeadState.INSYNC:
+        this.updateBufferSamples_(player)
+        if (!player.isAtLiveHead?.()) {
+          this.changeState_(ActiveLiveHeadState.DESYNC, player)
+          break
+        }
+        this.updateLatencySamples_(player)
+
+        this.updateBufferTarget_()
+        this.updateLatencyTarget_()
+
+        this.updatePlaybackRate_(player)
+        break
+      default:
+        this.changeState_(ActiveLiveHeadState.UNINIT, player)
+        return
+    }
     this.updateDebugInfo_()
   }
 
   private updateDebugInfo_(): void {
-    const debugInfo = this.app_.ytpsfnRef?.deref()
+    const debugInfo = this.app_.debugInfo
     if (debugInfo == null) return
 
     const { state_, bufferMin_, bufferAvg_, bufferDev_, bufferTarget_, latencyAvg_, latencyDev_, latencyTarget_, playbackRate_ } = this
@@ -229,7 +234,7 @@ class ActiveLiveHead {
         player?.setPlaybackRate?.(1)
 
         // Hide debug info
-        app_.ytpsfnRef?.deref()?.updateValue('bu_alh_style', 'display:none')
+        app_.debugInfo?.updateValue('bu_alh_style', 'display:none')
         break
       case ActiveLiveHeadState.BUFFER:
         // Only update min buffer on transition from playing to buffering

@@ -46,14 +46,15 @@ export default class YTPlayerStoryboardModule extends Feature {
       YTPObjectCreateCallback.registerCallback((type, object) => {
         if (type !== YTPObjectType.VIDEO_PLAYER) return
 
-        const prototype = getPrototypeOf(object.videoData)
+        const videoData = object.getVideoData?.()
+        const prototype = getPrototypeOf(videoData)
         if (prototype == null) return
 
         getOwnPropertyNames(prototype).forEach(key => {
           const value = prototype[key as keyof YTPVideoData]
           if (typeof value !== 'function' || !value.toString().includes('.storyboards')) return
 
-          defineProperty(object.videoData, key, {
+          defineProperty(videoData, key, {
             configurable: true,
             value: new Hook(value as (this: YTPVideoData, ...args: unknown[]) => unknown).install(ctx => {
               const { self, args } = ctx
