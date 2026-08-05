@@ -3,7 +3,7 @@ import { YTEndpoint, YTRenderer, YTResponse, YTValueData, YTValueType } from '@e
 import { YTPolymerConnectCallback } from '@ext/custom/youtube/module/core/bootstrap'
 import { registerYTSignalActionHandler } from '@ext/custom/youtube/module/core/command'
 import { registerYTConfigMenuItemGroup, YTConfigMenuItemType } from '@ext/custom/youtube/module/core/config'
-import { getYTPMainPlayer, YTPVideoPlayerInstance } from '@ext/custom/youtube/module/player/bootstrap'
+import { getYTPMainPlayer, YTPVideoPlayer } from '@ext/custom/youtube/module/player/bootstrap'
 import ContinuationToken, { LiveChatContinuationToken } from '@ext/custom/youtube/proto/continuation-token'
 import { decodeEntityKey, encodeEntityKey } from '@ext/custom/youtube/proto/entity-key'
 import LiveChatParams, { LiveChatQuery, LiveChatQueryContent } from '@ext/custom/youtube/proto/live-chat-params'
@@ -204,7 +204,7 @@ const updateGetLiveChatResponse = ({ continuationContents }: YTValueData<YTRespo
 }
 
 class MainAppMessageChannel extends MessageChannel<PopoutMessageDataMap, PopoutMessageType> {
-  private player_: YTPVideoPlayerInstance | null = null
+  private player_: YTPVideoPlayer | null = null
   private binding_: ChatBinding | null = null
   private boundedPopoutTimeout_: number = 0
   private unboundPopoutTimeout_: number
@@ -364,7 +364,7 @@ class MainAppMessageChannel extends MessageChannel<PopoutMessageDataMap, PopoutM
     if (binding_?.[1]) this.onPlayerProgress_()
   }
 
-  private setPlayer_(player: YTPVideoPlayerInstance | null = null): void {
+  private setPlayer_(player: YTPVideoPlayer | null = null): void {
     const { player_, onPlayerProgress_, onPlayerAdStart_, onPlayerAdEnd_, onPlayerStateChange_, unload_ } = this
 
     if (player_ === player) return

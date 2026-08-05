@@ -3,7 +3,7 @@ import { YTRenderer, YTValueData } from '@ext/custom/youtube/api/schema'
 import { YTConfigInitCallback, YTPlayerCreateCallback, YTPlayerWebPlayerContextConfig } from '@ext/custom/youtube/module/core/bootstrap'
 import { registerYTInnertubeRequestProcessor } from '@ext/custom/youtube/module/core/network'
 import { URLSearchParams } from '@ext/global/network'
-import { defineProperty, findPropertyChain, fromEntries, keys, observePropertyChain, values } from '@ext/global/object'
+import { defineProperties, defineProperty, findPropertyChain, fromEntries, getOwnPropertyDescriptor, getPrototypeOf, keys, observePropertyChain, values } from '@ext/global/object'
 import Callback from '@ext/lib/callback'
 import { Feature } from '@ext/lib/feature'
 import InterceptDOM from '@ext/lib/intercept/dom'
@@ -60,63 +60,71 @@ const PLAYER_STYLE_SHEET = [
 
 const MainPlayerParentSelector = 'ytd-player,ytlr-player'
 const CtorRegexpList = [
-  [YTPInstanceType.APP, /(logger[A-Za-z("'._=\s]+App)|(publish\(["']applicationInitialized)/],
-  [YTPInstanceType.VIDEO_PLAYER, /(logger[A-Za-z("'._=\s]+VideoPlayer)|(new\s+Map.*?bufferhealth)/]
-] satisfies [YTPInstanceType, RegExp][]
+  [YTPObjectType.APP, /(logger[A-Za-z("'._=\s]+App)|(this(\.[a-zA-Z_$][\w$]*){2}\(["']applicationInitialized["']\))/],
+  [YTPObjectType.VIDEO_PLAYER, /(logger[A-Za-z("'._=\s]+VideoPlayer)|(new\s+Map.*?bufferhealth)/],
+  // matching from global
+  [YTPObjectType.TEMPLATE, /this\.element\s*=\s*this\.createElement/],
+  // matching from create hook
+  [YTPObjectType.TEMPLATE_VIDEO_PLAYER, /html5-video-player/]
+] satisfies [YTPObjectType, RegExp][]
+const TemplateMapPropRegexp = /this\.(.*?)\[['"`]{{.*?}}['"`]\]/
 const StatMethodMap = {
   bandwidth: 'getBandWidth',
   bufferhealth: 'getBufferHealth',
   networkactivity: 'getNetworkActivity',
   livelatency: 'getLiveLatency',
   rawlivelatency: 'getRawLiveLatency'
-} satisfies Record<string, keyof YTPVideoPlayerInstance>
+} satisfies Record<string, keyof YTPVideoPlayer>
 const JsonPrefix = ')]}\'\n'
 
-export const enum YTPInstanceType {
-  APP,
-  VIDEO_PLAYER
-}
-
-export interface YTPDisposableInstance {
+export interface YTPObject {
   dispose?(): void
+  addOnDisposeCallback?(callback: () => void): void
+  addOnDisposeCallback?<T>(callback: (this: T) => void, thisArg: T): void
 }
 
-export interface YTPEventTargetInstance extends YTPDisposableInstance {
-  subscribe?<T, A extends unknown[]>(event: string, callback: (this: T, ...args: A) => void, instance?: T): number
-  unsubscribe?<T, A extends unknown[]>(event: string, callback: (this: T, ...args: A) => void, instance?: T): boolean
+export interface YTPEventTarget extends YTPObject {
+  subscribe?<T, A extends unknown[]>(event: string, callback: (this: T, ...args: A) => void, thisArg?: T): number
+  unsubscribe?<T, A extends unknown[]>(event: string, callback: (this: T, ...args: A) => void, thisArg?: T): boolean
   publish?<A extends unknown[]>(event: string, ...args: A): void
 }
 
-export interface YTPVideoDataInstance extends YTPDisposableInstance {
+export interface YTPVideoData extends YTPObject {
   videoId?: string
   cotn?: string
+  isLivePlayback?: boolean
 
   isAd?(): boolean
   isDaiEnabled?(): boolean
   isEmbedsShortsMode?(): boolean
   isLoaded?(): boolean
   isOtf?(): boolean
+  getPlayerResponse?(): object
+  getWatchNextResponse?(): object
+  getReelItemWatchResponse?(): object
+  getResolveUrlResponse?(): object
+  getHeartbeatResponse?(): object
+  getEmbeddedPlayerResponse?(): object
   setData?(data?: object): void
 }
 
-export interface YTPAppInstance extends YTPDisposableInstance {
-  playerRef?: WeakRef<YTPVideoPlayerInstance>
+export interface YTPApp extends YTPObject {
+  playerRef?: WeakRef<YTPVideoPlayer>
+  ytpsfnRef?: WeakRef<YTPTemplate>
 
   mediaElement?: object | null
-  template?: {
-    element?: HTMLElement
-  }
+  template?: Partial<YTPTemplate>
 
   enqueueVideoByPlayerVars?(...args: unknown[]): void
   getInternalApi(): Record<string, (...args: unknown[]) => unknown>
   loadVideoByPlayerVars?(...args: unknown[]): void
 }
 
-export interface YTPVideoPlayerInstance extends YTPEventTargetInstance {
+export interface YTPVideoPlayer extends YTPEventTarget {
   loop: boolean
   playbackRate: number
   playerType: number
-  videoData?: YTPVideoDataInstance
+  videoData?: YTPVideoData
 
   getBandWidth?(): number
   getBufferHealth?(): number
@@ -142,97 +150,129 @@ export interface YTPVideoPlayerInstance extends YTPEventTargetInstance {
   stopVideo?(): void
 }
 
-const instancesByType = {
-  [YTPInstanceType.APP]: new Set<WeakRef<YTPAppInstance>>(),
-  [YTPInstanceType.VIDEO_PLAYER]: new Set<WeakRef<YTPVideoPlayerInstance>>()
+export interface YTPTemplate extends YTPObject {
+  [YTPTemplateMapSymbol]: Record<`{{${string}}}`, [Node, 'child' | 'style']>
+
+  element: HTMLElement
+
+  createElement(this: YTPTemplate, template: object, svg?: boolean): HTMLElement
+  define(this: YTPTemplate, key: string, node: Node, type: 'child' | 'style'): void
+  update(this: YTPTemplate, data: Record<string, string | number[]>): void
+  updateValue(this: YTPTemplate, key: string, value: string | number[]): void
 }
 
-let baseCtor: string | undefined
-let mainApp: YTPInstanceOf<YTPInstanceType.APP> | undefined
+export const enum YTPObjectType {
+  APP,
+  VIDEO_PLAYER,
+  TEMPLATE,
+  TEMPLATE_VIDEO_INFO,
+  TEMPLATE_VIDEO_PLAYER
+}
+
+type YTPInstanceOf<T extends YTPObjectType> = {
+  [YTPObjectType.APP]: YTPApp
+  [YTPObjectType.VIDEO_PLAYER]: YTPVideoPlayer
+  [YTPObjectType.TEMPLATE]: YTPTemplate
+  [YTPObjectType.TEMPLATE_VIDEO_INFO]: YTPTemplate
+  [YTPObjectType.TEMPLATE_VIDEO_PLAYER]: YTPTemplate
+}[T]
+type YTPObjectDefineCallbackParams = { [T in YTPObjectType]: [type: T, prototype: any] }[YTPObjectType]
+type YTPObjectCreateCallbackParams = { [T in YTPObjectType]: [type: T, object: YTPInstanceOf<T>] }[YTPObjectType]
+
+export const YTPTemplateMapSymbol = Symbol()
+export const YTPObjectPrototypeSymbol = Symbol()
 
 export const YTPlayerContextConfigCallback = new Callback<[config: YTPlayerWebPlayerContextConfig]>()
-export const YTPlayerInstanceCreateCallback = new Callback<YTPInstanceCallbackParams>()
+export const YTPObjectDefineCallback = new Callback<YTPObjectDefineCallbackParams>()
+export const YTPObjectCreateCallback = new Callback<YTPObjectCreateCallbackParams>()
 
-type YTPInstanceOf<T extends YTPInstanceType> = typeof instancesByType[T] extends Set<WeakRef<infer I>> ? I : never
-type YTPInstanceCallbackParams = { [T in YTPInstanceType]: [type: T, instance: YTPInstanceOf<T>] }[YTPInstanceType]
+const objectsMap = {
+  [YTPObjectType.APP]: new Set(),
+  [YTPObjectType.VIDEO_PLAYER]: new Set()
+} satisfies Partial<{ [T in YTPObjectType]: Set<WeakRef<YTPInstanceOf<T>>> }>
 
-const onCreateInstanceType = (type: YTPInstanceType, instance: YTPDisposableInstance): YTPDisposableInstance => {
-  setTimeout(() => YTPlayerInstanceCreateCallback.invoke(...[type, instance] as YTPInstanceCallbackParams), 1)
+let unregisterPlayerCreateCallback: (() => void) | undefined
+let baseCtor: Function | undefined
+let mainApp: YTPInstanceOf<YTPObjectType.APP> | undefined
 
-  if (instance.dispose != null) {
-    const instances = instancesByType[type] as Set<WeakRef<YTPDisposableInstance>>
-
-    instance.dispose = new Hook(instance.dispose, false).install(ctx => {
-      for (const ref of instances) {
+const onCreateObjectType = (type: YTPObjectType, object: YTPObject): YTPObject => {
+  const objects = objectsMap[type as keyof typeof objectsMap] as Set<WeakRef<YTPObject>>
+  if (objects != null && object.dispose != null) {
+    object.dispose = new Hook(object.dispose, false).install(() => {
+      for (const ref of objects) {
         const value = ref.deref()
-        if (value == null || value === instance) instances.delete(ref)
+        if (value == null || value === object) objects.delete(ref)
       }
       return HookResult.EXECUTION_PASSTHROUGH
     }).call
+    objects.add(new WeakRef(object))
+  }
+  setTimeout(() => YTPObjectCreateCallback.invoke(...[type, object] as YTPObjectCreateCallbackParams), 1)
 
-    instances.add(new WeakRef(instance))
+  return object
+}
+
+const onCreateObjectGeneric = (object: object): void => {
+  const prototype = getPrototypeOf(object)
+  if (prototype == null) return
+
+  const body = prototype.constructor.toString()
+  const type = CtorRegexpList.find(entry => entry[1].test(body))?.[0]
+  if (type == null) return
+
+  if (!(YTPObjectPrototypeSymbol in prototype)) {
+    defineProperty(prototype, YTPObjectPrototypeSymbol, { enumerable: false, value: undefined })
+    YTPObjectDefineCallback.invoke(type, prototype)
   }
 
-  return instance
+  onCreateObjectType(type, object)
 }
 
-const onCreateInstanceGeneric = (instance: object): void => {
-  defineProperty(instance, 'logger', {
-    configurable: true,
-    set(value) {
-      defineProperty(instance, 'logger', { configurable: true, writable: true, value })
-      switch (value?.tag) {
-        case 'App':
-          onCreateInstanceType(YTPInstanceType.APP, instance)
-          break
-        case 'VideoPlayer':
-          onCreateInstanceType(YTPInstanceType.VIDEO_PLAYER, instance)
-          break
-      }
-    }
-  })
-}
-
-const onCreateYTPlayerWithGlobal = (playerGlobal: Record<string, Function>): void => {
+const onCreateYTPlayerWithGlobal = (playerGlobal: Record<string | symbol, unknown>): void => {
   for (const key in playerGlobal) {
     const value = playerGlobal[key]
     if (typeof value !== 'function') continue
 
-    for (const [type, regexp] of CtorRegexpList) {
-      if (!regexp.test(value.toString())) continue
+    const prototype = value.prototype
+    if (prototype == null) continue
 
-      playerGlobal[key] = new Proxy(value, {
-        construct(target, argArray, newTarget) {
-          return onCreateInstanceType(type, Reflect.construct(target, argArray, newTarget))
-        }
-      })
-      break
-    }
+    const body = value.toString()
+    const type = CtorRegexpList.find(entry => entry[1].test(body))?.[0]
+    if (type == null) continue
+
+    playerGlobal[key] = new Proxy(value, {
+      construct(target, argArray, newTarget) {
+        return onCreateObjectType(type, Reflect.construct(target, argArray, newTarget))
+      }
+    })
+    YTPObjectDefineCallback.invoke(type, prototype)
   }
 }
 
 const onCreateYTPlayer = (container: HTMLElement): void => {
+  unregisterPlayerCreateCallback?.()
+
   const playerGlobal = window._yt_player
   if (playerGlobal != null) return onCreateYTPlayerWithGlobal(playerGlobal)
 
   Object.prototype.hasOwnProperty = new Hook(Object.prototype.hasOwnProperty).install(ctx => { // NOSONAR
     if (ctx.self === container) {
       Function.prototype.call = new Hook(Function.prototype.call).install(ctx => { // NOSONAR
-        const fn = ctx.self.toString()
-        const instance = ctx.args[0]
+        const callable = ctx.self
+        const object = ctx.args[0]
 
         let result = HookResult.EXECUTION_PASSTHROUGH
         if (baseCtor == null) {
-          const oldKeys = keys(instance).length
+          const oldKeys = keys(object).length
           ctx.returnValue = ctx.origin.apply(ctx.self, ctx.args)
-          const newKeys = keys(instance).length
+          const newKeys = keys(object).length
 
           if (oldKeys === newKeys) return HookResult.EXECUTION_CONTINUE
 
-          baseCtor = fn
+          baseCtor = callable
           result = HookResult.EXECUTION_CONTINUE
         }
-        if (fn === baseCtor) onCreateInstanceGeneric(instance)
+        if (callable === baseCtor) onCreateObjectGeneric(object)
 
         return result
       }).call
@@ -289,18 +329,18 @@ const updateTransportControlsAction = (data: YTValueData<YTRenderer.Component<'t
   if (button && data.type === 'TRANSPORT_CONTROLS_BUTTON_TYPE_SPEED_BUTTON') button.isDisabled = false
 }
 
-export const getYTPInstances = <T extends YTPInstanceType>(type: T): YTPInstanceOf<T>[] => {
-  return Array.from(instancesByType[type]?.values() as SetIterator<WeakRef<YTPInstanceOf<T>>> ?? []).map(ref => ref.deref()).filter(value => value != null)
+export const getYTPObjects = <T extends keyof typeof objectsMap>(type: T): YTPInstanceOf<T>[] => {
+  return Array.from(objectsMap[type]?.values() as SetIterator<WeakRef<YTPInstanceOf<T>>> ?? []).map(ref => ref.deref()).filter(value => value != null)
 }
 
-export const getYTPMainApp = (): YTPInstanceOf<YTPInstanceType.APP> | undefined => {
+export const getYTPMainApp = (): YTPInstanceOf<YTPObjectType.APP> | undefined => {
   if (mainApp?.template?.element?.closest(MainPlayerParentSelector) == null) {
-    mainApp = getYTPInstances(YTPInstanceType.APP).find(app => app.template?.element?.closest(MainPlayerParentSelector) != null)
+    mainApp = getYTPObjects(YTPObjectType.APP).find(app => app.template?.element?.closest(MainPlayerParentSelector) != null)
   }
   return mainApp
 }
 
-export const getYTPMainPlayer = (): YTPInstanceOf<YTPInstanceType.VIDEO_PLAYER> | undefined => {
+export const getYTPMainPlayer = (): YTPInstanceOf<YTPObjectType.VIDEO_PLAYER> | undefined => {
   return getYTPMainApp()?.playerRef?.deref()
 }
 
@@ -310,24 +350,74 @@ export default class YTPlayerBootstrapModule extends Feature {
   }
 
   protected activate(): boolean {
+    unregisterPlayerCreateCallback = YTPlayerCreateCallback.registerCallback(onCreateYTPlayer)
+
     YTConfigInitCallback.registerCallback(ytcfg => processPlayerContextConfig(ytcfg.get('WEB_PLAYER_CONTEXT_CONFIGS')))
-    YTPlayerCreateCallback.registerCallback(onCreateYTPlayer)
-    YTPlayerInstanceCreateCallback.registerCallback((type, instance) => {
+    YTPObjectDefineCallback.registerCallback((type, prototype) => {
+      if (type === YTPObjectType.TEMPLATE_VIDEO_PLAYER) {
+        YTPObjectDefineCallback.invoke(YTPObjectType.TEMPLATE, getPrototypeOf(getPrototypeOf(prototype)))
+        return
+      }
+      if (type !== YTPObjectType.TEMPLATE || getOwnPropertyDescriptor(prototype, 'createElement') == null) return
+
+      const templateMapProp = TemplateMapPropRegexp.exec(prototype.updateValue?.toString())?.[1]
+      if (templateMapProp == null) return
+
+      defineProperties(prototype, {
+        [YTPTemplateMapSymbol]: {
+          configurable: true,
+          get() {
+            return this[templateMapProp]
+          }
+        },
+        createElement: {
+          configurable: true,
+          value: new Hook(prototype.createElement as YTPTemplate['createElement']).install(ctx => {
+            const { origin, self, args } = ctx
+
+            self.createElement = origin
+            const element = origin.apply(self, args)
+            ctx.returnValue = element
+
+            if (element.classList.contains('ytp-sfn')) {
+              requestAnimationFrame(() => {
+                getYTPObjects(YTPObjectType.APP).some(app => { // NOSONAR
+                  if (findPropertyChain(app, self, 5) == null) return false
+
+                  app.ytpsfnRef = new WeakRef(self)
+                  return true
+                })
+                onCreateObjectType(YTPObjectType.TEMPLATE_VIDEO_INFO, self)
+              })
+            }
+
+            return HookResult.EXECUTION_CONTINUE
+          }).call
+        },
+        define: {
+          configurable: true,
+          value(this: YTPTemplate, key: string, node: Node, type: 'child' | 'style') {
+            this[YTPTemplateMapSymbol][`{{${key}}}`] = [node, type]
+          }
+        }
+      })
+    })
+    YTPObjectCreateCallback.registerCallback((type, object) => {
       switch (type) {
-        case YTPInstanceType.APP:
-          getYTPInstances(YTPInstanceType.VIDEO_PLAYER).some(playerInstance => {
-            const chain = findPropertyChain(instance, playerInstance, 3, key => key !== 'mediaElement')
+        case YTPObjectType.APP:
+          getYTPObjects(YTPObjectType.VIDEO_PLAYER).some(player => {
+            const chain = findPropertyChain(object, player, 3, key => key !== 'mediaElement')
             if (chain == null) return false
 
-            observePropertyChain(instance, chain, (playerInstance: YTPVideoPlayerInstance) => {
+            observePropertyChain(object, chain, (playerInstance: YTPVideoPlayer) => {
               logger.debug('player instance changed')
-              instance.playerRef = new WeakRef(playerInstance)
+              object.playerRef = new WeakRef(playerInstance)
             })
             return true
           })
           return
-        case YTPInstanceType.VIDEO_PLAYER:
-          values(instance).forEach(prop => {
+        case YTPObjectType.VIDEO_PLAYER:
+          values(object).forEach(prop => {
             if (prop == null || typeof prop !== 'object') return
 
             for (const key in prop) {
@@ -337,7 +427,7 @@ export default class YTPlayerBootstrapModule extends Feature {
               for (const stat in StatMethodMap) {
                 if (!value.has(stat)) continue
 
-                instance[StatMethodMap[stat as keyof typeof StatMethodMap]] = value.get(stat)
+                object[StatMethodMap[stat as keyof typeof StatMethodMap]] = value.get(stat)
               }
             }
           })

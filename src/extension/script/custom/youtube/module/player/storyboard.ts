@@ -1,6 +1,6 @@
 import { registerYTValueProcessor } from '@ext/custom/youtube/api/processor'
 import { YTResponse, YTValueData } from '@ext/custom/youtube/api/schema'
-import { YTPInstanceType, YTPlayerInstanceCreateCallback, YTPVideoDataInstance } from '@ext/custom/youtube/module/player/bootstrap'
+import { YTPObjectCreateCallback, YTPObjectType, YTPVideoData } from '@ext/custom/youtube/module/player/bootstrap'
 import { max } from '@ext/global/math'
 import { defineProperty, getOwnPropertyNames, getPrototypeOf } from '@ext/global/object'
 import { Feature } from '@ext/lib/feature'
@@ -43,19 +43,19 @@ export default class YTPlayerStoryboardModule extends Feature {
 
   protected activate(cleanupCallbacks: Function[]): boolean {
     cleanupCallbacks.push(
-      YTPlayerInstanceCreateCallback.registerCallback((type, instance) => {
-        if (type !== YTPInstanceType.VIDEO_PLAYER) return
+      YTPObjectCreateCallback.registerCallback((type, object) => {
+        if (type !== YTPObjectType.VIDEO_PLAYER) return
 
-        const prototype = getPrototypeOf(instance.videoData)
+        const prototype = getPrototypeOf(object.videoData)
         if (prototype == null) return
 
         getOwnPropertyNames(prototype).forEach(key => {
-          const value = prototype[key as keyof YTPVideoDataInstance]
+          const value = prototype[key as keyof YTPVideoData]
           if (typeof value !== 'function' || !value.toString().includes('.storyboards')) return
 
-          defineProperty(instance.videoData, key, {
+          defineProperty(object.videoData, key, {
             configurable: true,
-            value: new Hook(value as (this: YTPVideoDataInstance, ...args: unknown[]) => unknown).install(ctx => {
+            value: new Hook(value as (this: YTPVideoData, ...args: unknown[]) => unknown).install(ctx => {
               const { self, args } = ctx
 
               const cotn = self.cotn

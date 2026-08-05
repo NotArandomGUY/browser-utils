@@ -205,7 +205,7 @@ export interface YTPolymerElement<Tag extends string = string> extends HTMLEleme
 }
 
 const AppTagNameRegexp = /^yt.*-app$/i
-const KevlarSingletonRegexp = /[a-zA-Z_$][\w$]+\|\|\([a-zA-Z_$][\w$]+=new\s+[a-zA-Z_$][\w$]+\);return [a-zA-Z_$][\w$]+/s
+const KevlarSingletonRegexp = /[a-zA-Z_$][\w$]*\|\|\([a-zA-Z_$][\w$]*=new\s+[a-zA-Z_$][\w$]*\);return [a-zA-Z_$][\w$]*/s
 const KevlarClassDeferCount = 8
 
 const PolymerElementConnectedSymbol = Symbol()
