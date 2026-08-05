@@ -40,6 +40,7 @@ class ActiveLiveHead {
   private readonly app_: YTPApp
   private readonly timer_: ReturnType<typeof setInterval>
   private state_: ActiveLiveHeadState = ActiveLiveHeadState.UNINIT
+  private videoId_: string | undefined
   private updateTimestamp_: number = 0
   private updateInterval_: number = 0
   private bufferMin_: number = 0
@@ -76,6 +77,13 @@ class ActiveLiveHead {
 
     // Pause if video is paused or not live playback or low latency option is disabled
     if (!player?.videoData?.isLivePlayback || !state?.isPlaying?.() || !isYTLiveBehaviourEnabled(YTLiveBehaviourMask.LOW_LATENCY)) return this.changeState_(ActiveLiveHeadState.PAUSED, player)
+
+    // Reinitialize on video change
+    const videoId = player.videoData.videoId
+    if (videoId !== this.videoId_) {
+      this.videoId_ = videoId
+      return this.changeState_(ActiveLiveHeadState.UNINIT, player)
+    }
 
     // Wait for buffering
     if (state.isBuffering?.()) return this.changeState_(ActiveLiveHeadState.BUFFER, player)
