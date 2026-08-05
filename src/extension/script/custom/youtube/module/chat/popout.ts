@@ -137,6 +137,9 @@ interface YTLiveChatRenderer extends HTMLElement {
   is: typeof YTLiveChatRendererTagName
 
   data?: YTValueData<YTRenderer.Mapped<'liveChatRenderer'>>
+  ytLiveChatReplayBehavior?: Partial<{
+    currentPlayerState: object
+  }>
   bannerManager?: Partial<{
     reset(): void
   }>
@@ -543,6 +546,7 @@ class ChatAppMessageChannel extends MessageChannel<PopoutMessageDataMap, PopoutM
 
     if (renderer_ == null) return false
 
+    delete renderer_.ytLiveChatReplayBehavior?.currentPlayerState
     renderer_.bannerManager?.reset?.()
     renderer_.data = replace ? data : { ...renderer_.data, ...data }
 
