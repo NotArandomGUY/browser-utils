@@ -44,7 +44,8 @@ export const getMultiPageMenuAction = ytv_enp(() => ({
   menu: ytv_ren()
 }))
 export const hideEnclosingAction = ytv_enp(() => ({
-  notificationId: ytv_str()
+  notificationId: ytv_str(),
+  hack: ytv_bol()
 }))
 export const hideEngagementPanelScrimAction = ytv_enp(() => ({
   engagementPanelTargetId: ytv_str()
@@ -287,6 +288,14 @@ export const logYpcFlowStartCommand = ytv_enp(() => ({
 export const loopCommand = ytv_enp(() => ({
   loop: ytv_bol()
 }))
+export const musicBrowseFormBinderCommand = ytv_enp(() => ({
+  browseEndpoint,
+  formEntityKey: ytv_str()
+}))
+export const musicCheckboxFormItemMutatedCommand = ytv_enp(() => ({
+  formItemEntityKey: ytv_str(),
+  newCheckedState: ytv_bol()
+}))
 export const openSuperStickerBuyFlowCommand = ytv_enp(() => ({
   params: ytv_str()
 }))
@@ -316,6 +325,12 @@ export const profileCardCommand = ytv_enp(() => ({
   profileCardContext: ytv_str(),
   profileOwnerExternalChannelId: ytv_str(),
   shouldUseProfileBottomSheet: ytv_bol()
+}))
+export const queueUpdateCommand = ytv_enp(() => ({
+  dedupeAgainstLocalQueue: ytv_bol(),
+  fetchContentsCommand: ytv_enp(),
+  queueUpdateSection: ytv_str(['QUEUE_UPDATE_SECTION_AUTOPLAY', 'QUEUE_UPDATE_SECTION_QUEUE']),
+  syncMode: ytv_str(['QUEUE_UPDATE_SYNC_MODE_DEDUPE_AGAINST_LOCAL', 'QUEUE_UPDATE_SYNC_MODE_OVERWRITE_LOCAL'])
 }))
 export const registerTasksCommand = ytv_enp(() => ({
   tasks: ytv_arr(ytv_ren({
@@ -358,6 +373,7 @@ export const runAttestationCommand = ytv_enp(() => ({
   engagementType: ytv_str(common.enums.EngagementType),
   ids: ytv_arr(ytv_unk())
 }))
+export const saveQueueToPlaylistCommand = ytv_enp(() => ({}))
 export const seekToVideoTimestampCommand = ytv_enp(() => ({
   offsetFromVideoStartMilliseconds: ytv_str(),
   videoId: ytv_str()
@@ -463,6 +479,10 @@ export const updateEngagementPanelContentCommand = ytv_enp(() => ({
 export const updateEntityButtonDetailsCommand = ytv_enp(() => ({
   selectedIndex: ytv_num()
 }))
+export const updateMultiSelectStateCommand = ytv_enp(() => ({
+  multiSelectItem: ytv_str(),
+  multiSelectParams: ytv_str()
+}))
 export const updateTimedMarkersSyncObserverCommand = ytv_enp(() => ({
   isEnabled: ytv_bol(),
   panelSyncEntityKey: ytv_str(),
@@ -487,11 +507,12 @@ export const applicationSettingsEndpoint = ytv_enp(() => ({
 export const browseEndpoint = ytv_enp(() => ({
   browseEndpointContextSupportedConfigs: ytv_sto({
     browseEndpointContextMusicConfig: ytv_sto({
-      pageType: ytv_str(['MUSIC_PAGE_TYPE_ALBUM', 'MUSIC_PAGE_TYPE_PLAYLIST'])
+      pageType: ytv_str(['MUSIC_PAGE_TYPE_ALBUM', 'MUSIC_PAGE_TYPE_ARTIST', 'MUSIC_PAGE_TYPE_ARTIST_DISCOGRAPHY', 'MUSIC_PAGE_TYPE_NON_MUSIC_AUDIO_TRACK_PAGE', 'MUSIC_PAGE_TYPE_PLAYLIST', 'MUSIC_PAGE_TYPE_TRACK_CREDITS', 'MUSIC_PAGE_TYPE_TRACK_LYRICS', 'MUSIC_PAGE_TYPE_TRACK_RELATED', 'MUSIC_PAGE_TYPE_USER_CHANNEL'])
     })
   }),
   browseId: ytv_str(),
   canonicalBaseUrl: ytv_str(),
+  navigationType: ytv_str(['BROWSE_NAVIGATION_TYPE_LOAD_IN_PLACE']),
   params: ytv_str()
 }))
 export const captionPickerEndpoint = ytv_enp(() => ({
@@ -617,14 +638,28 @@ export const pingingEndpoint = ytv_enp(() => ({
 }))
 export const playlistEditEndpoint = ytv_enp(() => ({
   actions: ytv_arr(ytv_sto({
-    action: ytv_str(['ACTION_ADD_VIDEO', 'ACTION_REMOVE_VIDEO_BY_VIDEO_ID']),
+    action: ytv_str(['ACTION_ADD_VIDEO', 'ACTION_REMOVE_VIDEO', 'ACTION_REMOVE_VIDEO_BY_VIDEO_ID']),
     addedVideoId: ytv_str(),
-    removedVideoId: ytv_str()
+    removedVideoId: ytv_str(),
+    setVideoId: ytv_str()
   })),
+  playlistId: ytv_str()
+}))
+export const playlistFilterSearchEndpoint = ytv_enp(() => ({
   playlistId: ytv_str()
 }))
 export const popoutLiveChatEndpoint = ytv_enp(() => ({
   url: ytv_str()
+}))
+export const queueAddEndpoint = ytv_enp(() => ({
+  commands: ytv_arr(ytv_enp()),
+  params: ytv_str(),
+  queueInsertPosition: ytv_str(['INSERT_AFTER_CURRENT_VIDEO', 'INSERT_AT_END']),
+  queueTarget: ytv_sto({
+    onEmptyQueue: ytv_enp(),
+    playlistId: ytv_str(),
+    videoId: ytv_str()
+  })
 }))
 export const recordNotificationInteractionsEndpoint = ytv_enp(() => ({
   actions: ytv_arr(ytv_enp()),
@@ -654,6 +689,10 @@ export const reelWatchEndpoint = ytv_enp(() => ({
   videoType: ytv_str(['REEL_VIDEO_TYPE_VIDEO']),
   watchEndpointSource: ytv_str(['REEL_WATCH_ENDPOINT_SOURCE_SEARCH', 'REEL_WATCH_ENDPOINT_SOURCE_SHORTS_PIVOT_BAR_RESUME_TO_SHORTS']),
   watchEndpointSupportedOnesieConfig: components.watchEndpointSupportedOnesieConfig
+}))
+export const removeFromQueueEndpoint = ytv_enp(() => ({
+  commands: ytv_arr(ytv_enp()),
+  videoId: ytv_str()
 }))
 export const removeUpcomingEventReminderEndpoint = ytv_enp(() => ({
   params: ytv_str()
@@ -800,6 +839,7 @@ export const watchEndpoint = ytv_enp(() => ({
   }),
   watchEndpointMusicSupportedConfigs: ytv_sto({
     watchEndpointMusicConfig: ytv_sto({
+      hasPersistentPlaylistPanel: ytv_bol(),
       musicVideoType: ytv_str(common.enums.MusicVideoType)
     })
   }),

@@ -62,6 +62,7 @@ export const SchemaBase = {
   ...renderer.components.SchemaBase,
   actions: ytv_arr(ytv_enp()),
   frameworkUpdates: endpoint.mapped.entityUpdateCommand,
+  maxAgeStoreSeconds: ytv_num(),
   onResponseReceivedAction: ytv_enp(),
   onResponseReceivedCommand: ytv_enp(),
   onResponseReceivedEndpoint: ytv_enp(),

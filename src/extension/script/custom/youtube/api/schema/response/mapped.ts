@@ -6,6 +6,7 @@ import * as components from './components'
 
 // Normal response
 export const browse = ytv_rsp(() => ({
+  background: ytv_ren(),
   contents: ytv_ren(),
   continuationContents: components.continuationContents,
   header: ytv_ren(),

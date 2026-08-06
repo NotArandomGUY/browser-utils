@@ -287,6 +287,12 @@ export const adPlayerOverlayRenderer = ytv_ren(() => ({
   trvfaBanner: components.thumbnail,
   visitAdvertiserText: components.text
 }))
+export const adPreviewRenderer = ytv_ren(() => ({
+  durationMilliseconds: ytv_num(),
+  staticPreview: templatedAdText,
+  templatedCountdown: ytv_ren(),
+  thumbnail: components.adImage
+}))
 export const adSlotRenderer = ytv_ren(() => ({
   adSlotMetadata: ytv_sto({
     adSlotLoggingData: components.adSlotLoggingData,
@@ -402,6 +408,10 @@ export const bannerPromoRenderer = ytv_ren(() => ({
 }))
 export const browseFeedActionsRenderer = ytv_ren(() => ({
   contents: ytv_arr(ytv_ren())
+}))
+export const browserMediaSessionRenderer = ytv_ren(() => ({
+  album: components.text,
+  thumbnailDetails: components.thumbnail
 }))
 export const bubbleHintRenderer = ytv_ren(() => ({
   accessibility: common.components.accessibilityData,
@@ -520,20 +530,28 @@ export const chapterRenderer = ytv_ren(() => ({
   timeRangeStartMillis: ytv_num(),
   title: components.text
 }))
+export const checkboxRenderer = ytv_ren(() => ({
+  checkedState: ytv_str(['CHECKBOX_CHECKED_STATE_UNCHECKED', 'CHECKBOX_CHECKED_STATE_CHECKED', 'CHECKBOX_CHECKED_STATE_INDETERMINATE']),
+  onSelectionChangeCommand: ytv_enp()
+}))
 export const chipCloudChipRenderer = ytv_ren(() => ({
+  accessibilityData: common.components.accessibility,
+  icon: components.icon,
   isSelected: ytv_bol(),
   location: ytv_str(['CHIP_LOCATION_SEARCH_RESULTS']),
   navigationEndpoint: ytv_enp(),
+  onDeselectedCommand: ytv_enp(),
   style: components.style,
   targetId: ytv_str(),
   text: components.text,
-  uniqueId: ytv_str(['ATTRIBUTE_FILTER_TYPE_EXPLORE'])
+  uniqueId: ytv_str()
 }))
 export const chipCloudRenderer = ytv_ren(() => ({
   chips: ytv_arr(ytv_ren()),
   horizontalScrollable: ytv_bol(),
   nextButton: ytv_ren(),
   previousButton: ytv_ren(),
+  selectionBehavior: ytv_str(['CHIP_CLOUD_SELECTION_BEHAVIOR_SINGLE_SELECT_ALWAYS_SELECTED']),
   style: ytv_sto({
     backgroundStyle: ytv_str(['CHIP_CLOUD_BACKGROUND_STYLE_UNKNOWN'])
   })
@@ -879,6 +897,7 @@ export const endscreenElementRenderer = ytv_ren(() => ({
   thumbnailOverlays: ytv_arr(ytv_ren()),
   title: components.text,
   top: ytv_num(),
+  useClassicSubscribeButton: ytv_bol(),
   width: ytv_num()
 }))
 export const endscreenRenderer = ytv_ren(() => ({
@@ -1050,8 +1069,13 @@ export const gridChannelRenderer = ytv_ren(() => ({
   title: components.text,
   videoCountText: components.text
 }))
+export const gridHeaderRenderer = ytv_ren(() => ({
+  title: components.text
+}))
 export const gridRenderer = ytv_ren(() => ({
+  header: ytv_ren(),
   isCollapsible: ytv_bol(),
+  itemSize: ytv_str(enums.CollectionStyleItemSize),
   items: ytv_arr(ytv_ren()),
   targetId: ytv_str()
 }))
@@ -1203,6 +1227,17 @@ export const inlinePlaybackRenderer = ytv_ren(() => ({
   navigationEndpoint: ytv_enp(),
   thumbnail: components.thumbnail,
   videoId: ytv_str()
+}))
+export const instreamAdPlayerOverlayRenderer = ytv_ren(() => ({
+  adBadgeRenderer: ytv_ren(),
+  adDurationMs: ytv_num(),
+  adDurationRemaining: ytv_ren(),
+  adInfoRenderer: ytv_ren(),
+  adLayoutLoggingData: components.adLayoutLoggingData,
+  elementId: ytv_str(),
+  inPlayerLayoutId: ytv_str(),
+  skipOrPreviewRenderer: ytv_ren(),
+  visitAdvertiserRenderer: ytv_ren()
 }))
 export const instreamVideoAdRenderer = ytv_ren(() => ({
   adLayoutLoggingData: components.adLayoutLoggingData,
@@ -1663,6 +1698,7 @@ export const menuServiceItemRenderer = ytv_ren(() => ({
   text: components.text
 }))
 export const menuServiceItemDownloadRenderer = ytv_ren(() => ({
+  badgeIcon: components.icon,
   playerStateEntityKey: ytv_str(),
   serviceEndpoint: ytv_enp()
 }))
@@ -1691,6 +1727,13 @@ export const merchandiseShelfRenderer = ytv_ren(() => ({
 }))
 export const messageRenderer = ytv_ren(() => ({
   button: ytv_ren(),
+  style: ytv_sto({
+    value: ytv_str(['RENDER_STYLE_VERTICAL_CENTERED'])
+  }),
+  subtext: ytv_ren(),
+  text: components.text
+}))
+export const messageSubtextRenderer = ytv_ren(() => ({
   text: components.text
 }))
 export const metadataBadgeRenderer = ytv_ren(() => ({
@@ -1713,6 +1756,7 @@ export const microformatDataRenderer = ytv_ren(() => ({
   androidPackage: ytv_str(),
   appName: ytv_str(),
   availableCountries: ytv_arr(ytv_str()),
+  category: ytv_str(),
   channelProfileMicroformatDetails: ytv_sto({
     profilePage: ytv_obj(ytv_str(), ytv_unk())
   }),
@@ -1721,13 +1765,18 @@ export const microformatDataRenderer = ytv_ren(() => ({
   iosAppArguments: ytv_str(),
   iosAppStoreId: ytv_str(),
   linkAlternates: ytv_arr(ytv_sto({
-    hrefUrl: ytv_str()
+    alternateType: ytv_str(),
+    hrefUrl: ytv_str(),
+    title: ytv_str()
   })),
   noindex: ytv_bol(),
   ogType: ytv_str(),
   pageOwnerDetails: ytv_sto({
-    name: ytv_str()
+    externalChannelId: ytv_str(),
+    name: ytv_str(),
+    youtubeProfileUrl: ytv_str()
   }),
+  paid: ytv_bol(),
   postDetails: ytv_sto({
     discussionForumPosting: ytv_unk(),
     externalPostId: ytv_str()
@@ -1741,6 +1790,7 @@ export const microformatDataRenderer = ytv_ren(() => ({
   twitterCardType: ytv_str(),
   twitterSiteHandle: ytv_str(),
   unlisted: ytv_bol(),
+  uploadDate: ytv_str(),
   urlApplinksAndroid: ytv_str(),
   urlApplinksIos: ytv_str(),
   urlApplinksWeb: ytv_str(),
@@ -1748,8 +1798,12 @@ export const microformatDataRenderer = ytv_ren(() => ({
   urlTwitterAndroid: ytv_str(),
   urlTwitterIos: ytv_str(),
   videoDetails: ytv_sto({
-    comments: ytv_arr(ytv_unk())
-  })
+    comments: ytv_arr(ytv_unk()),
+    durationIso8601: ytv_str(),
+    durationSeconds: ytv_str(),
+    externalVideoId: ytv_str()
+  }),
+  viewCount: ytv_str()
 }))
 export const miniplayerRenderer = ytv_ren(() => ({
   enableStashedPlayback: ytv_bol(),
@@ -1792,10 +1846,250 @@ export const multiPageMenuRenderer = ytv_ren(() => ({
 export const multiPageMenuSectionRenderer = ytv_ren(() => ({
   items: ytv_arr(ytv_ren())
 }))
+export const musicBackgroundOverlayRenderer = ytv_ren(() => ({
+  verticalGradient: ytv_sto({
+    gradientLayerColors: ytv_arr(ytv_str())
+  })
+}))
+export const musicCarouselShelfBasicHeaderRenderer = ytv_ren(() => ({
+  accessibilityData: common.components.accessibility,
+  headerStyle: ytv_str(['MUSIC_CAROUSEL_SHELF_BASIC_HEADER_STYLE_UNKNOWN', 'MUSIC_CAROUSEL_SHELF_BASIC_HEADER_STYLE_DEFAULT', 'MUSIC_CAROUSEL_SHELF_BASIC_HEADER_STYLE_DISPLAY_TWO']),
+  moreContentButton: ytv_ren(),
+  strapline: components.text,
+  thumbnail: ytv_ren(),
+  title: components.text
+}))
+export const musicCarouselShelfRenderer = ytv_ren(() => ({
+  contents: ytv_arr(ytv_ren()),
+  fullbleedStyle: ytv_str(['MUSIC_CAROUSEL_SHELF_FULLBLEED_STYLE_UNKNOWN', 'MUSIC_CAROUSEL_SHELF_FULLBLEED_STYLE_CONTENT_NOT_INSET', 'MUSIC_CAROUSEL_SHELF_FULLBLEED_STYLE_CONTENT_INSET']),
+  header: ytv_ren(),
+  itemSize: ytv_str(enums.CollectionStyleItemSize),
+  numItemsPerColumn: ytv_str(),
+  shelfId: ytv_str()
+}))
+export const musicCustomIndexColumnRenderer = ytv_ren(() => ({
+  accessibilityData: common.components.accessibility,
+  icon: components.icon,
+  iconColorStyle: ytv_str(['CUSTOM_INDEX_COLUMN_ICON_COLOR_STYLE_GREEN', 'CUSTOM_INDEX_COLUMN_ICON_COLOR_STYLE_RED', 'CUSTOM_INDEX_COLUMN_ICON_COLOR_STYLE_GREY']),
+  text: components.text
+}))
+export const musicDescriptionShelfRenderer = ytv_ren(() => ({
+  description: components.text,
+  footer: components.text,
+  header: components.text,
+  maxCollapsedLines: ytv_num(),
+  maxExpandedLines: ytv_num(),
+  moreButton: ytv_ren(),
+  onShowCommands: ytv_arr(ytv_enp()),
+  shelfStyle: ytv_str(['MUSIC_SHELF_STYLE_COMPACT', 'MUSIC_SHELF_STYLE_OPEN_DIALOG_ON_CLICK']),
+  subheader: components.text
+}))
+export const musicHeaderRenderer = ytv_ren(() => ({
+  title: components.text
+}))
+export const musicImmersiveHeaderRenderer = ytv_ren(() => ({
+  description: components.text,
+  menu: ytv_ren(),
+  monthlyListenerCount: components.text,
+  moreButton: ytv_ren(),
+  playButton: ytv_ren(),
+  shareEndpoint: ytv_enp(),
+  startRadioButton: ytv_ren(),
+  subscriptionButton: ytv_ren(),
+  thumbnail: ytv_ren(),
+  title: components.text
+}))
+export const musicInlineBadgeRenderer = ytv_ren(() => ({
+  accessibilityData: common.components.accessibility,
+  icon: components.icon
+}))
+export const musicItemThumbnailOverlayRenderer = ytv_ren(() => ({
+  background: musicBackgroundOverlayRenderer,
+  content: ytv_ren(),
+  contentPosition: ytv_str(['MUSIC_ITEM_THUMBNAIL_OVERLAY_CONTENT_POSITION_CENTERED', 'MUSIC_ITEM_THUMBNAIL_OVERLAY_CONTENT_POSITION_BOTTOM_RIGHT']),
+  displayStyle: ytv_str(['MUSIC_ITEM_THUMBNAIL_OVERLAY_DISPLAY_STYLE_HOVER', 'MUSIC_ITEM_THUMBNAIL_OVERLAY_DISPLAY_STYLE_PERSISTENT'])
+}))
 export const musicLyricContentRenderer = ytv_ren(() => ({
   impressionCommand: ytv_enp(),
   lyricProvider: components.text,
   timedLyricLines: ytv_arr(components.timedLyricLine)
+}))
+export const musicMenuItemDividerRenderer = ytv_ren(() => ({
+  hack: ytv_bol()
+}))
+export const musicMenuTitleRenderer = ytv_ren(() => ({
+  primaryText: components.text
+}))
+export const musicMultiRowListItemRenderer = ytv_ren(() => ({
+  description: components.text,
+  displayStyle: ytv_str(['MUSIC_MULTI_ROW_LIST_ITEM_DISPLAY_STYLE_DETAILED', 'MUSIC_MULTI_ROW_LIST_ITEM_DISPLAY_STYLE_EXPANDED', 'MUSIC_MULTI_ROW_LIST_ITEM_DISPLAY_STYLE_SIMPLE_EXPANDED']),
+  menu: ytv_ren(),
+  onTap: ytv_enp(),
+  overlay: ytv_ren(),
+  playbackProgress: ytv_ren(),
+  secondTitle: components.text,
+  subtitle: components.text,
+  thumbnail: ytv_ren(),
+  title: components.text
+}))
+export const musicMultiSelectMenuItemRenderer = ytv_ren(() => ({
+  deselectedAccessibility: common.components.accessibility,
+  formItemEntityKey: ytv_str(),
+  selectedAccessibility: common.components.accessibility,
+  selectedCommand: ytv_enp(),
+  selectedIcon: components.icon,
+  title: components.text
+}))
+export const musicMultiSelectMenuRenderer = ytv_ren(() => ({
+  formEntityKey: ytv_str(),
+  options: ytv_arr(ytv_ren()),
+  title: ytv_ren()
+}))
+export const musicNavigationButtonRenderer = ytv_ren(() => ({
+  buttonText: components.text,
+  clickCommand: ytv_enp(),
+  iconStyle: ytv_sto({
+    icon: components.icon,
+  }),
+  solid: ytv_obj(ytv_str(), ytv_num())
+}))
+export const musicPlayButtonRenderer = ytv_ren(() => ({
+  accessibilityPauseData: common.components.accessibility,
+  accessibilityPlayData: common.components.accessibility,
+  activeBackgroundColor: ytv_num(),
+  activeScaleFactor: ytv_num(),
+  backgroundColor: ytv_num(),
+  buttonSize: ytv_str(['MUSIC_PLAY_BUTTON_SIZE_SMALL', 'MUSIC_PLAY_BUTTON_SIZE_MEDIUM', 'MUSIC_PLAY_BUTTON_SIZE_HUGE']),
+  iconColor: ytv_num(),
+  iconLoadingColor: ytv_num(),
+  loadingIndicatorColor: ytv_num(),
+  pauseIcon: components.icon,
+  playIcon: components.icon,
+  playNavigationEndpoint: ytv_enp(),
+  playingIcon: components.icon,
+  rippleTarget: ytv_str(['MUSIC_PLAY_BUTTON_RIPPLE_TARGET_ANCESTOR', 'MUSIC_PLAY_BUTTON_RIPPLE_TARGET_SELF'])
+}))
+export const musicPlaybackProgressRenderer = ytv_ren(() => ({
+  durationText: components.text,
+  playbackProgressPercentage: ytv_num(),
+  playbackProgressText: components.text,
+  playedText: components.text,
+  videoPlaybackPositionFeedbackToken: ytv_str()
+}))
+export const musicPlaylistShelfRenderer = ytv_ren(() => ({
+  collapsedItemCount: ytv_num(),
+  contents: ytv_arr(ytv_ren()),
+  contentsMultiSelectable: ytv_bol(),
+  header: ytv_ren(),
+  playlistId: ytv_str(),
+  targetId: ytv_str()
+}))
+export const musicQueueHeaderRenderer = ytv_ren(() => ({
+  buttons: ytv_arr(ytv_ren()),
+  subtitle: components.text,
+  title: components.text
+}))
+export const musicQueueRenderer = ytv_ren(() => ({
+  content: ytv_ren(),
+  hack: ytv_bol(),
+  header: ytv_ren(),
+  musicQueueConfig: ytv_sto({
+    musicQueueRestorationInfo: ytv_sto({
+      onQueueRestoredCommand: ytv_enp()
+    })
+  }),
+  subHeaderChipCloud: ytv_ren()
+}))
+export const musicResponsiveHeaderRenderer = ytv_ren(() => ({
+  buttons: ytv_arr(ytv_ren()),
+  description: ytv_ren(),
+  facepile: ytv_ren(),
+  secondSubtitle: components.text,
+  subtitle: components.text,
+  thumbnail: ytv_ren(),
+  title: components.text
+}))
+export const musicResponsiveListItemFixedColumnRenderer = ytv_ren(() => ({
+  displayPriority: ytv_str(enums.MusicResponsiveListItemColumnDisplayPriority),
+  size: ytv_str(['MUSIC_RESPONSIVE_LIST_ITEM_FIXED_COLUMN_SIZE_UNKNOWN', 'MUSIC_RESPONSIVE_LIST_ITEM_FIXED_COLUMN_SIZE_SMALL']),
+  text: components.text
+}))
+export const musicResponsiveListItemFlexColumnRenderer = ytv_ren(() => ({
+  displayPriority: ytv_str(enums.MusicResponsiveListItemColumnDisplayPriority),
+  text: components.text
+}))
+export const musicResponsiveListItemRenderer = ytv_ren(() => ({
+  badges: ytv_arr(ytv_ren()),
+  customIndexColumn: ytv_ren(),
+  fixedColumns: ytv_arr(ytv_ren()),
+  flexColumnDisplayStyle: ytv_str(['MUSIC_RESPONSIVE_LIST_ITEM_FLEX_COLUMN_DISPLAY_STYLE_TWO_LINE_STACK']),
+  flexColumns: ytv_arr(ytv_ren()),
+  itemHeight: ytv_str(['MUSIC_RESPONSIVE_LIST_ITEM_HEIGHT_MEDIUM_COMPACT']),
+  menu: ytv_ren(),
+  multiSelectCheckbox: ytv_ren(),
+  navigationEndpoint: ytv_enp(),
+  overlay: ytv_ren(),
+  playlistItemData: ytv_sto({
+    playlistSetVideoId: ytv_str(),
+    videoId: ytv_str(),
+    voteSortValue: ytv_num()
+  }),
+  thumbnail: ytv_ren()
+}))
+export const musicShelfDividerRenderer = ytv_ren(() => ({
+  hidden: ytv_bol()
+}))
+export const musicShelfRenderer = ytv_ren(() => ({
+  bottomEndpoint: ytv_enp(),
+  bottomText: components.text,
+  contents: ytv_arr(ytv_ren()),
+  shelfDivider: ytv_ren(),
+  subheaders: ytv_arr(ytv_ren()),
+  title: components.text
+}))
+export const musicSideAlignedItemRenderer = ytv_ren(() => ({
+  startItems: ytv_arr(ytv_ren())
+}))
+export const musicSortFilterButtonRenderer = ytv_ren(() => ({
+  accessibility: common.components.accessibility,
+  icon: components.icon,
+  menu: ytv_ren(),
+  title: components.text
+}))
+export const musicTastebuilderShelfRenderer = ytv_ren(() => ({
+  actionButton: ytv_ren(),
+  isVisible: ytv_bol(),
+  primaryText: components.text,
+  secondaryText: components.text,
+  thumbnail: ytv_ren()
+}))
+export const musicTastebuilderShelfThumbnailRenderer = ytv_ren(() => ({
+  thumbnail: components.thumbnail
+}))
+export const musicThumbnailRenderer = ytv_ren(() => ({
+  accessibilityData: common.components.accessibility,
+  onTap: ytv_enp(),
+  thumbnail: components.thumbnail,
+  thumbnailCrop: ytv_str(['MUSIC_THUMBNAIL_CROP_UNSPECIFIED', 'MUSIC_THUMBNAIL_CROP_CIRCLE']),
+  thumbnailScale: ytv_str(['MUSIC_THUMBNAIL_SCALE_UNSPECIFIED', 'MUSIC_THUMBNAIL_SCALE_ASPECT_FIT', 'MUSIC_THUMBNAIL_SCALE_ASPECT_FILL'])
+}))
+export const musicTwoRowItemRenderer = ytv_ren(() => ({
+  aspectRatio: ytv_str(['MUSIC_TWO_ROW_ITEM_THUMBNAIL_ASPECT_RATIO_SQUARE', 'MUSIC_TWO_ROW_ITEM_THUMBNAIL_ASPECT_RATIO_RECTANGLE_16_9']),
+  menu: ytv_ren(),
+  navigationEndpoint: ytv_enp(),
+  subtitle: components.text,
+  subtitleBadges: ytv_arr(ytv_ren()),
+  thumbnailCornerOverlay: ytv_ren(),
+  thumbnailOverlay: ytv_ren(),
+  thumbnailRenderer: ytv_ren(),
+  title: components.text
+}))
+export const musicVisualHeaderRenderer = ytv_ren(() => ({
+  foregroundThumbnail: ytv_ren(),
+  menu: ytv_ren(),
+  subscriptionButton: ytv_ren(),
+  thumbnail: ytv_ren(),
+  title: components.text
 }))
 export const musicWatchMetadataRenderer = ytv_ren(() => ({
   accessibilityText: ytv_str(),
@@ -1864,6 +2158,13 @@ export const offlineabilityRenderer = ytv_ren(() => ({
   offlineabilityRenderer: ytv_str(),
   offlineable: ytv_bol(),
   racyCheckOk: ytv_bol()
+}))
+export const optionSelectableItemRenderer = ytv_ren(() => ({
+  submitEndpoint: ytv_enp(),
+  text: components.text
+}))
+export const optionsRenderer = ytv_ren(() => ({
+  items: ytv_arr(ytv_ren())
 }))
 export const overlayMessageRenderer = ytv_ren(() => ({
   image: components.thumbnail,
@@ -2089,9 +2390,11 @@ export const playerOverlayLayoutRenderer = ytv_ren(() => ({
   visitAdvertiserLink: ytv_ren()
 }))
 export const playerOverlayRenderer = ytv_ren(() => ({
+  actions: ytv_arr(ytv_ren()),
   addToMenu: ytv_ren(),
   autonavToggle: ytv_ren(),
   autoplay: ytv_ren(),
+  browserMediaSession: ytv_ren(),
   decoratedPlayerBarRenderer: ytv_ren(),
   endScreen: ytv_ren(),
   fullscreenQuickActionsBar: ytv_ren(),
@@ -2137,8 +2440,17 @@ export const playlistLoopButtonStateRenderer = ytv_ren(() => ({
   button: ytv_ren(),
   state: ytv_str(['PLAYLIST_LOOP_STATE_ALL', 'PLAYLIST_LOOP_STATE_NONE', 'PLAYLIST_LOOP_STATE_ONE'])
 }))
+export const playlistPanelRenderer = ytv_ren(() => ({
+  contents: ytv_arr(ytv_ren()),
+  continuations: ytv_arr(components.continuation),
+  isInfinite: ytv_bol(),
+  numItemsToShow: ytv_num(),
+  playlistId: ytv_str(),
+  shuffleToggleButton: ytv_ren()
+}))
 export const playlistPanelVideoRenderer = ytv_ren(() => ({
   actionButtons: ytv_arr(ytv_ren()),
+  canReorder: ytv_bol(),
   darkColorPalette: ytv_obj(ytv_str(), ytv_num()),
   indexText: components.text,
   lengthText: components.text,
@@ -2147,6 +2459,7 @@ export const playlistPanelVideoRenderer = ytv_ren(() => ({
   menu: ytv_ren(),
   navigationEndpoint: ytv_enp(),
   playlistSetVideoId: ytv_str(),
+  queueNavigationEndpoint: ytv_enp(),
   selected: ytv_bol(),
   shortBylineText: components.text,
   thumbnail: components.thumbnail,
@@ -2364,6 +2677,13 @@ export const relatedChipCloudRenderer = ytv_ren(() => ({
   content: ytv_ren(),
   showProminentChips: ytv_bol()
 }))
+export const reportFormModalRenderer = ytv_ren(() => ({
+  cancelButton: ytv_ren(),
+  footer: components.text,
+  optionsSupportedRenderers: ytv_ren(),
+  submitButton: ytv_ren(),
+  title: components.text
+}))
 export const richGridRenderer = ytv_ren(() => ({
   contents: ytv_arr(ytv_ren()),
   header: ytv_ren(),
@@ -2482,6 +2802,7 @@ export const sectionListRenderer = ytv_ren(() => ({
   continuations: ytv_arr(components.continuation),
   disablePullToRefresh: ytv_bol(),
   hack: ytv_bol(),
+  header: ytv_ren(),
   hideBottomSeparator: ytv_bol(),
   scrollPaneStyle: ytv_sto({
     scrollable: ytv_bol()
@@ -2582,6 +2903,9 @@ export const shoppingOverlayRenderer = ytv_ren(() => ({
   }),
   trendingOfferEntityKey: ytv_str()
 }))
+export const simpleAdBadgeRenderer = ytv_ren(() => ({
+  text: templatedAdText
+}))
 export const simpleCardTeaserRenderer = ytv_ren(() => ({
   channelAvatar: components.thumbnail,
   logVisibilityUpdates: ytv_bol(),
@@ -2593,6 +2917,12 @@ export const simpleMenuHeaderRenderer = ytv_ren(() => ({
   backButton: ytv_ren(),
   buttons: ytv_arr(ytv_ren()),
   title: components.text
+}))
+export const singleColumnBrowseResultsRenderer = ytv_ren(() => ({
+  tabs: ytv_arr(ytv_ren())
+}))
+export const singleColumnMusicWatchNextResultsRenderer = ytv_ren(() => ({
+  tabbedRenderer: ytv_ren()
 }))
 export const singleOptionSurveyOptionRenderer = ytv_ren(() => ({
   enumName: ytv_str(),
@@ -2610,6 +2940,14 @@ export const singleOptionSurveyRenderer = ytv_ren(() => ({
   surveyOrientation: ytv_sto({
     type: ytv_str(['VERTICAL'])
   })
+}))
+export const skipAdRenderer = ytv_ren(() => ({
+  preskipRenderer: ytv_ren(),
+  skipOffsetMilliseconds: ytv_num(),
+  skippableRenderer: ytv_ren()
+}))
+export const skipButtonRenderer = ytv_ren(() => ({
+  message: templatedAdText
 }))
 export const slimMetadataToggleButtonRenderer = ytv_ren(() => ({
   button: ytv_ren(),
@@ -2712,9 +3050,11 @@ export const surveyTriggerRenderer = ytv_ren(() => ({
 export const tabRenderer = ytv_ren(() => ({
   accessibility: common.components.accessibility,
   content: ytv_ren(),
+  icon: components.icon,
   selected: ytv_bol(),
   tabIdentifier: ytv_str(),
-  title: ytv_str()
+  title: ytv_str(),
+  unselectable: ytv_bol()
 }))
 export const thirdPartyShareTargetSectionRenderer = ytv_ren(() => ({
   accessibility: common.components.accessibility,
@@ -3134,6 +3474,9 @@ export const watchNextEndScreenRenderer = ytv_ren(() => ({
   results: ytv_arr(ytv_ren()),
   title: components.text
 }))
+export const watchNextTabbedResultsRenderer = ytv_ren(() => ({
+  tabs: ytv_arr(ytv_ren())
+}))
 export const youThereRenderer = ytv_ren(() => ({
   configData: ytv_sto({
     youThereData: ytv_sto({
@@ -3198,10 +3541,7 @@ export const adPreviewViewModel = ytv_rvm(() => ({
   durationMilliseconds: ytv_num(),
   interaction: components.adInteraction,
   previewImage: components.image,
-  previewText: ytv_sto({
-    text: ytv_str(),
-    isTemplated: ytv_bol()
-  })
+  previewText: templatedAdText
 }))
 export const animatedThumbnailOverlayViewModel = ytv_rvm(() => ({
   thumbnail: components.image

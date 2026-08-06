@@ -43,6 +43,9 @@ export const thumbnail = ytv_ren({
 })
 
 // Components
+export const adImage = ytv_ren({
+  thumbnail
+})
 export const adInteraction = ytv_ren({
   accessibility: common.components.accessibilityData,
   onFirstVisible: ytv_enp(),
@@ -466,7 +469,7 @@ export const subscribeButtonViewModelContent = ytv_ren({
   })
 })
 export const style = ytv_ren({
-  styleType: ytv_str(['STYLE_BLUE_TEXT', 'STYLE_DEFAULT', 'STYLE_DEFAULT_ACTIVE', 'STYLE_GREY_TEXT', 'STYLE_HOME_FILTER', 'STYLE_TEXT'])
+  styleType: ytv_str(['STYLE_BLUE_TEXT', 'STYLE_DEFAULT', 'STYLE_DEFAULT_ACTIVE', 'STYLE_GREY_TEXT', 'STYLE_HOME_FILTER', 'STYLE_LARGE_TRANSLUCENT_AND_SELECTED_WHITE', 'STYLE_TEXT', 'STYLE_TRANSPARENT'])
 })
 export const text = ytv_ren({
   runs: ytv_arr(ytv_ren({

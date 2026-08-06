@@ -49,7 +49,7 @@ export interface YTInnertubeRequestPlaybackContext {
         remoteClient: {
           applicationState: 'ACTIVE' | 'INACTIVE'
           clientFormFactor: 'LARGE_FORM_FACTOR' | 'SMALL_FORM_FACTOR' | 'UNKNOWN_FORM_FACTOR'
-          clientName: 'ANDROID' | 'ANDROID_KIDS' | 'ANDROID_MUSIC' | 'ANDROID_UNPLUGGED' | 'WEB' | 'WEB_REMIX' | 'WEB_UNPLUGGED' | 'IOS' | 'IOS_KIDS' | 'IOS_MUSIC' | 'IOS_UNPLUGGED' | 'UNKNOWN_INTERFACE'
+          clientName: `${keyof typeof YTCommon.enums.ClientName}`
           clientVersion: string
           platform: 'DESKTOP' | 'MOBILE' | 'TABLET' | 'UNKNOWN_PLATFORM'
           osName?: string

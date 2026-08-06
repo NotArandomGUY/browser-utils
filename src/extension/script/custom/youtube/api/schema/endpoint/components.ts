@@ -307,7 +307,7 @@ export const entityMutationPayload = ytv_sto(() => ({
       unlikeButtonA11y: ytv_str()
     }),
     capabilities: ytv_obj(ytv_str(), ytv_unk()),
-    clientName: ytv_str(['WEB']),
+    clientName: ytv_str(common.enums.ClientName),
     commentEnvironment: common.components.environment,
     environment: common.components.environment,
     experiments: ytv_obj(ytv_str(), ytv_unk())
@@ -364,6 +364,16 @@ export const entityMutationPayload = ytv_sto(() => ({
   liveViewerLeaderboardPointsEntity,
   macroMarkersListEntity,
   markersEngagementPanelSyncEntity,
+  musicForm: ytv_sto({
+    booleanChoiceEntityKeys: ytv_arr(ytv_str()),
+    id: ytv_str()
+  }),
+  musicFormBooleanChoice: ytv_sto({
+    id: ytv_str(),
+    opaqueToken: ytv_str(),
+    parentFormEntityKey: ytv_str(),
+    selected: ytv_bol()
+  }),
   offlineVideoPolicy: ytv_sto({
     action: ytv_str(['OFFLINE_VIDEO_POLICY_ACTION_DISABLE', 'OFFLINE_VIDEO_POLICY_ACTION_DOWNLOAD_FAILED', 'OFFLINE_VIDEO_POLICY_ACTION_OK']),
     expirationTimestamp: ytv_str(),

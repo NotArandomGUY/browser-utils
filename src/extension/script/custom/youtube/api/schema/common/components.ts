@@ -1,4 +1,4 @@
-import { ytv_num, ytv_sto, ytv_str } from '../define/primitive'
+import { ytv_arr, ytv_bol, ytv_num, ytv_sto, ytv_str } from '../define/primitive'
 
 // Components
 export const accessibilityData = ytv_sto({
@@ -19,6 +19,10 @@ export const url = ytv_sto({
   attributionSrcMode: ytv_str(['ATTRIBUTION_SRC_MODE_LABEL_CHROME']),
   baseUrl: ytv_str(),
   elapsedMediaTimeSeconds: ytv_num(),
+  headers: ytv_arr(ytv_sto({
+    headerType: ytv_str(['VISITOR_ID', 'EOM_VISITOR_ID', 'USER_AUTH', 'PLUS_PAGE_ID', 'AUTH_USER', 'DATASYNC_ID'])
+  })),
   offsetMilliseconds: ytv_num(),
+  scrubReferrer: ytv_bol(),
   testUrl: ytv_str()
 })
