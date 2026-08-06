@@ -9,7 +9,7 @@ export const enum YTValueCallbackType {
   POST = 1
 }
 
-export type YTValueStack = Array<[key: unknown, value: unknown]>
+export type YTValueStack = Array<[key: unknown, value: unknown, schema: YTValueSchema]>
 export type YTValueCallbackMapping<T> = [pre: Map<YTValueSchema, Array<T>>, post: Map<YTValueSchema, Array<T>>]
 export type YTValueFilter<S extends YTValueSchema = YTValueSchema> = (data: YTValueData<S>, ctx: YTValueProcessorContext<S>) => boolean
 export type YTValueProcessor<S extends YTValueSchema = YTValueSchema> = (data: YTValueData<S>, ctx: YTValueProcessorContext<S>) => Promise<void> | void
@@ -63,7 +63,8 @@ export function createYTValueProcessorConfig(base: YTValueProcessorConfig | null
 export class YTValueProcessorContext<S extends YTValueSchema = YTValueSchema> implements YTValueProcessorConfig {
   /*@__MANGLE_PROP__*/public readonly fmapping: YTValueCallbackMapping<YTValueFilter>
   /*@__MANGLE_PROP__*/public readonly pmapping: YTValueCallbackMapping<YTValueProcessor>
-  public readonly stack: YTValueStack = []
+  private readonly stack_: YTValueStack = []
+  private readonly error_ = new Map<YTValueSchema, Set<string>>()
 
   public constructor({ fmapping, pmapping }: YTValueProcessorConfig) {
     this.fmapping = fmapping
@@ -77,21 +78,36 @@ export class YTValueProcessorContext<S extends YTValueSchema = YTValueSchema> im
     return this
   }
 
-  public push(value: unknown, key?: unknown): this {
-    this.stack.push([key, value])
+  public push(schema: YTValueSchema, value: unknown, key?: unknown): this {
+    this.stack_.push([key, value, schema])
     return this
   }
 
   public pop(): this {
-    this.stack.pop()
+    this.stack_.pop()
     return this
   }
 
   public catch(value: unknown): boolean {
+    const { stack_, error_ } = this
+
+    const message = value instanceof Error ? value.message : String(value)
+    const schema = stack_.at(-1)?.[2]
+    if (schema != null) {
+      let errors = error_.get(schema)
+      if (errors == null) {
+        errors = new Set()
+        error_.set(schema, errors)
+      }
+      if (errors.has(message)) return true
+
+      errors.add(message)
+    }
+
     logger.debug(
-      () => `[${this.stack.map(entry => String(entry[0] ?? '<value>')).join('.')}] error:`, // NOSONAR
-      () => value instanceof Error ? value.message : String(value),
-      () => this.stack.slice()
+      `[${/*@__PURE__*/stack_.map(entry => String(entry[0] ?? '<value>')).join('.')}] error:`, // NOSONAR
+      message,
+      /*@__PURE__*/stack_.slice()
     )
     return true
   }
@@ -179,7 +195,7 @@ const processYTValue = async (ctx: YTValueProcessorContext, schema: YTValueSchem
   if (value == null) return false
 
   try {
-    ctx.push(value, key)
+    ctx.push(schema, value, key)
 
     switch (schema.type) {
       case YTValueType.UNKNOWN:
