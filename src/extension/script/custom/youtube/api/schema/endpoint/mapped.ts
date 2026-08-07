@@ -22,6 +22,10 @@ export const addChatItemAction = ytv_enp(() => ({
     dockAtTopDurationMs: ytv_num()
   })
 }))
+export const addInteractivityWidgetAction = ytv_enp(() => ({
+  displayImmediately: ytv_bol(),
+  widgetRenderer: ytv_ren()
+}))
 export const addLiveChatTextMessageFromTemplateAction = ytv_enp(() => ({
   template: ytv_ren()
 }))
@@ -131,6 +135,10 @@ export const updateNotificationsUnseenCountAction = ytv_enp(() => ({
   handlerData: ytv_str(),
   timeoutMs: ytv_num(),
   unseenCount: ytv_num()
+}))
+export const updateOrAddInteractivityWidgetAction = ytv_enp(() => ({
+  displayImmediately: ytv_bol(),
+  widgetRenderer: ytv_ren()
 }))
 export const updateTitleAction = ytv_enp(() => ({
   title: renderer.components.text

@@ -819,6 +819,12 @@ export const downloadQualitySelectorRenderer = ytv_ren(() => ({
   downloadQualityPickerEntityKey: ytv_str(),
   onSubmitEndpoint: ytv_enp()
 }))
+export const elementRenderer = ytv_ren(() => ({
+  compatibilityOptions: ytv_sto({
+    liveChatAuthorExternalChannelId: ytv_str(),
+    liveChatId: ytv_str()
+  })
+}))
 export const emojiPickerCategoryButtonRenderer = ytv_ren(() => ({
   accessibility: common.components.accessibility,
   categoryId: ytv_str(),
@@ -1260,6 +1266,25 @@ export const instreamVideoAdRenderer = ytv_ren(() => ({
     siub: ytv_str(),
     upb: ytv_str()
   })
+}))
+export const interactivityWidgetRenderer = ytv_ren(() => ({
+  content: ytv_ren(),
+  enterAnimation: ytv_str(['INTERACTIVITY_WIDGET_ANIMATION_TYPE_SLIDE_DOWN_AND_FADE_IN_CLIPPED']),
+  exitAnimation: ytv_str(['INTERACTIVITY_WIDGET_ANIMATION_TYPE_SLIDE_UP_AND_FADE_OUT']),
+  id: ytv_str(),
+  position: ytv_sto({
+    height: ytv_str(['INTERACTIVITY_WIDGET_LAYOUT_CONSTRAINT_WRAP_CONTENT']),
+    specialPlacement: ytv_str(['SPECIAL_PLACEMENT_BELOW_ANCHOR_START_ALIGNED']),
+    width: ytv_str(['INTERACTIVITY_WIDGET_LAYOUT_CONSTRAINT_WRAP_CONTENT'])
+  }),
+  preloadImages: ytv_arr(ytv_sto({
+    image: components.thumbnail,
+    imageDisplayHeight: ytv_num(),
+    imageDisplayWidth: ytv_num()
+  })),
+  priority: ytv_num(),
+  timeoutMs: ytv_num(),
+  type: ytv_str(['INTERACTIVITY_WIDGET_TYPE_GIFT'])
 }))
 export const itemSectionHeaderRenderer = ytv_ren(() => ({
   title: components.text
@@ -3754,6 +3779,15 @@ export const genAiFeedbackFormViewModel = ytv_rvm(() => ({
 }))
 export const ghostGridViewModel = ytv_rvm(() => ({
   numRows: ytv_num()
+}))
+export const giftAttributionItemViewModel = ytv_rvm(() => ({
+  attributionImage: components.image,
+  authorAvatar: ytv_ren(),
+  authorName: textViewModel,
+  comboCount: ytv_num(),
+  detailText: textViewModel,
+  giftA11yLabel: ytv_str(),
+  id: ytv_str()
 }))
 export const gridShelfViewModel = ytv_rvm(() => ({
   contentAspectRatio: ytv_str(['GRID_SHELF_CONTENT_ASPECT_RATIO_TWO_BY_THREE']),
