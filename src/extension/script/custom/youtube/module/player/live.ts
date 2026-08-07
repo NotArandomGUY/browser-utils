@@ -17,6 +17,7 @@ const MAX_SYNC_RATE = 1.05
 const BUFFER_AVG_SAMPLE_SIZE = (1e3 / SYNC_INTERVAL) * 15 // ~15s of samples
 const BUFFER_DEV_MUL = 1.05
 const BUFFER_DEV_DECAY_MUL = 1 - ((SYNC_INTERVAL / 5e3) * 0.05) // decay 5% over 5s
+const BUFFER_MIN_DECAY_MUL = 0.975
 const LATENCY_AVG_SAMPLE_SIZE = (1e3 / SYNC_INTERVAL) * 2 // ~2s of samples
 const LATENCY_STEP = 100
 const LATENCY_TOLERANCE = 50
@@ -243,6 +244,9 @@ class ActiveLiveHead {
         this.bufferMin_ = (this.bufferMin_ + this.bufferAvg_) / 2
         break
       case ActiveLiveHeadState.DESYNC:
+        // Lower min buffer on desync to avoid getting stuck at the edge of live head
+        if (state_ > ActiveLiveHeadState.DESYNC) this.bufferMin_ *= BUFFER_MIN_DECAY_MUL
+
         // Attempt to catch back up to live head
         player?.setPlaybackRate?.(MAX_SYNC_RATE)
         break
