@@ -3,6 +3,7 @@ import { YTEndpoint, YTRenderer, YTResponse, YTValueData, YTValueType } from '@e
 import { YTPolymerConnectCallback } from '@ext/custom/youtube/module/core/bootstrap'
 import { registerYTSignalActionHandler } from '@ext/custom/youtube/module/core/command'
 import { registerYTConfigMenuItemGroup, YTConfigMenuItemType } from '@ext/custom/youtube/module/core/config'
+import { registerYTInnertubeRequestProcessor } from '@ext/custom/youtube/module/core/network'
 import { getYTPMainPlayer, YTPVideoPlayer } from '@ext/custom/youtube/module/player/bootstrap'
 import ContinuationToken, { LiveChatContinuationToken } from '@ext/custom/youtube/proto/continuation-token'
 import { decodeEntityKey, encodeEntityKey } from '@ext/custom/youtube/proto/entity-key'
@@ -11,6 +12,7 @@ import { getNonce } from '@ext/custom/youtube/utils/crypto'
 import { ytuiShowToast } from '@ext/custom/youtube/utils/ytui'
 import { ceil, floor, max, min, sqrt } from '@ext/global/math'
 import { assign, defineProperty, getPropertyDescriptor, getPrototypeOf, values } from '@ext/global/object'
+import { Mutex, waitMs } from '@ext/lib/async'
 import { bufferFromString, bufferToString } from '@ext/lib/buffer'
 import { Feature } from '@ext/lib/feature'
 import Hook, { HookResult } from '@ext/lib/intercept/hook'
@@ -26,6 +28,7 @@ const POPOUT_KEEPALIVE_TIMEOUT = 25e3 // 25 sec
 const PLAYER_KEEPALIVE_TIMEOUT = 60e3 // 1 min
 const LIVE_CHAT_MIN_W = 298
 const LIVE_CHAT_MIN_H = 320
+const LIVE_CHAT_FETCH_INTERVAL = 100 // 100ms between requests
 
 const LiveChatPathname = '/live_chat'
 const LiveChatReplayPathname = '/live_chat_replay'
@@ -703,6 +706,22 @@ class ChatShellMessageChannel extends MessageChannel<PopoutMessageDataMap, Popou
 
     registerYTValueProcessor(YTResponse.mapped.liveChatGetLiveChat, updateGetLiveChatResponse)
     registerYTValueProcessor(YTResponse.mapped.liveChatGetLiveChatReplay, updateGetLiveChatResponse)
+
+    const getLiveChatMutex = new Mutex()
+    const getLiveChatReplayMutex = new Mutex()
+
+    registerYTInnertubeRequestProcessor('live_chat/get_live_chat', async ({ continuation }) => {
+      if (continuation == null) return
+
+      await getLiveChatMutex.lock()
+      waitMs(LIVE_CHAT_FETCH_INTERVAL).then(() => getLiveChatMutex.unlock())
+    })
+    registerYTInnertubeRequestProcessor('live_chat/get_live_chat_replay', async ({ continuation }) => {
+      if (continuation == null) return
+
+      await getLiveChatReplayMutex.lock()
+      waitMs(LIVE_CHAT_FETCH_INTERVAL).then(() => getLiveChatReplayMutex.unlock())
+    })
 
     // Only load unicode emoji once
     let emojiJsonUrl: string | undefined

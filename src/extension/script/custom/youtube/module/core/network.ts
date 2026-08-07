@@ -102,6 +102,24 @@ type YTInnertubeRequestMap = {
   'guide': Partial<{
     fetchLiveState: boolean
   }>
+  'live_chat/get_live_chat': Partial<{
+    continuation: string
+    fullReload: boolean
+    invalidationPayloadLastPublishAtUsec: string
+    isInvalidationTimeoutRequest: boolean
+    params: string
+    reloadActionPanel: boolean
+    webClientInfo: Partial<{
+      isDocumentHidden: boolean
+    }>
+  }>
+  'live_chat/get_live_chat_replay': Partial<{
+    continuation: string
+    currentPlayerState: Partial<{
+      playerOffsetMs: string
+    }>
+    params: string
+  }>
   'next': Partial<{
     continuation: string
   }>
