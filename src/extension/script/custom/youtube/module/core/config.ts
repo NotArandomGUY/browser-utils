@@ -1,5 +1,5 @@
 import { registerYTValueProcessor, YTValueCallbackType } from '@ext/custom/youtube/api/processor'
-import { YTEndpoint, YTRenderer, YTValueData, YTValueType } from '@ext/custom/youtube/api/schema'
+import { YTEndpoint, YTRenderer, YTResponse, YTValueData, YTValueType } from '@ext/custom/youtube/api/schema'
 import { registerYTSignalActionHandler } from '@ext/custom/youtube/module/core/command'
 import { Feature } from '@ext/lib/feature'
 
@@ -261,6 +261,24 @@ const renderConfigMenuButton = (isTV: boolean): YTValueData<{ type: YTValueType.
   }
 }
 
+const updateAccountGetSettingResponse = (data: YTValueData<YTResponse.Mapped<'accountGetSetting'>>): void => {
+  data.items?.unshift({
+    settingCategoryCollectionRenderer: {
+      categoryId: 'SETTING_CAT_EXT',
+      focused: false,
+      items: [
+        {
+          settingActionRenderer: {
+            itemId: 'EXT_CONFIG_POPUP',
+            actionButton: renderConfigMenuButton(true),
+            title: { simpleText: 'Browser Utils' }
+          }
+        }
+      ]
+    }
+  })
+}
+
 const updateDesktopTopbarRenderer = (data: YTValueData<YTRenderer.Mapped<'desktopTopbarRenderer'>>): void => {
   data.topbarButtons ??= []
   data.topbarButtons.unshift(renderConfigMenuButton(false))
@@ -270,13 +288,6 @@ const updateTransportControlsRenderer = (data: YTValueData<YTRenderer.Mapped<'tr
   const actions = data.buttons ?? data.settingActions
 
   actions?.unshift({ type: 'TRANSPORT_CONTROLS_BUTTON_TYPE_COMMENTS', button: renderConfigMenuButton(true) })
-}
-
-const updateTvSurfaceContentRenderer = (data: YTValueData<YTRenderer.Mapped<'tvSurfaceContentRenderer'>>): void => {
-  data.content?.sectionListRenderer?.contents?.unshift(
-    { itemSectionRenderer: { contents: [renderConfigMenuButton(true)] } },
-    { itemSectionRenderer: { contents: [] } }
-  )
 }
 
 export const getYTConfigBool = (key: string, defaultValue: boolean, mask = 1): boolean => {
@@ -345,8 +356,8 @@ export default class YTCoreConfigModule extends Feature {
 
   protected activate(cleanupCallbacks: Function[]): boolean {
     cleanupCallbacks.push(
+      registerYTValueProcessor(YTResponse.mapped.accountGetSetting, updateAccountGetSettingResponse, YTValueCallbackType.POST),
       registerYTValueProcessor(YTRenderer.mapped.transportControlsRenderer, updateTransportControlsRenderer, YTValueCallbackType.POST),
-      registerYTValueProcessor(YTRenderer.mapped.tvSurfaceContentRenderer, updateTvSurfaceContentRenderer, YTValueCallbackType.POST),
       registerYTValueProcessor(YTRenderer.mapped.desktopTopbarRenderer, updateDesktopTopbarRenderer, YTValueCallbackType.POST)
     )
 
