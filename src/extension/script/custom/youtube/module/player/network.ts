@@ -214,6 +214,8 @@ const processRequest = async (ctx: NetworkRequestContext): Promise<void> => {
   }
 
   try {
+    if (request.method !== 'POST') return
+
     let body = new Uint8Array(await request.arrayBuffer())
 
     switch (pathname) {

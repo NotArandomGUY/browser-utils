@@ -29,6 +29,10 @@ const filterContents = createArrayFilter('contents')
 const filterItems = createArrayFilter('items')
 const filterProductsData = createArrayFilter('productsData')
 
+const filterItemSectionRenderer = (data: YTValueData<YTRenderer.Mapped<'itemSectionRenderer'>>): boolean => {
+  return filterContents(data) || !!data.continuations?.length
+}
+
 const filterShelfRenderer = (data: YTValueData<YTRenderer.Mapped<'shelfRenderer'>>): boolean => {
   return filterContent(data) || data.subscribeButton != null
 }
@@ -42,7 +46,7 @@ export default class YTMiscsFixupModule extends Feature {
     registerYTValueFilter(YTRenderer.mapped.gridShelfViewModel, filterContents, YTValueCallbackType.POST)
     registerYTValueFilter(YTRenderer.mapped.guideSectionRenderer, filterItems, YTValueCallbackType.POST)
     registerYTValueFilter(YTRenderer.mapped.horizontalListRenderer, filterItems, YTValueCallbackType.POST)
-    registerYTValueFilter(YTRenderer.mapped.itemSectionRenderer, filterContents, YTValueCallbackType.POST)
+    registerYTValueFilter(YTRenderer.mapped.itemSectionRenderer, filterItemSectionRenderer, YTValueCallbackType.POST)
     registerYTValueFilter(YTRenderer.mapped.playlistSidebarRenderer, filterItems, YTValueCallbackType.POST)
     registerYTValueFilter(YTRenderer.mapped.reelShelfRenderer, filterItems, YTValueCallbackType.POST)
     registerYTValueFilter(YTRenderer.mapped.richItemRenderer, filterContent, YTValueCallbackType.POST)
@@ -76,10 +80,10 @@ export default class YTMiscsFixupModule extends Feature {
     addEventListener('scroll', stopControlEvent, true)
 
     document.addEventListener('DOMContentLoaded', () => {
-      const foreignScripts = document.querySelectorAll('script:not([nonce])')
+      const foreignScripts = document.querySelectorAll<HTMLScriptElement>('script:not([nonce])')
       if (foreignScripts.length === 0) return
 
-      foreignScripts.forEach(script => script.remove())
+      foreignScripts.forEach(script => script.nonce || script.remove())
       logger.debug(`removed ${foreignScripts.length} foreign scripts`)
     })
 
