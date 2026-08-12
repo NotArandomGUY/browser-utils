@@ -1,6 +1,6 @@
 import { registerYTValueProcessor } from '@ext/custom/youtube/api/processor'
 import { YTRenderer, YTValueData } from '@ext/custom/youtube/api/schema'
-import { YTConfigInitCallback, YTPlayerCreateCallback, YTPlayerWebPlayerContextConfig } from '@ext/custom/youtube/module/core/bootstrap'
+import { setYTPrefCookieEntry, YTConfigInitCallback, YTPlayerCreateCallback, YTPlayerWebPlayerContextConfig } from '@ext/custom/youtube/module/core/bootstrap'
 import { registerYTInnertubeRequestProcessor } from '@ext/custom/youtube/module/core/network'
 import { URLSearchParams } from '@ext/global/network'
 import { defineProperties, defineProperty, findPropertyPath, fromEntries, getOwnPropertyDescriptor, getOwnPropertyNames, getPrototypeOf, keys, values } from '@ext/global/object'
@@ -335,22 +335,28 @@ const processPlayerContextConfig = (webPlayerContextConfig: Record<string, YTPla
 }
 
 const processResponse = async (ctx: NetworkContext<unknown, NetworkState.SUCCESS>): Promise<void> => {
-  const { url: { pathname, searchParams }, response } = ctx
+  const { url: { pathname, searchParams }, request, response } = ctx
 
   if (pathname !== '/tv_config') return
 
   try {
-    const data = await response.clone().text()
-    const isPrefixed = data.startsWith(JsonPrefix)
-    const config = JSON.parse(isPrefixed ? data.slice(JsonPrefix.length) : data)
+    const reqBody = request.body && await request.clone().formData()
+    const resBodyText = response.body && await response.clone().text()
+    const isPrefixed = resBodyText?.startsWith(JsonPrefix)
+    const resBody = resBodyText && JSON.parse(isPrefixed ? resBodyText.slice(JsonPrefix.length) : resBodyText)
 
-    if (searchParams.has('action_get_config')) {
-      const { webPlayerContextConfig } = config
+    if (reqBody) {
+      if (searchParams.has('action_update_language')) setYTPrefCookieEntry('hl', reqBody.get('hl') as string || 'en')
+      if (searchParams.has('action_update_location')) setYTPrefCookieEntry('gl', reqBody.get('gl') as string || 'US')
+    }
+
+    if (searchParams.has('action_get_config') && resBody) {
+      const { webPlayerContextConfig } = resBody
 
       processPlayerContextConfig(webPlayerContextConfig)
     }
 
-    ctx.response = new Response(`${isPrefixed ? JsonPrefix : ''}${JSON.stringify(data)}`, {
+    ctx.response = new Response(resBody && `${isPrefixed ? JsonPrefix : ''}${JSON.stringify(resBody)}`, {
       status: response.status,
       headers: fromEntries(response.headers.entries())
     })

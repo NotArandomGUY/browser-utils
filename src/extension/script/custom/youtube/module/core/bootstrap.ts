@@ -397,6 +397,20 @@ export const isYTLoggedIn = (): boolean => {
   return ytcfg?.get('LOGGED_IN', false) ?? false
 }
 
+export const getYTPrefCookie = (): URLSearchParams => {
+  return new URLSearchParams(document.cookie.split(';').find(entry => entry.startsWith('PREF='))?.slice(5))
+}
+
+export const getYTPrefCookieEntry = (key: string): string | null => {
+  return getYTPrefCookie().get(key)
+}
+
+export const setYTPrefCookieEntry = (key: string, value: string): void => {
+  const pref = getYTPrefCookie()
+  pref.set(key, value)
+  document.cookie = `PREF=${pref.toString()};max-age=31536000;path=/;samesite=none;secure`
+}
+
 export default class YTCoreBootstrapModule extends Feature {
   public constructor() {
     super('bootstrap')
