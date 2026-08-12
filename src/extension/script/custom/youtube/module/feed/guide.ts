@@ -30,13 +30,14 @@ let guideManager: YTGuideManagerController | null = null
 let refreshTimer: ReturnType<typeof setTimeout> | null = null
 
 const filterGuideEntry = (data: YTValueData<YTRenderer.Mapped<'guideEntryRenderer'>>): boolean => {
-  const browseId = data.navigationEndpoint?.browseEndpoint?.browseId ?? ''
+  const endpoint = data.navigationEndpoint ?? data.serviceEndpoint
+  const browseId = endpoint?.browseEndpoint?.browseId ?? ''
 
   // Remove premium promotion
-  if (browseId === 'SPunlimited' || data.navigationEndpoint?.urlEndpoint != null) return false
+  if (browseId === 'SPunlimited' || endpoint?.urlEndpoint != null) return false
 
   // Remove shorts guide entry
-  if (isYTFeedFilterEnable(YTFeedFilterMask.SHORTS) && data.serviceEndpoint?.reelWatchEndpoint != null) return false
+  if (isYTFeedFilterEnable(YTFeedFilterMask.SHORTS) && endpoint?.reelWatchEndpoint != null) return false
 
   // Hide inaccessible guide entries for guest
   return isYTLoggedIn() || !['FEhistory', 'FElibrary', 'FEsubscriptions', 'SPaccount_overview', 'SPreport_history'].includes(browseId)
