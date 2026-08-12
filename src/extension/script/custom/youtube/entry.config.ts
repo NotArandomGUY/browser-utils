@@ -5,7 +5,19 @@ import ScriptNetRuleAction, { ScriptNetRuleActionType } from '@ext/proto/script/
 import ScriptNetRuleCondition, { ScriptNetResourceType } from '@ext/proto/script/net/rule-condition'
 
 const DESKTOP_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36'
-const CONSOLE_USER_AGENT = 'Mozilla/5.0 (PlayStation 5/SmartTV) AppleWebKit/605.1.15 (KHTML, like Gecko)'
+// Reference: https://github.com/youtube/cobalt/blob/main/cobalt/browser/user_agent/user_agent_platform_info.cc
+// Cobalt's user agent contains the following sections:
+//   Mozilla/5.0 (ChromiumStylePlatform)
+//   Cobalt/Version.BuildNumber-BuildConfiguration (unlike Gecko)
+//   JavaScript Engine Name/Version
+//   Starboard/APIVersion,
+//   Device/FirmwareVersion (Brand, Model, ConnectionType)
+//
+// In the case of Evergreen, it contains three additional sections:
+//   Evergreen/Version
+//   Evergreen-Type
+//   Evergreen-FileType
+const COBALT_USER_AGENT = 'Mozilla/5.0 (LINUX; Tizen/9.0) Cobalt/25.lts.40.1035033-gold (unlike Gecko) v8/8.8.278.17-jit gles Evergreen/5.40.2 Evergreen-Full Evergreen-Uncompressed Starboard/16, Unknown_TV_Unknown_2026/Unknown (Unknown, Unknown)'
 
 export default {
   name: 'youtube',
@@ -47,7 +59,7 @@ export default {
       }),
       condition: new ScriptNetRuleCondition({
         urlFilter: '||youtube.com',
-        resourceTypes: [ScriptNetResourceType.MAIN_FRAME, ScriptNetResourceType.XMLHTTPREQUEST]
+        resourceTypes: [ScriptNetResourceType.MAIN_FRAME, ScriptNetResourceType.SUB_FRAME, ScriptNetResourceType.XMLHTTPREQUEST]
       })
     }),
     new ScriptNetRule({
@@ -57,7 +69,7 @@ export default {
           new ScriptNetModifyHeaderInfo({
             header: 'user-agent',
             operation: ScriptNetHeaderOperation.SET,
-            value: CONSOLE_USER_AGENT
+            value: COBALT_USER_AGENT
           })
         ]
       }),
