@@ -5,6 +5,11 @@ import * as renderer from '../renderer'
 import * as components from './components'
 
 // Normal response
+export const accountGetSetting = ytv_rsp(() => ({
+  items: ytv_arr(ytv_ren()),
+  title: renderer.components.text,
+  titleRenderer: ytv_sto({})
+}))
 export const browse = ytv_rsp(() => ({
   background: ytv_ren(),
   contents: ytv_ren(),

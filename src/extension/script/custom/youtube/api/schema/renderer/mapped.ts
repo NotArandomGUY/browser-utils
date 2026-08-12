@@ -1041,6 +1041,10 @@ export const feedNudgeRenderer = ytv_ren(() => ({
 export const feedTabbedHeaderRenderer = ytv_ren(() => ({
   title: components.text
 }))
+export const flowRootRenderer = ytv_ren(() => ({
+  flowContinuationCommand: ytv_enp(),
+  flowStateEntityKey: ytv_str()
+}))
 export const fusionSearchboxRenderer = ytv_ren(() => ({
   clearButton: ytv_ren(),
   config: ytv_sto({
@@ -1175,6 +1179,10 @@ export const hintRenderer = ytv_ren(() => ({
   suggestedPosition: ytv_sto({
     type: ytv_str(['HINT_SUGGESTED_POSITION_TYPE_ABOVE', 'HINT_SUGGESTED_POSITION_TYPE_BELOW'])
   })
+}))
+export const horizontalButtonListRenderer = ytv_ren(() => ({
+  items: ytv_arr(ytv_ren()),
+  selectedIndex: ytv_num()
 }))
 export const horizontalCardListRenderer = ytv_ren(() => ({
   cards: ytv_arr(ytv_ren()),
@@ -2837,6 +2845,27 @@ export const sectionListRenderer = ytv_ren(() => ({
 }))
 export const secondarySearchContainerRenderer = ytv_ren(() => ({
   contents: ytv_arr(ytv_ren())
+}))
+export const settingActionRenderer = ytv_ren(() => ({
+  actionButton: ytv_ren(),
+  actionLabel: components.text,
+  itemId: ytv_str(),
+  serviceEndpoint: ytv_enp(),
+  summary: components.text,
+  thumbnail: components.thumbnail,
+  title: components.text
+}))
+export const settingCategoryCollectionRenderer = ytv_ren(() => ({
+  categoryId: ytv_str(),
+  focused: ytv_bol(),
+  items: ytv_arr(ytv_ren()),
+  title: components.text
+}))
+export const settingSingleOptionMenuRenderer = ytv_ren(() => ({
+  button: ytv_ren(),
+  itemId: ytv_str(),
+  thumbnail: components.thumbnail,
+  title: components.text
 }))
 export const sharePanelHeaderRenderer = ytv_ren(() => ({
   title: ytv_ren()
