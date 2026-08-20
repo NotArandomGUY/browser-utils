@@ -30,8 +30,8 @@ export const preventDispatchEvent = (event: Event): void => {
 export default class InterceptEventTargetAdapter<TTarget, TMap> {
   /// Public ///
 
-  public constructor(eventTarget: EventTarget, forward: boolean) {
-    this.target_ = eventTarget as InterceptEventTarget<TTarget, TMap>
+  public constructor(eventTarget: EventTarget, forward: boolean, proxiedTarget?: EventTarget) {
+    this.target_ = (proxiedTarget ?? eventTarget) as InterceptEventTarget<TTarget, TMap>
     this.forward_ = forward
     this.eventFowarderSet_ = new Set()
     this.eventListenerMap_ = {}

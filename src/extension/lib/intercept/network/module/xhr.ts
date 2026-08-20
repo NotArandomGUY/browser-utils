@@ -12,9 +12,9 @@ const logger = new Logger('INTERCEPT-XHR')
 
 type XHRRequestBody = Document | XMLHttpRequestBodyInit
 
-const DOM_MIME_TYPES = ['application/xhtml+xml', 'application/xml', 'image/svg+xml', 'text/html', 'text/xml']
-const NULL_BODY_STATUS = [101, 204, 205, 304]
-const HEADER_LINE_REGEXP = /^\s*(.*?)\s*:\s*(.*)\s*$/
+const DOM_MIME_TYPES = new Set(['application/xhtml+xml', 'application/xml', 'image/svg+xml', 'text/html', 'text/xml'])
+const NULL_BODY_STATUS = new Set([101, 204, 205, 304])
+const HEADER_LINE_REGEXP = /^\s*(.*?)\s*:\s*(.*)\s*$/ // NOSONAR
 const XHR_EVENT_MAP = {
   onabort: 'abort',
   onerror: 'error',
@@ -51,7 +51,7 @@ const parseHeaders = (headers: string): Record<string, string> => {
 
 const parseDOM = (parser => (string: string, type?: string | null) => {
   type = type?.split(';')[0]?.trim()
-  return parser.parseFromString(unsafePolicy.createHTML(string), (DOM_MIME_TYPES.includes(type!) ? type : 'text/xml') as DOMParserSupportedType)
+  return parser.parseFromString(unsafePolicy.createHTML(string), (DOM_MIME_TYPES.has(type!) ? type : 'text/xml') as DOMParserSupportedType)
 })(new DOMParser())
 
 const responseTypeError = (prop: string, expectType: string, actualType: string): DOMException => {
@@ -66,7 +66,7 @@ const responseMimeType = (xhr: InterceptXMLHttpRequest): string | null => {
 }
 
 const responseBlob = (status: number, responseType: XMLHttpRequestResponseType, response: unknown): Blob | null => {
-  if (NULL_BODY_STATUS.includes(status)) return null
+  if (NULL_BODY_STATUS.has(status)) return null
 
   switch (responseType) {
     case 'arraybuffer':
@@ -124,6 +124,7 @@ class InterceptXMLHttpRequest extends XMLHttpRequest {
     const listen = <A extends unknown[]>(type: string, listener: (...args: [...A, Event]) => void, ...args: A): void => {
       addEventListener.call(this, type, listener.bind(this, ...args))
     }
+
     listen('readystatechange', this[kmHandleXHRReadyStateChange])
     listen('abort', this[kmHandleXHRError])
     listen('error', this[kmHandleXHRError])
@@ -131,14 +132,8 @@ class InterceptXMLHttpRequest extends XMLHttpRequest {
     listen('load', this[kmHandleXHRLoad])
     listen('progress', this[kmDispatchProgress], 'progress')
 
-    const eventTarget = new InterceptEventTargetAdapter<XMLHttpRequest, XMLHttpRequestEventMap>(this, false)
     const externalData: Record<string | symbol, unknown> = {}
-
-    this[kiEventTarget] = eventTarget
-    this[kiRequestMethod] = 'GET'
-    this[kiRequestURL] = parseUrl('/')
-
-    return new Proxy(this, { // NOSONAR
+    const proxy = new Proxy(this, {
       get(target, p) {
         if (p in XHR_EVENT_MAP) {
           // Event listener getter
@@ -167,6 +162,13 @@ class InterceptXMLHttpRequest extends XMLHttpRequest {
         return true
       }
     })
+    const eventTarget = new InterceptEventTargetAdapter<XMLHttpRequest, XMLHttpRequestEventMap>(this, false, proxy)
+
+    this[kiEventTarget] = eventTarget
+    this[kiRequestMethod] = 'GET'
+    this[kiRequestURL] = parseUrl('/')
+
+    return proxy // NOSONAR
   }
 
   // Getter
