@@ -1,7 +1,7 @@
 import { Feature } from '@ext/lib/feature'
 import ProxyChain from '@ext/lib/proxy/chain'
 
-const PROXY_KEYS = ['hj', 'hjSiteSettings']
+const PROXY_KEYS = ['hjSiteSettings']
 const PROXY_CHAIN_OPTIONS = { trace: ['PRIVACY'] }
 
 export default class PrivacyHotjarModule extends Feature {
