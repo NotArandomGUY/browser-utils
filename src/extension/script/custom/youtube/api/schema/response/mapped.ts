@@ -1,5 +1,5 @@
 import { ytv_enp, ytv_ren, ytv_rsp } from '../define/extended'
-import { ytv_arr, ytv_bol, ytv_num, ytv_sto, ytv_str } from '../define/primitive'
+import { ytv_arr, ytv_bol, ytv_num, ytv_obj, ytv_sto, ytv_str, ytv_unk } from '../define/primitive'
 
 import * as renderer from '../renderer'
 import * as components from './components'
@@ -34,6 +34,18 @@ export const commentPerformCommentAction = ytv_rsp(() => ({
     feedback: ytv_str(['FEEDBACK_DESELECT', 'FEEDBACK_SELECT']),
     status: ytv_str(['STATUS_SUCCEEDED'])
   }))
+}))
+export const embeddedPlayer = ytv_rsp(() => ({
+  embeddedPlayerConfig: ytv_sto({
+    embeddedPlayerFlags: ytv_obj(ytv_str(), ytv_unk()),
+    embeddedPlayerMode: ytv_str(renderer.enums.EmbeddedPlayerMode)
+  }),
+  embeddedPlayerMode: ytv_str(renderer.enums.EmbeddedPlayerMode),
+  permissions: ytv_sto({
+    allowImaMonetization: ytv_bol(),
+    allowPfpUnbranded: ytv_bol()
+  }),
+  previewPlayabilityStatus: renderer.components.playerPlayabilityStatus
 }))
 export const guide = ytv_rsp(() => ({
   footer: ytv_ren(),
