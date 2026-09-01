@@ -44,6 +44,22 @@ export default {
         requestDomains: ['accounts.google.com', 'youtube.com'],
         resourceTypes: [ScriptNetResourceType.MAIN_FRAME, ScriptNetResourceType.SUB_FRAME]
       })
+    }),
+    new ScriptNetRule({
+      action: new ScriptNetRuleAction({
+        type: ScriptNetRuleActionType.MODIFY_HEADERS,
+        requestHeaders: [
+          new ScriptNetModifyHeaderInfo({
+            header: 'referer',
+            operation: ScriptNetHeaderOperation.REMOVE
+          })
+        ]
+      }),
+      condition: new ScriptNetRuleCondition({
+        initiatorDomains: ['accounts.google.com', 'youtube.com', ...FRAME_CONFIG.domains],
+        requestDomains: ['accounts.google.com', 'youtube.com'],
+        resourceTypes: [ScriptNetResourceType.MAIN_FRAME, ScriptNetResourceType.SUB_FRAME, ScriptNetResourceType.XMLHTTPREQUEST]
+      })
     })
   ]
 } satisfies IScriptConfig

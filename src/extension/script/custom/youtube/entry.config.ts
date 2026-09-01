@@ -31,12 +31,6 @@ export default {
     new ScriptNetRule({
       action: new ScriptNetRuleAction({
         type: ScriptNetRuleActionType.MODIFY_HEADERS,
-        requestHeaders: [
-          new ScriptNetModifyHeaderInfo({
-            header: 'referer',
-            operation: ScriptNetHeaderOperation.REMOVE
-          })
-        ],
         responseHeaders: [
           new ScriptNetModifyHeaderInfo({
             header: 'report-to',
