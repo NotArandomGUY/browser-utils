@@ -249,15 +249,15 @@ class MainAppMessageChannel extends MessageChannel<PopoutMessageDataMap, PopoutM
       const timeout = max(boundedPopoutTimeout_, unboundPopoutTimeout_)
       data.initialDisplayState = `LIVE_CHAT_DISPLAY_STATE_${Date.now() > timeout ? 'EXPANDED' : 'COLLAPSED'}`
 
-      this.load_([continuation, !!isReplay])
+      this.setBinding_([continuation, !!isReplay])
     })
     registerYTValueProcessor(YTResponse.mapped.next, (data: YTValueData<YTResponse.Mapped<'next'>>) => {
-      if (data.contents) this.unload_()
+      if (data.contents) this.clearBinding_()
     })
 
     setInterval(this.update_.bind(this), 5e3)
 
-    window.addEventListener('beforeunload', this.unload_.bind(this))
+    window.addEventListener('beforeunload', this.clearBinding_.bind(this))
   }
 
   public bind(target: number | null): boolean {
@@ -335,8 +335,8 @@ class MainAppMessageChannel extends MessageChannel<PopoutMessageDataMap, PopoutM
     this.send(PopoutMessageType.TRIGGER_ACTION, ['yt-player-state-change', state])
   }
 
-  private load_(binding: ChatBinding): void {
-    logger.debug('live chat load:', binding)
+  private setBinding_(binding: ChatBinding): void {
+    logger.debug('live chat binding set:', binding)
 
     this.binding_ = binding
 
@@ -346,12 +346,12 @@ class MainAppMessageChannel extends MessageChannel<PopoutMessageDataMap, PopoutM
     }
   }
 
-  private unload_(): void {
+  private clearBinding_(): void {
     const { binding_ } = this
 
     if (binding_ == null) return
 
-    logger.debug('live chat unload:', binding_)
+    logger.debug('live chat binding clear:', binding_)
 
     this.binding_ = null
     this.setPlayer_(null)
@@ -371,7 +371,12 @@ class MainAppMessageChannel extends MessageChannel<PopoutMessageDataMap, PopoutM
   }
 
   private setPlayer_(player: YTPVideoPlayer | null = null): void {
-    const { player_, onPlayerProgress_, onPlayerAdStart_, onPlayerAdEnd_, onPlayerStateChange_, unload_ } = this
+    const { player_, onPlayerProgress_, onPlayerAdStart_, onPlayerAdEnd_, onPlayerStateChange_ } = this
+
+    if (player_) {
+      const videoData = player?.getVideoData?.()
+      if (videoData && !videoData.loading && !videoData.isLoaded?.()) return this.clearBinding_()
+    }
 
     if (player_ === player) return
     if (player_ && player) this.setPlayer_(null)
@@ -385,7 +390,6 @@ class MainAppMessageChannel extends MessageChannel<PopoutMessageDataMap, PopoutM
     action('onAdStart', onPlayerAdStart_, this)
     action('onAdEnd', onPlayerAdEnd_, this)
     action('onStateChange', onPlayerStateChange_, this)
-    action('internalAbandon', unload_, this)
   }
 
   private update_(): void {
