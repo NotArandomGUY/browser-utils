@@ -1,9 +1,9 @@
 import CopyPlugin from 'copy-webpack-plugin'
-import { createHash } from 'crypto'
-import { join } from 'path'
+import { createHash } from 'node:crypto'
+import { join } from 'node:path'
 import TerserPlugin from 'terser-webpack-plugin'
 import TsconfigPathsPlugin from 'tsconfig-paths-webpack-plugin'
-import { Configuration, EntryObject, ProvidePlugin } from 'webpack'
+import { Configuration, defineConfig, EntryObject, ProvidePlugin } from 'webpack'
 import merge from 'webpack-merge'
 import { TERSER_OPTIONS } from './options/terser'
 import ExtensionPackerPlugin from './plugin/extension-packer'
@@ -54,11 +54,11 @@ function createConfig(prefix: string, config: Configuration): Configuration {
   }, config)
 }
 
-export default [
+export default defineConfig(env => [
   createConfig('extension', {
     entry: generateEntries(['worker', 'preload'], 'extension', ''),
     plugins: [
-      new ExtensionPackerPlugin(version),
+      new ExtensionPackerPlugin(version, env),
       new CopyPlugin({
         patterns: [
           {
@@ -101,4 +101,4 @@ export default [
       })
     ]
   })
-]
+])

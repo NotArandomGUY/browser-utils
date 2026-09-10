@@ -7,14 +7,14 @@ import RemotePackage from '@ext/proto/remote/package'
 import ScriptConfig from '@ext/proto/script/config'
 import ScriptEntry from '@ext/proto/script/entry'
 import ScriptPackage from '@ext/proto/script/package'
-import { createCipheriv, createHash, createPrivateKey, createPublicKey, generateKeyPairSync, getRandomValues, KeyObject, sign } from 'crypto'
-import { readdirSync, readFileSync, statSync } from 'fs'
-import { join } from 'path'
-import { cwd } from 'process'
+import { createCipheriv, createHash, createPrivateKey, createPublicKey, generateKeyPairSync, getRandomValues, KeyObject, sign } from 'node:crypto'
+import { readdirSync, readFileSync, statSync } from 'node:fs'
+import { join } from 'node:path'
+import { cwd } from 'node:process'
+import { deflateSync, inflateSync } from 'node:zlib'
 import TerserPlugin from 'terser-webpack-plugin'
 import { Compilation, Compiler, EntryNormalized, sources } from 'webpack'
 import VirtualModulesPlugin from 'webpack-virtual-modules'
-import { deflateSync, inflateSync } from 'zlib'
 import { TERSER_OPTIONS } from '../options/terser'
 
 interface IBranchConfigEntry {
@@ -50,18 +50,18 @@ function toHex(buffer: Uint8Array): string {
 
 function getScriptId(path: string): string {
   const hash = createHash('sha256').update(path).digest()
-  const shift = (hash[0] ^ hash[hash.length - 1]) % hash.length
+  const shift = (hash.at(0)! ^ hash.at(-1)!) % hash.length
   const overflow = Math.max(0, 8 - (hash.length - shift))
 
   return `${toHex(hash.subarray(shift, shift + 8 - overflow))}${toHex(hash.subarray(0, overflow))}`
 }
 
-function getBranchConfig(): IBranchConfig {
+function getBranchConfig(env: Record<string, unknown>): IBranchConfig {
   try {
     const config = JSON.parse(readFileSync(join(cwd(), 'dist/extension/package/branch.json'), 'utf8')) as IBranchConfig
     if (config == null || !Array.isArray(config.branches)) throw new Error('invalid branch config')
 
-    config.branches = config.branches.map(entry => ({
+    const branches = config.branches.map(entry => ({
       id: String(entry.id),
       url: String(entry.url ?? '') || null,
       scripts: Array.isArray(entry.scripts) ? entry.scripts : null,
@@ -69,8 +69,9 @@ function getBranchConfig(): IBranchConfig {
       enabled: !!entry.enabled,
       logging: !!entry.logging
     }))
+    config.branches = branches
 
-    const entry = config.branches.find(entry => entry.id === config.selected) ?? config.branches[0]
+    const entry = typeof env.branch === 'string' && branches.find(entry => entry.id === env.branch) || branches.find(entry => entry.id === config.selected) || branches[0]
     if (entry == null || typeof entry !== 'object') throw new Error('no valid branch available')
 
     config.selected = entry.id
@@ -122,8 +123,8 @@ export default class ExtensionPackerPlugin {
   private readonly key: KeyObject
   private readonly virtualModules: VirtualModulesPlugin
 
-  public constructor(version: string, virtualModules: Record<string, string | object> = {}) {
-    const branchConfig = getBranchConfig()
+  public constructor(version: string, env: Record<string, unknown>, virtualModules: Record<string, string | object> = {}) { // NOSONAR
+    const branchConfig = getBranchConfig(env)
     const loggingEnabledBranchIds = new Set<string>()
 
     // Create/Load remote package
