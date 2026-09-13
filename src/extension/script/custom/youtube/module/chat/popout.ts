@@ -2,7 +2,7 @@ import { registerYTValueProcessor, YTValueCallbackType, YTValueProcessorContext 
 import { YTEndpoint, YTRenderer, YTResponse, YTValueData, YTValueType } from '@ext/custom/youtube/api/schema'
 import { YTPolymerConnectCallback } from '@ext/custom/youtube/module/core/bootstrap'
 import { registerYTSignalActionHandler } from '@ext/custom/youtube/module/core/command'
-import { registerYTConfigMenuItemGroup, YTConfigMenuItemType } from '@ext/custom/youtube/module/core/config'
+import { getYTConfigBool, registerYTConfigMenuItemGroup, YTConfigMenuItemType } from '@ext/custom/youtube/module/core/config'
 import { registerYTInnertubeRequestProcessor } from '@ext/custom/youtube/module/core/network'
 import { getYTPMainPlayer, YTPVideoPlayer } from '@ext/custom/youtube/module/player/bootstrap'
 import ContinuationToken, { LiveChatContinuationToken } from '@ext/custom/youtube/proto/continuation-token'
@@ -22,6 +22,8 @@ import MessageChannel, { ChannelMessageData } from '@ext/lib/message/channel'
 
 const logger = new Logger('YTCHAT-POPOUT')
 
+const CHAT_FRAME_LIVE_VISIBILITY_KEY = 'chat-frame-live-visibility'
+const CHAT_FRAME_REPLAY_VISIBILITY_KEY = 'chat-frame-replay-visibility'
 const CHANNEL_NAME = 'bmc-ytchat-popout'
 const IFRAME_WARMUP_DURATION = 5e3 // 5 sec
 const POPOUT_KEEPALIVE_TIMEOUT = 25e3 // 25 sec
@@ -220,13 +222,29 @@ class MainAppMessageChannel extends MessageChannel<PopoutMessageDataMap, PopoutM
 
     this.unboundPopoutTimeout_ = Date.now() + IFRAME_WARMUP_DURATION
 
-    registerYTConfigMenuItemGroup('general', [
+    registerYTConfigMenuItemGroup('live-chat', [
       {
         type: YTConfigMenuItemType.BUTTON,
-        key: 'open-popout-chat',
+        key: 'chat-popout-open',
         icon: YTRenderer.enums.IconType.CHAT,
-        text: 'Open popout chat',
+        text: 'Open popout window',
         signals: [YTEndpoint.enums.SignalActionType.OPEN_POPOUT_CHAT, YTEndpoint.enums.SignalActionType.CLOSE_POPUP]
+      },
+      {
+        type: YTConfigMenuItemType.TOGGLE,
+        key: CHAT_FRAME_LIVE_VISIBILITY_KEY,
+        icon: YTRenderer.enums.IconType.VISIBILITY,
+        text: 'Open live chat panel',
+        description: 'Open chat panel when watching live stream',
+        default: true
+      },
+      {
+        type: YTConfigMenuItemType.TOGGLE,
+        key: CHAT_FRAME_REPLAY_VISIBILITY_KEY,
+        icon: YTRenderer.enums.IconType.VISIBILITY,
+        text: 'Open replay chat panel',
+        description: 'Open chat panel when watching live stream replay',
+        default: false
       }
     ])
     registerYTSignalActionHandler(YTEndpoint.enums.SignalActionType.OPEN_POPOUT_CHAT, () => {
@@ -246,8 +264,8 @@ class MainAppMessageChannel extends MessageChannel<PopoutMessageDataMap, PopoutM
       }
 
       // Use iframe if popout chat is not available
-      const timeout = max(boundedPopoutTimeout_, unboundPopoutTimeout_)
-      data.initialDisplayState = `LIVE_CHAT_DISPLAY_STATE_${Date.now() > timeout ? 'EXPANDED' : 'COLLAPSED'}`
+      const expanded = Date.now() > max(boundedPopoutTimeout_, unboundPopoutTimeout_) && getYTConfigBool(isReplay ? CHAT_FRAME_REPLAY_VISIBILITY_KEY : CHAT_FRAME_LIVE_VISIBILITY_KEY, false)
+      data.initialDisplayState = `LIVE_CHAT_DISPLAY_STATE_${expanded ? 'EXPANDED' : 'COLLAPSED'}`
 
       this.setBinding_([continuation, !!isReplay])
     })
