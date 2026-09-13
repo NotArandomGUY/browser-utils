@@ -7,6 +7,7 @@ import RemotePackage from '@ext/proto/remote/package'
 import ScriptConfig from '@ext/proto/script/config'
 import ScriptEntry from '@ext/proto/script/entry'
 import ScriptPackage from '@ext/proto/script/package'
+import { spawn } from 'node:child_process'
 import { createCipheriv, createHash, createPrivateKey, createPublicKey, generateKeyPairSync, getRandomValues, KeyObject, sign } from 'node:crypto'
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
@@ -24,6 +25,7 @@ interface IBranchConfigEntry {
   encrypt: boolean
   enabled: boolean
   logging: boolean
+  command: string | null
 }
 
 interface IBranchConfig {
@@ -40,7 +42,8 @@ const DEFAULT_BRANCH_CONFIG = {
   scripts: null,
   encrypt: false,
   enabled: true,
-  logging: true
+  logging: true,
+  command: null
 } satisfies IBranchConfigEntry
 const PACKAGE_CACHE_REGEXP = /package\/cache\//i
 
@@ -67,7 +70,8 @@ function getBranchConfig(env: Record<string, unknown>): IBranchConfig {
       scripts: Array.isArray(entry.scripts) ? entry.scripts : null,
       encrypt: !!entry.encrypt,
       enabled: !!entry.enabled,
-      logging: !!entry.logging
+      logging: !!entry.logging,
+      command: String(entry.command ?? '') || null
     }))
     config.branches = branches
 
@@ -119,13 +123,15 @@ export default class ExtensionPackerPlugin {
   private readonly rpk: InstanceType<typeof RemotePackage>
   private readonly spk: InstanceType<typeof ScriptPackage>
   private readonly branch: InstanceType<typeof RemoteBranch>
-  private readonly loggingEnabledBranchIds: Set<string>
+  private readonly loggingEnabledBranchIds = new Set<string>()
+  private readonly commandMap = new Map<string, string>()
   private readonly key: KeyObject
   private readonly virtualModules: VirtualModulesPlugin
 
   public constructor(version: string, env: Record<string, unknown>, virtualModules: Record<string, string | object> = {}) { // NOSONAR
+    const { loggingEnabledBranchIds, commandMap } = this
+
     const branchConfig = getBranchConfig(env)
-    const loggingEnabledBranchIds = new Set<string>()
 
     // Create/Load remote package
     const rpk = new RemotePackage({})
@@ -147,8 +153,9 @@ export default class ExtensionPackerPlugin {
     rpk.branches ??= []
 
     // Update remote package branches by config
-    for (const { id, url, scripts, encrypt, enabled, logging } of branchConfig.branches) {
+    for (const { id, url, scripts, encrypt, enabled, logging, command } of branchConfig.branches) {
       if (logging) loggingEnabledBranchIds.add(id)
+      if (command) commandMap.set(id, command)
 
       let branch = rpk.branches.find(branch => branch.id === id)
       if (branch == null) {
@@ -201,13 +208,12 @@ export default class ExtensionPackerPlugin {
     this.rpk = rpk
     this.spk = spk
     this.branch = branch
-    this.loggingEnabledBranchIds = loggingEnabledBranchIds
     this.key = key
     this.virtualModules = new VirtualModulesPlugin(buildVirtualModules(virtualModules))
   }
 
   public apply(compiler: Compiler) {
-    const { rpk, spk, branch, loggingEnabledBranchIds, key, virtualModules } = this
+    const { rpk, spk, branch, loggingEnabledBranchIds, commandMap, key, virtualModules } = this
 
     compiler.hooks.environment.tap(PLUGIN_NAME, () => {
       const entryPoints: EntryNormalized = {}
@@ -357,7 +363,8 @@ export default class ExtensionPackerPlugin {
             scripts: b.scripts,
             encrypt: b.encryptKey != null,
             enabled: b.publicKey != null,
-            logging: loggingEnabledBranchIds.has(b.id!)
+            logging: loggingEnabledBranchIds.has(b.id!),
+            command: commandMap.get(b.id!) ?? null
           })) ?? []
         } as IBranchConfig, null, 2)))
 
@@ -378,6 +385,15 @@ export default class ExtensionPackerPlugin {
         compilation.emitAsset('extension.rpk', new sources.RawSource(deflateSync(rpk.serialize())))
       })
     })
+
+    compiler.hooks.done.tapPromise(PLUGIN_NAME, () => new Promise((resolve, reject) => {
+      const command = commandMap.get(branch.id!)
+      if (command == null) return resolve()
+
+      console.log(`[${PLUGIN_NAME}]`, `> ${command}`)
+
+      spawn(command, { shell: true, stdio: 'pipe' }).on('exit', resolve).on('error', error => reject(error))
+    }))
 
     virtualModules.apply(compiler)
   }
