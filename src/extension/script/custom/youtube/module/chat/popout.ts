@@ -1,7 +1,7 @@
 import { registerYTValueProcessor, YTValueCallbackType, YTValueProcessorContext } from '@ext/custom/youtube/api/processor'
 import { YTEndpoint, YTRenderer, YTResponse, YTValueData, YTValueType } from '@ext/custom/youtube/api/schema'
 import { YTPolymerConnectCallback } from '@ext/custom/youtube/module/core/bootstrap'
-import { registerYTSignalActionHandler } from '@ext/custom/youtube/module/core/command'
+import { executeYTCommand, registerYTSignalActionHandler } from '@ext/custom/youtube/module/core/command'
 import { getYTConfigBool, registerYTConfigMenuItemGroup, YTConfigMenuItemType } from '@ext/custom/youtube/module/core/config'
 import { registerYTInnertubeRequestProcessor } from '@ext/custom/youtube/module/core/network'
 import { getYTPMainPlayer, YTPVideoPlayer } from '@ext/custom/youtube/module/player/bootstrap'
@@ -279,12 +279,19 @@ class MainAppMessageChannel extends MessageChannel<PopoutMessageDataMap, PopoutM
   }
 
   public bind(target: number | null): boolean {
-    const { source, boundTo } = this
+    const { source, boundTo, binding_ } = this
 
     if (!super.bind(target)) return false
 
-    if (boundTo != null) logger.debug(`player '${source}' unbind popout '${boundTo}'`)
-    if (target != null) logger.debug(`player '${source}' bind popout '${target}'`)
+    if (target == null) {
+      logger.debug(`player '${source}' unbind popout '${boundTo}'`)
+      if (binding_ != null) executeYTCommand({ setLiveChatCollapsedStateAction: { collapsed: false } })
+    } else if (boundTo == null) {
+      logger.debug(`player '${source}' bind popout '${target}'`)
+      if (binding_ != null) executeYTCommand({ setLiveChatCollapsedStateAction: { collapsed: true } })
+    } else {
+      logger.debug(`player '${source}' rebind popout '${boundTo}'->'${target}'`)
+    }
 
     this.boundedPopoutTimeout_ = Date.now() + 1e3
     this.update_()
@@ -293,6 +300,7 @@ class MainAppMessageChannel extends MessageChannel<PopoutMessageDataMap, PopoutM
   }
 
   protected onBroadcast(message: ChannelMessageData<PopoutMessageDataMap, PopoutMessageType>): void {
+    const { boundTo, binding_ } = this
     const { source } = message
 
     switch (message.type) { // NOSONAR
@@ -300,6 +308,8 @@ class MainAppMessageChannel extends MessageChannel<PopoutMessageDataMap, PopoutM
         logger.debug(`popout '${source}' announce`)
 
         this.unboundPopoutTimeout_ = Date.now() + POPOUT_KEEPALIVE_TIMEOUT
+
+        if (boundTo == null && binding_ != null) this.update_()
         return
       default:
         logger.trace('main app dropped broadcast:', message)
