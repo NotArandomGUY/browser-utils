@@ -275,7 +275,7 @@ class MainAppMessageChannel extends MessageChannel<PopoutMessageDataMap, PopoutM
 
     setInterval(this.update_.bind(this), 5e3)
 
-    window.addEventListener('beforeunload', this.clearBinding_.bind(this))
+    addEventListener('beforeunload', this.clearBinding_.bind(this))
   }
 
   public bind(target: number | null): boolean {
@@ -322,6 +322,9 @@ class MainAppMessageChannel extends MessageChannel<PopoutMessageDataMap, PopoutM
 
         this.send(PopoutMessageType.BINDING_SYNC, [binding_], source)
         if (!this.bind(source)) this.update_()
+        return
+      case PopoutMessageType.BINDING_DROP:
+        this.bind(null)
         return
       case PopoutMessageType.BINDING_KEEPALIVE:
         this.keepalive_()
@@ -782,6 +785,7 @@ class ChatShellMessageChannel extends MessageChannel<PopoutMessageDataMap, Popou
 
       history.replaceState(null, '', LiveChatShellUrl)
     })
+    addEventListener('beforeunload', this.onUnload_.bind(this))
     addEventListener('resize', this.resizeGrid_.bind(this, false))
     addEventListener('dragover', this.onDragOver_.bind(this))
     addEventListener('drop', this.onDrop_.bind(this))
@@ -958,6 +962,12 @@ class ChatShellMessageChannel extends MessageChannel<PopoutMessageDataMap, Popou
     if (background_.length === 0 && full_) return
 
     this.broadcast(PopoutMessageType.POPOUT_ANNOUNCE, [])
+  }
+
+  private onUnload_(): void {
+    const { foreground_ } = this
+
+    foreground_.forEach(channel => channel.send(PopoutMessageType.BINDING_DROP, []))
   }
 
   private onDragOver_(event: DragEvent): void {
