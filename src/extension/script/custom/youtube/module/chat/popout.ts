@@ -406,7 +406,7 @@ class MainAppMessageChannel extends MessageChannel<PopoutMessageDataMap, PopoutM
 
     if (player_) {
       const videoData = player?.getVideoData?.()
-      if (videoData && !videoData.loading && !videoData.isLoaded?.()) return this.clearBinding_()
+      if (videoData && !(videoData.loading || videoData.isUpcoming || videoData.isLivePlayback || videoData.isPremiere || videoData.isLoaded?.())) return this.clearBinding_()
     }
 
     if (player_ === player) return
