@@ -108,6 +108,8 @@ export interface YTPVideoData extends YTPObject {
   videoId?: string
   cotn?: string
   isLivePlayback?: boolean
+  isPremiere?: boolean
+  isUpcoming?: boolean
   loading?: boolean
 
   isAd?(): boolean
