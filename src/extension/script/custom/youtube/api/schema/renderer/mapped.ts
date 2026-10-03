@@ -774,7 +774,14 @@ export const copyLinkRenderer = ytv_ren(() => ({
 export const decoratedPlayerBarRenderer = ytv_ren(() => ({
   buttonType: ytv_str(['DECORATED_PLAYER_BAR_BUTTON_TYPE_CHAPTERS', 'DECORATED_PLAYER_BAR_BUTTON_TYPE_TIMELINE']),
   playerBar: ytv_ren(),
-  playerBarActionButton: ytv_ren()
+  playerBarActionButton: ytv_ren(),
+  playhead: ytv_ren(),
+  progressColor: ytv_num()
+}))
+export const decoratedPlayheadRenderer = ytv_ren(() => ({
+  playheadFastForwardImage: components.thumbnail,
+  playheadImage: components.thumbnail,
+  playheadRewindImage: components.thumbnail
 }))
 export const defaultPromoPanelBylineRenderer = ytv_ren(() => ({
   badgeRenderers: ytv_arr(ytv_ren()),
