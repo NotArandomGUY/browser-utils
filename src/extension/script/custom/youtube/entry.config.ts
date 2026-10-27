@@ -41,6 +41,10 @@ export default {
             operation: ScriptNetHeaderOperation.REMOVE
           }),
           new ScriptNetModifyHeaderInfo({
+            header: 'connection-allowlist-report-only',
+            operation: ScriptNetHeaderOperation.REMOVE
+          }),
+          new ScriptNetModifyHeaderInfo({
             header: 'content-security-policy-report-only',
             operation: ScriptNetHeaderOperation.REMOVE
           }),

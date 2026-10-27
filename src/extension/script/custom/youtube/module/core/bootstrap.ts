@@ -222,8 +222,8 @@ export const YTPolymerDisconnectCallback = new Callback<[element: YTPolymerEleme
 
 const kevlarClassQueue: YTKevlarProperty<Function>[] = []
 
-let PolymerFakeBaseClass: ((this: YTPolymerController) => void) | undefined
-let PolymerFakeBaseClassWithoutHtml: ((this: YTPolymerController) => void) | undefined
+let PolymerFakeBaseClass: (new () => YTPolymerController) | undefined
+let PolymerFakeBaseClassWithoutHtml: (new () => YTPolymerController) | undefined
 
 let environment: YTEnvironment
 let ytcfg: YTConfig
@@ -344,14 +344,25 @@ const overrideBootstrapLoader = <T>(type: string, processor: (data: T) => Promis
   })
 }
 
-const onPolymerCreate = (controller: YTPolymerController): void => {
-  if (typeof controller?.is !== 'string') return
-
-  try {
-    YTPolymerCreateCallback.invoke(controller)
-  } catch (error) {
-    logger.warn('polymer create callback error:', error)
+const definePolymerClass = (ctor: new () => YTPolymerController) => new Proxy(ctor, {
+  construct(target, argArray, newTarget) {
+    return onPolymerCreate(Reflect.construct(target, argArray, newTarget))
+  },
+  apply(target, thisArg, argArray) {
+    return onPolymerCreate(Reflect.apply(target, thisArg, argArray))
   }
+})
+
+const onPolymerCreate = (controller: YTPolymerController): YTPolymerController => {
+  if (typeof controller?.is === 'string') {
+    try {
+      YTPolymerCreateCallback.invoke(controller)
+    } catch (error) {
+      logger.warn('polymer create callback error:', error)
+    }
+  }
+
+  return controller
 }
 
 const onPolymerConnected = ({ self }: CallContext<YTPolymerElement, unknown[], void>): HookResult => {
@@ -559,14 +570,8 @@ export default class YTCoreBootstrapModule extends Feature {
         get() {
           return PolymerFakeBaseClass
         },
-        set(fn: typeof PolymerFakeBaseClass) {
-          if (typeof fn !== 'function') return
-
-          PolymerFakeBaseClass = function () {
-            fn.apply<YTPolymerController, void>(this)
-            onPolymerCreate(this)
-          }
-          PolymerFakeBaseClass.prototype = fn.prototype
+        set(ctor: typeof PolymerFakeBaseClass) {
+          if (typeof ctor === 'function') PolymerFakeBaseClass = definePolymerClass(ctor)
         }
       },
       PolymerFakeBaseClassWithoutHtml: {
@@ -574,14 +579,8 @@ export default class YTCoreBootstrapModule extends Feature {
         get() {
           return PolymerFakeBaseClassWithoutHtml
         },
-        set(fn: typeof PolymerFakeBaseClassWithoutHtml) {
-          if (typeof fn !== 'function') return
-
-          PolymerFakeBaseClassWithoutHtml = function () {
-            fn.apply<YTPolymerController, void>(this)
-            onPolymerCreate(this)
-          }
-          PolymerFakeBaseClassWithoutHtml.prototype = fn.prototype
+        set(ctor: typeof PolymerFakeBaseClassWithoutHtml) {
+          if (typeof ctor === 'function') PolymerFakeBaseClassWithoutHtml = definePolymerClass(ctor)
         }
       },
 

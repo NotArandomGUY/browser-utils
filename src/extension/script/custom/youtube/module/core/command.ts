@@ -6,7 +6,11 @@ import Hook, { CallContext, HookResult } from '@ext/lib/intercept/hook'
 import { findMethodEntryByRegexp } from '@ext/lib/regexp'
 
 const RESOLVE_COMMAND_REGEXP = /(navigate.*?handleServiceRequest.*?sendAction)|(\(this,[^(]+\)\.handled)/s
-const BUILD_COMMAND_PAYLOAD_REGEXP = /(function\s*\([\w$]+,\s*[\w$]+\)\s*\{.*[\w$]+\([\w$,]+\s*[\w$]+\)\s*\})|(form\.abortSignal)/s
+const BUILD_COMMAND_PAYLOAD_REGEXP = new RegExp([
+  String.raw`function\s*\([\w$]+,\s*[\w$]+\)\s*\{.*[\w$]+\([\w$,]+\s*[\w$]+\)\s*\}`,
+  String.raw`\([\w$]+,\s*[\w$]+\)\s*=>.*[\w$]+\([\w$,]+\s*[\w$]+\)`,
+  String.raw`form\.abortSignal`
+].map(pattern => `(${pattern})`).join('|'), 's')
 
 export type YTSignalActionHandler = () => void
 
