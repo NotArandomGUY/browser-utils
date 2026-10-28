@@ -301,13 +301,13 @@ export const registerYTValueProcessor = <S extends YTValueSchema>(
 }
 
 export const processYTEndpoint = async (value: unknown, config = defaultConfig): Promise<void> => {
-  const begin = performance.now()
+  const begin = /*@__PURE__*/performance.now()
 
   const ctx = new YTValueProcessorContext(config)
   await processYTValue(ctx, YT_VALUE_ENDPOINT, value, null)
 
-  const delta = performance.now() - begin
-  logger.debug(`endpoint processor took: ${delta.toFixed(2)}ms`)
+  const delta = /*@__PURE__*/performance.now() - begin
+  logger.debug(`endpoint processor took: ${/*@__PURE__*/delta.toFixed(2)}ms`)
 }
 
 export const processYTResponse = async (key: YTResponse.MappedKey, value: unknown, config = defaultConfig): Promise<void> => {
@@ -317,7 +317,7 @@ export const processYTResponse = async (key: YTResponse.MappedKey, value: unknow
     return
   }
 
-  const begin = performance.now()
+  const begin = /*@__PURE__*/performance.now()
 
   const ctx = new YTValueProcessorContext(config)
   if (Array.isArray(value)) {
@@ -326,6 +326,6 @@ export const processYTResponse = async (key: YTResponse.MappedKey, value: unknow
     await processYTValue(ctx, schema, value)
   }
 
-  const delta = performance.now() - begin
-  logger.debug(`response '${key}' processor took: ${delta.toFixed(2)}ms`)
+  const delta = /*@__PURE__*/performance.now() - begin
+  logger.debug(`response '${key}' processor took: ${/*@__PURE__*/delta.toFixed(2)}ms`)
 }

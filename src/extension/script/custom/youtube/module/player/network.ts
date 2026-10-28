@@ -52,7 +52,7 @@ let onesieHeader: InstanceType<typeof UMPOnesieHeader> | null = null
 
 const manager = new UMPContextManager({
   [UMPSliceType.UNKNOWN]: (data, slice) => {
-    logger.trace('slice type:', slice.getType(), data)
+    logger.trace('slice type:', /*@__PURE__*/slice.getType(), data)
   },
   [UMPSliceType.ONESIE_HEADER]: (data) => {
     onesieHeader = new UMPOnesieHeader().deserialize(data)

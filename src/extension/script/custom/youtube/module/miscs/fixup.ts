@@ -69,7 +69,7 @@ export default class YTMiscsFixupModule extends Feature {
         })
         if (node.sandbox.length > 0) node.sandbox.add('allow-same-origin', 'allow-scripts')
 
-        logger.debug('patched iframe element', node, getOwnPropertyDescriptors(node))
+        logger.debug('patched iframe element', node, /*@__PURE__*/getOwnPropertyDescriptors(node))
       }
 
       return HookResult.EXECUTION_PASSTHROUGH

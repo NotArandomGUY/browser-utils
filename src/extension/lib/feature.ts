@@ -108,7 +108,7 @@ const activateFeatureGroup = (groupId: string): void => {
     steps.push(performance.now())
   }
 
-  logger.debug(`feature group '${groupId}' activation performance:`, steps.map((step, i) => [step - (steps[i - 1] ?? begin), step - begin]))
+  logger.debug(`feature group '${groupId}' activation performance:`, /*@__PURE__*/steps.map((step, i) => [step - (steps[i - 1] ?? begin), step - begin]))
 
   if (isReload) location.reload()
 }
