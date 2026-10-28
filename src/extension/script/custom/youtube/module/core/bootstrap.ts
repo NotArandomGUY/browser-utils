@@ -201,14 +201,14 @@ export interface YTPolymerElement<Tag extends string = string> extends HTMLEleme
   is: Tag
   polymerController?: YTPolymerController<Tag>
 
-  [PolymerElementConnectedSymbol]?: boolean
+  [PolymerElementMovingSymbol]?: boolean
 }
 
 const AppTagNameRegexp = /^yt.*-app$/i
 const KevlarSingletonRegexp = /[a-zA-Z_$][\w$]*\|\|\([a-zA-Z_$][\w$]*=new\s+[a-zA-Z_$][\w$]*\);return [a-zA-Z_$][\w$]*/s
 const KevlarClassDeferCount = 8
 
-const PolymerElementConnectedSymbol = Symbol()
+const PolymerElementMovingSymbol = Symbol()
 
 export const YTConfigInitCallback = new Callback<[ytcfg: YTConfig]>()
 export const YTKevlarPropertyDefineCallback = new Callback<YTKevlarProperty>()
@@ -330,7 +330,7 @@ const overrideBootstrapLoader = <T>(type: string, processor: (data: T) => Promis
         }
 
         const data = fn() as T
-        processor(data).finally(() => {
+        processor(data).finally(() => { // NOSONAR: processor error should be logged only, not thrown
           defineProperty(window, `getInitial${suffix}`, {
             configurable: true,
             writable: true,
@@ -349,11 +349,13 @@ const definePolymerClass = (ctor: new () => YTPolymerController) => new Proxy(ct
     return onPolymerCreate(Reflect.construct(target, argArray, newTarget))
   },
   apply(target, thisArg, argArray) {
-    return onPolymerCreate(Reflect.apply(target, thisArg, argArray))
+    const returnValue = Reflect.apply(target, thisArg, argArray)
+    onPolymerCreate(returnValue || thisArg)
+    return returnValue
   }
 })
 
-const onPolymerCreate = (controller: YTPolymerController): YTPolymerController => {
+const onPolymerCreate = <T extends YTPolymerController | undefined>(controller: T): T => {
   if (typeof controller?.is === 'string') {
     try {
       YTPolymerCreateCallback.invoke(controller)
@@ -369,9 +371,10 @@ const onPolymerConnected = ({ self }: CallContext<YTPolymerElement, unknown[], v
   if (typeof self.is !== 'string') return HookResult.EXECUTION_PASSTHROUGH
 
   // Ignore callbacks during move
-  const connected = PolymerElementConnectedSymbol in self
-  self[PolymerElementConnectedSymbol] = true
-  if (connected) return HookResult.EXECUTION_CONTINUE
+  if (PolymerElementMovingSymbol in self) {
+    delete self[PolymerElementMovingSymbol]
+    return HookResult.EXECUTION_CONTINUE
+  }
 
   try {
     YTPolymerConnectCallback.invoke(self)
@@ -382,26 +385,19 @@ const onPolymerConnected = ({ self }: CallContext<YTPolymerElement, unknown[], v
   return HookResult.EXECUTION_PASSTHROUGH
 }
 
-const onPolymerDisconnected = ({ origin, self, args }: CallContext<YTPolymerElement, unknown[], void>): HookResult => {
+const onPolymerDisconnected = ({ self }: CallContext<YTPolymerElement, unknown[], void>): HookResult => {
   if (typeof self.is !== 'string') return HookResult.EXECUTION_PASSTHROUGH
 
-  self[PolymerElementConnectedSymbol] = false
+  // Ignore callbacks during move
+  if (PolymerElementMovingSymbol in self) return HookResult.EXECUTION_CONTINUE
 
-  requestAnimationFrame(() => {
-    // Ignore callbacks during move
-    if (self[PolymerElementConnectedSymbol] !== false) return
-    delete self[PolymerElementConnectedSymbol]
+  try {
+    YTPolymerDisconnectCallback.invoke(self)
+  } catch (error) {
+    logger.warn('polymer disconnect callback error:', error)
+  }
 
-    try {
-      YTPolymerDisconnectCallback.invoke(self)
-    } catch (error) {
-      logger.warn('polymer disconnect callback error:', error)
-    }
-
-    origin.apply(self, args)
-  })
-
-  return HookResult.EXECUTION_CONTINUE
+  return HookResult.EXECUTION_PASSTHROUGH
 }
 
 export const isYTLoggedIn = (): boolean => {
@@ -660,6 +656,12 @@ export default class YTCoreBootstrapModule extends Feature {
 
       return HookResult.EXECUTION_PASSTHROUGH
     }).call
+    Node.prototype.insertBefore = new Hook(Node.prototype.insertBefore).install(({ args }) => {
+      const node = args[0] as YTPolymerElement
+      if (typeof node.is === 'string') node[PolymerElementMovingSymbol] = true
+
+      return HookResult.EXECUTION_PASSTHROUGH
+    }).call as typeof Node.prototype.insertBefore
 
     registerOverlayPage('Device', YTDevicePage)
 

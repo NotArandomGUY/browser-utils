@@ -828,7 +828,9 @@ class ChatShellMessageChannel extends MessageChannel<PopoutMessageDataMap, Popou
       // Cleanup placeholder items
       background_.forEach(({ app }) => app.remove())
 
-      document.body.append(app)
+      // Attach app to body
+      const { body } = document
+      if (!body.contains(app)) body.append(app)
     } else if (foreground_.length > 0) {
       // Remove until there is only one item left which is kept as placeholder
       app.remove()
