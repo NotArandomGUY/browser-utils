@@ -120,7 +120,7 @@ export const buttonViewModel = ytv_rvm(() => ({
   titleFormatted: textViewModel,
   tooltip: ytv_str(),
   tooltipData: ytv_ren(),
-  type: ytv_str(['BUTTON_VIEW_MODEL_TYPE_FILLED', 'BUTTON_VIEW_MODEL_TYPE_OUTLINE', 'BUTTON_VIEW_MODEL_TYPE_TEXT', 'BUTTON_VIEW_MODEL_TYPE_TONAL']),
+  type: ytv_str(['BUTTON_VIEW_MODEL_TYPE_FILLED', 'BUTTON_VIEW_MODEL_TYPE_OUTLINE', 'BUTTON_VIEW_MODEL_TYPE_TEXT', 'BUTTON_VIEW_MODEL_TYPE_TONAL', 'BUTTON_VIEW_MODEL_TYPE_UNKNOWN']),
   useYoutubeLoggingDirectives: ytv_bol()
 }))
 
@@ -406,6 +406,16 @@ export const bannerPromoRenderer = ytv_ren(() => ({
   style: components.style,
   supplementalText: components.text
 }))
+export const brandVideoShelfRenderer = ytv_ren(() => ({
+  content: ytv_arr(ytv_ren()),
+  header: ytv_ren(),
+  impressionEndpoint: ytv_enp(),
+  isFirstFeedItem: ytv_bol(),
+  overflowButton: ytv_ren(),
+  primaryButton: ytv_ren(),
+  showMoreButton: ytv_ren(),
+  subtitle: components.text
+}))
 export const browseFeedActionsRenderer = ytv_ren(() => ({
   contents: ytv_arr(ytv_ren())
 }))
@@ -536,6 +546,7 @@ export const checkboxRenderer = ytv_ren(() => ({
 }))
 export const chipCloudChipRenderer = ytv_ren(() => ({
   accessibilityData: common.components.accessibility,
+  content: ytv_ren(),
   icon: components.icon,
   isSelected: ytv_bol(),
   location: ytv_str(['CHIP_LOCATION_SEARCH_RESULTS']),
@@ -544,7 +555,8 @@ export const chipCloudChipRenderer = ytv_ren(() => ({
   style: components.style,
   targetId: ytv_str(),
   text: components.text,
-  uniqueId: ytv_str()
+  uniqueId: ytv_str(),
+  ytIcon: ytv_str() // YTICON_(FILL|OUTLINE)_(enums.IconType)_S(size)
 }))
 export const chipCloudRenderer = ytv_ren(() => ({
   chips: ytv_arr(ytv_ren()),
@@ -1035,15 +1047,17 @@ export const feedFilterChipBarRenderer = ytv_ren(() => ({
 export const feedNudgeRenderer = ytv_ren(() => ({
   applyModernizedStyle: ytv_bol(),
   backgroundStyle: ytv_str(['FEED_NUDGE_BACKGROUND_STYLE_ACCENT_GRADIENT', 'FEED_NUDGE_BACKGROUND_STYLE_UNKNOWN']),
+  contents: ytv_arr(ytv_ren()),
   contentsLocation: ytv_str(['FEED_NUDGE_CONTENTS_LOCATION_LEFT', 'FEED_NUDGE_CONTENTS_LOCATION_UNKNOWN']),
   disableDropShadow: ytv_bol(),
+  dismissButton: ytv_ren(),
   enableHorizontalButtons: ytv_bol(),
   impressionEndpoint: ytv_enp(),
   primaryButton: ytv_ren(),
   style: ytv_str(['FEED_NUDGE_STYLE_BUTTONS']),
   subtitle: components.text,
   title: components.text,
-  trimStyle: ytv_str(['FEED_NUDGE_TRIM_STYLE_NO_TRIM'])
+  trimStyle: ytv_str(['FEED_NUDGE_TRIM_STYLE_NO_TRIM', 'FEED_NUDGE_TRIM_STYLE_UNKNOWN'])
 }))
 export const feedTabbedHeaderRenderer = ytv_ren(() => ({
   title: components.text
@@ -2254,7 +2268,8 @@ export const paidContentOverlayRenderer = ytv_ren(() => ({
   icon: components.icon,
   navigationEndpoint: ytv_enp(),
   showInPip: ytv_bol(),
-  text: components.text
+  text: components.text,
+  usePillStyle: ytv_bol()
 }))
 export const pdgCommentChipRenderer = ytv_ren(() => ({
   chipColorPalette: ytv_obj(ytv_str(), ytv_num()),
@@ -2786,14 +2801,17 @@ export const richShelfRenderer = ytv_ren(() => ({
   isTopDividerHidden: ytv_bol(),
   menu: ytv_ren(),
   responsiveContainerConfiguration: ytv_sto({
-    enableContentSpecificAspectRatio: ytv_bol()
+    enableContentSpecificAspectRatio: ytv_bol(),
+    responsiveSize: ytv_str(['RESPONSIVE_SIZE_COMPACT', 'RESPONSIVE_SIZE_EXTRA_COMPACT', 'RESPONSIVE_SIZE_TINY'])
   }),
   showLessButton: ytv_ren(),
   showMoreButton: ytv_ren(),
+  subtitle: components.text,
   targetingContext: ytv_sto({
     targetGroupId: ytv_arr(ytv_str()),
     targetId: ytv_str()
   }),
+  thumbnail: components.thumbnail,
   title: components.text
 }))
 export const scrollPaneItemListRenderer = ytv_ren(() => ({
@@ -3033,6 +3051,7 @@ export const startAtRenderer = ytv_ren(() => ({
   startAtOptionLabel: components.text
 }))
 export const structuredDescriptionContentRenderer = ytv_ren(() => ({
+  floatingButton: ytv_ren(),
   items: ytv_arr(ytv_ren())
 }))
 export const structuredDescriptionPlaylistLockupRenderer = ytv_ren(() => ({
@@ -3427,6 +3446,7 @@ export const videoPrimaryInfoRenderer = ytv_ren(() => ({
 export const videoRenderer = ytv_ren(() => ({
   avatar: ytv_ren(),
   badges: ytv_arr(ytv_ren()),
+  buttons: ytv_arr(ytv_ren()),
   channelThumbnailSupportedRenderers: ytv_ren(),
   descriptionSnippet: components.text,
   detailedMetadataSnippets: ytv_arr(ytv_unk()),
@@ -3442,6 +3462,7 @@ export const videoRenderer = ytv_ren(() => ({
   publishedTimeText: components.text,
   richThumbnail: ytv_ren(),
   searchVideoResultEntityKey: ytv_str(),
+  serviceEndpoint: ytv_enp(),
   shortBylineText: components.text,
   shortViewCountText: components.text,
   showActionMenu: ytv_bol(),
@@ -3604,6 +3625,11 @@ export const adPreviewViewModel = ytv_rvm(() => ({
   previewImage: components.image,
   previewText: templatedAdText
 }))
+export const aiResponseBoxViewModel = ytv_rvm(() => ({
+  chipsShelf: ytv_ren(),
+  responseMessage: textViewModel,
+  responsePendingMessage: textViewModel
+}))
 export const animatedThumbnailOverlayViewModel = ytv_rvm(() => ({
   thumbnail: components.image
 }))
@@ -3677,6 +3703,10 @@ export const chipBarViewModel = ytv_rvm(() => ({
   chipBarStateEntityKey: ytv_str(),
   chips: ytv_arr(ytv_ren())
 }))
+export const chipContentLoaderViewModel = ytv_rvm(() => ({
+  contents: ytv_arr(ytv_ren()),
+  targetId: ytv_str()
+}))
 export const chipViewModel = ytv_rvm(() => ({
   accessibilityLabel: ytv_str(),
   chipEntityKey: ytv_str(),
@@ -3684,6 +3714,13 @@ export const chipViewModel = ytv_rvm(() => ({
   selected: ytv_bol(),
   tapCommand: ytv_enp(),
   text: ytv_str()
+}))
+export const chipsShelfViewModel = ytv_rvm(() => ({
+  contents: ytv_arr(ytv_ren()),
+  isHorizontallyScrollable: ytv_bol(),
+  isVerticallyStacked: ytv_bol(),
+  nextButton: ytv_ren(),
+  previousButton: ytv_ren()
 }))
 export const collectionThumbnailViewModel = ytv_rvm(() => ({
   primaryThumbnail: ytv_ren(),
@@ -3717,11 +3754,8 @@ export const contentMetadataViewModel = ytv_rvm(() => ({
       accessibilityLabel: ytv_str(),
       avatarStack: ytv_ren(),
       enableTruncation: ytv_bol(),
-      leadingIcon: ytv_sto({
-        height: ytv_num(),
-        name: ytv_str(enums.IconType),
-        width: ytv_num()
-      }),
+      icon: components.metadataPartIcon,
+      leadingIcon: components.metadataPartIcon,
       maxLines: ytv_num(),
       text: textViewModel
     })),
@@ -3797,6 +3831,24 @@ export const feedAdMetadataViewModel = ytv_rvm(() => ({
   secondaryDescription: textViewModel,
   style: ytv_str(['FEED_AD_METADATA_STYLE_COMPACT'])
 }))
+export const feedCustomizationFormViewModel = ytv_rvm(() => ({
+  blockEmptySubmissions: ytv_bol(),
+  clearButton: ytv_ren(),
+  contents: ytv_arr(ytv_ren()),
+  disclaimer: textViewModel,
+  inProgressButton: ytv_ren(),
+  initialTextFieldState: ytv_str(['FEED_CUSTOMIZATION_FORM_VIEW_MODEL_TEXT_FIELD_STATE_EXPANDED', 'FEED_CUSTOMIZATION_FORM_VIEW_MODEL_TEXT_FIELD_STATE_HIDDEN']),
+  loadingMessage: textViewModel,
+  menuButton: ytv_ren(),
+  onUpdateText: ytv_enp(),
+  submitButton: ytv_ren(),
+  talkToRecsStyle: ytv_str(['TALK_TO_RECS_STYLE_CUSTOM_FEED', 'TALK_TO_RECS_STYLE_MULTIPLE_CUSTOM_FEED', 'TALK_TO_RECS_STYLE_MULTIPLE_CUSTOM_FEED_CREATE_FEED']),
+  targetId: ytv_str(),
+  textInputPlaceholder: textViewModel,
+  textInputValue: textViewModel,
+  welcomeBannerSubtitle: textViewModel,
+  welcomeBannerTitle: textViewModel
+}))
 export const firstPartyNetworkSectionViewModel = ytv_rvm(() => ({}))
 export const flexibleActionsViewModel = ytv_rvm(() => ({
   actionsRows: ytv_arr(ytv_sto({
@@ -3804,6 +3856,16 @@ export const flexibleActionsViewModel = ytv_rvm(() => ({
   })),
   justifyContent: ytv_str(['FLEXIBLE_ACTIONS_JUSTIFY_CONTENT_START', 'FLEXIBLE_ACTIONS_JUSTIFY_CONTENT_END', 'FLEXIBLE_ACTIONS_JUSTIFY_CONTENT_EVENLY']),
   minimumRowHeight: ytv_num()
+}))
+export const floatingButtonViewModel = ytv_rvm(() => ({
+  button: ytv_ren(),
+  buttonPosition: ytv_str(['BUTTON_POSITION_TOP_RIGHT']),
+  triggerMechanism: ytv_sto({
+    scrollState: ytv_sto({
+      condition: ytv_str(['SCROLL_CONDITION_ITEM_SCROLLED_PAST']),
+      itemIndex: ytv_num()
+    })
+  })
 }))
 export const genAiFeedbackFormViewModel = ytv_rvm(() => ({
   disclaimer: textViewModel,
@@ -3925,6 +3987,46 @@ export const macroMarkersListViewModel = ytv_rvm(() => ({
   markersEngagementPanelSyncEntityKey: ytv_str(),
   title: textViewModel
 }))
+export const miniAppGameInfoDialogViewModel = ytv_rvm(() => ({
+  closeButton: ytv_ren(),
+  description: ytv_str(),
+  dialogTitle: ytv_str(),
+  image: components.image,
+  infoRow: ytv_arr(ytv_sto({
+    ageRating: ytv_sto({
+      attributedLabel: textViewModel,
+      imageUrl: ytv_str()
+    }),
+    label: ytv_str(),
+    value: ytv_str()
+  })),
+  primaryGenre: ytv_str(),
+  title: ytv_str()
+}))
+export const miniGameCardViewModel = ytv_rvm(() => ({
+  accessibilityText: ytv_str(),
+  actionButton: ytv_ren(),
+  ageRating: ytv_sto({
+    imageUrl: ytv_str(),
+    label: ytv_str()
+  }),
+  colorPalette: ytv_obj(ytv_str(), ytv_num()),
+  genre: ytv_str(),
+  image: components.image,
+  indexInShelf: ytv_num(),
+  inlinePlaybackExperiments: ytv_sto({
+    disableCinematicContainer: ytv_bol(),
+    enableLoggingDirectivesForAndroidInlinePlayback: ytv_bol(),
+    enableSimplifiedAndroidUi: ytv_bol()
+  }),
+  layout: ytv_str(['MINI_APP_LAYOUT_PORTRAIT', 'MINI_APP_LAYOUT_SINGLETON', 'MINI_APP_LAYOUT_SQUARE']),
+  metadataText: ytv_str(),
+  onTap: ytv_enp(),
+  overflowButton: ytv_ren(),
+  responsiveNumVisibleItems: ytv_num(),
+  style: ytv_str(['MINI_GAME_CARD_STYLE_BIG_METADATA_FONT']),
+  title: ytv_str()
+}))
 export const officialCardViewModel = ytv_rvm(() => ({
   backgroundColor: components.themedColor,
   header: ytv_ren()
@@ -4033,6 +4135,7 @@ export const richTextListViewModel = ytv_rvm(() => ({
   }))
 }))
 export const sectionHeaderViewModel = ytv_rvm(() => ({
+  bottomBadges: ytv_arr(ytv_ren()),
   headline: textViewModel,
   leadingAccessory: ytv_sto({
     image: components.image
@@ -4176,7 +4279,7 @@ export const thumbnailBadgeViewModel = ytv_rvm(() => ({
   animationActivationEntitySelectorType: ytv_str(['THUMBNAIL_BADGE_ANIMATION_ENTITY_SELECTOR_TYPE_PLAYER_STATE']),
   animationActivationTargetId: ytv_str(),
   backgroundColor: components.themedColor,
-  badgeStyle: ytv_str(['THUMBNAIL_OVERLAY_BADGE_STYLE_DEFAULT', 'THUMBNAIL_OVERLAY_BADGE_STYLE_LIVE']),
+  badgeStyle: ytv_str(['THUMBNAIL_OVERLAY_BADGE_STYLE_DEFAULT', 'THUMBNAIL_OVERLAY_BADGE_STYLE_LIVE', 'THUMBNAIL_OVERLAY_BADGE_STYLE_SPECIAL']),
   icon: components.image,
   inlinePlaybackBadgeData: ytv_sto({
     replicateAsTimestamp: ytv_bol()
@@ -4203,7 +4306,7 @@ export const thumbnailHoverOverlayViewModel = ytv_rvm(() => ({
   text: textViewModel
 }))
 export const thumbnailOverlayBadgeViewModel = ytv_rvm(() => ({
-  position: ytv_str(['THUMBNAIL_OVERLAY_BADGE_POSITION_BOTTOM_END']),
+  position: ytv_str(['THUMBNAIL_OVERLAY_BADGE_POSITION_BOTTOM_END', 'THUMBNAIL_OVERLAY_BADGE_POSITION_TOP_START']),
   thumbnailBadges: ytv_arr(ytv_ren())
 }))
 export const thumbnailOverlayProgressBarViewModel = ytv_rvm(() => ({
@@ -4330,6 +4433,10 @@ export const videoSummaryContentViewModel = ytv_rvm(() => ({
 }))
 export const videoSummaryParagraphViewModel = ytv_rvm(() => ({
   text: textViewModel
+}))
+export const videoTitleHeaderViewModel = ytv_rvm(() => ({
+  headerButton: ytv_ren(),
+  videoTitle: textViewModel
 }))
 export const visitAdvertiserLinkViewModel = ytv_rvm(() => ({
   interaction: components.adInteraction,

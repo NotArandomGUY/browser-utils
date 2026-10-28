@@ -54,7 +54,14 @@ export const guide = ytv_rsp(() => ({
     launchToShorts: ytv_sto({
       resumeToShorts: ytv_enp()
     })
-  }))
+  })),
+  userProfile: ytv_sto({
+    accountName: ytv_str(),
+    accountPhoto: renderer.components.thumbnail,
+    email: ytv_str(),
+    hasChannel: ytv_bol(),
+    isChannelHidden: ytv_bol()
+  })
 }))
 export const liveChatGetLiveChatReplay = ytv_rsp(() => ({
   contents: ytv_ren(),

@@ -200,6 +200,7 @@ export const commandExecutorCommand = ytv_enp(() => ({
 }))
 export const continuationCommand = ytv_enp(() => ({
   command: ytv_enp(),
+  invalidationGroupId: ytv_str(),
   request: ytv_str(['CONTINUATION_REQUEST_TYPE_ACCOUNTS_LIST', 'CONTINUATION_REQUEST_TYPE_BROWSE', 'CONTINUATION_REQUEST_TYPE_COMMENTS_NOTIFICATION_MENU', 'CONTINUATION_REQUEST_TYPE_COMMENT_REPLIES', 'CONTINUATION_REQUEST_TYPE_GET_PANEL', 'CONTINUATION_REQUEST_TYPE_REEL_WATCH_SEQUENCE', 'CONTINUATION_REQUEST_TYPE_SEARCH', 'CONTINUATION_REQUEST_TYPE_WATCH_NEXT']),
   token: ytv_str()
 }))
@@ -229,6 +230,9 @@ export const entityUpdateCommand = ytv_enp(() => ({
     mutations: ytv_arr(components.entityMutation),
     timestamp: common.components.highResTime
   })
+}))
+export const filterChipTransformCommand = ytv_enp(() => ({
+  chipUniqueId: ytv_str(['ATTRIBUTE_FILTER_TYPE_CUSTOM_FEED_CREATE_FEED', 'ATTRIBUTE_FILTER_TYPE_EXPLORE'])
 }))
 export const getDownloadActionCommand = ytv_enp(() => ({
   isCrossDeviceDownload: ytv_bol(),
@@ -458,6 +462,19 @@ export const startSignInCommand = ytv_enp(() => ({
   identityActionContext: renderer.components.identityActionContext,
   signInType: ytv_str(['SIGN_IN_METHOD_TYPE_DIRECT'])
 }))
+export const talkToRecsNextCommand = ytv_enp(() => ({
+  command: ytv_enp(),
+  stepIds: ytv_arr(ytv_str()),
+  submitEmptyUserQuery: ytv_bol()
+}))
+export const talkToRecsSelectCommand = ytv_enp(() => ({
+  selectBehavior: ytv_str(['TALK_TO_RECS_SELECT_BEHAVIOR_APPEND_TO_QUERY', 'TALK_TO_RECS_SELECT_BEHAVIOR_REPLACE_QUERY']),
+  selectedText: ytv_str(),
+  stepId: ytv_str()
+}))
+export const talkToRecsUpdateTextCommand = ytv_enp(() => ({
+  stepId: ytv_str()
+}))
 export const toggleLiveReactionsMuteCommand = ytv_enp(() => ({
   hack: ytv_bol()
 }))
@@ -549,6 +566,7 @@ export const createPlaylistServiceEndpoint = ytv_enp(() => ({
   params: ytv_str(),
   videoIds: ytv_arr(ytv_str())
 }))
+export const dismissDialogEndpoint = ytv_enp(() => ({}))
 export const feedbackEndpoint = ytv_enp(() => ({
   actions: ytv_arr(ytv_enp()),
   contentId: ytv_str(),

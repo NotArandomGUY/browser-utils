@@ -212,6 +212,15 @@ export const mediaFormat = ytv_sto({
   width: ytv_num(),
   xtags: ytv_str()
 })
+export const metadataPartIcon = ytv_ren({
+  accessibilityLabel: ytv_str(),
+  height: ytv_num(),
+  marginEndToken: ytv_sto({
+    spacing: ytv_num()
+  }),
+  name: ytv_str(enums.IconType),
+  width: ytv_num()
+})
 export const minReadaheadPolicy = ytv_ren({
   minBandwidthBytesPerSec: ytv_num(),
   minReadaheadMs: ytv_num()
@@ -469,7 +478,7 @@ export const subscribeButtonViewModelContent = ytv_ren({
   })
 })
 export const style = ytv_ren({
-  styleType: ytv_str(['STYLE_BLUE_TEXT', 'STYLE_DEFAULT', 'STYLE_DEFAULT_ACTIVE', 'STYLE_GREY_TEXT', 'STYLE_HOME_FILTER', 'STYLE_LARGE_TRANSLUCENT_AND_SELECTED_WHITE', 'STYLE_TEXT', 'STYLE_TRANSPARENT'])
+  styleType: ytv_str(['STYLE_BLUE_TEXT', 'STYLE_COMPACT_GRAY', 'STYLE_DEFAULT', 'STYLE_DEFAULT_ACTIVE', 'STYLE_GREY_TEXT', 'STYLE_HOME_FILTER', 'STYLE_LARGE_TRANSLUCENT_AND_SELECTED_WHITE', 'STYLE_TEXT', 'STYLE_TRANSPARENT'])
 })
 export const text = ytv_ren({
   runs: ytv_arr(ytv_ren({
