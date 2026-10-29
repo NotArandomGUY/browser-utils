@@ -368,36 +368,49 @@ const onPolymerCreate = <T extends YTPolymerController | undefined>(controller: 
 }
 
 const onPolymerConnected = ({ self }: CallContext<YTPolymerElement, unknown[], void>): HookResult => {
-  if (typeof self.is !== 'string') return HookResult.EXECUTION_PASSTHROUGH
-
   // Ignore callbacks during move
   if (PolymerElementMovingSymbol in self) {
     delete self[PolymerElementMovingSymbol]
     return HookResult.EXECUTION_CONTINUE
   }
 
-  try {
-    YTPolymerConnectCallback.invoke(self)
-  } catch (error) {
-    logger.warn('polymer connect callback error:', error)
+  if (typeof self.is === 'string') {
+    try {
+      YTPolymerConnectCallback.invoke(self)
+    } catch (error) {
+      logger.warn('polymer connect callback error:', error)
+    }
   }
 
   return HookResult.EXECUTION_PASSTHROUGH
 }
 
 const onPolymerDisconnected = ({ self }: CallContext<YTPolymerElement, unknown[], void>): HookResult => {
-  if (typeof self.is !== 'string') return HookResult.EXECUTION_PASSTHROUGH
-
   // Ignore callbacks during move
   if (PolymerElementMovingSymbol in self) return HookResult.EXECUTION_CONTINUE
 
-  try {
-    YTPolymerDisconnectCallback.invoke(self)
-  } catch (error) {
-    logger.warn('polymer disconnect callback error:', error)
+  if (typeof self.is === 'string') {
+    try {
+      YTPolymerDisconnectCallback.invoke(self)
+    } catch (error) {
+      logger.warn('polymer disconnect callback error:', error)
+    }
   }
 
   return HookResult.EXECUTION_PASSTHROUGH
+}
+
+const movePolymerElement = (node: Node): void => {
+  const element = node as YTPolymerElement
+  if (typeof element.is === 'string' && 'connectedCallback' in element) {
+    (node as unknown as YTPolymerElement)[PolymerElementMovingSymbol] = true
+  }
+
+  let current = node.firstChild
+  while (current != null) {
+    movePolymerElement(current)
+    current = current.nextSibling
+  }
 }
 
 export const isYTLoggedIn = (): boolean => {
@@ -656,9 +669,8 @@ export default class YTCoreBootstrapModule extends Feature {
 
       return HookResult.EXECUTION_PASSTHROUGH
     }).call
-    Node.prototype.insertBefore = new Hook(Node.prototype.insertBefore).install(({ args }) => {
-      const node = args[0] as YTPolymerElement
-      if (typeof node.is === 'string') node[PolymerElementMovingSymbol] = true
+    Node.prototype.insertBefore = new Hook(Node.prototype.insertBefore).install(({ args: [node] }) => {
+      if (node.isConnected) movePolymerElement(node)
 
       return HookResult.EXECUTION_PASSTHROUGH
     }).call as typeof Node.prototype.insertBefore
